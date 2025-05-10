@@ -1,14 +1,9 @@
-#pragma comment(lib,"d3d12.lib")
-#pragma comment(lib,"dxgi.lib")
-#pragma comment(lib,"d3dcompiler.lib")
-#pragma comment(lib,"dxguid.lib")
-#pragma comment(lib,"Shlwapi.lib")
-
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <Shlwapi.h>
 
 #include "Application.h"
+#include "Device.h"
 #include "DemoGame.h"
 
 #include <dxgidebug.h>
@@ -24,6 +19,10 @@ void ReportLiveObjects() {
 int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int nCmdShow) {
     int retCode = 0;
 
+#if defined( _DEBUG )
+    Device::EnableDebugLayer();
+#endif
+
     // Set the working directory to the path of the executable.
     WCHAR path[MAX_PATH];
     HMODULE hModule = GetModuleHandleW(NULL);
@@ -34,8 +33,8 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 
     Application::Create(hInstance);
     {
-        std::shared_ptr<DemoGame> demo = std::make_shared<DemoGame>(L"Learning DirectX 12 - Lesson 2", 1280, 720);
-        retCode = Application::Get().Run(demo);
+        std::unique_ptr<IGame> demo = std::make_unique<DemoGame>(L"DX12 Render", 1280, 720);
+        retCode = demo->Run();
     }
     Application::Destroy();
 

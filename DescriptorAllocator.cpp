@@ -3,14 +3,14 @@
 #include "DescriptorAllocator.h"
 #include "DescriptorAllocatorPage.h"
 
-DescriptorAllocator::DescriptorAllocator(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptorsPerHeap)
-    : m_HeapType(type)
+DescriptorAllocator::DescriptorAllocator(Device& device, D3D12_DESCRIPTOR_HEAP_TYPE type,
+    uint32_t numDescriptorsPerHeap)
+    : m_Device(device)
+    , m_HeapType(type)
     , m_NumDescriptorsPerHeap(numDescriptorsPerHeap) {}
 
-DescriptorAllocator::~DescriptorAllocator() {}
-
 std::shared_ptr<DescriptorAllocatorPage> DescriptorAllocator::CreateAllocatorPage() {
-    auto newPage = std::make_shared<DescriptorAllocatorPage>(m_HeapType, m_NumDescriptorsPerHeap);
+    std::shared_ptr<DescriptorAllocatorPage> newPage = std::make_shared<DescriptorAllocatorPage>(m_Device, m_HeapType, m_NumDescriptorsPerHeap);
 
     m_HeapPool.emplace_back(newPage);
     m_AvailableHeaps.insert(m_HeapPool.size() - 1);
@@ -23,14 +23,17 @@ DescriptorAllocation DescriptorAllocator::Allocate(uint32_t numDescriptors) {
 
     DescriptorAllocation allocation;
 
-    for(auto iter = m_AvailableHeaps.begin(); iter != m_AvailableHeaps.end(); ++iter) {
+    auto iter = m_AvailableHeaps.begin();
+    while(iter != m_AvailableHeaps.end()) {
         auto allocatorPage = m_HeapPool[*iter];
 
-        // Will return default DescriptorAllocation if allocation fails
         allocation = allocatorPage->Allocate(numDescriptors);
 
         if(allocatorPage->NumFreeHandles() == 0) {
             iter = m_AvailableHeaps.erase(iter);
+        }
+        else {
+            ++iter;
         }
 
         // A valid allocation has been found.
@@ -50,13 +53,13 @@ DescriptorAllocation DescriptorAllocator::Allocate(uint32_t numDescriptors) {
     return allocation;
 }
 
-void DescriptorAllocator::ReleaseStaleDescriptors(uint64_t frameNumber) {
+void DescriptorAllocator::ReleaseStaleDescriptors() {
     std::lock_guard<std::mutex> lock(m_AllocationMutex);
 
     for(size_t i = 0; i < m_HeapPool.size(); ++i) {
         auto page = m_HeapPool[i];
 
-        page->ReleaseStaleDescriptors(frameNumber);
+        page->ReleaseStaleDescriptors();
 
         if(page->NumFreeHandles() > 0) {
             m_AvailableHeaps.insert(i);

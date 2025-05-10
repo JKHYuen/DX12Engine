@@ -2,7 +2,6 @@
 
 #include "DescriptorAllocation.h"
 
-#include "Application.h"
 #include "DescriptorAllocatorPage.h"
 
 DescriptorAllocation::DescriptorAllocation()
@@ -22,7 +21,7 @@ DescriptorAllocation::~DescriptorAllocation() {
     Free();
 }
 
-DescriptorAllocation::DescriptorAllocation(DescriptorAllocation&& allocation)
+DescriptorAllocation::DescriptorAllocation(DescriptorAllocation&& allocation) noexcept
     : m_Descriptor(allocation.m_Descriptor)
     , m_NumHandles(allocation.m_NumHandles)
     , m_DescriptorSize(allocation.m_DescriptorSize)
@@ -32,7 +31,7 @@ DescriptorAllocation::DescriptorAllocation(DescriptorAllocation&& allocation)
     allocation.m_DescriptorSize = 0;
 }
 
-DescriptorAllocation& DescriptorAllocation::operator=(DescriptorAllocation&& other) {
+DescriptorAllocation& DescriptorAllocation::operator=(DescriptorAllocation&& other) noexcept {
     // Free this descriptor if it points to anything.
     Free();
 
@@ -50,7 +49,7 @@ DescriptorAllocation& DescriptorAllocation::operator=(DescriptorAllocation&& oth
 
 void DescriptorAllocation::Free() {
     if(!IsNull() && m_Page) {
-        m_Page->Free(std::move(*this), Application::GetFrameCount());
+        m_Page->Free(std::move(*this));
 
         m_Descriptor.ptr = 0;
         m_NumHandles = 0;

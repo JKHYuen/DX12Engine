@@ -31,7 +31,6 @@
   */
 
 #include <DirectXMath.h>
-
 #include <d3d12.h>
 
 struct VertexPosition {
@@ -55,7 +54,8 @@ private:
 struct VertexPositionNormalTangentBitangentTexture {
     VertexPositionNormalTangentBitangentTexture() = default;
 
-    explicit VertexPositionNormalTangentBitangentTexture(const DirectX::XMFLOAT3& position,
+    explicit VertexPositionNormalTangentBitangentTexture(
+        const DirectX::XMFLOAT3& position,
         const DirectX::XMFLOAT3& normal,
         const DirectX::XMFLOAT3& texCoord,
         const DirectX::XMFLOAT3& tangent = {0, 0, 0},
@@ -66,10 +66,10 @@ struct VertexPositionNormalTangentBitangentTexture {
         , Bitangent(bitangent)
         , TexCoord(texCoord) {}
 
-    explicit VertexPositionNormalTangentBitangentTexture(DirectX::FXMVECTOR position, DirectX::FXMVECTOR normal,
-        DirectX::FXMVECTOR texCoord,
-        DirectX::GXMVECTOR tangent = {0, 0, 0, 0},
-        DirectX::HXMVECTOR bitangent = {0, 0, 0, 0}) {
+    explicit VertexPositionNormalTangentBitangentTexture(
+        DirectX::FXMVECTOR position, DirectX::FXMVECTOR normal, DirectX::FXMVECTOR texCoord,
+        DirectX::GXMVECTOR tangent = {0, 0, 0, 0}, DirectX::HXMVECTOR bitangent = {0, 0, 0, 0}) {
+
         DirectX::XMStoreFloat3(&(this->Position), position);
         DirectX::XMStoreFloat3(&(this->Normal), normal);
         DirectX::XMStoreFloat3(&(this->Tangent), tangent);

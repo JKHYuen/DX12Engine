@@ -35,13 +35,12 @@
 
 class ConstantBuffer : public Buffer {
 public:
+    ConstantBuffer(Device& device, Microsoft::WRL::ComPtr<ID3D12Resource> resource);
+    virtual ~ConstantBuffer() = default;
+
     size_t GetSizeInBytes() const {
         return m_SizeInBytes;
     }
-
-protected:
-    ConstantBuffer(Device& device, Microsoft::WRL::ComPtr<ID3D12Resource> resource);
-    virtual ~ConstantBuffer();
 
 private:
     size_t m_SizeInBytes;

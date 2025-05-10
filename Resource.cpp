@@ -4,6 +4,7 @@
          
 #include "Application.h"
 #include "ResourceStateTracker.h"
+#include "Device.h"
 
 Resource::Resource(Device& device, const D3D12_RESOURCE_DESC& resourceDesc, const D3D12_CLEAR_VALUE* clearValue)
     : m_Device(device) {
@@ -13,17 +14,23 @@ Resource::Resource(Device& device, const D3D12_RESOURCE_DESC& resourceDesc, cons
         m_d3d12ClearValue = std::make_unique<D3D12_CLEAR_VALUE>(*clearValue);
     }
 
+    auto defaultHeapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
     ThrowIfFailed(d3d12Device->CreateCommittedResource(
-        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAG_NONE, &resourceDesc,
-        D3D12_RESOURCE_STATE_COMMON, m_d3d12ClearValue.get(), IID_PPV_ARGS(&m_d3d12Resource)));
+        &defaultHeapProp,
+        D3D12_HEAP_FLAG_NONE,
+        &resourceDesc,
+        D3D12_RESOURCE_STATE_COMMON,
+        m_d3d12ClearValue.get(), 
+        IID_PPV_ARGS(&m_d3d12Resource))
+    );
 
     ResourceStateTracker::AddGlobalResourceState(m_d3d12Resource.Get(), D3D12_RESOURCE_STATE_COMMON);
 
     CheckFeatureSupport();
 }
 
-Resource::Resource(Device& device, Microsoft::WRL::ComPtr<ID3D12Resource> resource,
-    const D3D12_CLEAR_VALUE* clearValue)
+Resource::Resource(Device& device, Microsoft::WRL::ComPtr<ID3D12Resource> resource, const D3D12_CLEAR_VALUE* clearValue)
     : m_Device(device)
     , m_d3d12Resource(resource) {
     if(clearValue) {

@@ -2,45 +2,41 @@
 
 #include "Texture.h"
 
+#include "Device.h"
 #include "Application.h"
 #include "Helpers.h"
 #include "ResourceStateTracker.h"
 
 
-Texture::Texture(const D3D12_RESOURCE_DESC& resourceDesc, const D3D12_CLEAR_VALUE* clearValue)
-    : Resource(resourceDesc, clearValue) {
+Texture::Texture(Device& device, const D3D12_RESOURCE_DESC& resourceDesc, const D3D12_CLEAR_VALUE* clearValue)
+    : Resource(device, resourceDesc, clearValue) {
     CreateViews();
 }
 
-Texture::Texture(Microsoft::WRL::ComPtr<ID3D12Resource> resource)
-    : Resource(resource) {
+Texture::Texture(Device& device, ComPtr<ID3D12Resource> resource,
+    const D3D12_CLEAR_VALUE* clearValue)
+    : Resource(device, resource, clearValue) {
     CreateViews();
 }
-
-Texture::~Texture() {}
 
 void Texture::Resize(uint32_t width, uint32_t height, uint32_t depthOrArraySize) {
-    // Resource can't be resized if it was never created in the first place.
     if(m_d3d12Resource) {
-        //ResourceStateTracker::RemoveGlobalResourceState(m_d3d12Resource.Get());
+        // ResourceStateTracker::RemoveGlobalResourceState( m_d3d12Resource.Get() );
 
         CD3DX12_RESOURCE_DESC resDesc(m_d3d12Resource->GetDesc());
 
         resDesc.Width = std::max(width, 1u);
         resDesc.Height = std::max(height, 1u);
         resDesc.DepthOrArraySize = depthOrArraySize;
+        resDesc.MipLevels = resDesc.SampleDesc.Count > 1 ? 1 : 0;
 
-        auto device = Application::Get().GetDevice();
+        auto d3d12Device = m_Device.GetD3D12Device();
 
-        CD3DX12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-        ThrowIfFailed(device->CreateCommittedResource(
-            &heapProp,
-            D3D12_HEAP_FLAG_NONE,
-            &resDesc,
-            D3D12_RESOURCE_STATE_COMMON,
-            m_d3d12ClearValue.get(),
-            IID_PPV_ARGS(&m_d3d12Resource)
-        ));
+        auto defaultHeapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
+        ThrowIfFailed(d3d12Device->CreateCommittedResource(
+            &defaultHeapProp, D3D12_HEAP_FLAG_NONE, &resDesc,
+            D3D12_RESOURCE_STATE_COMMON, m_d3d12ClearValue.get(), IID_PPV_ARGS(&m_d3d12Resource)));
 
         // Retain the name of the resource if one was already specified.
         m_d3d12Resource->SetName(m_ResourceName.c_str());
@@ -52,7 +48,8 @@ void Texture::Resize(uint32_t width, uint32_t height, uint32_t depthOrArraySize)
 }
 
 // Get a UAV description that matches the resource description.
-D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(const D3D12_RESOURCE_DESC& resDesc, UINT mipSlice, UINT arraySlice = 0, UINT planeSlice = 0) {
+D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(const D3D12_RESOURCE_DESC& resDesc, UINT mipSlice, UINT arraySlice = 0,
+    UINT planeSlice = 0) {
     D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
     uavDesc.Format = resDesc.Format;
 
@@ -98,88 +95,40 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(const D3D12_RESOURCE_DESC& resDesc, 
 
 void Texture::CreateViews() {
     if(m_d3d12Resource) {
-        auto& app = Application::Get();
-        auto device = app.GetDevice();
+        auto d3d12Device = m_Device.GetD3D12Device();
 
         CD3DX12_RESOURCE_DESC desc(m_d3d12Resource->GetDesc());
 
-        D3D12_FEATURE_DATA_FORMAT_SUPPORT formatSupport;
-        formatSupport.Format = desc.Format;
-        ThrowIfFailed(device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT)));
-
-        if((desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET) != 0 &&
-            CheckRTVSupport(formatSupport.Support1)) {
-            m_RenderTargetView = app.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-            device->CreateRenderTargetView(m_d3d12Resource.Get(), nullptr, m_RenderTargetView.GetDescriptorHandle());
+        // Create RTV
+        if((desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET) != 0 && CheckRTVSupport()) {
+            m_RenderTargetView = m_Device.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+            d3d12Device->CreateRenderTargetView(m_d3d12Resource.Get(), nullptr,
+                m_RenderTargetView.GetDescriptorHandle());
         }
-        if((desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0 &&
-            CheckDSVSupport(formatSupport.Support1)) {
-            m_DepthStencilView = app.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-            device->CreateDepthStencilView(m_d3d12Resource.Get(), nullptr, m_DepthStencilView.GetDescriptorHandle());
+        // Create DSV
+        if((desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0 && CheckDSVSupport()) {
+            m_DepthStencilView = m_Device.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+            d3d12Device->CreateDepthStencilView(m_d3d12Resource.Get(), nullptr,
+                m_DepthStencilView.GetDescriptorHandle());
+        }
+        // Create SRV
+        if((desc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE) == 0 && CheckSRVSupport()) {
+            m_ShaderResourceView = m_Device.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+            d3d12Device->CreateShaderResourceView(m_d3d12Resource.Get(), nullptr,
+                m_ShaderResourceView.GetDescriptorHandle());
+        }
+        // Create UAV for each mip (only supported for 1D and 2D textures).
+        if((desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS) != 0 && CheckUAVSupport() &&
+            desc.DepthOrArraySize == 1) {
+            m_UnorderedAccessView =
+                m_Device.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, desc.MipLevels);
+            for(int i = 0; i < desc.MipLevels; ++i) {
+                auto uavDesc = GetUAVDesc(desc, i);
+                d3d12Device->CreateUnorderedAccessView(m_d3d12Resource.Get(), nullptr, &uavDesc,
+                    m_UnorderedAccessView.GetDescriptorHandle(i));
+            }
         }
     }
-
-    std::lock_guard<std::mutex> lock(m_ShaderResourceViewsMutex);
-    std::lock_guard<std::mutex> guard(m_UnorderedAccessViewsMutex);
-
-    // SRVs and UAVs will be created as needed.
-    m_ShaderResourceViews.clear();
-    m_UnorderedAccessViews.clear();
-}
-
-DescriptorAllocation Texture::CreateShaderResourceView(const D3D12_SHADER_RESOURCE_VIEW_DESC* srvDesc) const {
-    auto& app = Application::Get();
-    auto device = app.GetDevice();
-    auto srv = app.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-    device->CreateShaderResourceView(m_d3d12Resource.Get(), srvDesc, srv.GetDescriptorHandle());
-
-    return srv;
-}
-
-DescriptorAllocation Texture::CreateUnorderedAccessView(const D3D12_UNORDERED_ACCESS_VIEW_DESC* uavDesc) const {
-    auto& app = Application::Get();
-    auto device = app.GetDevice();
-    auto uav = app.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-    device->CreateUnorderedAccessView(m_d3d12Resource.Get(), nullptr, uavDesc, uav.GetDescriptorHandle());
-
-    return uav;
-}
-
-
-D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetShaderResourceView(const D3D12_SHADER_RESOURCE_VIEW_DESC* srvDesc) const {
-    std::size_t hash = 0;
-    if(srvDesc) {
-        hash = std::hash<D3D12_SHADER_RESOURCE_VIEW_DESC> {}(*srvDesc);
-    }
-
-    std::lock_guard<std::mutex> lock(m_ShaderResourceViewsMutex);
-
-    auto iter = m_ShaderResourceViews.find(hash);
-    if(iter == m_ShaderResourceViews.end()) {
-        auto srv = CreateShaderResourceView(srvDesc);
-        iter = m_ShaderResourceViews.insert({hash, std::move(srv)}).first;
-    }
-
-    return iter->second.GetDescriptorHandle();
-}
-
-D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetUnorderedAccessView(const D3D12_UNORDERED_ACCESS_VIEW_DESC* uavDesc) const {
-    std::size_t hash = 0;
-    if(uavDesc) {
-        hash = std::hash<D3D12_UNORDERED_ACCESS_VIEW_DESC> {}(*uavDesc);
-    }
-
-    std::lock_guard<std::mutex> guard(m_UnorderedAccessViewsMutex);
-
-    auto iter = m_UnorderedAccessViews.find(hash);
-    if(iter == m_UnorderedAccessViews.end()) {
-        auto uav = CreateUnorderedAccessView(uavDesc);
-        iter = m_UnorderedAccessViews.insert({hash, std::move(uav)}).first;
-    }
-
-    return iter->second.GetDescriptorHandle();
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetRenderTargetView() const {
@@ -190,13 +139,80 @@ D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetDepthStencilView() const {
     return m_DepthStencilView.GetDescriptorHandle();
 }
 
+D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetShaderResourceView() const {
+    return m_ShaderResourceView.GetDescriptorHandle();
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetUnorderedAccessView(uint32_t mip) const {
+    return m_UnorderedAccessView.GetDescriptorHandle(mip);
+}
+
+bool Texture::HasAlpha() const {
+    DXGI_FORMAT format = GetD3D12ResourceDesc().Format;
+
+    bool hasAlpha = false;
+
+    switch(format) {
+    case DXGI_FORMAT_R32G32B32A32_TYPELESS:
+    case DXGI_FORMAT_R32G32B32A32_FLOAT:
+    case DXGI_FORMAT_R32G32B32A32_UINT:
+    case DXGI_FORMAT_R32G32B32A32_SINT:
+    case DXGI_FORMAT_R16G16B16A16_TYPELESS:
+    case DXGI_FORMAT_R16G16B16A16_FLOAT:
+    case DXGI_FORMAT_R16G16B16A16_UNORM:
+    case DXGI_FORMAT_R16G16B16A16_UINT:
+    case DXGI_FORMAT_R16G16B16A16_SNORM:
+    case DXGI_FORMAT_R16G16B16A16_SINT:
+    case DXGI_FORMAT_R10G10B10A2_TYPELESS:
+    case DXGI_FORMAT_R10G10B10A2_UNORM:
+    case DXGI_FORMAT_R10G10B10A2_UINT:
+    case DXGI_FORMAT_R8G8B8A8_TYPELESS:
+    case DXGI_FORMAT_R8G8B8A8_UNORM:
+    case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
+    case DXGI_FORMAT_R8G8B8A8_UINT:
+    case DXGI_FORMAT_R8G8B8A8_SNORM:
+    case DXGI_FORMAT_R8G8B8A8_SINT:
+    case DXGI_FORMAT_BC1_TYPELESS:
+    case DXGI_FORMAT_BC1_UNORM:
+    case DXGI_FORMAT_BC1_UNORM_SRGB:
+    case DXGI_FORMAT_BC2_TYPELESS:
+    case DXGI_FORMAT_BC2_UNORM:
+    case DXGI_FORMAT_BC2_UNORM_SRGB:
+    case DXGI_FORMAT_BC3_TYPELESS:
+    case DXGI_FORMAT_BC3_UNORM:
+    case DXGI_FORMAT_BC3_UNORM_SRGB:
+    case DXGI_FORMAT_B5G5R5A1_UNORM:
+    case DXGI_FORMAT_B8G8R8A8_UNORM:
+    case DXGI_FORMAT_B8G8R8X8_UNORM:
+    case DXGI_FORMAT_R10G10B10_XR_BIAS_A2_UNORM:
+    case DXGI_FORMAT_B8G8R8A8_TYPELESS:
+    case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
+    case DXGI_FORMAT_B8G8R8X8_TYPELESS:
+    case DXGI_FORMAT_B8G8R8X8_UNORM_SRGB:
+    case DXGI_FORMAT_BC6H_TYPELESS:
+    case DXGI_FORMAT_BC7_TYPELESS:
+    case DXGI_FORMAT_BC7_UNORM:
+    case DXGI_FORMAT_BC7_UNORM_SRGB:
+    case DXGI_FORMAT_A8P8:
+    case DXGI_FORMAT_B4G4R4A4_UNORM:
+        hasAlpha = true;
+        break;
+    }
+
+    return hasAlpha;
+}
+
+size_t Texture::BitsPerPixel() const {
+    auto format = GetD3D12ResourceDesc().Format;
+    return DirectX::BitsPerPixel(format);
+}
+
 bool Texture::IsUAVCompatibleFormat(DXGI_FORMAT format) {
     switch(format) {
     case DXGI_FORMAT_R32G32B32A32_FLOAT:
     case DXGI_FORMAT_R32G32B32A32_UINT:
     case DXGI_FORMAT_R32G32B32A32_SINT:
     case DXGI_FORMAT_R16G16B16A16_FLOAT:
-        //    case DXGI_FORMAT_R16G16B16A16_UNORM:
     case DXGI_FORMAT_R16G16B16A16_UINT:
     case DXGI_FORMAT_R16G16B16A16_SINT:
     case DXGI_FORMAT_R8G8B8A8_UNORM:
@@ -220,8 +236,12 @@ bool Texture::IsUAVCompatibleFormat(DXGI_FORMAT format) {
 bool Texture::IsSRGBFormat(DXGI_FORMAT format) {
     switch(format) {
     case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
+    case DXGI_FORMAT_BC1_UNORM_SRGB:
+    case DXGI_FORMAT_BC2_UNORM_SRGB:
+    case DXGI_FORMAT_BC3_UNORM_SRGB:
     case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
     case DXGI_FORMAT_B8G8R8X8_UNORM_SRGB:
+    case DXGI_FORMAT_BC7_UNORM_SRGB:
         return true;
     default:
         return false;
@@ -232,13 +252,14 @@ bool Texture::IsBGRFormat(DXGI_FORMAT format) {
     switch(format) {
     case DXGI_FORMAT_B8G8R8A8_UNORM:
     case DXGI_FORMAT_B8G8R8X8_UNORM:
+    case DXGI_FORMAT_B8G8R8A8_TYPELESS:
     case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
+    case DXGI_FORMAT_B8G8R8X8_TYPELESS:
     case DXGI_FORMAT_B8G8R8X8_UNORM_SRGB:
         return true;
     default:
         return false;
     }
-
 }
 
 bool Texture::IsDepthFormat(DXGI_FORMAT format) {
@@ -319,6 +340,7 @@ DXGI_FORMAT Texture::GetTypelessFormat(DXGI_FORMAT format) {
     case DXGI_FORMAT_R16_SNORM:
     case DXGI_FORMAT_R16_SINT:
         typelessFormat = DXGI_FORMAT_R16_TYPELESS;
+        break;
     case DXGI_FORMAT_R8_UNORM:
     case DXGI_FORMAT_R8_UINT:
     case DXGI_FORMAT_R8_SNORM:
@@ -362,4 +384,56 @@ DXGI_FORMAT Texture::GetTypelessFormat(DXGI_FORMAT format) {
     }
 
     return typelessFormat;
+}
+
+DXGI_FORMAT Texture::GetSRGBFormat(DXGI_FORMAT format) {
+    DXGI_FORMAT srgbFormat = format;
+    switch(format) {
+    case DXGI_FORMAT_R8G8B8A8_UNORM:
+        srgbFormat = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+        break;
+    case DXGI_FORMAT_BC1_UNORM:
+        srgbFormat = DXGI_FORMAT_BC1_UNORM_SRGB;
+        break;
+    case DXGI_FORMAT_BC2_UNORM:
+        srgbFormat = DXGI_FORMAT_BC2_UNORM_SRGB;
+        break;
+    case DXGI_FORMAT_BC3_UNORM:
+        srgbFormat = DXGI_FORMAT_BC3_UNORM_SRGB;
+        break;
+    case DXGI_FORMAT_B8G8R8A8_UNORM:
+        srgbFormat = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+        break;
+    case DXGI_FORMAT_B8G8R8X8_UNORM:
+        srgbFormat = DXGI_FORMAT_B8G8R8X8_UNORM_SRGB;
+        break;
+    case DXGI_FORMAT_BC7_UNORM:
+        srgbFormat = DXGI_FORMAT_BC7_UNORM_SRGB;
+        break;
+    }
+
+    return srgbFormat;
+}
+
+DXGI_FORMAT Texture::GetUAVCompatableFormat(DXGI_FORMAT format) {
+    DXGI_FORMAT uavFormat = format;
+
+    switch(format) {
+    case DXGI_FORMAT_R8G8B8A8_TYPELESS:
+    case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
+    case DXGI_FORMAT_B8G8R8A8_UNORM:
+    case DXGI_FORMAT_B8G8R8X8_UNORM:
+    case DXGI_FORMAT_B8G8R8A8_TYPELESS:
+    case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
+    case DXGI_FORMAT_B8G8R8X8_TYPELESS:
+    case DXGI_FORMAT_B8G8R8X8_UNORM_SRGB:
+        uavFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+        break;
+    case DXGI_FORMAT_R32_TYPELESS:
+    case DXGI_FORMAT_D32_FLOAT:
+        uavFormat = DXGI_FORMAT_R32_FLOAT;
+        break;
+    }
+
+    return uavFormat;
 }

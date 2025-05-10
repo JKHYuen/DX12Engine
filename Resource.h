@@ -34,6 +34,7 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 
+#include <memory>
 #include <string>
 
 class Device;
@@ -64,7 +65,7 @@ public:
     /**
      * Set the name of the resource. Useful for debugging purposes.
      */
-    void                SetName(const std::wstring& name);
+    void SetName(const std::wstring& name);
     const std::wstring& GetName() const {
         return m_ResourceName;
     }
@@ -76,13 +77,11 @@ public:
     bool CheckFormatSupport(D3D12_FORMAT_SUPPORT2 formatSupport) const;
 
 protected:
-    //    friend class CommandList;
+    // friend class CommandList;
 
-        // Resource creation should go through the device.
-    Resource(Device& device, const D3D12_RESOURCE_DESC& resourceDesc,
-        const D3D12_CLEAR_VALUE* clearValue = nullptr);
-    Resource(Device& device, Microsoft::WRL::ComPtr<ID3D12Resource> resource,
-        const D3D12_CLEAR_VALUE* clearValue = nullptr);
+    // Resource creation should go through the device.
+    Resource(Device& device, const D3D12_RESOURCE_DESC& resourceDesc, const D3D12_CLEAR_VALUE* clearValue = nullptr);
+    Resource(Device& device, Microsoft::WRL::ComPtr<ID3D12Resource> resource, const D3D12_CLEAR_VALUE* clearValue = nullptr);
 
     virtual ~Resource() = default;
 

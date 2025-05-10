@@ -36,17 +36,11 @@
 
 #include <d3dx12.h>
 
+class Device;
+
 class ByteAddressBuffer : public Buffer {
 public:
-    size_t GetBufferSize() const {
-        return m_BufferSize;
-    }
-
-protected:
-    ByteAddressBuffer(const D3D12_RESOURCE_DESC& resDesc);
-    ByteAddressBuffer(Microsoft::WRL::ComPtr<ID3D12Resource> resource);
+    ByteAddressBuffer(Device& device, size_t bufferSize);
+    ByteAddressBuffer(Device& device, Microsoft::WRL::ComPtr<ID3D12Resource> resource);
     virtual ~ByteAddressBuffer() = default;
-
-private:
-    size_t m_BufferSize;
 };

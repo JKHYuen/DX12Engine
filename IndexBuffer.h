@@ -34,6 +34,12 @@
 
 class IndexBuffer : public Buffer {
 public:
+
+    IndexBuffer(Device& device, size_t numIndices, DXGI_FORMAT indexFormat);
+    IndexBuffer(Device& device, Microsoft::WRL::ComPtr<ID3D12Resource> resource, size_t numIndices,
+        DXGI_FORMAT indexFormat);
+    virtual ~IndexBuffer() = default;
+
     /**
      * Get the index buffer view for biding to the Input Assembler stage.
      */
@@ -50,11 +56,6 @@ public:
     }
 
 protected:
-    IndexBuffer(Device& device, size_t numIndices, DXGI_FORMAT indexFormat);
-    IndexBuffer(Device& device, Microsoft::WRL::ComPtr<ID3D12Resource> resource, size_t numIndices,
-        DXGI_FORMAT indexFormat);
-    virtual ~IndexBuffer() = default;
-
     void CreateIndexBufferView();
 
 private:

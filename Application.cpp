@@ -1,44 +1,110 @@
 #include <DX12LibPCH.h>
 #include "Application.h"
 
+#include <iostream>
+#include <comdef.h>
+#include <fcntl.h>
+#include <io.h>
+
 #include "CommandQueue.h"
-#include "Game.h"
 #include "DescriptorAllocator.h"
 #include "Window.h"
 
-#define APP_ICON 5
-
-constexpr wchar_t WINDOW_CLASS_NAME[] = L"DX12RenderWindowClass";
-
-using WindowPtr = std::shared_ptr<Window>;
-using WindowMap = std::map<HWND, WindowPtr>;
-using WindowNameMap = std::map<std::wstring, WindowPtr>;
+#define APP_ICON 101
 
 static Application* gs_pSingelton = nullptr;
-static WindowMap gs_Windows;
-static WindowNameMap gs_WindowByName;
+constexpr wchar_t WINDOW_CLASS_NAME[] = L"DX12RenderWindowClass";
 
-uint64_t Application::ms_FrameCount = 0;
+constexpr int MAX_CONSOLE_LINES = 500;
+
+using WindowMap = std::map<HWND, std::weak_ptr<Window>>;
+using WindowMapByName = std::map<std::wstring, std::weak_ptr<Window>>;
+static WindowMap       gs_WindowMap;
+static WindowMapByName gs_WindowMapByName;
+
+static std::mutex gs_WindowHandlesMutex;
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
-extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 // A wrapper struct to allow shared pointers for the window class.
-// This is needed because the constructor and destructor for the Window
-// class are protected and not accessible by the std::make_shared method.
 struct MakeWindow : public Window {
-    MakeWindow(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync)
-        : Window(hWnd, windowName, clientWidth, clientHeight, vSync) {}
+    MakeWindow(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight)
+        : Window(hWnd, windowName, clientWidth, clientHeight) {}
 };
+
+static void CreateConsole() {
+    // Allocate a console.
+    if(AllocConsole()) {
+        HANDLE lStdHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+
+        // Increase screen buffer to allow more lines of text than the default.
+        CONSOLE_SCREEN_BUFFER_INFO consoleInfo;
+        GetConsoleScreenBufferInfo(lStdHandle, &consoleInfo);
+        consoleInfo.dwSize.Y = MAX_CONSOLE_LINES;
+        SetConsoleScreenBufferSize(lStdHandle, consoleInfo.dwSize);
+        SetConsoleCursorPosition(lStdHandle, {0, 0});
+
+        // Redirect unbuffered STDOUT to the console.
+        int   hConHandle = _open_osfhandle((intptr_t)lStdHandle, _O_TEXT);
+        FILE* fp = _fdopen(hConHandle, "w");
+        freopen_s(&fp, "CONOUT$", "w", stdout);
+        setvbuf(stdout, nullptr, _IONBF, 0);
+
+        // Redirect unbuffered STDIN to the console.
+        lStdHandle = GetStdHandle(STD_INPUT_HANDLE);
+        hConHandle = _open_osfhandle((intptr_t)lStdHandle, _O_TEXT);
+        fp = _fdopen(hConHandle, "r");
+        freopen_s(&fp, "CONIN$", "r", stdin);
+        setvbuf(stdin, nullptr, _IONBF, 0);
+
+        // Redirect unbuffered STDERR to the console.
+        lStdHandle = GetStdHandle(STD_ERROR_HANDLE);
+        hConHandle = _open_osfhandle((intptr_t)lStdHandle, _O_TEXT);
+        fp = _fdopen(hConHandle, "w");
+        freopen_s(&fp, "CONOUT$", "w", stderr);
+        setvbuf(stderr, nullptr, _IONBF, 0);
+
+        // Clear the error state for each of the C++ standard stream objects. We
+        // need to do this, as attempts to access the standard streams before
+        // they refer to a valid target will cause the iostream objects to enter
+        // an error state. In versions of Visual Studio after 2005, this seems
+        // to always occur during startup regardless of whether anything has
+        // been read from or written to the console or not.
+        std::wcout.clear();
+        std::cout.clear();
+        std::wcerr.clear();
+        std::cerr.clear();
+        std::wcin.clear();
+        std::cin.clear();
+    }
+}
 
 Application::Application(HINSTANCE hInst)
     : m_hInstance(hInst)
-    , m_TearingSupported(false) {
+    , m_bIsRunning(false)
+    , m_RequestQuit(false) {
     // Windows 10 Creators update adds Per Monitor V2 DPI awareness context.
-    // Using this awareness context allows the client area of the window 
-    // to achieve 100% scaling while still allowing non-client window content to 
+    // Using this awareness context allows the client area of the window
+    // to achieve 100% scaling while still allowing non-client window content to
     // be rendered in a DPI sensitive fashion.
+    // @see https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setthreaddpiawarenesscontext
     SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+
+#if defined( _DEBUG )
+    // Create a console window for std::cout
+    CreateConsole();
+#endif
+
+    // Initializes the COM library for use by the calling thread, sets the thread's concurrency model, and creates a new
+    // apartment for the thread if one is required.
+    // This must be called at least once for each thread that uses the COM library.
+    // @see https://docs.microsoft.com/en-us/windows/win32/api/objbase/nf-objbase-coinitialize
+    HRESULT hr = CoInitialize(NULL);
+    if(FAILED(hr)) {
+        _com_error err(hr);
+        //spdlog::critical("CoInitialize failed: {}", err.ErrorMessage());
+        throw new std::exception((char*)(err.ErrorMessage()));
+    }
 
     WNDCLASSEXW wndClass = {0};
 
@@ -58,326 +124,94 @@ Application::Application(HINSTANCE hInst)
     }
 }
 
-void Application::Initialize() {
-#if defined(_DEBUG)
-    // Always enable the debug layer before doing anything DX12 related
-    // so all possible errors generated while creating DX12 objects
-    // are caught by the debug layer.
-    ComPtr<ID3D12Debug1> debugInterface;
-    ThrowIfFailed(D3D12GetDebugInterface(IID_PPV_ARGS(&debugInterface)));
-    debugInterface->EnableDebugLayer();
-    // Enable these if you want full validation (will slow down rendering a lot).
-    //debugInterface->SetEnableGPUBasedValidation(TRUE);
-    //debugInterface->SetEnableSynchronizedCommandQueueValidation(TRUE);
-#endif
-
-    auto dxgiAdapter = GetAdapter(false);
-    if(!dxgiAdapter) {
-        // If no supporting DX12 adapters exist, fall back to WARP
-        dxgiAdapter = GetAdapter(true);
-    }
-
-    if(dxgiAdapter) {
-        m_d3d12Device = CreateDevice(dxgiAdapter);
-    }
-    else {
-        throw std::exception("DXGI adapter enumeration failed.");
-    }
-
-    m_DirectCommandQueue = std::make_shared<CommandQueue>(D3D12_COMMAND_LIST_TYPE_DIRECT);
-    m_ComputeCommandQueue = std::make_shared<CommandQueue>(D3D12_COMMAND_LIST_TYPE_COMPUTE);
-    m_CopyCommandQueue = std::make_shared<CommandQueue>(D3D12_COMMAND_LIST_TYPE_COPY);
-
-    m_TearingSupported = CheckTearingSupport();
-
-    // Create descriptor allocators
-    for(int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i) {
-        m_DescriptorAllocators[i] = std::make_unique<DescriptorAllocator>(static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(i));
-    }
-
-    // Initialize frame counter 
-    ms_FrameCount = 0;
+Application::~Application() {
+    gs_WindowMap.clear();
+    gs_WindowMapByName.clear();
 }
 
-void Application::Create(HINSTANCE hInst) {
+Application& Application::Create(HINSTANCE hInst) {
     if(!gs_pSingelton) {
         gs_pSingelton = new Application(hInst);
-        gs_pSingelton->Initialize();
     }
+    return *gs_pSingelton;
 }
 
 Application& Application::Get() {
-    assert(gs_pSingelton);
+    assert(gs_pSingelton != nullptr);
     return *gs_pSingelton;
 }
 
 void Application::Destroy() {
     if(gs_pSingelton) {
-        assert(gs_Windows.empty() && gs_WindowByName.empty() &&
-            "All windows should be destroyed before destroying the application instance.");
-
         delete gs_pSingelton;
         gs_pSingelton = nullptr;
     }
 }
 
-Application::~Application() {
-    Flush();
-}
+std::shared_ptr<Window> Application::CreateRenderWindow(const std::wstring& windowName, int clientWidth, int clientHeight, IGame* const pGame) {
+    int screenWidth = ::GetSystemMetrics(SM_CXSCREEN);
+    int screenHeight = ::GetSystemMetrics(SM_CYSCREEN);
 
-Microsoft::WRL::ComPtr<IDXGIAdapter4> Application::GetAdapter(bool bUseWarp) {
-    ComPtr<IDXGIFactory4> dxgiFactory;
-    UINT createFactoryFlags = 0;
-#if defined(_DEBUG)
-    createFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
-#endif
+    RECT windowRect = {0, 0, static_cast<LONG>(clientWidth), static_cast<LONG>(clientHeight)};
 
-    ThrowIfFailed(CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(&dxgiFactory)));
+    ::AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
 
-    ComPtr<IDXGIAdapter1> dxgiAdapter1;
-    ComPtr<IDXGIAdapter4> dxgiAdapter4;
+    uint32_t width = windowRect.right - windowRect.left;
+    uint32_t height = windowRect.bottom - windowRect.top;
 
-    if(bUseWarp) {
-        ThrowIfFailed(dxgiFactory->EnumWarpAdapter(IID_PPV_ARGS(&dxgiAdapter1)));
-        ThrowIfFailed(dxgiAdapter1.As(&dxgiAdapter4));
-    }
-    else {
-        SIZE_T maxDedicatedVideoMemory = 0;
-        for(UINT i = 0; dxgiFactory->EnumAdapters1(i, &dxgiAdapter1) != DXGI_ERROR_NOT_FOUND; ++i) {
-            DXGI_ADAPTER_DESC1 dxgiAdapterDesc1;
-            dxgiAdapter1->GetDesc1(&dxgiAdapterDesc1);
+    int windowX = std::max<int>(0, (screenWidth - (int)width) / 2);
+    int windowY = std::max<int>(0, (screenHeight - (int)height) / 2);
 
-            // Check to see if the adapter can create a D3D12 device without actually 
-            // creating it. The adapter with the largest dedicated video memory
-            // is favored.
-            if((dxgiAdapterDesc1.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == 0 &&
-                SUCCEEDED(D3D12CreateDevice(dxgiAdapter1.Get(), D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), nullptr)) &&
-                dxgiAdapterDesc1.DedicatedVideoMemory > maxDedicatedVideoMemory) {
-                maxDedicatedVideoMemory = dxgiAdapterDesc1.DedicatedVideoMemory;
-                ThrowIfFailed(dxgiAdapter1.As(&dxgiAdapter4));
-            }
-        }
-    }
+    HWND hWindow = ::CreateWindowExW(NULL, WINDOW_CLASS_NAME, windowName.c_str(), WS_OVERLAPPEDWINDOW, windowX,
+        windowY, width, height, NULL, NULL, m_hInstance, NULL);
 
-    return dxgiAdapter4;
-}
-Microsoft::WRL::ComPtr<ID3D12Device2> Application::CreateDevice(Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter) {
-    ComPtr<ID3D12Device2> d3d12Device2;
-    ThrowIfFailed(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&d3d12Device2)));
-    //    NAME_D3D12_OBJECT(d3d12Device2);
-
-        // Enable debug messages in debug mode.
-#if defined(_DEBUG)
-    ComPtr<ID3D12InfoQueue> pInfoQueue;
-    if(SUCCEEDED(d3d12Device2.As(&pInfoQueue))) {
-        pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
-        pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
-        pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
-
-        // Suppress whole categories of messages
-        //D3D12_MESSAGE_CATEGORY Categories[] = {};
-
-        // Suppress messages based on their severity level
-        D3D12_MESSAGE_SEVERITY Severities[] =
-        {
-            D3D12_MESSAGE_SEVERITY_INFO
-        };
-
-        // Suppress individual messages by their ID
-        D3D12_MESSAGE_ID DenyIds[] = {
-            D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,   // I'm really not sure how to avoid this message.
-            D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,                         // This warning occurs when using capture frame while graphics debugging.
-            D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,                       // This warning occurs when using capture frame while graphics debugging.
-        };
-
-        D3D12_INFO_QUEUE_FILTER NewFilter = {};
-        //NewFilter.DenyList.NumCategories = _countof(Categories);
-        //NewFilter.DenyList.pCategoryList = Categories;
-        NewFilter.DenyList.NumSeverities = _countof(Severities);
-        NewFilter.DenyList.pSeverityList = Severities;
-        NewFilter.DenyList.NumIDs = _countof(DenyIds);
-        NewFilter.DenyList.pIDList = DenyIds;
-
-        ThrowIfFailed(pInfoQueue->PushStorageFilter(&NewFilter));
-    }
-#endif
-
-    return d3d12Device2;
-}
-
-bool Application::CheckTearingSupport() {
-    BOOL allowTearing = FALSE;
-
-    // Rather than create the DXGI 1.5 factory interface directly, we create the
-    // DXGI 1.4 interface and query for the 1.5 interface. This is to enable the 
-    // graphics debugging tools which will not support the 1.5 factory interface 
-    // until a future update.
-    ComPtr<IDXGIFactory4> factory4;
-    if(SUCCEEDED(CreateDXGIFactory1(IID_PPV_ARGS(&factory4)))) {
-        ComPtr<IDXGIFactory5> factory5;
-        if(SUCCEEDED(factory4.As(&factory5))) {
-            factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING,
-                &allowTearing, sizeof(allowTearing));
-        }
-    }
-
-    return allowTearing == TRUE;
-}
-
-bool Application::IsTearingSupported() const {
-    return m_TearingSupported;
-}
-
-DXGI_SAMPLE_DESC Application::GetMultisampleQualityLevels(DXGI_FORMAT format, UINT numSamples, D3D12_MULTISAMPLE_QUALITY_LEVEL_FLAGS flags) const {
-    DXGI_SAMPLE_DESC sampleDesc = {1, 0};
-
-    D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS qualityLevels;
-    qualityLevels.Format = format;
-    qualityLevels.SampleCount = 1;
-    qualityLevels.Flags = flags;
-    qualityLevels.NumQualityLevels = 0;
-
-    while(qualityLevels.SampleCount <= numSamples && SUCCEEDED(m_d3d12Device->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &qualityLevels, sizeof(D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS))) && qualityLevels.NumQualityLevels > 0) {
-        // That works...
-        sampleDesc.Count = qualityLevels.SampleCount;
-        sampleDesc.Quality = qualityLevels.NumQualityLevels - 1;
-
-        // But can we do better?
-        qualityLevels.SampleCount *= 2;
-    }
-
-    return sampleDesc;
-}
-
-
-std::shared_ptr<Window> Application::CreateRenderWindow(const std::wstring& windowName, int clientWidth, int clientHeight, bool vSync) {
-    // First check if a window with the given name already exists.
-    WindowNameMap::iterator windowIter = gs_WindowByName.find(windowName);
-    if(windowIter != gs_WindowByName.end()) {
-        return windowIter->second;
-    }
-
-    RECT windowRect = {0, 0, clientWidth, clientHeight};
-    AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
-
-    HWND hWnd = CreateWindowW(WINDOW_CLASS_NAME, windowName.c_str(),
-        WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
-        windowRect.right - windowRect.left,
-        windowRect.bottom - windowRect.top,
-        nullptr, nullptr, m_hInstance, nullptr);
-
-    if(!hWnd) {
-        MessageBoxA(NULL, "Could not create the render window.", "Error", MB_OK | MB_ICONERROR);
+    if(!hWindow) {
+        //spdlog::error("Failed to create window.");
         return nullptr;
     }
 
-    WindowPtr pWindow = std::make_shared<MakeWindow>(hWnd, windowName, clientWidth, clientHeight, vSync);
-    pWindow->Initialize();
+    auto pWindow = std::make_shared<MakeWindow>(hWindow, windowName, clientWidth, clientHeight);
+    pWindow->RegisterCallbacks(pGame);
 
-    gs_Windows.insert(WindowMap::value_type(hWnd, pWindow));
-    gs_WindowByName.insert(WindowNameMap::value_type(windowName, pWindow));
+    gs_WindowMap.insert(WindowMap::value_type(hWindow, pWindow));
+    gs_WindowMapByName.insert(WindowMapByName::value_type(windowName, pWindow));
 
     return pWindow;
 }
 
-void Application::DestroyWindow(std::shared_ptr<Window> window) {
-    if(window) window->Destroy();
-}
-
-void Application::DestroyWindow(const std::wstring& windowName) {
-    WindowPtr pWindow = GetWindowByName(windowName);
-    if(pWindow) {
-        DestroyWindow(pWindow);
-    }
-}
-
-std::shared_ptr<Window> Application::GetWindowByName(const std::wstring& windowName) {
-    std::shared_ptr<Window> window;
-    WindowNameMap::iterator iter = gs_WindowByName.find(windowName);
-    if(iter != gs_WindowByName.end()) {
-        window = iter->second;
-    }
-
-    return window;
+std::shared_ptr<Window> Application::GetWindowByName(const std::wstring& windowName) const {
+    auto iter = gs_WindowMapByName.find(windowName);
+    return (iter != gs_WindowMapByName.end()) ? iter->second.lock() : nullptr;
 }
 
 
-int Application::Run(std::shared_ptr<Game> pGame) {
-    if(!pGame->Initialize()) return 1;
-    if(!pGame->LoadContent()) return 2;
+int32_t Application::Run() {
+    assert(!m_bIsRunning);
+    m_bIsRunning = true;
 
-    MSG msg = {0};
-    while(msg.message != WM_QUIT) {
-        if(PeekMessage(&msg, 0, 0, 0, PM_REMOVE)) {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
+    MSG msg = {};
+    while(::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) && msg.message != WM_QUIT) {
+        ::TranslateMessage(&msg);
+        ::DispatchMessage(&msg);
+
+        // Check to see of the application wants to quit.
+        if(m_RequestQuit) {
+            ::PostQuitMessage(0);
+            m_RequestQuit = false;
         }
     }
 
-    // Flush any commands in the commands queues before quiting.
-    Flush();
+    m_bIsRunning = false;
 
-    pGame->UnloadContent();
-    pGame->Destroy();
-
-    return static_cast<int>(msg.wParam);
+    return static_cast<int32_t>(msg.wParam);
 }
 
-void Application::Quit(int exitCode) {
-    PostQuitMessage(exitCode);
-}
-
-Microsoft::WRL::ComPtr<ID3D12Device2> Application::GetDevice() const {
-    return m_d3d12Device;
-}
-
-std::shared_ptr<CommandQueue> Application::GetCommandQueue(D3D12_COMMAND_LIST_TYPE type) const {
-    std::shared_ptr<CommandQueue> commandQueue;
-    switch(type) {
-        case D3D12_COMMAND_LIST_TYPE_DIRECT:
-            commandQueue = m_DirectCommandQueue;
-            break;
-        case D3D12_COMMAND_LIST_TYPE_COMPUTE:
-            commandQueue = m_ComputeCommandQueue;
-            break;
-        case D3D12_COMMAND_LIST_TYPE_COPY:
-            commandQueue = m_CopyCommandQueue;
-            break;
-        default:
-            assert(false && "Invalid command queue type.");
-    }
-
-    return commandQueue;
-}
-
-void Application::Flush() {
-    m_DirectCommandQueue->Flush();
-    m_ComputeCommandQueue->Flush();
-    m_CopyCommandQueue->Flush();
-}
-
-DescriptorAllocation Application::AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors) {
-    return m_DescriptorAllocators[type]->Allocate(numDescriptors);
-}
-
-void Application::ReleaseStaleDescriptors(uint64_t finishedFrame) {
-    for(int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i) {
-        m_DescriptorAllocators[i]->ReleaseStaleDescriptors(finishedFrame);
-    }
-}
-
-UINT Application::GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type) const {
-    return m_d3d12Device->GetDescriptorHandleIncrementSize(type);
-}
-
-// Remove a window from our window lists.
-static void RemoveWindow(HWND hWnd) {
-    WindowMap::iterator windowIter = gs_Windows.find(hWnd);
-    if(windowIter != gs_Windows.end()) {
-        WindowPtr pWindow = windowIter->second;
-        gs_WindowByName.erase(pWindow->GetWindowName());
-        gs_Windows.erase(windowIter);
-    }
+void Application::Quit() {
+    // When called from another thread other than the main thread,
+    // the WM_QUIT message goes to that thread and will not be handled
+    // in the main thread. To circumvent this, we also set a boolean flag
+    // to indicate that the user has requested to quit the application.
+    m_RequestQuit = true;
 }
 
 // Convert the message ID into a MouseButton ID
@@ -411,15 +245,12 @@ MouseButtonEventArgs::MouseButton DecodeMouseButton(UINT messageID) {
 }
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
-    if(ImGui_ImplWin32_WndProcHandler(hwnd, message, wParam, lParam)) {
-        return true;
-    }
 
-    WindowPtr pWindow;
+    std::shared_ptr<Window> pWindow;
     {
-        WindowMap::iterator iter = gs_Windows.find(hwnd);
-        if(iter != gs_Windows.end()) {
-            pWindow = iter->second;
+        auto iter = gs_WindowMap.find(hwnd);
+        if(iter != gs_WindowMap.end()) {
+            pWindow = iter->second.lock();
         }
     }
 
@@ -427,14 +258,9 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
         switch(message) {
         case WM_PAINT:
         {
-            ++Application::ms_FrameCount;
-
             // Delta time will be filled in by the Window.
-            UpdateEventArgs updateEventArgs(0.0f, 0.0f, Application::ms_FrameCount);
+            UpdateEventArgs updateEventArgs(0.0f, 0.0f);
             pWindow->OnUpdate(updateEventArgs);
-            RenderEventArgs renderEventArgs(0.0f, 0.0f, Application::ms_FrameCount);
-            // Delta time will be filled in by the Window.
-            pWindow->OnRender(renderEventArgs);
         }
         break;
         case WM_SYSKEYDOWN:
@@ -576,15 +402,26 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
             pWindow->OnResize(resizeEventArgs);
         }
         break;
+        case WM_CLOSE:
+        {
+            WindowCloseEventArgs windowCloseEventArgs;
+            pWindow->OnClose(windowCloseEventArgs);
+
+            // Check to see if the user canceled the close event.
+            if(windowCloseEventArgs.ConfirmClose) {
+                // DestroyWindow( hwnd );
+                // Just hide the window.
+                // Windows will be destroyed when the application quits.
+                pWindow->Hide();
+            }
+        }
+        break;
         case WM_DESTROY:
         {
-            // If a window is being destroyed, remove it from the 
-            // window maps.
-            RemoveWindow(hwnd);
-
-            if(gs_Windows.empty()) {
-                // If there are no more windows, quit the application.
-                PostQuitMessage(0);
+            std::lock_guard<std::mutex> lock(gs_WindowHandlesMutex);
+            WindowMap::iterator         iter = gs_WindowMap.find(hwnd);
+            if(iter != gs_WindowMap.end()) {
+                gs_WindowMap.erase(iter);
             }
         }
         break;
@@ -593,7 +430,12 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
         }
     }
     else {
-        return DefWindowProcW(hwnd, message, wParam, lParam);
+        switch(message) {
+        case WM_CREATE:
+            break;
+        default:
+            return ::DefWindowProcW(hwnd, message, wParam, lParam);
+        }
     }
 
     return 0;

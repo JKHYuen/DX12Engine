@@ -1,13 +1,12 @@
 #include <DX12LibPCH.h>
 
-#include "Application.h"
+#include "Device.h"
 #include "Helpers.h"
 #include "UploadBuffer.h"
 
-UploadBuffer::UploadBuffer(size_t pageSize)
-    : m_PageSize(pageSize) {}
-
-UploadBuffer::~UploadBuffer() {}
+UploadBuffer::UploadBuffer(Device& device, size_t pageSize)
+    : m_Device(device)
+    , m_PageSize(pageSize) {}
 
 UploadBuffer::Allocation UploadBuffer::Allocate(size_t sizeInBytes, size_t alignment) {
     if(sizeInBytes > m_PageSize) {
@@ -31,7 +30,7 @@ std::shared_ptr<UploadBuffer::Page> UploadBuffer::RequestPage() {
         m_AvailablePages.pop_front();
     }
     else {
-        page = std::make_shared<Page>(m_PageSize);
+        page = std::make_shared<Page>(m_Device, m_PageSize);
         m_PagePool.push_back(page);
     }
 
@@ -49,23 +48,23 @@ void UploadBuffer::Reset() {
     }
 }
 
-UploadBuffer::Page::Page(size_t sizeInBytes)
-    : m_PageSize(sizeInBytes)
+UploadBuffer::Page::Page(Device& device, size_t sizeInBytes)
+    : m_Device(device)
+    , m_PageSize(sizeInBytes)
     , m_Offset(0)
     , m_CPUPtr(nullptr)
     , m_GPUPtr(D3D12_GPU_VIRTUAL_ADDRESS(0)) {
-    auto device = Application::Get().GetDevice();
+    auto d3d12Device = m_Device.GetD3D12Device();
 
-    CD3DX12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-    CD3DX12_RESOURCE_DESC heapDesc = CD3DX12_RESOURCE_DESC::Buffer(m_PageSize);
-    ThrowIfFailed(device->CreateCommittedResource(
-        &heapProp,
-        D3D12_HEAP_FLAG_NONE,
-        &heapDesc,
-        D3D12_RESOURCE_STATE_GENERIC_READ,
-        nullptr,
-        IID_PPV_ARGS(&m_d3d12Resource)
-    ));
+    auto heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+    auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(m_PageSize);
+    ThrowIfFailed(d3d12Device->CreateCommittedResource(
+        &heapProps, D3D12_HEAP_FLAG_NONE,
+        &bufferDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+        IID_PPV_ARGS(&m_d3d12Resource))
+    );
+
+    m_d3d12Resource->SetName(L"Upload Buffer (Page)");
 
     m_GPUPtr = m_d3d12Resource->GetGPUVirtualAddress();
     m_d3d12Resource->Map(0, nullptr, &m_CPUPtr);
@@ -85,6 +84,11 @@ bool UploadBuffer::Page::HasSpace(size_t sizeInBytes, size_t alignment) const {
 }
 
 UploadBuffer::Allocation UploadBuffer::Page::Allocate(size_t sizeInBytes, size_t alignment) {
+    if(!HasSpace(sizeInBytes, alignment)) {
+        // Can't allocate space from page.
+        throw std::bad_alloc();
+    }
+
     size_t alignedSize = Math::AlignUp(sizeInBytes, alignment);
     m_Offset = Math::AlignUp(m_Offset, alignment);
 

@@ -2,8 +2,8 @@
 
 #include "Buffer.h"
 
-Buffer::Buffer(const D3D12_RESOURCE_DESC& resDesc)
-	: Resource(resDesc) {}
+Buffer::Buffer(Device& device, const D3D12_RESOURCE_DESC& resDesc)
+	: Resource(device, resDesc) {}
 
-Buffer::Buffer(Microsoft::WRL::ComPtr<ID3D12Resource> resource)
-	: Resource(resource) {}
+Buffer::Buffer(Device& device, Microsoft::WRL::ComPtr<ID3D12Resource> resource)
+	: Resource(device, resource) {}

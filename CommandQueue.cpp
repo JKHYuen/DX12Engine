@@ -1,16 +1,25 @@
 #include <DX12LibPCH.h>
 
 #include "CommandQueue.h"
-
-#include "Application.h"
 #include "CommandList.h"
+#include "Device.h"
 #include "ResourceStateTracker.h"
 
-CommandQueue::CommandQueue(D3D12_COMMAND_LIST_TYPE type)
-    : m_FenceValue(0)
+class MakeCommandList : public CommandList {
+public:
+    MakeCommandList(Device& device, D3D12_COMMAND_LIST_TYPE type)
+        : CommandList(device, type) {}
+
+    virtual ~MakeCommandList() {}
+};
+
+CommandQueue::CommandQueue(Device& device, D3D12_COMMAND_LIST_TYPE type)
+    : m_Device(device)
+    , m_FenceValue(0)
     , m_CommandListType(type)
     , m_bProcessInFlightCommandLists(true) {
-    auto device = Application::Get().GetDevice();
+
+    auto d3d12Device = m_Device.GetD3D12Device();
 
     D3D12_COMMAND_QUEUE_DESC desc = {};
     desc.Type = type;
@@ -18,8 +27,8 @@ CommandQueue::CommandQueue(D3D12_COMMAND_LIST_TYPE type)
     desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
     desc.NodeMask = 0;
 
-    ThrowIfFailed(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&m_d3d12CommandQueue)));
-    ThrowIfFailed(device->CreateFence(m_FenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_d3d12Fence)));
+    ThrowIfFailed(d3d12Device->CreateCommandQueue(&desc, IID_PPV_ARGS(&m_d3d12CommandQueue)));
+    ThrowIfFailed(d3d12Device->CreateFence(m_FenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_d3d12Fence)));
 
     switch(type) {
     case D3D12_COMMAND_LIST_TYPE_COPY:
@@ -84,7 +93,7 @@ std::shared_ptr<CommandList> CommandQueue::GetCommandList() {
     }
     else {
         // Otherwise create a new command list.
-        commandList = std::make_shared<CommandList>(m_CommandListType);
+        commandList = std::make_shared<MakeCommandList>(m_Device, m_CommandListType);
     }
 
     return commandList;
@@ -113,14 +122,14 @@ uint64_t CommandQueue::ExecuteCommandLists(const std::vector<std::shared_ptr<Com
 
     for(auto commandList : commandLists) {
         auto pendingCommandList = GetCommandList();
-        bool hasPendingBarriers = commandList->Close(*pendingCommandList);
+        bool hasPendingBarriers = commandList->Close(pendingCommandList);
         pendingCommandList->Close();
         // If there are no pending barriers on the pending command list, there is no reason to 
         // execute an empty command list on the command queue.
         if(hasPendingBarriers) {
-            d3d12CommandLists.push_back(pendingCommandList->GetGraphicsCommandList().Get());
+            d3d12CommandLists.push_back(pendingCommandList->GetD3D12CommandList().Get());
         }
-        d3d12CommandLists.push_back(commandList->GetGraphicsCommandList().Get());
+        d3d12CommandLists.push_back(commandList->GetD3D12CommandList().Get());
 
         toBeQueued.push_back(pendingCommandList);
         toBeQueued.push_back(commandList);
@@ -145,9 +154,9 @@ uint64_t CommandQueue::ExecuteCommandLists(const std::vector<std::shared_ptr<Com
     // If there are any command lists that generate mips then execute those
     // after the initial resource command lists have finished.
     if(generateMipsCommandLists.size() > 0) {
-        auto computeQueue = Application::Get().GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE);
-        computeQueue->Wait(*this);
-        computeQueue->ExecuteCommandLists(generateMipsCommandLists);
+        auto& computeQueue = m_Device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE);
+        computeQueue.Wait(*this);
+        computeQueue.ExecuteCommandLists(generateMipsCommandLists);
     }
 
     return fenceValue;

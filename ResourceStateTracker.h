@@ -57,7 +57,7 @@ class Resource;
 class ResourceStateTracker {
 public:
     ResourceStateTracker();
-    virtual ~ResourceStateTracker();
+    ~ResourceStateTracker();
 
     /**
      * Push a resource barrier to the resource state tracker.
@@ -208,7 +208,7 @@ private:
     // The final (last known state) of the resources within a command list.
     // The final resource state is committed to the global resource state when the
     // command list is closed but before it is executed on the command queue.
-    ResourceStateMap m_FinalResourceState;
+    ResourceStateMap m_FinalResourceStates;
 
     // The global resource state array (map) stores the state of a resource
     // between command list execution.

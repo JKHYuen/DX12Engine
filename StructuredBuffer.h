@@ -40,6 +40,10 @@ class Device;
 class StructuredBuffer : public Buffer {
 
 public:
+    StructuredBuffer(Device& device, size_t numElements, size_t elementSize);
+    StructuredBuffer(Device& device, Microsoft::WRL::ComPtr<ID3D12Resource> resource, size_t numElements, size_t elementSize);
+    virtual ~StructuredBuffer() = default;
+
     /**
      * Get the number of elements contained in this buffer.
      */
@@ -57,14 +61,6 @@ public:
     std::shared_ptr<ByteAddressBuffer> GetCounterBuffer() const {
         return m_CounterBuffer;
     }
-
-protected:
-    StructuredBuffer(Device& device, size_t numElements,
-        size_t elementSize);
-    StructuredBuffer(Device& device, Microsoft::WRL::ComPtr<ID3D12Resource> resource,
-        size_t numElements, size_t elementSize);
-
-    virtual ~StructuredBuffer() = default;
 
 private:
     size_t m_NumElements;

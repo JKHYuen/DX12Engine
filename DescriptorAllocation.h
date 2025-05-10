@@ -46,7 +46,8 @@ public:
     // Creates a NULL descriptor.
     DescriptorAllocation();
 
-    DescriptorAllocation(D3D12_CPU_DESCRIPTOR_HANDLE descriptor, uint32_t numHandles, uint32_t descriptorSize, std::shared_ptr<DescriptorAllocatorPage> page);
+    DescriptorAllocation(D3D12_CPU_DESCRIPTOR_HANDLE descriptor, uint32_t numHandles, uint32_t descriptorSize,
+        std::shared_ptr<DescriptorAllocatorPage> page);
 
     // The destructor will automatically free the allocation.
     ~DescriptorAllocation();
@@ -56,11 +57,14 @@ public:
     DescriptorAllocation& operator=(const DescriptorAllocation&) = delete;
 
     // Move is allowed.
-    DescriptorAllocation(DescriptorAllocation&& allocation);
-    DescriptorAllocation& operator=(DescriptorAllocation&& other);
+    DescriptorAllocation(DescriptorAllocation&& allocation) noexcept;
+    DescriptorAllocation& operator=(DescriptorAllocation&& other) noexcept;
 
     // Check if this a valid descriptor.
     bool IsNull() const;
+    bool IsValid() const {
+        return !IsNull();
+    }
 
     // Get a descriptor at a particular offset in the allocation.
     D3D12_CPU_DESCRIPTOR_HANDLE GetDescriptorHandle(uint32_t offset = 0) const;

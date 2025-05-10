@@ -35,6 +35,6 @@
 class Buffer : public Resource {
 public:
 protected:
-    Buffer(const D3D12_RESOURCE_DESC& resDesc);
-    Buffer(Microsoft::WRL::ComPtr<ID3D12Resource> resource);
+    Buffer(Device& device, const D3D12_RESOURCE_DESC& resDesc);
+    Buffer(Device& device, Microsoft::WRL::ComPtr<ID3D12Resource> resource);
 };

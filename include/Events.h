@@ -10,6 +10,23 @@ public:
     EventArgs() {}
 };
 
+class WindowCloseEventArgs : public EventArgs {
+public:
+    using base = EventArgs;
+    WindowCloseEventArgs()
+        : base()
+        , ConfirmClose(true) {}
+
+    /**
+     * The user can cancel a window closing operation by registering for the
+     * Window::Close event on the Window and setting the
+     * WindowCloseEventArgs::ConfirmClose property to false if the window should
+     * be kept open (for example, if closing the window would cause unsaved
+     * file changes to be lost).
+     */
+    bool ConfirmClose;
+};
+
 class KeyEventArgs : public EventArgs {
 public:
     enum KeyState {
@@ -17,7 +34,7 @@ public:
         Pressed  = 1
     };
 
-    typedef EventArgs base;
+    using base = EventArgs;
     KeyEventArgs( KeyCode::Key key, unsigned int c, KeyState state, bool control, bool shift, bool alt )
         : Key(key)
         , Char(c)
@@ -37,7 +54,7 @@ public:
 
 class MouseMotionEventArgs : public EventArgs {
 public:
-    typedef EventArgs base;
+    using base = EventArgs;
     MouseMotionEventArgs( bool leftButton, bool middleButton, bool rightButton, bool control, bool shift, int x, int y )
         : LeftButton( leftButton )
         , MiddleButton( middleButton )
@@ -46,6 +63,8 @@ public:
         , Shift( shift )
         , X( x )
         , Y( y )
+        , RelX(0)
+        , RelY(0)
     {}
 
     bool LeftButton;    // Is the left mouse button down?
@@ -73,7 +92,7 @@ public:
         Pressed  = 1
     };
 
-    typedef EventArgs base;
+    using base = EventArgs;
     MouseButtonEventArgs( MouseButton buttonID, ButtonState state, bool leftButton, bool middleButton, bool rightButton, bool control, bool shift, int x, int y )
         : Button( buttonID )
         , State( state )
@@ -100,7 +119,7 @@ public:
 
 class MouseWheelEventArgs: public EventArgs {
 public:
-    typedef EventArgs base;
+    using base = EventArgs;
     MouseWheelEventArgs( float wheelDelta, bool leftButton, bool middleButton, bool rightButton, bool control, bool shift, int x, int y )
         : WheelDelta( wheelDelta )
         , LeftButton( leftButton )
@@ -125,7 +144,7 @@ public:
 
 class ResizeEventArgs : public EventArgs {
 public:
-    typedef EventArgs base;
+    using base = EventArgs;
     ResizeEventArgs( int width, int height )
         : Width( width )
         , Height( height )
@@ -139,33 +158,19 @@ public:
 
 class UpdateEventArgs : public EventArgs {
 public:
-    typedef EventArgs base;
-    UpdateEventArgs(double fDeltaTime, double fTotalTime, uint64_t frameNumber)
-        : ElapsedTime(fDeltaTime)
-        , TotalTime(fTotalTime)
-        , FrameNumber(frameNumber) {}
+    using base = EventArgs;
+    UpdateEventArgs(double deltaTime, double time)
+        : DeltaTime(deltaTime)
+        , Time(time)
+        {}
 
-    double ElapsedTime;
-    double TotalTime;
-    uint64_t FrameNumber;
-};
-
-class RenderEventArgs : public EventArgs {
-public:
-    typedef EventArgs base;
-    RenderEventArgs(double fDeltaTime, double fTotalTime, uint64_t frameNumber)
-        : ElapsedTime(fDeltaTime)
-        , TotalTime(fTotalTime)
-        , FrameNumber(frameNumber) {}
-
-    double ElapsedTime;
-    double TotalTime;
-    uint64_t FrameNumber;
+    double DeltaTime;
+    double Time;
 };
 
 class UserEventArgs : public EventArgs {
 public:
-    typedef EventArgs base;
+    using base = EventArgs;
     UserEventArgs( int code, void* data1, void* data2 )
         : Code( code )
         , Data1( data1 )

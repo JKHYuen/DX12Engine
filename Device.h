@@ -30,22 +30,14 @@
   *  @brief A wrapper for the D3D12Device.
   */
 
-// Removed adapter pattern from Jeremiah's version - KHY
+// Removed adapter patterns from Jeremiah's version - KHY
 
-#include "d3dx12.h"
 #include <dxgi1_6.h>
 #include <wrl/client.h>
 #include "DescriptorAllocator.h"
 
-
 class CommandQueue;
-class DescriptorAllocator;
 class DescriptorAllocation;
-class ConstantBufferView;
-class ShaderResourceView;
-class UnorderedAccessView;
-class Resource;
-class ConstantBuffer;
 
 class Device {
 public:

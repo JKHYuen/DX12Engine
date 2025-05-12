@@ -345,7 +345,9 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
             int x = ((int)(short)LOWORD(lParam));
             int y = ((int)(short)HIWORD(lParam));
 
-            MouseButtonEventArgs mouseButtonEventArgs(DecodeMouseButton(message), MouseButtonEventArgs::Pressed, lButton, mButton, rButton, control, shift, x, y);
+            MouseButtonEventArgs mouseButtonEventArgs(
+                DecodeMouseButton(message), MouseButtonEventArgs::Pressed, lButton, mButton, rButton, control, shift, x, y
+            );
             pWindow->OnMouseButtonPressed(mouseButtonEventArgs);
         }
         break;
@@ -362,7 +364,9 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
             int x = ((int)(short)LOWORD(lParam));
             int y = ((int)(short)HIWORD(lParam));
 
-            MouseButtonEventArgs mouseButtonEventArgs(DecodeMouseButton(message), MouseButtonEventArgs::Released, lButton, mButton, rButton, control, shift, x, y);
+            MouseButtonEventArgs mouseButtonEventArgs(
+                DecodeMouseButton(message), MouseButtonEventArgs::Released, lButton, mButton, rButton, control, shift, x, y
+            );
             pWindow->OnMouseButtonReleased(mouseButtonEventArgs);
         }
         break;
@@ -389,7 +393,9 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
             clientToScreenPoint.y = y;
             ScreenToClient(hwnd, &clientToScreenPoint);
 
-            MouseWheelEventArgs mouseWheelEventArgs(zDelta, lButton, mButton, rButton, control, shift, (int)clientToScreenPoint.x, (int)clientToScreenPoint.y);
+            MouseWheelEventArgs mouseWheelEventArgs(
+                zDelta, lButton, mButton, rButton, control, shift, (int)clientToScreenPoint.x, (int)clientToScreenPoint.y
+            );
             pWindow->OnMouseWheel(mouseWheelEventArgs);
         }
         break;

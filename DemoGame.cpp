@@ -28,34 +28,7 @@
 using namespace DirectX;
 using namespace Microsoft::WRL;
 
-//// Vertex data for a colored cube.
-//struct VertexPosColor {
-//	XMFLOAT3 Position;
-//	XMFLOAT3 Color;
-//};
-//
-//static std::vector<VertexPosColor> s_CubeVertices = {
-//	{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, 0.0f) }, // 0
-//	{ XMFLOAT3(-1.0f,  1.0f, -1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) }, // 1
-//	{ XMFLOAT3(1.0f,  1.0f, -1.0f),  XMFLOAT3(1.0f, 1.0f, 0.0f) }, // 2
-//	{ XMFLOAT3(1.0f, -1.0f, -1.0f),  XMFLOAT3(1.0f, 0.0f, 0.0f) }, // 3
-//	{ XMFLOAT3(-1.0f, -1.0f,  1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f) }, // 4
-//	{ XMFLOAT3(-1.0f,  1.0f,  1.0f), XMFLOAT3(0.0f, 1.0f, 1.0f) }, // 5
-//	{ XMFLOAT3(1.0f,  1.0f,  1.0f),  XMFLOAT3(1.0f, 1.0f, 1.0f) }, // 6
-//	{ XMFLOAT3(1.0f, -1.0f,  1.0f),  XMFLOAT3(1.0f, 0.0f, 1.0f) }  // 7
-//};
-//
-//static std::vector<uint16_t> s_CubeIndicies =
-//{
-//	0, 1, 2, 0, 2, 3,
-//	4, 6, 5, 4, 7, 6,
-//	4, 5, 1, 4, 1, 0,
-//	3, 2, 6, 3, 6, 7,
-//	1, 5, 6, 1, 6, 2,
-//	4, 0, 3, 4, 3, 7
-//};
-
-// TODO: TEMP
+/// TODO: TEMP
 struct Mat {
 	XMMATRIX ModelMatrix;
 	XMMATRIX ModelViewMatrix;
@@ -113,8 +86,8 @@ static void CreateTestCube(CommandList& commandList, float size = 1.0f) {
 	s_TestCubeMesh = Mesh();
 	s_TestCubeMesh.SetVertexBuffer(0, vertexBuffer);
 	s_TestCubeMesh.SetIndexBuffer(indexBuffer);
-
 }
+/// 
 
 DemoGame::DemoGame(const std::wstring& name, uint32_t width, uint32_t height, bool vSync)
 	: m_ScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX))
@@ -201,7 +174,7 @@ bool DemoGame::LoadContent() {
 
 	D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		//{ "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 	};
 
 	struct PipelineStateStream {
@@ -212,7 +185,7 @@ bool DemoGame::LoadContent() {
 		CD3DX12_PIPELINE_STATE_STREAM_PS PS;
 		CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
 		CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
-		CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_DESC           SampleDesc;
+		CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_DESC SampleDesc;
 	} pipelineStateStream;
 
 	DXGI_FORMAT backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
@@ -242,7 +215,8 @@ bool DemoGame::LoadContent() {
 	// color buffer
 	auto colorDesc = CD3DX12_RESOURCE_DESC::Tex2D(
 		backBufferFormat, m_Width, m_Height, 1, 1,
-		sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
+		sampleDesc.Count, sampleDesc.Quality, 
+		D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
 	);
 	
 	D3D12_CLEAR_VALUE colorClearValue;
@@ -322,7 +296,7 @@ void DemoGame::OnUpdate(UpdateEventArgs& e) {
 
 	m_SwapChain->WaitForSwapChain();
 
-	// Update the camera.
+	/// Update the camera.
 	float speedMultipler = m_ShiftPressed ? 16.0f : 4.0f;
 
 	XMVECTOR cameraTranslate =  XMVectorSet(m_Right - m_Left, 0.0f, m_Forward - m_Backward, 1.0f) *
@@ -332,10 +306,11 @@ void DemoGame::OnUpdate(UpdateEventArgs& e) {
 	m_Camera.Translate(cameraTranslate, Space::Local);
 	m_Camera.Translate(cameraPan, Space::Local);
 
-	XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(m_Pitch), XMConvertToRadians(m_Yaw), 0.0f);
+	XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(-m_Pitch), XMConvertToRadians(-m_Yaw), 0.0f);
 	m_Camera.set_Rotation(cameraRotation);
 
 	XMMATRIX viewMatrix = m_Camera.get_ViewMatrix();
+	///
 
 	OnRender();
 }
@@ -385,15 +360,35 @@ void DemoGame::OnRender() {
 void DemoGame::OnMouseMoved(MouseMotionEventArgs& e) {
 	const float mouseSpeed = 0.1f;
 
-	if(e.LeftButton) {
-		m_Pitch -= e.RelY * mouseSpeed;
-		m_Pitch = std::clamp(m_Pitch, -90.0f, 90.0f);
-		m_Yaw -= e.RelX * mouseSpeed;
-	}
+	m_Pitch -= e.RelY * mouseSpeed;
+	m_Pitch = std::clamp(m_Pitch, -90.0f, 90.0f);
+	m_Yaw -= e.RelX * mouseSpeed;
 }
 
 void DemoGame::OnKeyPressed(KeyEventArgs& e) {
 	switch(e.Key) {
+	case KeyCode::Up:
+	case KeyCode::W:
+		m_Forward = 1.0f;
+		break;
+	case KeyCode::Left:
+	case KeyCode::A:
+		m_Left = 1.0f;
+		break;
+	case KeyCode::Down:
+	case KeyCode::S:
+		m_Backward = 1.0f;
+		break;
+	case KeyCode::Right:
+	case KeyCode::D:
+		m_Right = 1.0f;
+		break;
+	case KeyCode::Q:
+		m_Down = 1.0f;
+		break;
+	case KeyCode::E:
+		m_Up = 1.0f;
+		break;
 	case KeyCode::Escape:
 		Application::Get().Quit();
 		break;

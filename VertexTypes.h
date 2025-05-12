@@ -47,7 +47,7 @@ struct VertexPosition {
 
     static const D3D12_INPUT_LAYOUT_DESC InputLayout;
 private:
-    static const int                      InputElementCount = 1;
+    static const int InputElementCount = 1;
     static const D3D12_INPUT_ELEMENT_DESC InputElements[InputElementCount];
 };
 
@@ -67,8 +67,11 @@ struct VertexPositionNormalTangentBitangentTexture {
         , TexCoord(texCoord) {}
 
     explicit VertexPositionNormalTangentBitangentTexture(
-        DirectX::FXMVECTOR position, DirectX::FXMVECTOR normal, DirectX::FXMVECTOR texCoord,
-        DirectX::GXMVECTOR tangent = {0, 0, 0, 0}, DirectX::HXMVECTOR bitangent = {0, 0, 0, 0}) {
+        DirectX::FXMVECTOR position,
+        DirectX::FXMVECTOR normal, 
+        DirectX::FXMVECTOR texCoord,
+        DirectX::GXMVECTOR tangent = {0, 0, 0, 0}, 
+        DirectX::HXMVECTOR bitangent = {0, 0, 0, 0}) {
 
         DirectX::XMStoreFloat3(&(this->Position), position);
         DirectX::XMStoreFloat3(&(this->Normal), normal);

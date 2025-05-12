@@ -3,7 +3,7 @@
 #include "VertexBuffer.h"
 
 VertexBuffer::VertexBuffer(Device& device, size_t numVertices, size_t vertexStride)
-    : Buffer(device, CD3DX12_RESOURCE_DESC::Buffer(numVertices* vertexStride))
+    : Buffer(device, CD3DX12_RESOURCE_DESC::Buffer(numVertices * vertexStride))
     , m_NumVertices(numVertices)
     , m_VertexStride(vertexStride)
     , m_VertexBufferView {} {

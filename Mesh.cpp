@@ -6,8 +6,7 @@
 #include "VertexBuffer.h"
 #include "Visitor.h"
 
-Mesh::Mesh()
-    : m_PrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST) {}
+Mesh::Mesh() : m_PrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST) {}
 
 void Mesh::SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY primitiveToplogy) {
     m_PrimitiveTopology = primitiveToplogy;
@@ -65,6 +64,7 @@ std::shared_ptr<Material> Mesh::GetMaterial() const {
     return m_Material;
 }
 
+#include <iostream>
 void Mesh::Draw(CommandList& commandList, uint32_t instanceCount, uint32_t startInstance) {
     commandList.SetPrimitiveTopology(GetPrimitiveTopology());
 

@@ -270,8 +270,8 @@
   <ItemGroup>
     <FxCompile Include="shaders\VertexShader.hlsl" />
     <FxCompile Include="shaders\PixelShader.hlsl" />
-    <FxCompile Include="GenerateMips_CS.hlsl" />
-    <FxCompile Include="PanoToCubemap_CS.hlsl" />
+    <FxCompile Include="shaders\GenerateMips_CS.hlsl" />
+    <FxCompile Include="shaders\PanoToCubemap_CS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\assimp\Assimp.sln" />

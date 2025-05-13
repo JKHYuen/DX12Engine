@@ -55,28 +55,24 @@ public:
 class MouseMotionEventArgs : public EventArgs {
 public:
     using base = EventArgs;
-    MouseMotionEventArgs( bool leftButton, bool middleButton, bool rightButton, bool control, bool shift, int x, int y )
+    MouseMotionEventArgs( bool leftButton, bool middleButton, bool rightButton, int deltaX, int deltaY, int x = 0, int y = 0)
         : LeftButton( leftButton )
         , MiddleButton( middleButton )
         , RightButton( rightButton )
-        , Control( control )
-        , Shift( shift )
         , X( x )
         , Y( y )
-        , RelX(0)
-        , RelY(0)
+        , DeltaX(deltaX)
+        , DeltaY(deltaY)
     {}
 
     bool LeftButton;    // Is the left mouse button down?
     bool MiddleButton;  // Is the middle mouse button down?
     bool RightButton;   // Is the right mouse button down?
-    bool Control;       // Is the CTRL key down?
-    bool Shift;         // Is the Shift key down?
 
     int X;              // The X-position of the cursor relative to the upper-left corner of the client area.
     int Y;              // The Y-position of the cursor relative to the upper-left corner of the client area.
-    int RelX;           // How far the mouse moved since the last event.
-    int RelY;           // How far the mouse moved since the last event.
+    int DeltaX;           // How far the mouse moved since the last event.
+    int DeltaY;           // How far the mouse moved since the last event.
 };
 
 class MouseButtonEventArgs : public EventArgs {

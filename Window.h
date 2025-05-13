@@ -62,6 +62,8 @@ public:
     int GetClientWidth() const;
     int GetClientHeight() const;
 
+    void SetWindowTitle(const std::wstring& windowTitle) const;
+
     bool IsFullScreen() const;
     void SetFullscreen(bool fullscreen);
     void ToggleFullscreen();
@@ -91,18 +93,15 @@ protected:
     void OnResize(ResizeEventArgs& e);
 
 private:
+    std::wstring m_WindowTitle;
+
     IGame* m_pGame;
 
     HWND m_hWnd;
 
-    std::wstring m_Name;
-    std::wstring m_Title;
-
     uint32_t m_ClientWidth;
     uint32_t m_ClientHeight;
 
-    int32_t m_PreviousMouseX;
-    int32_t m_PreviousMouseY;
     float m_DPIScaling;
 
     bool m_IsFullscreen;

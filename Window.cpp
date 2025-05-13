@@ -12,12 +12,9 @@
 
 Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight)
     : m_hWnd(hWnd)
-    , m_Name(windowName)
-    , m_Title(windowName)
+    , m_WindowTitle(windowName)
     , m_ClientWidth(clientWidth)
     , m_ClientHeight(clientHeight)
-    , m_PreviousMouseX(0)
-    , m_PreviousMouseY(0)
     , m_IsFullscreen(false)
     , m_IsMinimized(false)
     , m_IsMaximized(false)
@@ -56,7 +53,10 @@ bool Window::IsFullScreen() const {
     return m_IsFullscreen;
 }
 
-// Set the fullscreen state of the window.
+void Window::SetWindowTitle(const std::wstring& windowTitle) const {
+    ::SetWindowTextW(m_hWnd, (m_WindowTitle + windowTitle).c_str());
+}
+
 void Window::SetFullscreen(bool fullscreen) {
     if(m_IsFullscreen != fullscreen) {
         m_IsFullscreen = fullscreen;
@@ -138,31 +138,18 @@ void Window::OnKeyReleased(KeyEventArgs& e) {
     m_pGame->OnKeyReleased(e);
 }
 
-// The mouse was moved
 void Window::OnMouseMoved(MouseMotionEventArgs& e) {
-    e.RelX = e.X - m_PreviousMouseX;
-    e.RelY = e.Y - m_PreviousMouseY;
-
-    m_PreviousMouseX = e.X;
-    m_PreviousMouseY = e.Y;
-
     m_pGame->OnMouseMoved(e);
 }
 
-// A button on the mouse was pressed
 void Window::OnMouseButtonPressed(MouseButtonEventArgs& e) {
-    m_PreviousMouseX = e.X;
-    m_PreviousMouseY = e.Y;
-
     m_pGame->OnMouseButtonPressed(e);
 }
 
-// A button on the mouse was released
 void Window::OnMouseButtonReleased(MouseButtonEventArgs& e) {
     m_pGame->OnMouseButtonReleased(e);
 }
 
-// The mouse wheel was moved.
 void Window::OnMouseWheel(MouseWheelEventArgs& e) {
     m_pGame->OnMouseWheel(e);
 }

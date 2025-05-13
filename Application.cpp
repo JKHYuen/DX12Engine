@@ -162,11 +162,13 @@ std::shared_ptr<Window> Application::CreateRenderWindow(const std::wstring& wind
     int windowX = std::max<int>(0, (screenWidth - (int)width) / 2);
     int windowY = std::max<int>(0, (screenHeight - (int)height) / 2);
 
-    HWND hWindow = ::CreateWindowExW(NULL, WINDOW_CLASS_NAME, windowName.c_str(), WS_OVERLAPPEDWINDOW, windowX,
-        windowY, width, height, NULL, NULL, m_hInstance, NULL);
+    HWND hWindow = ::CreateWindowExW(
+        NULL, WINDOW_CLASS_NAME, windowName.c_str(), WS_OVERLAPPEDWINDOW, 
+        windowX, windowY, width, height, NULL, NULL, m_hInstance, NULL
+    );
 
     if(!hWindow) {
-        //spdlog::error("Failed to create window.");
+        // TODO: log error
         return nullptr;
     }
 
@@ -188,6 +190,21 @@ std::shared_ptr<Window> Application::GetWindowByName(const std::wstring& windowN
 int32_t Application::Run() {
     assert(!m_bIsRunning);
     m_bIsRunning = true;
+
+    /// Initialize Raw Input (Mouse only for now)
+    RAWINPUTDEVICE Rid[1];
+    Rid[0].usUsagePage = 0x01;          // HID_USAGE_PAGE_GENERIC
+    Rid[0].usUsage = 0x02;              // HID_USAGE_GENERIC_MOUSE
+
+    // WARNING: Not using RIDEV_NOLEGACY will degrade performance if moving high polling mouse a lot, not worried about it for now.
+    //          Can use Buffered RawInput or DirectInput if this becomes an issue
+    //          See: https://ph3at.github.io/posts/Windows-Input/
+    Rid[0].dwFlags = 0;    
+
+    Rid[0].hwndTarget = 0;
+    if(RegisterRawInputDevices(Rid, 1, sizeof(Rid[0])) == FALSE)
+        OutputDebugString(TEXT("No device found for raw input.\n"));
+    ///
 
     MSG msg = {};
     while(::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) && msg.message != WM_QUIT) {
@@ -245,7 +262,6 @@ MouseButtonEventArgs::MouseButton DecodeMouseButton(UINT messageID) {
 }
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
-
     std::shared_ptr<Window> pWindow;
     {
         auto iter = gs_WindowMap.find(hwnd);
@@ -263,6 +279,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
             pWindow->OnUpdate(updateEventArgs);
         }
         break;
+
         case WM_SYSKEYDOWN:
         case WM_KEYDOWN:
         {
@@ -288,6 +305,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
             pWindow->OnKeyPressed(keyEventArgs);
         }
         break;
+
         case WM_SYSKEYUP:
         case WM_KEYUP:
         {
@@ -312,26 +330,41 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
             pWindow->OnKeyReleased(keyEventArgs);
         }
         break;
-        // The default window procedure will play a system notification sound 
-        // when pressing the Alt+Enter keyboard combination if this message is 
-        // not handled.
+
+        // The default window procedure will play a system notification sound when pressing the Alt+Enter keyboard combination if this message is not handled.
         case WM_SYSCHAR:
             break;
-        case WM_MOUSEMOVE:
+
+        // Handle Raw Mouse Input
+        // https://learn.microsoft.com/en-us/windows/win32/inputdev/using-raw-input
+        case WM_INPUT:
         {
-            bool lButton = (wParam & MK_LBUTTON) != 0;
-            bool rButton = (wParam & MK_RBUTTON) != 0;
-            bool mButton = (wParam & MK_MBUTTON) != 0;
-            bool shift = (wParam & MK_SHIFT) != 0;
-            bool control = (wParam & MK_CONTROL) != 0;
+            UINT dwSize {};
 
-            int x = ((int)(short)LOWORD(lParam));
-            int y = ((int)(short)HIWORD(lParam));
+            GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
+            LPBYTE lpb = new BYTE[dwSize];
 
-            MouseMotionEventArgs mouseMotionEventArgs(lButton, mButton, rButton, control, shift, x, y);
-            pWindow->OnMouseMoved(mouseMotionEventArgs);
+            if(GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER)) != dwSize)
+                OutputDebugString(TEXT("GetRawInputData does not return correct size !\n"));
+
+            RAWINPUT* raw = (RAWINPUT*)lpb;
+
+            if(raw->header.dwType == RIM_TYPEMOUSE) {
+                bool lButton = raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN;
+                bool mButton = raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN;
+                bool rButton = raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN;
+
+                int deltaX = raw->data.mouse.lLastX;
+                int deltaY = raw->data.mouse.lLastY;
+
+                MouseMotionEventArgs mouseMotionEventArgs(lButton, mButton, rButton, deltaX, deltaY);
+                pWindow->OnMouseMoved(mouseMotionEventArgs);
+            }
+
+            delete[] lpb;
         }
         break;
+
         case WM_LBUTTONDOWN:
         case WM_RBUTTONDOWN:
         case WM_MBUTTONDOWN:
@@ -339,7 +372,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
             bool lButton = (wParam & MK_LBUTTON) != 0;
             bool rButton = (wParam & MK_RBUTTON) != 0;
             bool mButton = (wParam & MK_MBUTTON) != 0;
-            bool shift = (wParam & MK_SHIFT) != 0;
+            bool shift   = (wParam & MK_SHIFT)   != 0;
             bool control = (wParam & MK_CONTROL) != 0;
 
             int x = ((int)(short)LOWORD(lParam));
@@ -351,6 +384,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
             pWindow->OnMouseButtonPressed(mouseButtonEventArgs);
         }
         break;
+
         case WM_LBUTTONUP:
         case WM_RBUTTONUP:
         case WM_MBUTTONUP:
@@ -358,7 +392,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
             bool lButton = (wParam & MK_LBUTTON) != 0;
             bool rButton = (wParam & MK_RBUTTON) != 0;
             bool mButton = (wParam & MK_MBUTTON) != 0;
-            bool shift = (wParam & MK_SHIFT) != 0;
+            bool shift   = (wParam & MK_SHIFT)   != 0;
             bool control = (wParam & MK_CONTROL) != 0;
 
             int x = ((int)(short)LOWORD(lParam));
@@ -370,6 +404,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
             pWindow->OnMouseButtonReleased(mouseButtonEventArgs);
         }
         break;
+
         case WM_MOUSEWHEEL:
         {
             // The distance the mouse wheel is rotated.
@@ -381,7 +416,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
             bool lButton = (keyStates & MK_LBUTTON) != 0;
             bool rButton = (keyStates & MK_RBUTTON) != 0;
             bool mButton = (keyStates & MK_MBUTTON) != 0;
-            bool shift = (keyStates & MK_SHIFT) != 0;
+            bool shift   = (keyStates & MK_SHIFT)   != 0;
             bool control = (keyStates & MK_CONTROL) != 0;
 
             int x = ((int)(short)LOWORD(lParam));
@@ -399,6 +434,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
             pWindow->OnMouseWheel(mouseWheelEventArgs);
         }
         break;
+
         case WM_SIZE:
         {
             int width = ((int)(short)LOWORD(lParam));
@@ -408,6 +444,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
             pWindow->OnResize(resizeEventArgs);
         }
         break;
+
         case WM_CLOSE:
         {
             WindowCloseEventArgs windowCloseEventArgs;
@@ -422,6 +459,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
             }
         }
         break;
+
         case WM_DESTROY:
         {
             std::lock_guard<std::mutex> lock(gs_WindowHandlesMutex);
@@ -431,6 +469,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
             }
         }
         break;
+
         default:
             return DefWindowProcW(hwnd, message, wParam, lParam);
         }

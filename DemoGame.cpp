@@ -38,11 +38,11 @@ struct Mat {
 
 static Mesh s_TestCubeMesh;
 static void CreateTestCube(CommandList& commandList, float size = 1.0f) {
-	// Cube is centered at 0,0,0.
+	// Cube is centered at 0,0,0
 	float s = size * 0.5f;
 
 	// 8 edges of cube.
-	XMFLOAT3 p[8] = {{ s, s, -s }, { s, s, s },   { s, -s, s }, { s, -s, -s },{ -s, s, s }, { -s, s, -s }, { -s, -s, -s }, { -s, -s, s }};
+	XMFLOAT3 p[8] = {{ s, s, -s }, { s, s, s }, { s, -s, s }, { s, -s, -s },{ -s, s, s }, { -s, s, -s }, { -s, -s, -s }, { -s, -s, s }};
 	// 6 face normals
 	XMFLOAT3 n[6] = {{ 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 }};
 	// 4 unique texture coordinates
@@ -162,7 +162,7 @@ bool DemoGame::LoadContent() {
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
-	// TEMP: Test Cube Render - A single 32-bit constant root parameter that is used by the vertex shader.
+	// TODO: TEMP Test Cube Render - A single 32-bit constant root parameter that is used by the vertex shader.
 	CD3DX12_ROOT_PARAMETER1 rootParameters[1];
 	//rootParameters[0].InitAsConstants(sizeof(XMMATRIX) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
 	rootParameters[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX);
@@ -172,6 +172,7 @@ bool DemoGame::LoadContent() {
 
 	m_RootSignature = std::make_shared<RootSignature>(*m_Device, rootSignatureDescription.Desc_1_1);
 
+	// TODO: TEMP
 	D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		//{ "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -221,9 +222,9 @@ bool DemoGame::LoadContent() {
 	
 	D3D12_CLEAR_VALUE colorClearValue;
 	colorClearValue.Format = colorDesc.Format;
-	colorClearValue.Color[0] = 0.4f;
-	colorClearValue.Color[1] = 0.4f;
-	colorClearValue.Color[2] = 0.5f;
+	colorClearValue.Color[0] = 0.6f;
+	colorClearValue.Color[1] = 0.6f;
+	colorClearValue.Color[2] = 0.7f;
 	colorClearValue.Color[3] = 1.0f;
 
 	auto colorTexture = std::make_shared<Texture>(*m_Device, colorDesc, &colorClearValue);
@@ -286,9 +287,9 @@ void DemoGame::OnUpdate(UpdateEventArgs& e) {
 	if(fpsTimer > 1.0) {
 		double fps = frameCount / fpsTimer;
 
-		char buffer[256];
-		sprintf_s(buffer, "FPS: %f\n", fps);
-		std::cout << buffer;
+		wchar_t buffer[256];
+		swprintf_s(buffer, L" FPS: %f\n", fps);
+		m_Window->SetWindowTitle(buffer);
 
 		frameCount = 0;
 		fpsTimer = 0.0;
@@ -297,7 +298,7 @@ void DemoGame::OnUpdate(UpdateEventArgs& e) {
 	m_SwapChain->WaitForSwapChain();
 
 	/// Update the camera.
-	float speedMultipler = m_ShiftPressed ? 16.0f : 4.0f;
+	float speedMultipler = m_ShiftPressed ? 24.0f : 8.0f;
 
 	XMVECTOR cameraTranslate =  XMVectorSet(m_Right - m_Left, 0.0f, m_Forward - m_Backward, 1.0f) *
 							    speedMultipler * static_cast<float>(e.DeltaTime);
@@ -320,7 +321,7 @@ void DemoGame::OnRender() {
 	auto commandList = commandQueue.GetCommandList();
 
 	// Clear the render targets.
-	FLOAT clearColor[] = {0.4f, 0.4f, 0.5f, 1.0f};
+	FLOAT clearColor[] = {0.6f, 0.6f, 0.7f, 1.0f};
 	commandList->ClearTexture(m_RenderTarget.GetTexture(AttachmentPoint::Color0), clearColor);
 	commandList->ClearDepthStencilTexture(m_RenderTarget.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
 
@@ -358,11 +359,11 @@ void DemoGame::OnRender() {
 }
 
 void DemoGame::OnMouseMoved(MouseMotionEventArgs& e) {
-	const float mouseSpeed = 0.1f;
+	constexpr float mouseSpeed = 0.1f;
 
-	m_Pitch -= e.RelY * mouseSpeed;
+	m_Pitch -= e.DeltaY * mouseSpeed;
 	m_Pitch = std::clamp(m_Pitch, -90.0f, 90.0f);
-	m_Yaw -= e.RelX * mouseSpeed;
+	m_Yaw -= e.DeltaX * mouseSpeed;
 }
 
 void DemoGame::OnKeyPressed(KeyEventArgs& e) {

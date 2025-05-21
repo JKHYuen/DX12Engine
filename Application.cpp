@@ -17,7 +17,7 @@ constexpr wchar_t WINDOW_CLASS_NAME[] = L"DX12RenderWindowClass";
 
 constexpr int MAX_CONSOLE_LINES = 500;
 
-using WindowMap = std::map<HWND, std::weak_ptr<Window>>;
+using WindowMap       = std::map<HWND, std::weak_ptr<Window>>;
 using WindowMapByName = std::map<std::wstring, std::weak_ptr<Window>>;
 static WindowMap       gs_WindowMap;
 static WindowMapByName gs_WindowMapByName;
@@ -28,8 +28,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 
 // A wrapper struct to allow shared pointers for the window class.
 struct MakeWindow : public Window {
-    MakeWindow(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight)
-        : Window(hWnd, windowName, clientWidth, clientHeight) {}
+    MakeWindow(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight, IGame& game)
+        : Window(hWnd, windowName, clientWidth, clientHeight, game) {}
 };
 
 static void CreateConsole() {
@@ -148,7 +148,7 @@ void Application::Destroy() {
     }
 }
 
-std::shared_ptr<Window> Application::CreateRenderWindow(const std::wstring& windowName, int clientWidth, int clientHeight, IGame* const pGame) {
+std::shared_ptr<Window> Application::CreateRenderWindow(const std::wstring& windowName, int clientWidth, int clientHeight, IGame& game) {
     int screenWidth = ::GetSystemMetrics(SM_CXSCREEN);
     int screenHeight = ::GetSystemMetrics(SM_CYSCREEN);
 
@@ -159,7 +159,7 @@ std::shared_ptr<Window> Application::CreateRenderWindow(const std::wstring& wind
     uint32_t width = windowRect.right - windowRect.left;
     uint32_t height = windowRect.bottom - windowRect.top;
 
-    int windowX = std::max<int>(0, (screenWidth - (int)width) / 2);
+    int windowX = std::max<int>(0, (screenWidth  - (int)width)  / 2);
     int windowY = std::max<int>(0, (screenHeight - (int)height) / 2);
 
     HWND hWindow = ::CreateWindowExW(
@@ -172,8 +172,7 @@ std::shared_ptr<Window> Application::CreateRenderWindow(const std::wstring& wind
         return nullptr;
     }
 
-    auto pWindow = std::make_shared<MakeWindow>(hWindow, windowName, clientWidth, clientHeight);
-    pWindow->RegisterCallbacks(pGame);
+    auto pWindow = std::make_shared<MakeWindow>(hWindow, windowName, clientWidth, clientHeight, game);
 
     gs_WindowMap.insert(WindowMap::value_type(hWindow, pWindow));
     gs_WindowMapByName.insert(WindowMapByName::value_type(windowName, pWindow));
@@ -231,35 +230,35 @@ void Application::Quit() {
     m_RequestQuit = true;
 }
 
-// Convert the message ID into a MouseButton ID
-MouseButtonEventArgs::MouseButton DecodeMouseButton(UINT messageID) {
-    MouseButtonEventArgs::MouseButton mouseButton = MouseButtonEventArgs::None;
-    switch(messageID) {
-    case WM_LBUTTONDOWN:
-    case WM_LBUTTONUP:
-    case WM_LBUTTONDBLCLK:
-    {
-        mouseButton = MouseButtonEventArgs::Left;
-    }
-    break;
-    case WM_RBUTTONDOWN:
-    case WM_RBUTTONUP:
-    case WM_RBUTTONDBLCLK:
-    {
-        mouseButton = MouseButtonEventArgs::Right;
-    }
-    break;
-    case WM_MBUTTONDOWN:
-    case WM_MBUTTONUP:
-    case WM_MBUTTONDBLCLK:
-    {
-        mouseButton = MouseButtonEventArgs::Middle;
-    }
-    break;
-    }
-
-    return mouseButton;
-}
+//// Convert the message ID into a MouseButton ID
+//MouseButtonEventArgs::MouseButton DecodeMouseButton(UINT messageID) {
+//    MouseButtonEventArgs::MouseButton mouseButton = MouseButtonEventArgs::None;
+//    switch(messageID) {
+//    case WM_LBUTTONDOWN:
+//    case WM_LBUTTONUP:
+//    case WM_LBUTTONDBLCLK:
+//    {
+//        mouseButton = MouseButtonEventArgs::Left;
+//    }
+//    break;
+//    case WM_RBUTTONDOWN:
+//    case WM_RBUTTONUP:
+//    case WM_RBUTTONDBLCLK:
+//    {
+//        mouseButton = MouseButtonEventArgs::Right;
+//    }
+//    break;
+//    case WM_MBUTTONDOWN:
+//    case WM_MBUTTONUP:
+//    case WM_MBUTTONDBLCLK:
+//    {
+//        mouseButton = MouseButtonEventArgs::Middle;
+//    }
+//    break;
+//    }
+//
+//    return mouseButton;
+//}
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     std::shared_ptr<Window> pWindow;
@@ -365,45 +364,45 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
         }
         break;
 
-        case WM_LBUTTONDOWN:
-        case WM_RBUTTONDOWN:
-        case WM_MBUTTONDOWN:
-        {
-            bool lButton = (wParam & MK_LBUTTON) != 0;
-            bool rButton = (wParam & MK_RBUTTON) != 0;
-            bool mButton = (wParam & MK_MBUTTON) != 0;
-            bool shift   = (wParam & MK_SHIFT)   != 0;
-            bool control = (wParam & MK_CONTROL) != 0;
+        //case WM_LBUTTONDOWN:
+        //case WM_RBUTTONDOWN:
+        //case WM_MBUTTONDOWN:
+        //{
+        //    bool lButton = (wParam & MK_LBUTTON) != 0;
+        //    bool rButton = (wParam & MK_RBUTTON) != 0;
+        //    bool mButton = (wParam & MK_MBUTTON) != 0;
+        //    bool shift   = (wParam & MK_SHIFT)   != 0;
+        //    bool control = (wParam & MK_CONTROL) != 0;
 
-            int x = ((int)(short)LOWORD(lParam));
-            int y = ((int)(short)HIWORD(lParam));
+        //    int x = ((int)(short)LOWORD(lParam));
+        //    int y = ((int)(short)HIWORD(lParam));
 
-            MouseButtonEventArgs mouseButtonEventArgs(
-                DecodeMouseButton(message), MouseButtonEventArgs::Pressed, lButton, mButton, rButton, control, shift, x, y
-            );
-            pWindow->OnMouseButtonPressed(mouseButtonEventArgs);
-        }
-        break;
+        //    MouseButtonEventArgs mouseButtonEventArgs(
+        //        DecodeMouseButton(message), MouseButtonEventArgs::Pressed, lButton, mButton, rButton, control, shift, x, y
+        //    );
+        //    pWindow->OnMouseButtonPressed(mouseButtonEventArgs);
+        //}
+        //break;
 
-        case WM_LBUTTONUP:
-        case WM_RBUTTONUP:
-        case WM_MBUTTONUP:
-        {
-            bool lButton = (wParam & MK_LBUTTON) != 0;
-            bool rButton = (wParam & MK_RBUTTON) != 0;
-            bool mButton = (wParam & MK_MBUTTON) != 0;
-            bool shift   = (wParam & MK_SHIFT)   != 0;
-            bool control = (wParam & MK_CONTROL) != 0;
+        //case WM_LBUTTONUP:
+        //case WM_RBUTTONUP:
+        //case WM_MBUTTONUP:
+        //{
+        //    bool lButton = (wParam & MK_LBUTTON) != 0;
+        //    bool rButton = (wParam & MK_RBUTTON) != 0;
+        //    bool mButton = (wParam & MK_MBUTTON) != 0;
+        //    bool shift   = (wParam & MK_SHIFT)   != 0;
+        //    bool control = (wParam & MK_CONTROL) != 0;
 
-            int x = ((int)(short)LOWORD(lParam));
-            int y = ((int)(short)HIWORD(lParam));
+        //    int x = ((int)(short)LOWORD(lParam));
+        //    int y = ((int)(short)HIWORD(lParam));
 
-            MouseButtonEventArgs mouseButtonEventArgs(
-                DecodeMouseButton(message), MouseButtonEventArgs::Released, lButton, mButton, rButton, control, shift, x, y
-            );
-            pWindow->OnMouseButtonReleased(mouseButtonEventArgs);
-        }
-        break;
+        //    MouseButtonEventArgs mouseButtonEventArgs(
+        //        DecodeMouseButton(message), MouseButtonEventArgs::Released, lButton, mButton, rButton, control, shift, x, y
+        //    );
+        //    pWindow->OnMouseButtonReleased(mouseButtonEventArgs);
+        //}
+        //break;
 
         case WM_MOUSEWHEEL:
         {

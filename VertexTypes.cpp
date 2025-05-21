@@ -1,15 +1,6 @@
 #include <DX12LibPCH.h>
 #include "VertexTypes.h"
 
-const D3D12_INPUT_ELEMENT_DESC VertexPosition::InputElements[] = {
-    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-};
-
-const D3D12_INPUT_LAYOUT_DESC VertexPosition::InputLayout = {
-    VertexPosition::InputElements,
-    VertexPosition::InputElementCount
-};
-
 const D3D12_INPUT_ELEMENT_DESC VertexPositionNormalTangentBitangentTexture::InputElements[] = {
     { "POSITION",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
     { "NORMAL",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -18,7 +9,6 @@ const D3D12_INPUT_ELEMENT_DESC VertexPositionNormalTangentBitangentTexture::Inpu
     { "TEXCOORD",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 };
 
-const D3D12_INPUT_LAYOUT_DESC VertexPositionNormalTangentBitangentTexture::InputLayout = {
-    VertexPositionNormalTangentBitangentTexture::InputElements,
-    VertexPositionNormalTangentBitangentTexture::InputElementCount
-};
+D3D12_INPUT_LAYOUT_DESC VertexPositionNormalTangentBitangentTexture::GetInputLayout() {
+    return {InputElements, _countof(InputElements)};
+}

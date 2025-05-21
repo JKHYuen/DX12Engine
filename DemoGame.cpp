@@ -29,64 +29,81 @@ using namespace DirectX;
 using namespace Microsoft::WRL;
 
 /// TODO: TEMP
-struct Mat {
-	XMMATRIX ModelMatrix;
-	XMMATRIX ModelViewMatrix;
-	XMMATRIX InverseTransposeModelViewMatrix;
-	XMMATRIX ModelViewProjectionMatrix;
-};
-
-static Mesh s_TestCubeMesh;
-static void CreateTestCube(CommandList& commandList, float size = 1.0f) {
-	// Cube is centered at 0,0,0
-	float s = size * 0.5f;
-
-	// 8 edges of cube.
-	XMFLOAT3 p[8] = {{ s, s, -s }, { s, s, s }, { s, -s, s }, { s, -s, -s },{ -s, s, s }, { -s, s, -s }, { -s, -s, -s }, { -s, -s, s }};
-	// 6 face normals
-	XMFLOAT3 n[6] = {{ 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 }};
-	// 4 unique texture coordinates
-	XMFLOAT3 t[4] = {{ 0, 0, 0 }, { 1, 0, 0 }, { 1, 1, 0 }, { 0, 1, 0 }};
-
-	// Indices for the vertex positions.
-	uint16_t i[24] = {
-		0, 1, 2, 3,  // +X
-		4, 5, 6, 7,  // -X
-		4, 1, 0, 5,  // +Y
-		2, 7, 6, 3,  // -Y
-		1, 4, 7, 2,  // +Z
-		5, 0, 3, 6   // -Z
+namespace {
+	struct VertexCB {
+		XMFLOAT4X4A SRT;
+		XMFLOAT4X4A MVP;
+		XMFLOAT4A   CameraPosition;
+		XMFLOAT4A   Pad1;
+		XMFLOAT4A   Pad2;
+		XMFLOAT4A   Pad3;
+		XMFLOAT4X4A Pad4;
 	};
 
-	std::vector<VertexPositionNormalTangentBitangentTexture> vertices;
-	std::vector<uint16_t>  indices;
+	struct MaterialCB {
+		XMFLOAT4A   Time;
+		XMFLOAT4A   DirLight;
+		XMFLOAT4A   Pad1;
+		XMFLOAT4A   Pad2;
+		XMFLOAT4X4A Pad3;
+		XMFLOAT4X4A Pad4;
+		XMFLOAT4X4A Pad5;
+	};
 
-	for(uint16_t f = 0; f < 6; ++f)  // For each face of the cube.
-	{
-		// Four vertices per face.
-		vertices.emplace_back(p[i[f * 4 + 0]], n[f], t[0]);
-		vertices.emplace_back(p[i[f * 4 + 1]], n[f], t[1]);
-		vertices.emplace_back(p[i[f * 4 + 2]], n[f], t[2]);
-		vertices.emplace_back(p[i[f * 4 + 3]], n[f], t[3]);
+	Mesh s_TestCubeMesh;
 
-		// First triangle.
-		indices.emplace_back(f * 4 + 0);
-		indices.emplace_back(f * 4 + 1);
-		indices.emplace_back(f * 4 + 2);
+	void CreateTestCube(CommandList& commandList, float size = 1.0f) {
+		// Cube is centered at 0,0,0
+		float s = size * 0.5f;
 
-		// Second triangle
-		indices.emplace_back(f * 4 + 2);
-		indices.emplace_back(f * 4 + 3);
-		indices.emplace_back(f * 4 + 0);
+		// 8 edges of cube.
+		XMFLOAT3 p[8] = {{ s, s, -s }, { s, s, s }, { s, -s, s }, { s, -s, -s },{ -s, s, s }, { -s, s, -s }, { -s, -s, -s }, { -s, -s, s }};
+		// 6 face normals
+		XMFLOAT3 n[6] = {{ 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 }};
+		// 4 unique texture coordinates
+		XMFLOAT3 t[4] = {{ 0, 0, 0 }, { 1, 0, 0 }, { 1, 1, 0 }, { 0, 1, 0 }};
+
+		// Indices for the vertex positions.
+		uint16_t i[24] = {
+			0, 1, 2, 3,  // +X
+			4, 5, 6, 7,  // -X
+			4, 1, 0, 5,  // +Y
+			2, 7, 6, 3,  // -Y
+			1, 4, 7, 2,  // +Z
+			5, 0, 3, 6   // -Z
+		};
+
+		std::vector<VertexPositionNormalTangentBitangentTexture> vertices;
+		std::vector<uint16_t>  indices;
+
+		for(uint16_t f = 0; f < 6; ++f)  // For each face of the cube.
+		{
+			// Four vertices per face.
+			vertices.emplace_back(p[i[f * 4 + 0]], n[f], t[0]);
+			vertices.emplace_back(p[i[f * 4 + 1]], n[f], t[1]);
+			vertices.emplace_back(p[i[f * 4 + 2]], n[f], t[2]);
+			vertices.emplace_back(p[i[f * 4 + 3]], n[f], t[3]);
+
+			// First triangle.
+			indices.emplace_back(f * 4 + 0);
+			indices.emplace_back(f * 4 + 1);
+			indices.emplace_back(f * 4 + 2);
+
+			// Second triangle
+			indices.emplace_back(f * 4 + 2);
+			indices.emplace_back(f * 4 + 3);
+			indices.emplace_back(f * 4 + 0);
+		}
+
+		auto vertexBuffer = commandList.CopyVertexBuffer(vertices);
+		auto indexBuffer = commandList.CopyIndexBuffer(indices);
+
+		s_TestCubeMesh = Mesh();
+		s_TestCubeMesh.SetVertexBuffer(0, vertexBuffer);
+		s_TestCubeMesh.SetIndexBuffer(indexBuffer);
 	}
-	
-	auto vertexBuffer = commandList.CopyVertexBuffer(vertices);
-	auto indexBuffer = commandList.CopyIndexBuffer(indices);
-
-	s_TestCubeMesh = Mesh();
-	s_TestCubeMesh.SetVertexBuffer(0, vertexBuffer);
-	s_TestCubeMesh.SetIndexBuffer(indexBuffer);
 }
+
 /// 
 
 DemoGame::DemoGame(const std::wstring& name, uint32_t width, uint32_t height, bool vSync)
@@ -105,11 +122,11 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t width, uint32_t height, bo
 	, m_Height(height)
 	, m_Vsync(vSync) {
 
-	m_Window = Application::Get().CreateRenderWindow(name, width, height, this);
+	m_Window = Application::Get().CreateRenderWindow(name, width, height, *this);
 
-	XMVECTOR cameraPos = XMVectorSet(0, 5, -20, 1);
+	XMVECTOR cameraPos    = XMVectorSet(0, 5, -20, 1);
 	XMVECTOR cameraTarget = XMVectorSet(0, 5, 0, 1);
-	XMVECTOR cameraUp = XMVectorSet(0, 1, 0, 0);
+	XMVECTOR cameraUp     = XMVectorSet(0, 1, 0, 0);
 
 	m_Camera.set_LookAt(cameraPos, cameraTarget, cameraUp);
 
@@ -162,22 +179,18 @@ bool DemoGame::LoadContent() {
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
-	// TODO: TEMP Test Cube Render - A single 32-bit constant root parameter that is used by the vertex shader.
-	CD3DX12_ROOT_PARAMETER1 rootParameters[1];
-	//rootParameters[0].InitAsConstants(sizeof(XMMATRIX) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
+	// TODO: TEMP Test Cube Render
+	CD3DX12_ROOT_PARAMETER1 rootParameters[2];
 	rootParameters[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX);
+	rootParameters[1].InitAsConstantBufferView(0, 1, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
 
 	CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
 	rootSignatureDescription.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, rootSignatureFlags);
 
 	m_RootSignature = std::make_shared<RootSignature>(*m_Device, rootSignatureDescription.Desc_1_1);
+	///
 
-	// TODO: TEMP
-	D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		//{ "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-	};
-
+	/// Create Pipeline State
 	struct PipelineStateStream {
 		CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
 		CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT InputLayout;
@@ -192,15 +205,15 @@ bool DemoGame::LoadContent() {
 	DXGI_FORMAT backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	DXGI_FORMAT depthBufferFormat = DXGI_FORMAT_D32_FLOAT;
 
-	//DXGI_SAMPLE_DESC sampleDesc = {1, 0};
+	// TODO: Tweakable MSAA
 	DXGI_SAMPLE_DESC sampleDesc = m_Device->GetMultisampleQualityLevels(backBufferFormat);
 
 	D3D12_RT_FORMAT_ARRAY rtvFormats = {};
 	rtvFormats.NumRenderTargets = 1;
 	rtvFormats.RTFormats[0] = backBufferFormat;
-
+	
 	pipelineStateStream.pRootSignature        = m_RootSignature->GetD3D12RootSignature().Get();
-	pipelineStateStream.InputLayout		      = {inputLayout, _countof(inputLayout)};
+	pipelineStateStream.InputLayout			  = VertexPositionNormalTangentBitangentTexture::GetInputLayout();
 	pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	pipelineStateStream.VS					  = CD3DX12_SHADER_BYTECODE(vertexShaderBlob.Get());
 	pipelineStateStream.PS					  = CD3DX12_SHADER_BYTECODE(pixelShaderBlob.Get());
@@ -212,7 +225,7 @@ bool DemoGame::LoadContent() {
 	ThrowIfFailed(m_Device->GetD3D12Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_D3d12PipelineState)));
 	///
 
-	/// Create an off-screen render target with a single color buffer and a depth buffer.
+	/// Create an off-screen render target with a single color buffer and a depth stencil buffer
 	// color buffer
 	auto colorDesc = CD3DX12_RESOURCE_DESC::Tex2D(
 		backBufferFormat, m_Width, m_Height, 1, 1,
@@ -298,12 +311,10 @@ void DemoGame::OnUpdate(UpdateEventArgs& e) {
 	m_SwapChain->WaitForSwapChain();
 
 	/// Update the camera.
-	float speedMultipler = m_ShiftPressed ? 24.0f : 8.0f;
+	float speedMultipler = m_ShiftPressed ? 32.0f : 8.0f;
 
-	XMVECTOR cameraTranslate =  XMVectorSet(m_Right - m_Left, 0.0f, m_Forward - m_Backward, 1.0f) *
-							    speedMultipler * static_cast<float>(e.DeltaTime);
-	XMVECTOR cameraPan = XMVectorSet(0.0f, m_Up - m_Down, 0.0f, 1.0f) *
-				         speedMultipler * static_cast<float>(e.DeltaTime);
+	XMVECTOR cameraTranslate = XMVectorSet(m_Right - m_Left, 0.0f, m_Forward - m_Backward, 1.0f) * speedMultipler * (float)e.DeltaTime;
+	XMVECTOR cameraPan = XMVectorSet(0.0f, m_Up - m_Down, 0.0f, 1.0f) * speedMultipler * (float)e.DeltaTime;
 	m_Camera.Translate(cameraTranslate, Space::Local);
 	m_Camera.Translate(cameraPan, Space::Local);
 
@@ -313,10 +324,10 @@ void DemoGame::OnUpdate(UpdateEventArgs& e) {
 	XMMATRIX viewMatrix = m_Camera.get_ViewMatrix();
 	///
 
-	OnRender();
+	OnRender(e);
 }
 
-void DemoGame::OnRender() {
+void DemoGame::OnRender(UpdateEventArgs& e) {
 	auto& commandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 	auto commandList = commandQueue.GetCommandList();
 
@@ -333,17 +344,30 @@ void DemoGame::OnRender() {
 	commandList->SetRenderTarget(m_RenderTarget);
 
 	/// TEMP: Render Test Cube
-	XMMATRIX translationMatrix = XMMatrixTranslation(1.0f, 1.0f, 1.0f);
-	XMMATRIX rotationMatrix    = XMMatrixRotationY(XMConvertToRadians(45.0f));
-	XMMATRIX scaleMatrix       = XMMatrixScaling(5.0f, 5.0f, 5.0f);
+	// Vertex Shader Buffers
+	XMMATRIX translationMat = XMMatrixTranslation(1.0f, 1.0f, 1.0f);
+	XMMATRIX rotationMat    = XMMatrixRotationY(XMConvertToRadians(45.0f));
+	XMMATRIX scaleMat       = XMMatrixScaling(5.0f, 5.0f, 5.0f);
+	XMMATRIX SRTMat         = scaleMat * rotationMat * translationMat;
 
-	Mat matrices;
-	matrices.ModelMatrix = scaleMatrix * rotationMatrix * translationMatrix;
-	matrices.ModelViewMatrix = matrices.ModelMatrix * m_Camera.get_ViewMatrix();
-	matrices.InverseTransposeModelViewMatrix = XMMatrixTranspose(XMMatrixInverse(nullptr, matrices.ModelViewMatrix));
-	matrices.ModelViewProjectionMatrix = matrices.ModelViewMatrix * m_Camera.get_ProjectionMatrix();
+	VertexCB matrixCB;
+	XMStoreFloat4x4A(&matrixCB.SRT, SRTMat);
+	XMStoreFloat4x4A(&matrixCB.MVP, SRTMat * m_Camera.get_ViewMatrix() * m_Camera.get_ProjectionMatrix());
+	XMStoreFloat4A(&matrixCB.CameraPosition, m_Camera.get_Translation());
 
-	commandList->SetGraphicsDynamicConstantBuffer(0, matrices);
+	commandList->SetGraphicsDynamicConstantBuffer(0, matrixCB);
+
+	// Pixel Shader Buffers
+	// TODO: lighting vars
+	MaterialCB materialCB;
+	XMVECTORF32 timeVec = {(float)e.Time, (float)e.DeltaTime, 0.0f, 0.0f};
+	XMStoreFloat4A(&materialCB.Time, timeVec);
+
+	XMVECTORF32 dirLight = {0.4f, -1.0f, 0.6f, 0.0f};
+	XMStoreFloat4A(&materialCB.DirLight, dirLight);
+
+	commandList->SetGraphicsDynamicConstantBuffer(1, materialCB);
+
 	s_TestCubeMesh.Draw(*commandList);
 	///
 

@@ -32,8 +32,9 @@ public:
     void OnResize(ResizeEventArgs& e)          override;
 
 private:
-    void OnRender();
+    void OnRender(UpdateEventArgs& e);
 
+    // NOTE: Can be unique_ptr?
     std::shared_ptr<Window>    m_Window;
     std::shared_ptr<Device>    m_Device;
     std::shared_ptr<SwapChain> m_SwapChain;

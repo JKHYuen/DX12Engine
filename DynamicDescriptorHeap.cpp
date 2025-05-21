@@ -77,8 +77,10 @@ void DynamicDescriptorHeap::StageDescriptors(uint32_t rootParameterIndex, uint32
         throw std::length_error("Number of descriptors exceeds the number of descriptors in the descriptor table.");
     }
 
-    D3D12_CPU_DESCRIPTOR_HANDLE* dstDescriptor = (descriptorTableCache.BaseDescriptor + offset);
-    for(uint32_t i = 0; i < numDescriptors; ++i) { dstDescriptor[i] = CD3DX12_CPU_DESCRIPTOR_HANDLE(srcDescriptor, i, m_DescriptorHandleIncrementSize); }
+    D3D12_CPU_DESCRIPTOR_HANDLE* dstDescriptor = descriptorTableCache.BaseDescriptor + offset;
+    for(uint32_t i = 0; i < numDescriptors; ++i) { 
+        dstDescriptor[i] = CD3DX12_CPU_DESCRIPTOR_HANDLE(srcDescriptor, i, m_DescriptorHandleIncrementSize); 
+    }
 
     // Set the root parameter index bit to make sure the descriptor table
     // at that index is bound to the command list.
@@ -174,11 +176,11 @@ void DynamicDescriptorHeap::CommitDescriptorTables(
         DWORD rootIndex;
         // Scan from LSB to MSB for a bit set in staleDescriptorsBitMask
         while(_BitScanForward(&rootIndex, m_StaleDescriptorTableBitMask)) {
-            UINT                         numSrcDescriptors = m_DescriptorTableCache[rootIndex].NumDescriptors;
+            UINT                         numSrcDescriptors     = m_DescriptorTableCache[rootIndex].NumDescriptors;
             D3D12_CPU_DESCRIPTOR_HANDLE* pSrcDescriptorHandles = m_DescriptorTableCache[rootIndex].BaseDescriptor;
 
             D3D12_CPU_DESCRIPTOR_HANDLE pDestDescriptorRangeStarts[] = {m_CurrentCPUDescriptorHandle};
-            UINT                        pDestDescriptorRangeSizes[] = {numSrcDescriptors};
+            UINT                        pDestDescriptorRangeSizes[]  = {numSrcDescriptors};
 
             // Copy the staged CPU visible descriptors to the GPU visible descriptor heap.
             d3d12Device->CopyDescriptors(1, pDestDescriptorRangeStarts, pDestDescriptorRangeSizes, numSrcDescriptors,

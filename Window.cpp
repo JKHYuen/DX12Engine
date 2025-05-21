@@ -10,7 +10,7 @@
 #include "ResourceStateTracker.h"
 #include "Texture.h"
 
-Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight)
+Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight, IGame& game)
     : m_hWnd(hWnd)
     , m_WindowTitle(windowName)
     , m_ClientWidth(clientWidth)
@@ -21,7 +21,7 @@ Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int c
     , m_bInClientRect(false)
     , m_WindowRect()
     , m_Timer()
-    , m_pGame(nullptr) {
+    , m_Game(game) {
         m_DPIScaling = ::GetDpiForWindow(hWnd) / 96.0f;
 }
 
@@ -110,48 +110,43 @@ void Window::ToggleFullscreen() {
     SetFullscreen(!m_IsFullscreen);
 }
 
-
-void Window::RegisterCallbacks(IGame* const pGame) {
-    m_pGame = pGame;
-}
-
 void Window::OnUpdate(UpdateEventArgs& e) {
     m_Timer.Tick();
 
     e.DeltaTime = m_Timer.GetDeltaSeconds();
     e.Time = m_Timer.GetTotalSeconds();
 
-    m_pGame->OnUpdate(e);
+    m_Game.OnUpdate(e);
 }
 
 // TODO: WindowCloseEventArgs is unused
 void Window::OnClose(WindowCloseEventArgs& e) {
     UpdateEventArgs updateEventArgs(m_Timer.GetDeltaSeconds(), m_Timer.GetTotalSeconds());
-    m_pGame->OnUpdate(updateEventArgs);
+    m_Game.OnUpdate(updateEventArgs);
 };
 
 void Window::OnKeyPressed(KeyEventArgs& e) {
-    m_pGame->OnKeyPressed(e);
+    m_Game.OnKeyPressed(e);
 }
 
 void Window::OnKeyReleased(KeyEventArgs& e) {
-    m_pGame->OnKeyReleased(e);
+    m_Game.OnKeyReleased(e);
 }
 
 void Window::OnMouseMoved(MouseMotionEventArgs& e) {
-    m_pGame->OnMouseMoved(e);
+    m_Game.OnMouseMoved(e);
 }
 
 void Window::OnMouseButtonPressed(MouseButtonEventArgs& e) {
-    m_pGame->OnMouseButtonPressed(e);
+    m_Game.OnMouseButtonPressed(e);
 }
 
 void Window::OnMouseButtonReleased(MouseButtonEventArgs& e) {
-    m_pGame->OnMouseButtonReleased(e);
+    m_Game.OnMouseButtonReleased(e);
 }
 
 void Window::OnMouseWheel(MouseWheelEventArgs& e) {
-    m_pGame->OnMouseWheel(e);
+    m_Game.OnMouseWheel(e);
 }
 
 void Window::OnResize(ResizeEventArgs& e) {
@@ -160,5 +155,5 @@ void Window::OnResize(ResizeEventArgs& e) {
         m_ClientHeight = std::max(1, e.Height);
     }
 
-    m_pGame->OnResize(e);
+    m_Game.OnResize(e);
 }

@@ -51,8 +51,7 @@ CommandList::CommandList(Device& device, D3D12_COMMAND_LIST_TYPE type)
 	m_ResourceStateTracker = std::make_unique<ResourceStateTracker>();
 
 	for(int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i) {
-		m_DynamicDescriptorHeap[i] =
-			std::make_unique<DynamicDescriptorHeap>(device, static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(i));
+		m_DynamicDescriptorHeap[i] = std::make_unique<DynamicDescriptorHeap>(device, static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(i));
 		m_DescriptorHeaps[i] = nullptr;
 	}
 }
@@ -624,7 +623,8 @@ void CommandList::PanoToCubemap(const std::shared_ptr<Texture>& cubemapTexture, 
 		if(numMips < 5) {
 			// Pad unused mips. This keeps DX12 runtime happy.
 			m_DynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(
-				PanoToCubemapRS::DstMips, panoToCubemapCB.NumMips, 5 - numMips, m_PanoToCubemapPSO->GetDefaultUAV());
+				PanoToCubemapRS::DstMips, panoToCubemapCB.NumMips, 5 - numMips, m_PanoToCubemapPSO->GetDefaultUAV()
+			);
 		}
 
 		Dispatch(Math::DivideByMultiple(panoToCubemapCB.CubemapSize, 16),
@@ -1010,8 +1010,7 @@ void CommandList::CopyTextureSubresource(const std::shared_ptr<Texture>& texture
 	}
 }
 
-void CommandList::SetGraphicsDynamicConstantBuffer(uint32_t rootParameterIndex, size_t sizeInBytes,
-	const void* bufferData) {
+void CommandList::SetGraphicsDynamicConstantBuffer(uint32_t rootParameterIndex, size_t sizeInBytes, const void* bufferData) {
 	// Constant buffers must be 256-byte aligned.
 	auto heapAllococation = m_UploadBuffer->Allocate(sizeInBytes, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 	memcpy(heapAllococation.CPU, bufferData, sizeInBytes);

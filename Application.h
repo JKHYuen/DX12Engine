@@ -74,7 +74,7 @@ public:
      * @param clientHeight The height (in pixels) of the window's client area.
      * @returns The created window instance.
      */
-    std::shared_ptr<Window> CreateRenderWindow(const std::wstring& windowName, int clientWidth, int clientHeight, IGame* const pGame);
+    std::shared_ptr<Window> CreateRenderWindow(const std::wstring& windowName, int clientWidth, int clientHeight, IGame& game);
 
     /**
      * Get a window by name.

@@ -49,6 +49,10 @@ class Window {
 
 public:
     ~Window();
+    Window(const Window&) = delete;
+    Window(Window&&) = delete;
+    Window& operator=(Window&) = delete;
+    Window& operator=(Window&&) = delete;
 
     // Number of swapchain back buffers.
     static const UINT BufferCount = 2;
@@ -73,10 +77,7 @@ public:
 
 protected:
     // Only Application should create windows
-    Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight);
-
-    // Register a Game with this window
-    void RegisterCallbacks(IGame* const pGame);
+    Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight, IGame& game);
 
     // Update should only be called by the Application class
     void OnUpdate(UpdateEventArgs& e);
@@ -95,7 +96,8 @@ protected:
 private:
     std::wstring m_WindowTitle;
 
-    IGame* m_pGame;
+    // Passed by Application class during construction, used for event callbacks
+    IGame& m_Game;
 
     HWND m_hWnd;
 

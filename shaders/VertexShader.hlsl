@@ -1,25 +1,36 @@
-struct Mat {
-    matrix Model;
-    matrix ModelView;
-    matrix InverseTransposeModelView;
+cbuffer VertexCB : register(b0) {
+    matrix SRT;
     matrix MVP;
+    float3 CameraPosition;
+    float4 Pad1;
+    float4 Pad2;
+    float4 Pad3;
+    matrix pad4;
 };
-
-ConstantBuffer<Mat> MatCB : register(b0);
 
 struct VertexInput {
-    float3 Position : POSITION;
-    //float3 Color : COLOR;
+    float3 vertexPosition : POSITION;
+    float3 normal         : NORMAL;
+    float2 uv             : TEXCOORD0;
 };
 
-struct VertexShaderOutput {
-    //float4 Color    : COLOR;
-    float4 Position : SV_Position;
+struct PixelInputType {
+    float4 position       : SV_Position;
+    float3 normal         : NORMAL;
+    float2 uv             : TEXCOORD0;
+    float4 worldPosition  : TEXCOORD1;
+    float3 cameraPosition : TEXCOORD2;
 };
 
-VertexShaderOutput main(VertexInput IN) {
-    VertexShaderOutput OUT;
-    OUT.Position = mul(MatCB.MVP, float4(IN.Position, 1.0f));
-    //OUT.Color = float4(IN.Color, 1.0f);
-    return OUT;
+PixelInputType main(VertexInput i) {
+    PixelInputType o;
+    
+    float4 homogVertexPos = float4(i.vertexPosition, 1.0f);
+    o.position = mul(MVP, homogVertexPos);
+    o.normal = i.normal;
+    o.uv = i.uv;
+    o.worldPosition = mul(SRT, homogVertexPos);
+    o.cameraPosition = CameraPosition;
+    
+    return o;
 }

@@ -2,7 +2,7 @@
 
 #include <Events.h>
 
-// Interface for game loop functionality
+// Interface for game/render loop functionality
 class IGame {
 public:
     virtual ~IGame() = default;

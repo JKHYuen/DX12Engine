@@ -33,24 +33,6 @@
 #include <DirectXMath.h>
 #include <d3d12.h>
 
-struct VertexPosition {
-    VertexPosition() = default;
-
-    explicit VertexPosition(const DirectX::XMFLOAT3& position)
-        : Position(position) {}
-
-    explicit VertexPosition(DirectX::FXMVECTOR position) {
-        DirectX::XMStoreFloat3(&(this->Position), position);
-    }
-
-    DirectX::XMFLOAT3 Position;
-
-    static const D3D12_INPUT_LAYOUT_DESC InputLayout;
-private:
-    static const int InputElementCount = 1;
-    static const D3D12_INPUT_ELEMENT_DESC InputElements[InputElementCount];
-};
-
 struct VertexPositionNormalTangentBitangentTexture {
     VertexPositionNormalTangentBitangentTexture() = default;
 
@@ -86,8 +68,7 @@ struct VertexPositionNormalTangentBitangentTexture {
     DirectX::XMFLOAT3 Bitangent;
     DirectX::XMFLOAT3 TexCoord;
 
-    static const D3D12_INPUT_LAYOUT_DESC InputLayout;
+    static D3D12_INPUT_LAYOUT_DESC GetInputLayout();
 private:
-    static const int                      InputElementCount = 5;
-    static const D3D12_INPUT_ELEMENT_DESC InputElements[InputElementCount];
+    static const D3D12_INPUT_ELEMENT_DESC InputElements[];
 };

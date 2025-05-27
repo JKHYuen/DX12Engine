@@ -268,8 +268,8 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="shaders\VertexShader.hlsl" />
-    <FxCompile Include="shaders\PixelShader.hlsl" />
+    <FxCompile Include="shaders\PBR_vs.hlsl" />
+    <FxCompile Include="shaders\PBR_ps.hlsl" />
     <FxCompile Include="shaders\GenerateMips_CS.hlsl" />
     <FxCompile Include="shaders\PanoToCubemap_CS.hlsl" />
   </ItemGroup>

@@ -30,7 +30,16 @@ using namespace Microsoft::WRL;
 
 /// TODO: TEMP
 namespace {
-	struct VertexCB {
+	enum PBRRootParameters {
+		VertexCB,       // ConstantBuffer<Mat> VertexCB : register(b0);
+		MaterialCB,     // ConstantBuffer<Material> MaterialCB : register( b0, space1 );
+		Textures,       // Range Size: 2 
+						// Texture2D AlbedoTex : register( t0 );
+						// Texture2D NormalTex : register( t1 );
+		NumRootParameters
+	};
+
+	struct VertexProps {
 		XMFLOAT4X4A SRT;
 		XMFLOAT4X4A MVP;
 		XMFLOAT4A   CameraPosition;
@@ -40,7 +49,7 @@ namespace {
 		XMFLOAT4X4A Pad4;
 	};
 
-	struct MaterialCB {
+	struct MaterialProps {
 		XMFLOAT4A   Time;
 		XMFLOAT4A   DirLight;
 		XMFLOAT4A   Pad1;
@@ -50,7 +59,72 @@ namespace {
 		XMFLOAT4X4A Pad5;
 	};
 
-	Mesh s_TestCubeMesh;
+	std::shared_ptr<Texture> s_StoneWallAlbedo;
+	std::shared_ptr<Texture> s_StoneWallNormal;
+
+	Mesh s_TestCube;
+	Mesh s_TestSphere;
+
+	void CalculateTangentBinormal(const VertexInputType& vertex1, const VertexInputType& vertex2, const VertexInputType& vertex3, XMVECTOR& tangent, XMVECTOR& binormal) {
+		float vector1[3], vector2[3];
+		float tuVector[2], tvVector[2];
+		float den;
+		float length;
+
+		// Calculate the two vectors for this face.
+		vector1[0] = vertex2.Position.x - vertex1.Position.x;
+		vector1[1] = vertex2.Position.y - vertex1.Position.y;
+		vector1[2] = vertex2.Position.z - vertex1.Position.z;
+
+		vector2[0] = vertex3.Position.x - vertex1.Position.x;
+		vector2[1] = vertex3.Position.y - vertex1.Position.y;
+		vector2[2] = vertex3.Position.z - vertex1.Position.z;
+
+		// Calculate the tu and tv texture space vectors.
+		tuVector[0] = vertex2.TexCoord.x - vertex1.TexCoord.x;
+		tvVector[0] = vertex2.TexCoord.y - vertex1.TexCoord.y;
+
+		tuVector[1] = vertex3.TexCoord.x - vertex1.TexCoord.x;
+		tvVector[1] = vertex3.TexCoord.y - vertex1.TexCoord.y;
+
+		// Calculate the denominator of the tangent/binormal equation.
+		den = 1.0f / (tuVector[0] * tvVector[1] - tuVector[1] * tvVector[0]);
+
+		// Calculate the cross products, multiply by the coefficient and normalize to get the tangent and bitangent
+		tangent = XMVector3Normalize(XMVectorSet(
+			(tvVector[1] * vector1[0] - tvVector[0] * vector2[0]) * den,
+			(tvVector[1] * vector1[1] - tvVector[0] * vector2[1]) * den,
+			(tvVector[1] * vector1[2] - tvVector[0] * vector2[2]) * den, 1.0f
+		));
+		binormal = XMVector3Normalize(XMVectorSet(
+			(tuVector[0] * vector2[0] - tuVector[1] * vector1[0]) * den,
+			(tuVector[0] * vector2[1] - tuVector[1] * vector1[1]) * den,
+			(tuVector[0] * vector2[2] - tuVector[1] * vector1[2]) * den, 1.0f
+		));
+	}
+
+	void CalculateModelVectors(std::vector<VertexInputType>& vertices, const std::vector<uint16_t>& indices) {
+		XMVECTOR tangent {}, bitangent {};
+
+		int triangleCount = indices.size() / 3;
+
+		// Index of index buffer
+		size_t i = 0;
+
+		// Go through all triangles and calculate the the tangent and binormal vectors.
+		for(int f = 0; f < triangleCount; f++) {
+			CalculateTangentBinormal(vertices[indices[i++]], vertices[indices[i++]], vertices[indices[i++]], tangent, bitangent);
+
+			// Store the tangent and binormal 
+			// NOTE: some repeated work done
+			XMStoreFloat3(&vertices[indices[i - 1]].Tangent, tangent);
+			XMStoreFloat3(&vertices[indices[i - 1]].Bitangent, bitangent);
+			XMStoreFloat3(&vertices[indices[i - 2]].Tangent, tangent);
+			XMStoreFloat3(&vertices[indices[i - 2]].Bitangent, bitangent);
+			XMStoreFloat3(&vertices[indices[i - 3]].Tangent, tangent);
+			XMStoreFloat3(&vertices[indices[i - 3]].Bitangent, bitangent);
+		}
+	}
 
 	void CreateTestCube(CommandList& commandList, float size = 1.0f) {
 		// Cube is centered at 0,0,0
@@ -61,7 +135,7 @@ namespace {
 		// 6 face normals
 		XMFLOAT3 n[6] = {{ 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 }};
 		// 4 unique texture coordinates
-		XMFLOAT3 t[4] = {{ 0, 0, 0 }, { 1, 0, 0 }, { 1, 1, 0 }, { 0, 1, 0 }};
+		XMFLOAT3 uv[4] = {{ 0, 0, 0 }, { 1, 0, 0 }, { 1, 1, 0 }, { 0, 1, 0 }};
 
 		// Indices for the vertex positions.
 		uint16_t i[24] = {
@@ -73,16 +147,16 @@ namespace {
 			5, 0, 3, 6   // -Z
 		};
 
-		std::vector<VertexPositionNormalTangentBitangentTexture> vertices;
+		std::vector<VertexInputType> vertices;
 		std::vector<uint16_t>  indices;
 
 		for(uint16_t f = 0; f < 6; ++f)  // For each face of the cube.
 		{
 			// Four vertices per face.
-			vertices.emplace_back(p[i[f * 4 + 0]], n[f], t[0]);
-			vertices.emplace_back(p[i[f * 4 + 1]], n[f], t[1]);
-			vertices.emplace_back(p[i[f * 4 + 2]], n[f], t[2]);
-			vertices.emplace_back(p[i[f * 4 + 3]], n[f], t[3]);
+			vertices.emplace_back(p[i[f * 4 + 0]], n[f], uv[0]);
+			vertices.emplace_back(p[i[f * 4 + 1]], n[f], uv[1]);
+			vertices.emplace_back(p[i[f * 4 + 2]], n[f], uv[2]);
+			vertices.emplace_back(p[i[f * 4 + 3]], n[f], uv[3]);
 
 			// First triangle.
 			indices.emplace_back(f * 4 + 0);
@@ -95,16 +169,84 @@ namespace {
 			indices.emplace_back(f * 4 + 0);
 		}
 
+		CalculateModelVectors(vertices, indices);
+
 		auto vertexBuffer = commandList.CopyVertexBuffer(vertices);
 		auto indexBuffer = commandList.CopyIndexBuffer(indices);
 
-		s_TestCubeMesh = Mesh();
-		s_TestCubeMesh.SetVertexBuffer(0, vertexBuffer);
-		s_TestCubeMesh.SetIndexBuffer(indexBuffer);
+		s_TestCube = Mesh();
+		s_TestCube.SetVertexBuffer(0, vertexBuffer);
+		s_TestCube.SetIndexBuffer(indexBuffer);
+	}
+
+	void CreateTestSphere(CommandList& commandList, float radius, uint32_t tessellation) {
+
+		if(tessellation < 3)
+			throw std::out_of_range("tessellation parameter out of range");
+
+		std::vector<VertexInputType> vertices;
+		std::vector<uint16_t>  indices;
+
+		size_t verticalSegments = tessellation;
+		size_t horizontalSegments = tessellation * 2;
+
+		// Create rings of vertices at progressively higher latitudes.
+		for(size_t i = 0; i <= verticalSegments; i++) {
+			float v = 1 - (float)i / verticalSegments;
+
+			float latitude = (i * XM_PI / verticalSegments) - XM_PIDIV2;
+			float dy, dxz;
+
+			XMScalarSinCos(&dy, &dxz, latitude);
+
+			// Create a single ring of vertices at this latitude.
+			for(size_t j = 0; j <= horizontalSegments; j++) {
+				float u = (float)j / horizontalSegments;
+
+				float longitude = j * XM_2PI / horizontalSegments;
+				float dx, dz;
+
+				XMScalarSinCos(&dx, &dz, longitude);
+
+				dx *= dxz;
+				dz *= dxz;
+
+				auto normal = XMVectorSet(dx, dy, dz, 0);
+				auto textureCoordinate = XMVectorSet(u, v, 0, 0);
+				auto position = normal * radius;
+
+				vertices.emplace_back(position, normal, textureCoordinate);
+			}
+		}
+
+		// Fill the index buffer with triangles joining each pair of latitude rings.
+		size_t stride = horizontalSegments + 1;
+
+		for(size_t i = 0; i < verticalSegments; i++) {
+			for(size_t j = 0; j < horizontalSegments; j++) {
+				size_t nextI = i + 1;
+				size_t nextJ = (j + 1) % stride;
+
+				indices.push_back(i * stride + nextJ);
+				indices.push_back(nextI * stride + j);
+				indices.push_back(i * stride + j);
+
+				indices.push_back(nextI * stride + nextJ);
+				indices.push_back(nextI * stride + j);
+				indices.push_back(i * stride + nextJ);
+			}
+		}
+
+		CalculateModelVectors(vertices, indices);
+
+		auto vertexBuffer = commandList.CopyVertexBuffer(vertices);
+		auto indexBuffer = commandList.CopyIndexBuffer(indices);
+
+		s_TestSphere = Mesh();
+		s_TestSphere.SetVertexBuffer(0, vertexBuffer);
+		s_TestSphere.SetIndexBuffer(indexBuffer);
 	}
 }
-
-/// 
 
 DemoGame::DemoGame(const std::wstring& name, uint32_t width, uint32_t height, bool vSync)
 	: m_ScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX))
@@ -120,7 +262,8 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t width, uint32_t height, bo
 	, m_ShiftPressed(false)
 	, m_Width(width)
 	, m_Height(height)
-	, m_Vsync(vSync) {
+	, m_Vsync(vSync)
+	, m_Camera() {
 
 	m_Window = Application::Get().CreateRenderWindow(name, width, height, *this);
 
@@ -155,21 +298,27 @@ bool DemoGame::LoadContent() {
 	m_Device = std::make_shared<Device>();
 	m_SwapChain = std::make_shared<SwapChain>(*m_Device, m_Window->GetWindowHandle(), m_Vsync, DXGI_FORMAT_R8G8B8A8_UNORM);
 
+	/// Load Assets
 	auto& commandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 	auto commandList = commandQueue.GetCommandList();
 
-	// TODO: TEMP - Create test cube index and vertex buffers
-	CreateTestCube(*commandList);
+	// TODO / TEMP: more dynamic scene object loading
+	//CreateTestCube(*commandList);
+	CreateTestSphere(*commandList, 1.0f, 64);
+
+	s_StoneWallAlbedo = commandList->LoadTextureFromFile(L"assets/stonewall_albedo.tga", true);
+	s_StoneWallNormal = commandList->LoadTextureFromFile(L"assets/stonewall_normal.tga", false);
 
 	commandQueue.ExecuteCommandList(commandList);
+	///
 
 	// Load the vertex shader
 	ComPtr<ID3DBlob> vertexShaderBlob;
-	ThrowIfFailed(D3DReadFileToBlob(L"VertexShader.cso", &vertexShaderBlob));
+	ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/PBR_vs.cso", &vertexShaderBlob));
 
 	// Load the pixel shader
 	ComPtr<ID3DBlob> pixelShaderBlob;
-	ThrowIfFailed(D3DReadFileToBlob(L"PixelShader.cso", &pixelShaderBlob));
+	ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/PBR_ps.cso", &pixelShaderBlob));
 
 	/// Create root signature.
 	// Allow input layout and deny unnecessary access to certain pipeline stages.
@@ -180,12 +329,18 @@ bool DemoGame::LoadContent() {
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
 	// TODO: TEMP Test Cube Render
-	CD3DX12_ROOT_PARAMETER1 rootParameters[2];
-	rootParameters[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX);
-	rootParameters[1].InitAsConstantBufferView(0, 1, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
+	CD3DX12_ROOT_PARAMETER1 rootParameters[PBRRootParameters::NumRootParameters];
+	rootParameters[PBRRootParameters::VertexCB].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX);
+	rootParameters[PBRRootParameters::MaterialCB].InitAsConstantBufferView(0, 1, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
+
+	CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0);
+	rootParameters[PBRRootParameters::Textures].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
+
+	//CD3DX12_STATIC_SAMPLER_DESC linearRepeatSampler(0, D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR);
+	CD3DX12_STATIC_SAMPLER_DESC anisotropicSampler(0, D3D12_FILTER_ANISOTROPIC);
 
 	CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
-	rootSignatureDescription.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, rootSignatureFlags);
+	rootSignatureDescription.Init_1_1(PBRRootParameters::NumRootParameters, rootParameters, 1, &anisotropicSampler, rootSignatureFlags);
 
 	m_RootSignature = std::make_shared<RootSignature>(*m_Device, rootSignatureDescription.Desc_1_1);
 	///
@@ -213,7 +368,7 @@ bool DemoGame::LoadContent() {
 	rtvFormats.RTFormats[0] = backBufferFormat;
 	
 	pipelineStateStream.pRootSignature        = m_RootSignature->GetD3D12RootSignature().Get();
-	pipelineStateStream.InputLayout			  = VertexPositionNormalTangentBitangentTexture::GetInputLayout();
+	pipelineStateStream.InputLayout			  = VertexInputType::GetInputLayout();
 	pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	pipelineStateStream.VS					  = CD3DX12_SHADER_BYTECODE(vertexShaderBlob.Get());
 	pipelineStateStream.PS					  = CD3DX12_SHADER_BYTECODE(pixelShaderBlob.Get());
@@ -311,7 +466,7 @@ void DemoGame::OnUpdate(UpdateEventArgs& e) {
 	m_SwapChain->WaitForSwapChain();
 
 	/// Update the camera.
-	float speedMultipler = m_ShiftPressed ? 32.0f : 8.0f;
+	float speedMultipler = m_ShiftPressed ? 32.0f : 16.0f;
 
 	XMVECTOR cameraTranslate = XMVectorSet(m_Right - m_Left, 0.0f, m_Forward - m_Backward, 1.0f) * speedMultipler * (float)e.DeltaTime;
 	XMVECTOR cameraPan = XMVectorSet(0.0f, m_Up - m_Down, 0.0f, 1.0f) * speedMultipler * (float)e.DeltaTime;
@@ -320,8 +475,6 @@ void DemoGame::OnUpdate(UpdateEventArgs& e) {
 
 	XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(-m_Pitch), XMConvertToRadians(-m_Yaw), 0.0f);
 	m_Camera.set_Rotation(cameraRotation);
-
-	XMMATRIX viewMatrix = m_Camera.get_ViewMatrix();
 	///
 
 	OnRender(e);
@@ -346,29 +499,31 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 	/// TEMP: Render Test Cube
 	// Vertex Shader Buffers
 	XMMATRIX translationMat = XMMatrixTranslation(1.0f, 1.0f, 1.0f);
-	XMMATRIX rotationMat    = XMMatrixRotationY(XMConvertToRadians(45.0f));
+	XMMATRIX rotationMat    = XMMatrixIdentity();
 	XMMATRIX scaleMat       = XMMatrixScaling(5.0f, 5.0f, 5.0f);
 	XMMATRIX SRTMat         = scaleMat * rotationMat * translationMat;
 
-	VertexCB matrixCB;
-	XMStoreFloat4x4A(&matrixCB.SRT, SRTMat);
-	XMStoreFloat4x4A(&matrixCB.MVP, SRTMat * m_Camera.get_ViewMatrix() * m_Camera.get_ProjectionMatrix());
-	XMStoreFloat4A(&matrixCB.CameraPosition, m_Camera.get_Translation());
+	VertexProps vertexCB;
+	XMStoreFloat4x4A(&vertexCB.SRT, SRTMat);
+	XMStoreFloat4x4A(&vertexCB.MVP, SRTMat * m_Camera.get_ViewMatrix() * m_Camera.get_ProjectionMatrix());
+	XMStoreFloat4A(&vertexCB.CameraPosition, m_Camera.get_Translation());
 
-	commandList->SetGraphicsDynamicConstantBuffer(0, matrixCB);
+	commandList->SetGraphicsDynamicConstantBuffer(PBRRootParameters::VertexCB, vertexCB);
 
 	// Pixel Shader Buffers
 	// TODO: lighting vars
-	MaterialCB materialCB;
+	MaterialProps materialCB;
 	XMVECTORF32 timeVec = {(float)e.Time, (float)e.DeltaTime, 0.0f, 0.0f};
 	XMStoreFloat4A(&materialCB.Time, timeVec);
+	XMVECTORF32 dirLight = {0.4f, -1.0f, 0.8f, 0.0f};
+	XMStoreFloat4A(&materialCB.DirLight, XMVector3Normalize(dirLight));
 
-	XMVECTORF32 dirLight = {0.4f, -1.0f, 0.6f, 0.0f};
-	XMStoreFloat4A(&materialCB.DirLight, dirLight);
+	commandList->SetGraphicsDynamicConstantBuffer(PBRRootParameters::MaterialCB, materialCB);
+	commandList->SetShaderResourceView(PBRRootParameters::Textures, 0, s_StoneWallAlbedo, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	commandList->SetShaderResourceView(PBRRootParameters::Textures, 1, s_StoneWallNormal, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-	commandList->SetGraphicsDynamicConstantBuffer(1, materialCB);
-
-	s_TestCubeMesh.Draw(*commandList);
+	//s_TestCube.Draw(*commandList);
+	s_TestSphere.Draw(*commandList);
 	///
 
 	// Resolve the MSAA render target to the swapchain's backbuffer.

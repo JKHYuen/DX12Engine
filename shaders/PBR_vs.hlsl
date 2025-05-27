@@ -11,12 +11,16 @@ cbuffer VertexCB : register(b0) {
 struct VertexInput {
     float3 vertexPosition : POSITION;
     float3 normal         : NORMAL;
+    float3 tangent        : TANGENT;
+    float3 bitangent      : BITANGENT;
     float2 uv             : TEXCOORD0;
 };
 
 struct PixelInputType {
     float4 position       : SV_Position;
     float3 normal         : NORMAL;
+    float3 tangent        : TANGENT;
+    float3 bitangent      : BITANGENT;
     float2 uv             : TEXCOORD0;
     float4 worldPosition  : TEXCOORD1;
     float3 cameraPosition : TEXCOORD2;
@@ -27,7 +31,15 @@ PixelInputType main(VertexInput i) {
     
     float4 homogVertexPos = float4(i.vertexPosition, 1.0f);
     o.position = mul(MVP, homogVertexPos);
-    o.normal = i.normal;
+    
+     // TBN
+    o.normal = normalize(mul(i.normal, (float3x3)SRT));
+    o.tangent = normalize(mul(i.tangent, (float3x3)SRT));
+    o.bitangent = normalize(mul(i.bitangent, (float3x3)SRT));
+    
+    //float3x3 TBN = float3x3(o.tangent, o.bitangent, o.normal);
+    //o.tangentViewDirection = mul(TBN, cameraPosition - o.worldPosition.xyz);
+    
     o.uv = i.uv;
     o.worldPosition = mul(SRT, homogVertexPos);
     o.cameraPosition = CameraPosition;

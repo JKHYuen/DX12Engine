@@ -10,7 +10,8 @@ enum class Space {
 
 class Camera {
 public:
-    Camera();
+    // Note: member values are updated in setProjection function, which should be called on window resize (called on window startup)
+    Camera(float vFOV = 45.0f, float aspectRatio = 1.0f, float zNear = 0.1f, float zFar = 100.0f);
     ~Camera();
 
     void XM_CALLCONV set_LookAt(DirectX::FXMVECTOR eye, DirectX::FXMVECTOR target, DirectX::FXMVECTOR up);
@@ -58,10 +59,10 @@ protected:
     AlignedData* pData;
 
     // projection parameters
-    float m_vFoV;   
+    float m_vFOV;   
     float m_AspectRatio; 
-    float m_zNear;     
-    float m_zFar;      
+    float m_NearZ;     
+    float m_FarZ;      
 
     // True if the view matrices needs to be updated
     mutable bool m_ViewDirty;

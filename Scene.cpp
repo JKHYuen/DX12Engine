@@ -265,7 +265,7 @@ void Scene::ImportMaterial(CommandList& commandList, const aiMaterial& material,
 void Scene::ImportMesh(CommandList& commandList, const aiMesh& aiMesh) {
     auto mesh = std::make_shared<Mesh>();
 
-    std::vector<VertexPositionNormalTangentBitangentTexture> vertexData(aiMesh.mNumVertices);
+    std::vector<VertexInputType> vertexData(aiMesh.mNumVertices);
 
     assert(aiMesh.mMaterialIndex < m_Materials.size());
     mesh->SetMaterial(m_Materials[aiMesh.mMaterialIndex]);

@@ -2,13 +2,13 @@
 
 using namespace DirectX;
 
-Camera::Camera()
+Camera::Camera(float vFOV, float aspectRatio, float zNear, float zFar)
     : m_ViewDirty(true)
     , m_ProjectionDirty(true)
-    , m_vFoV(45.0f)
-    , m_AspectRatio(1.0f)
-    , m_zNear(0.1f)
-    , m_zFar(100.0f) {
+    , m_vFOV(vFOV)
+    , m_AspectRatio(aspectRatio)
+    , m_NearZ(zNear)
+    , m_FarZ(zFar) {
     pData = (AlignedData*)_aligned_malloc(sizeof(AlignedData), 16);
     pData->m_Translation = XMVectorZero();
     pData->m_Rotation = XMQuaternionIdentity();
@@ -35,10 +35,10 @@ XMMATRIX Camera::get_ViewMatrix() const {
 }
 
 void Camera::set_Projection(float fovy, float aspect, float zNear, float zFar) {
-    m_vFoV = fovy;
+    m_vFOV = fovy;
     m_AspectRatio = aspect;
-    m_zNear = zNear;
-    m_zFar = zFar;
+    m_NearZ = zNear;
+    m_FarZ = zFar;
 
     m_ProjectionDirty = true;
 }
@@ -52,14 +52,14 @@ XMMATRIX Camera::get_ProjectionMatrix() const {
 }
 
 void Camera::set_FoV(float fovy) {
-    if(m_vFoV != fovy) {
-        m_vFoV = fovy;
+    if(m_vFOV != fovy) {
+        m_vFOV = fovy;
         m_ProjectionDirty = true;
     }
 }
 
 float Camera::get_FoV() const {
-    return m_vFoV;
+    return m_vFOV;
 }
 
 
@@ -81,17 +81,11 @@ XMVECTOR Camera::get_Rotation() const {
 }
 
 void XM_CALLCONV Camera::Translate(FXMVECTOR translation, Space space) {
-    switch(space) {
-    case Space::Local:
-    {
+    if(space == Space::Local) {
         pData->m_Translation += XMVector3Rotate(translation, pData->m_Rotation);
     }
-    break;
-    case Space::World:
-    {
+    else {
         pData->m_Translation += translation;
-    }
-    break;
     }
 
     pData->m_Translation = XMVectorSetW(pData->m_Translation, 1.0f);
@@ -113,6 +107,6 @@ void Camera::UpdateViewMatrix() const {
 }
 
 void Camera::UpdateProjectionMatrix() const {
-    pData->m_ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(m_vFoV), m_AspectRatio, m_zNear, m_zFar);
+    pData->m_ProjectionMatrix = XMMatrixPerspectiveFovLH(XMConvertToRadians(m_vFOV), m_AspectRatio, m_NearZ, m_FarZ);
     m_ProjectionDirty = false;
 }

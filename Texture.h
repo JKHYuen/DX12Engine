@@ -82,8 +82,8 @@ public:
 
     bool CheckUAVSupport() const {
         return CheckFormatSupport(D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW) &&
-            CheckFormatSupport(D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD) &&
-            CheckFormatSupport(D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE);
+               CheckFormatSupport(D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD) &&
+               CheckFormatSupport(D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE);
     }
 
     bool CheckDSVSupport() const {

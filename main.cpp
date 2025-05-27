@@ -2,11 +2,15 @@
 #include <Windows.h>
 #include <Shlwapi.h>
 
+// For CommandLineToArgvW
+//#include <shellapi.h>
+
 #include "Application.h"
 #include "Device.h"
 #include "DemoGame.h"
 
 #include <dxgidebug.h>
+#include <iostream>
 
 void ReportLiveObjects() {
     IDXGIDebug1* dxgiDebug;
@@ -24,12 +28,19 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
 #endif
 
     // Set the working directory to the path of the executable.
-    WCHAR path[MAX_PATH];
-    HMODULE hModule = GetModuleHandleW(NULL);
-    if(GetModuleFileNameW(hModule, path, MAX_PATH) > 0) {
-        PathRemoveFileSpecW(path);
-        SetCurrentDirectoryW(path);
-    }
+    //WCHAR   path[MAX_PATH];
+    //int     argc = 0;
+    //LPWSTR* argv = CommandLineToArgvW(lpCmdLine, &argc);
+    //if(argv) {
+    //    for(int i = 0; i < argc; ++i) {
+    //        // -wd Specify the Working Directory.
+    //        if(wcscmp(argv[i], L"-wd") == 0) {
+    //            wcscpy_s(path, argv[++i]);
+    //            SetCurrentDirectoryW(path);
+    //        }
+    //    }
+    //    LocalFree(argv);
+    //}
 
     Application::Create(hInstance);
     {

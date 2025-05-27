@@ -249,6 +249,7 @@ void CommandList::SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY primitiveTopology)
 std::shared_ptr<Texture> CommandList::LoadTextureFromFile(const std::wstring& fileName, bool sRGB) {
 	std::shared_ptr<Texture> texture;
 	fs::path                 filePath(fileName);
+
 	if(!fs::exists(filePath)) {
 		throw std::exception("File not found.");
 	}
@@ -1223,9 +1224,11 @@ void CommandList::SetShaderResourceView(uint32_t rootParameterIndex, uint32_t de
 		rootParameterIndex, descriptorOffset, 1, srv->GetDescriptorHandle());
 }
 
-void CommandList::SetShaderResourceView(int32_t rootParameterIndex, uint32_t descriptorOffset,
+void CommandList::SetShaderResourceView(
+	int32_t rootParameterIndex, uint32_t descriptorOffset,
 	const std::shared_ptr<Texture>& texture, D3D12_RESOURCE_STATES stateAfter,
 	UINT firstSubresource, UINT numSubresources) {
+
 	if(texture) {
 		if(numSubresources < D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) {
 			for(uint32_t i = 0; i < numSubresources; ++i) {

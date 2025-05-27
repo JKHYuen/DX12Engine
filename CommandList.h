@@ -502,7 +502,7 @@ protected:
 
 private:
     // Used for procedural mesh generation.
-    using VertexCollection = std::vector<VertexPositionNormalTangentBitangentTexture>;
+    using VertexCollection = std::vector<VertexInputType>;
     using IndexCollection = std::vector<size_t>;
 
     // Create a scene that contains a single node with a single mesh.

@@ -14,7 +14,8 @@ public:
     // Start game loop, return error code
     virtual uint32_t Run() = 0;
 
-    virtual void OnUpdate(UpdateEventArgs& e) {};
+    virtual void OnUpdate(UpdateEventArgs& e) = 0;
+
     virtual void OnKeyPressed(KeyEventArgs& e) {};
     virtual void OnKeyReleased(KeyEventArgs& e) {};
     virtual void OnMouseMoved(MouseMotionEventArgs& e) {};

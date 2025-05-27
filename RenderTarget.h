@@ -73,7 +73,7 @@ public:
      * @param attachmentPoint The point to attach the texture to.
      * @param [texture] Optional texture to bind to the render target. Specify nullptr to remove the texture.
      */
-    void                     AttachTexture(AttachmentPoint attachmentPoint, std::shared_ptr<Texture> texture);
+    void AttachTexture(AttachmentPoint attachmentPoint, std::shared_ptr<Texture> texture);
     std::shared_ptr<Texture> GetTexture(AttachmentPoint attachmentPoint) const;
 
     // Resize all of the textures associated with the render target.
@@ -87,8 +87,11 @@ public:
     // The scale and bias parameters can be used to specify a split-screen
     // viewport (the bias parameter is normalized in the range [0...1]).
     // By default, a fullscreen viewport is returned.
-    D3D12_VIEWPORT GetViewport(DirectX::XMFLOAT2 scale = {1.0f, 1.0f}, DirectX::XMFLOAT2 bias = {0.0f, 0.0f},
-        float minDepth = 0.0f, float maxDepth = 1.0f) const;
+    D3D12_VIEWPORT GetViewport(
+        DirectX::XMFLOAT2 scale = {1.0f, 1.0f}, 
+        DirectX::XMFLOAT2 bias = {0.0f, 0.0f},
+        float minDepth = 0.0f, float maxDepth = 1.0f
+    ) const;
 
     // Get a list of the textures attached to the render target.
     // This method is primarily used by the CommandList when binding the
@@ -114,5 +117,5 @@ public:
 private:
     using RenderTargetList = std::vector<std::shared_ptr<Texture>>;
     RenderTargetList m_Textures;
-    DirectX::XMUINT2                      m_Size;
+    DirectX::XMUINT2 m_Size;
 };

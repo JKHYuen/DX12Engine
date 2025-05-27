@@ -33,10 +33,10 @@
 #include <DirectXMath.h>
 #include <d3d12.h>
 
-struct VertexPositionNormalTangentBitangentTexture {
-    VertexPositionNormalTangentBitangentTexture() = default;
+struct VertexInputType {
+    VertexInputType() = default;
 
-    explicit VertexPositionNormalTangentBitangentTexture(
+    explicit VertexInputType(
         const DirectX::XMFLOAT3& position,
         const DirectX::XMFLOAT3& normal,
         const DirectX::XMFLOAT3& texCoord,
@@ -48,7 +48,7 @@ struct VertexPositionNormalTangentBitangentTexture {
         , Bitangent(bitangent)
         , TexCoord(texCoord) {}
 
-    explicit VertexPositionNormalTangentBitangentTexture(
+    explicit VertexInputType(
         DirectX::FXMVECTOR position,
         DirectX::FXMVECTOR normal, 
         DirectX::FXMVECTOR texCoord,

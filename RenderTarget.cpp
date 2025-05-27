@@ -44,8 +44,7 @@ uint32_t RenderTarget::GetHeight() const {
     return m_Size.y;
 }
 
-D3D12_VIEWPORT RenderTarget::GetViewport(DirectX::XMFLOAT2 scale, DirectX::XMFLOAT2 bias, float minDepth,
-    float maxDepth) const {
+D3D12_VIEWPORT RenderTarget::GetViewport(DirectX::XMFLOAT2 scale, DirectX::XMFLOAT2 bias, float minDepth, float maxDepth) const {
     UINT64 width = 0;
     UINT   height = 0;
 
@@ -63,8 +62,8 @@ D3D12_VIEWPORT RenderTarget::GetViewport(DirectX::XMFLOAT2 scale, DirectX::XMFLO
         (height * bias.y),   // TopLeftY
         (width * scale.x),   // Width
         (height * scale.y),  // Height
-        minDepth,              // MinDepth
-        maxDepth               // MaxDepth
+        minDepth,            // MinDepth
+        maxDepth             // MaxDepth
     };
 
     return viewport;

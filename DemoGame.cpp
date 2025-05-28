@@ -33,9 +33,10 @@ namespace {
 	enum PBRRootParameters {
 		VertexCB,       // ConstantBuffer<Mat> VertexCB : register(b0);
 		MaterialCB,     // ConstantBuffer<Material> MaterialCB : register( b0, space1 );
-		Textures,       // Range Size: 2 
-						// Texture2D AlbedoTex : register( t0 );
-						// Texture2D NormalTex : register( t1 );
+		Textures,       // Range Size: 3
+						// Texture2D AlbedoTex   : register( t0 );
+						// Texture2D NormalTex   : register( t1 );
+						// Texture2D MaterialTex : register( t2 );
 		NumRootParameters
 	};
 
@@ -59,52 +60,18 @@ namespace {
 		XMFLOAT4X4A Pad5;
 	};
 
-	std::shared_ptr<Texture> s_StoneWallAlbedo;
-	std::shared_ptr<Texture> s_StoneWallNormal;
+	std::shared_ptr<Texture> s_Stonewall_Albedo;
+	std::shared_ptr<Texture> s_Stonewall_Normal;
+	std::shared_ptr<Texture> s_Stonewall_Material;	// r: AO, g: metallic, b: roughness, a: height 
 
 	Mesh s_TestCube;
 	Mesh s_TestSphere;
 
-	void CalculateTangentBinormal(const VertexInputType& vertex1, const VertexInputType& vertex2, const VertexInputType& vertex3, XMVECTOR& tangent, XMVECTOR& binormal) {
-		float vector1[3], vector2[3];
-		float tuVector[2], tvVector[2];
-		float den;
-		float length;
-
-		// Calculate the two vectors for this face.
-		vector1[0] = vertex2.Position.x - vertex1.Position.x;
-		vector1[1] = vertex2.Position.y - vertex1.Position.y;
-		vector1[2] = vertex2.Position.z - vertex1.Position.z;
-
-		vector2[0] = vertex3.Position.x - vertex1.Position.x;
-		vector2[1] = vertex3.Position.y - vertex1.Position.y;
-		vector2[2] = vertex3.Position.z - vertex1.Position.z;
-
-		// Calculate the tu and tv texture space vectors.
-		tuVector[0] = vertex2.TexCoord.x - vertex1.TexCoord.x;
-		tvVector[0] = vertex2.TexCoord.y - vertex1.TexCoord.y;
-
-		tuVector[1] = vertex3.TexCoord.x - vertex1.TexCoord.x;
-		tvVector[1] = vertex3.TexCoord.y - vertex1.TexCoord.y;
-
-		// Calculate the denominator of the tangent/binormal equation.
-		den = 1.0f / (tuVector[0] * tvVector[1] - tuVector[1] * tvVector[0]);
-
-		// Calculate the cross products, multiply by the coefficient and normalize to get the tangent and bitangent
-		tangent = XMVector3Normalize(XMVectorSet(
-			(tvVector[1] * vector1[0] - tvVector[0] * vector2[0]) * den,
-			(tvVector[1] * vector1[1] - tvVector[0] * vector2[1]) * den,
-			(tvVector[1] * vector1[2] - tvVector[0] * vector2[2]) * den, 1.0f
-		));
-		binormal = XMVector3Normalize(XMVectorSet(
-			(tuVector[0] * vector2[0] - tuVector[1] * vector1[0]) * den,
-			(tuVector[0] * vector2[1] - tuVector[1] * vector1[1]) * den,
-			(tuVector[0] * vector2[2] - tuVector[1] * vector1[2]) * den, 1.0f
-		));
-	}
-
+	// Algorithm from https://rastertek.com/dx11win10tut20.html
 	void CalculateModelVectors(std::vector<VertexInputType>& vertices, const std::vector<uint16_t>& indices) {
 		XMVECTOR tangent {}, bitangent {};
+		float vector1[3] {}, vector2[3] {};
+		float tuVector[2] {}, tvVector[2] {};
 
 		int triangleCount = indices.size() / 3;
 
@@ -113,7 +80,40 @@ namespace {
 
 		// Go through all triangles and calculate the the tangent and binormal vectors.
 		for(int f = 0; f < triangleCount; f++) {
-			CalculateTangentBinormal(vertices[indices[i++]], vertices[indices[i++]], vertices[indices[i++]], tangent, bitangent);
+			VertexInputType vertex1 = vertices[indices[i++]];
+			VertexInputType vertex2 = vertices[indices[i++]];
+			VertexInputType vertex3 = vertices[indices[i++]];
+
+			// Calculate tangent and bitangent
+			{
+				// Calculate the two vectors for this face
+				vector1[0] = vertex2.Position.x - vertex1.Position.x;
+				vector1[1] = vertex2.Position.y - vertex1.Position.y;
+				vector1[2] = vertex2.Position.z - vertex1.Position.z;
+
+				vector2[0] = vertex3.Position.x - vertex1.Position.x;
+				vector2[1] = vertex3.Position.y - vertex1.Position.y;
+				vector2[2] = vertex3.Position.z - vertex1.Position.z;
+
+				// Calculate the tu and tv texture space vectors.
+				tuVector[0] = vertex2.TexCoord.x - vertex1.TexCoord.x;
+				tvVector[0] = vertex2.TexCoord.y - vertex1.TexCoord.y;
+
+				tuVector[1] = vertex3.TexCoord.x - vertex1.TexCoord.x;
+				tvVector[1] = vertex3.TexCoord.y - vertex1.TexCoord.y;
+
+				// Calculate the cross products, multiply by the coefficient and normalize to get the tangent and bitangent
+				tangent = XMVector3Normalize(XMVectorSet(
+					(tvVector[1] * vector1[0] - tvVector[0] * vector2[0]),
+					(tvVector[1] * vector1[1] - tvVector[0] * vector2[1]),
+					(tvVector[1] * vector1[2] - tvVector[0] * vector2[2]), 1.0f)
+				);
+				bitangent = XMVector3Normalize(XMVectorSet(
+					(tuVector[0] * vector2[0] - tuVector[1] * vector1[0]),
+					(tuVector[0] * vector2[1] - tuVector[1] * vector1[1]),
+					(tuVector[0] * vector2[2] - tuVector[1] * vector1[2]), 1.0f)
+				);
+			}
 
 			// Store the tangent and binormal 
 			// NOTE: some repeated work done
@@ -296,7 +296,7 @@ uint32_t DemoGame::Run() {
 
 bool DemoGame::LoadContent() {
 	m_Device = std::make_shared<Device>();
-	m_SwapChain = std::make_shared<SwapChain>(*m_Device, m_Window->GetWindowHandle(), m_Vsync, DXGI_FORMAT_R8G8B8A8_UNORM);
+	m_SwapChain = std::make_shared<SwapChain>(*m_Device, m_Window->GetWindowHandle(), m_Vsync, DXGI_FORMAT_R16G16B16A16_FLOAT);
 
 	/// Load Assets
 	auto& commandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
@@ -306,8 +306,9 @@ bool DemoGame::LoadContent() {
 	//CreateTestCube(*commandList);
 	CreateTestSphere(*commandList, 1.0f, 64);
 
-	s_StoneWallAlbedo = commandList->LoadTextureFromFile(L"assets/stonewall_albedo.tga", true);
-	s_StoneWallNormal = commandList->LoadTextureFromFile(L"assets/stonewall_normal.tga", false);
+	s_Stonewall_Albedo   = commandList->LoadTextureFromFile(L"assets/stonewall_albedo.tga", true);
+	s_Stonewall_Normal   = commandList->LoadTextureFromFile(L"assets/stonewall_normal.tga", false);
+	s_Stonewall_Material = commandList->LoadTextureFromFile(L"assets/stonewall_mat.tga", false);
 
 	commandQueue.ExecuteCommandList(commandList);
 	///
@@ -333,7 +334,7 @@ bool DemoGame::LoadContent() {
 	rootParameters[PBRRootParameters::VertexCB].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX);
 	rootParameters[PBRRootParameters::MaterialCB].InitAsConstantBufferView(0, 1, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
 
-	CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0);
+	CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 0);
 	rootParameters[PBRRootParameters::Textures].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
 	//CD3DX12_STATIC_SAMPLER_DESC linearRepeatSampler(0, D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR);
@@ -357,7 +358,7 @@ bool DemoGame::LoadContent() {
 		CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_DESC SampleDesc;
 	} pipelineStateStream;
 
-	DXGI_FORMAT backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	DXGI_FORMAT backBufferFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
 	DXGI_FORMAT depthBufferFormat = DXGI_FORMAT_D32_FLOAT;
 
 	// TODO: Tweakable MSAA
@@ -519,8 +520,9 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 	XMStoreFloat4A(&materialCB.DirLight, XMVector3Normalize(dirLight));
 
 	commandList->SetGraphicsDynamicConstantBuffer(PBRRootParameters::MaterialCB, materialCB);
-	commandList->SetShaderResourceView(PBRRootParameters::Textures, 0, s_StoneWallAlbedo, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	commandList->SetShaderResourceView(PBRRootParameters::Textures, 1, s_StoneWallNormal, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	commandList->SetShaderResourceView(PBRRootParameters::Textures, 0, s_Stonewall_Albedo, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	commandList->SetShaderResourceView(PBRRootParameters::Textures, 1, s_Stonewall_Normal, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	commandList->SetShaderResourceView(PBRRootParameters::Textures, 2, s_Stonewall_Material, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 	//s_TestCube.Draw(*commandList);
 	s_TestSphere.Draw(*commandList);

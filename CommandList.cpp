@@ -2,7 +2,6 @@
 
 #include "CommandList.h"
 
-#include "Application.h"
 #include "Device.h"
 #include "ByteAddressBuffer.h"
 #include "ConstantBuffer.h"
@@ -683,284 +682,6 @@ std::shared_ptr<Scene> CommandList::CreateScene(const VertexCollection& vertices
 
 	return scene;
 }
-//std::shared_ptr<Scene> CommandList::CreateSphere(float radius, uint32_t tessellation, bool reversWinding) {
-//
-//	if(tessellation < 3)
-//		throw std::out_of_range("tessellation parameter out of range");
-//
-//	VertexCollection vertices;
-//	IndexCollection  indices;
-//
-//	size_t verticalSegments = tessellation;
-//	size_t horizontalSegments = tessellation * 2;
-//
-//	// Create rings of vertices at progressively higher latitudes.
-//	for(size_t i = 0; i <= verticalSegments; i++) {
-//		float v = 1 - (float)i / verticalSegments;
-//
-//		float latitude = (i * XM_PI / verticalSegments) - XM_PIDIV2;
-//		float dy, dxz;
-//
-//		XMScalarSinCos(&dy, &dxz, latitude);
-//
-//		// Create a single ring of vertices at this latitude.
-//		for(size_t j = 0; j <= horizontalSegments; j++) {
-//			float u = (float)j / horizontalSegments;
-//
-//			float longitude = j * XM_2PI / horizontalSegments;
-//			float dx, dz;
-//
-//			XMScalarSinCos(&dx, &dz, longitude);
-//
-//			dx *= dxz;
-//			dz *= dxz;
-//
-//			auto normal = XMVectorSet(dx, dy, dz, 0);
-//			auto textureCoordinate = XMVectorSet(u, v, 0, 0);
-//			auto position = normal * radius;
-//
-//			vertices.emplace_back(position, normal, textureCoordinate);
-//		}
-//	}
-//
-//	// Fill the index buffer with triangles joining each pair of latitude rings.
-//	size_t stride = horizontalSegments + 1;
-//
-//	for(size_t i = 0; i < verticalSegments; i++) {
-//		for(size_t j = 0; j <= horizontalSegments; j++) {
-//			size_t nextI = i + 1;
-//			size_t nextJ = (j + 1) % stride;
-//
-//			indices.push_back(i * stride + nextJ);
-//			indices.push_back(nextI * stride + j);
-//			indices.push_back(i * stride + j);
-//
-//			indices.push_back(nextI * stride + nextJ);
-//			indices.push_back(nextI * stride + j);
-//			indices.push_back(i * stride + nextJ);
-//		}
-//	}
-//
-//	if(reversWinding) {
-//		ReverseWinding(indices, vertices);
-//	}
-//
-//	return CreateScene(vertices, indices);
-//}
-//
-//void CommandList::CreateCylinderCap(VertexCollection& vertices, IndexCollection& indices, size_t tessellation,
-//	float height, float radius, bool isTop) {
-//	// Create cap indices.
-//	for(size_t i = 0; i < tessellation - 2; i++) {
-//		size_t i1 = (i + 1) % tessellation;
-//		size_t i2 = (i + 2) % tessellation;
-//
-//		if(isTop) {
-//			std::swap(i1, i2);
-//		}
-//
-//		size_t vbase = vertices.size();
-//		indices.push_back(vbase + i2);
-//		indices.push_back(vbase + i1);
-//		indices.push_back(vbase);
-//	}
-//
-//	// Which end of the cylinder is this?
-//	XMVECTOR normal = g_XMIdentityR1;
-//	XMVECTOR textureScale = g_XMNegativeOneHalf;
-//
-//	if(!isTop) {
-//		normal = XMVectorNegate(normal);
-//		textureScale = XMVectorMultiply(textureScale, g_XMNegateX);
-//	}
-//
-//	// Create cap vertices.
-//	for(size_t i = 0; i < tessellation; i++) {
-//		XMVECTOR circleVector = GetCircleVector(i, tessellation);
-//		XMVECTOR position = XMVectorAdd(XMVectorScale(circleVector, radius), XMVectorScale(normal, height));
-//		XMVECTOR textureCoordinate =
-//			XMVectorMultiplyAdd(XMVectorSwizzle<0, 2, 3, 3>(circleVector), textureScale, g_XMOneHalf);
-//
-//		vertices.emplace_back(position, normal, textureCoordinate);
-//	}
-//}
-//
-//std::shared_ptr<Scene> CommandList::CreateCylinder(float radius, float height, uint32_t tessellation,
-//	bool reverseWinding) {
-//	if(tessellation < 3)
-//		throw std::out_of_range("tessellation parameter out of range");
-//
-//	VertexCollection vertices;
-//	IndexCollection  indices;
-//
-//	height /= 2;
-//
-//	XMVECTOR topOffset = XMVectorScale(g_XMIdentityR1, height);
-//
-//	size_t stride = tessellation + 1;
-//
-//	// Create a ring of triangles around the outside of the cylinder.
-//	for(size_t i = 0; i <= tessellation; i++) {
-//		XMVECTOR normal = GetCircleVector(i, tessellation);
-//
-//		XMVECTOR sideOffset = XMVectorScale(normal, radius);
-//
-//		float u = float(i) / float(tessellation);
-//
-//		XMVECTOR textureCoordinate = XMLoadFloat(&u);
-//
-//		vertices.emplace_back(XMVectorAdd(sideOffset, topOffset), normal, textureCoordinate);
-//		vertices.emplace_back(XMVectorSubtract(sideOffset, topOffset), normal,
-//			XMVectorAdd(textureCoordinate, g_XMIdentityR1));
-//
-//		indices.push_back(i * 2 + 1);
-//		indices.push_back((i * 2 + 2) % (stride * 2));
-//		indices.push_back(i * 2);
-//
-//		indices.push_back((i * 2 + 3) % (stride * 2));
-//		indices.push_back((i * 2 + 2) % (stride * 2));
-//		indices.push_back(i * 2 + 1);
-//	}
-//
-//	// Create flat triangle fan caps to seal the top and bottom.
-//	CreateCylinderCap(vertices, indices, tessellation, height, radius, true);
-//	CreateCylinderCap(vertices, indices, tessellation, height, radius, false);
-//
-//	// Build RH above
-//	if(reverseWinding) {
-//		ReverseWinding(indices, vertices);
-//	}
-//
-//	return CreateScene(vertices, indices);
-//}
-//
-//std::shared_ptr<Scene> CommandList::CreateCone(float radius, float height, uint32_t tessellation, bool reverseWinding) {
-//	if(tessellation < 3)
-//		throw std::out_of_range("tessellation parameter out of range");
-//
-//	VertexCollection vertices;
-//	IndexCollection  indices;
-//
-//	height /= 2;
-//
-//	XMVECTOR topOffset = XMVectorScale(g_XMIdentityR1, height);
-//
-//	size_t stride = tessellation + 1;
-//
-//	// Create a ring of triangles around the outside of the cone.
-//	for(size_t i = 0; i <= tessellation; i++) {
-//		XMVECTOR circlevec = GetCircleVector(i, tessellation);
-//
-//		XMVECTOR sideOffset = XMVectorScale(circlevec, radius);
-//
-//		float u = float(i) / float(tessellation);
-//
-//		XMVECTOR textureCoordinate = XMLoadFloat(&u);
-//
-//		XMVECTOR pt = XMVectorSubtract(sideOffset, topOffset);
-//
-//		XMVECTOR normal = XMVector3Cross(GetCircleTangent(i, tessellation), XMVectorSubtract(topOffset, pt));
-//		normal = XMVector3Normalize(normal);
-//
-//		// Duplicate the top vertex for distinct normals
-//		vertices.emplace_back(topOffset, normal, g_XMZero);
-//		vertices.emplace_back(pt, normal, XMVectorAdd(textureCoordinate, g_XMIdentityR1));
-//
-//		indices.push_back((i * 2 + 1) % (stride * 2));
-//		indices.push_back((i * 2 + 3) % (stride * 2));
-//		indices.push_back(i * 2);
-//	}
-//
-//	// Create flat triangle fan caps to seal the bottom.
-//	CreateCylinderCap(vertices, indices, tessellation, height, radius, false);
-//
-//	// Build RH above
-//	if(reverseWinding) {
-//		ReverseWinding(indices, vertices);
-//	}
-//
-//	return CreateScene(vertices, indices);
-//}
-//
-//std::shared_ptr<Scene> CommandList::CreateTorus(float radius, float thickness, uint32_t tessellation,
-//	bool reverseWinding) {
-//	assert(tessellation > 3);
-//
-//	VertexCollection verticies;
-//	IndexCollection  indices;
-//
-//	size_t stride = tessellation + 1;
-//
-//	// First we loop around the main ring of the torus.
-//	for(size_t i = 0; i <= tessellation; i++) {
-//		float u = (float)i / tessellation;
-//
-//		float outerAngle = i * XM_2PI / tessellation - XM_PIDIV2;
-//
-//		// Create a transform matrix that will align geometry to
-//		// slice perpendicularly though the current ring position.
-//		XMMATRIX transform = XMMatrixTranslation(radius, 0, 0) * XMMatrixRotationY(outerAngle);
-//
-//		// Now we loop along the other axis, around the side of the tube.
-//		for(size_t j = 0; j <= tessellation; j++) {
-//			float v = 1 - (float)j / tessellation;
-//
-//			float innerAngle = j * XM_2PI / tessellation + XM_PI;
-//			float dx, dy;
-//
-//			XMScalarSinCos(&dy, &dx, innerAngle);
-//
-//			// Create a vertex.
-//			auto normal = XMVectorSet(dx, dy, 0, 0);
-//			auto position = normal * thickness / 2;
-//			auto textureCoordinate = XMVectorSet(u, v, 0, 0);
-//
-//			position = XMVector3Transform(position, transform);
-//			normal = XMVector3TransformNormal(normal, transform);
-//
-//			verticies.emplace_back(position, normal, textureCoordinate);
-//
-//			// And create indices for two triangles.
-//			size_t nextI = (i + 1) % stride;
-//			size_t nextJ = (j + 1) % stride;
-//
-//			indices.push_back(nextI * stride + j);
-//			indices.push_back(i * stride + nextJ);
-//			indices.push_back(i * stride + j);
-//
-//			indices.push_back(nextI * stride + j);
-//			indices.push_back(nextI * stride + nextJ);
-//			indices.push_back(i * stride + nextJ);
-//		}
-//	}
-//
-//	if(reverseWinding) {
-//		ReverseWinding(indices, verticies);
-//	}
-//
-//	return CreateScene(verticies, indices);
-//}
-//
-//std::shared_ptr<Scene> CommandList::CreatePlane(float width, float height, bool reverseWinding) {
-//	using Vertex = VertexPositionNormalTangentBitangentTexture;
-//
-//	// clang-format off
-//	// Define a plane that is aligned with the X-Z plane and the normal is facing up in the Y-axis.
-//	VertexCollection vertices = {
-//		Vertex(XMFLOAT3(-0.5f * width, 0.0f, 0.5f * height), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f)),  // 0
-//		Vertex(XMFLOAT3(0.5f * width, 0.0f, 0.5f * height), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f)),   // 1
-//		Vertex(XMFLOAT3(0.5f * width, 0.0f, -0.5f * height), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT3(1.0f, 1.0f, 0.0f)),  // 2
-//		Vertex(XMFLOAT3(-0.5f * width, 0.0f, -0.5f * height), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f))  // 3
-//	};
-//	// clang-format on
-//	IndexCollection indices = {1, 3, 0, 2, 3, 1};
-//
-//	if(reverseWinding) {
-//		ReverseWinding(indices, vertices);
-//	}
-//
-//	return CreateScene(vertices, indices);
-//}
 
 void CommandList::ClearTexture(const std::shared_ptr<Texture>& texture, const float clearColor[4]) {
 	assert(texture);
@@ -1201,9 +922,8 @@ void CommandList::SetUnorderedAccessView(uint32_t rootParameterIndex, const std:
 	}
 }
 
-void CommandList::SetShaderResourceView(uint32_t rootParameterIndex, uint32_t descriptorOffset,
-	const std::shared_ptr<ShaderResourceView>& srv,
-	D3D12_RESOURCE_STATES stateAfter, UINT firstSubresource, UINT numSubresources) {
+void CommandList::SetShaderResourceView(uint32_t rootParameterIndex, uint32_t descriptorOffset, const std::shared_ptr<ShaderResourceView>& srv, 
+							            D3D12_RESOURCE_STATES stateAfter, UINT firstSubresource, UINT numSubresources) {
 	assert(srv);
 
 	auto resource = srv->GetResource();
@@ -1224,11 +944,8 @@ void CommandList::SetShaderResourceView(uint32_t rootParameterIndex, uint32_t de
 		rootParameterIndex, descriptorOffset, 1, srv->GetDescriptorHandle());
 }
 
-void CommandList::SetShaderResourceView(
-	int32_t rootParameterIndex, uint32_t descriptorOffset,
-	const std::shared_ptr<Texture>& texture, D3D12_RESOURCE_STATES stateAfter,
-	UINT firstSubresource, UINT numSubresources) {
-
+void CommandList::SetShaderResourceView(int32_t rootParameterIndex, uint32_t descriptorOffset, const std::shared_ptr<Texture>& texture, 
+									    D3D12_RESOURCE_STATES stateAfter, UINT firstSubresource, UINT numSubresources) {
 	if(texture) {
 		if(numSubresources < D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) {
 			for(uint32_t i = 0; i < numSubresources; ++i) {
@@ -1246,7 +963,7 @@ void CommandList::SetShaderResourceView(
 	}
 }
 
-void CommandList::SetUnorderedAccessView(uint32_t rootParameterIndex, uint32_t descriptorOffset, const std::shared_ptr<UnorderedAccessView>& uav, D3D12_RESOURCE_STATES stateAfter, UINT firstSubresource, UINT numSubresources) {
+void CommandList::SetUnorderedAccessView(uint32_t rootParameterIndex, uint32_t descriptorOffset, const std::shared_ptr<UnorderedAccessView>& uav,														   D3D12_RESOURCE_STATES stateAfter, UINT firstSubresource, UINT numSubresources) {
 	assert(uav);
 
 	auto resource = uav->GetResource();
@@ -1266,7 +983,7 @@ void CommandList::SetUnorderedAccessView(uint32_t rootParameterIndex, uint32_t d
 	m_DynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(rootParameterIndex, descriptorOffset, 1, uav->GetDescriptorHandle());
 }
 
-void CommandList::SetUnorderedAccessView(uint32_t rootParameterIndex, uint32_t descriptorOffset, const std::shared_ptr<Texture>& texture, UINT mip, D3D12_RESOURCE_STATES stateAfter, UINT firstSubresource, UINT numSubresources) {
+void CommandList::SetUnorderedAccessView(uint32_t rootParameterIndex, uint32_t descriptorOffset, const std::shared_ptr<Texture>& texture, UINT mip,												           D3D12_RESOURCE_STATES stateAfter, UINT firstSubresource, UINT numSubresources) {
 	if(texture) {
 		if(numSubresources < D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) {
 			for(uint32_t i = 0; i < numSubresources; ++i) {
@@ -1284,9 +1001,8 @@ void CommandList::SetUnorderedAccessView(uint32_t rootParameterIndex, uint32_t d
 	}
 }
 
-void CommandList::SetConstantBufferView(uint32_t rootParameterIndex, uint32_t descriptorOffset,
-	const std::shared_ptr<ConstantBufferView>& cbv,
-	D3D12_RESOURCE_STATES                      stateAfter) {
+void CommandList::SetConstantBufferView(uint32_t rootParameterIndex, uint32_t descriptorOffset, const std::shared_ptr<ConstantBufferView>& cbv,
+							            D3D12_RESOURCE_STATES stateAfter) {
 	assert(cbv);
 
 	auto constantBuffer = cbv->GetConstantBuffer();

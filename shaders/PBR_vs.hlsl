@@ -29,19 +29,18 @@ struct PixelInputType {
 PixelInputType main(VertexInput i) {
     PixelInputType o;
     
-    float4 homogVertexPos = float4(i.vertexPosition, 1.0f);
-    o.position = mul(MVP, homogVertexPos);
-    
      // TBN
-    o.normal = normalize(mul(i.normal, (float3x3)SRT));
-    o.tangent = normalize(mul(i.tangent, (float3x3)SRT));
+    o.normal    = normalize(mul(i.normal, (float3x3)SRT));
+    o.tangent   = normalize(mul(i.tangent, (float3x3)SRT));
     o.bitangent = normalize(mul(i.bitangent, (float3x3)SRT));
     
     //float3x3 TBN = float3x3(o.tangent, o.bitangent, o.normal);
     //o.tangentViewDirection = mul(TBN, cameraPosition - o.worldPosition.xyz);
     
+    float4 hVertexPos = float4(i.vertexPosition, 1.0f);
+    o.position = mul(MVP, hVertexPos);
     o.uv = i.uv;
-    o.worldPosition = mul(SRT, homogVertexPos);
+    o.worldPosition = mul(SRT, hVertexPos);
     o.cameraPosition = CameraPosition;
     
     return o;

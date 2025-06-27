@@ -3,8 +3,7 @@
 #include "DescriptorAllocator.h"
 #include "DescriptorAllocatorPage.h"
 
-DescriptorAllocator::DescriptorAllocator(Device& device, D3D12_DESCRIPTOR_HEAP_TYPE type,
-    uint32_t numDescriptorsPerHeap)
+DescriptorAllocator::DescriptorAllocator(Device& device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptorsPerHeap)
     : m_Device(device)
     , m_HeapType(type)
     , m_NumDescriptorsPerHeap(numDescriptorsPerHeap) {}

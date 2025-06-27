@@ -8,23 +8,18 @@
 #include "Application.h"
 #include "Device.h"
 #include "DemoGame.h"
+#include "Helpers.h"
 
 #include <dxgidebug.h>
 #include <iostream>
-
-void ReportLiveObjects() {
-    IDXGIDebug1* dxgiDebug;
-    DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiDebug));
-
-    dxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_IGNORE_INTERNAL);
-    dxgiDebug->Release();
-}
 
 int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int nCmdShow) {
     int retCode = 0;
 
 #if defined( _DEBUG )
-    Device::EnableDebugLayer();
+    Microsoft::WRL::ComPtr<ID3D12Debug> debugInterface;
+    ThrowIfFailed(D3D12GetDebugInterface(IID_PPV_ARGS(&debugInterface)));
+    debugInterface->EnableDebugLayer();
 #endif
 
     // Set the working directory to the path of the executable.
@@ -49,7 +44,12 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
     }
     Application::Destroy();
 
-    atexit(&ReportLiveObjects);
+#if defined( _DEBUG )
+    IDXGIDebug1* dxgiDebug;
+    DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiDebug));
+    dxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_IGNORE_INTERNAL);
+    dxgiDebug->Release();
+#endif
 
     return retCode;
 }

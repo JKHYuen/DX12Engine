@@ -73,7 +73,7 @@ void CommandQueue::WaitForFenceValue(uint64_t fenceValue) {
     }
 }
 
-void CommandQueue::Flush() {
+void CommandQueue::FlushWait() {
     std::unique_lock<std::mutex> lock(m_ProcessInFlightCommandListsThreadMutex);
     m_ProcessInFlightCommandListsThreadCV.wait(lock, [this] { return m_InFlightCommandLists.Empty(); });
 

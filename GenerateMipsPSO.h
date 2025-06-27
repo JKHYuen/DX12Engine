@@ -77,7 +77,7 @@ public:
     }
 
 private:
-    std::shared_ptr<RootSignature>       m_RootSignature;
+    std::shared_ptr<RootSignature> m_RootSignature;
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_D3d12PipelineState;
 
     // Default (no resource) UAV's to pad the unused UAV descriptors.

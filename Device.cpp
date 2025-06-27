@@ -71,10 +71,9 @@ Device::Device(DXGI_GPU_PREFERENCE gpuPreference, bool useWarp) {
     m_ComputeCommandQueue = std::make_unique<CommandQueue>(*this, D3D12_COMMAND_LIST_TYPE_COMPUTE);
     m_CopyCommandQueue = std::make_unique<CommandQueue>(*this, D3D12_COMMAND_LIST_TYPE_COPY);
 
-    // Create descriptor allocators
+    // Create one descriptor allocator per (CPU) descriptor heap type for global use
     for(int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i) {
-        m_DescriptorAllocators[i] =
-            std::make_unique<DescriptorAllocator>(*this, static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(i));
+        m_DescriptorAllocators[i] = std::make_unique<DescriptorAllocator>(*this, static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(i));
     }
 
     // Check features.
@@ -87,21 +86,6 @@ Device::Device(DXGI_GPU_PREFERENCE gpuPreference, bool useWarp) {
         }
         m_HighestRootSignatureVersion = featureData.HighestVersion;
     }
-}
-
-void Device::EnableDebugLayer() {
-    ComPtr<ID3D12Debug> debugInterface;
-    ThrowIfFailed(D3D12GetDebugInterface(IID_PPV_ARGS(&debugInterface)));
-    debugInterface->EnableDebugLayer();
-}
-
-void Device::ReportLiveObjects() {
-
-    IDXGIDebug1* dxgiDebug;
-    DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiDebug));
-
-    dxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_IGNORE_INTERNAL);
-    dxgiDebug->Release();
 }
 
 // NOTE: sketchy return of ref from unique pointer
@@ -154,9 +138,9 @@ DXGI_SAMPLE_DESC Device::GetMultisampleQualityLevels(DXGI_FORMAT format, UINT nu
 }
 
 void Device::Flush() {
-    m_DirectCommandQueue->Flush();
-    m_ComputeCommandQueue->Flush();
-    m_CopyCommandQueue->Flush();
+    m_DirectCommandQueue->FlushWait();
+    m_ComputeCommandQueue->FlushWait();
+    m_CopyCommandQueue->FlushWait();
 }
 
 DescriptorAllocation Device::AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors) {

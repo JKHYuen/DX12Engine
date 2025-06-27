@@ -57,7 +57,6 @@ class RenderTarget;
 class Resource;
 class ResourceStateTracker;
 class RootSignature;
-class Scene;
 class ShaderResourceView;
 class StructuredBuffer;
 class Texture;
@@ -176,7 +175,6 @@ public:
         * Copy the contents to a constant buffer in GPU memory.
         */
     std::shared_ptr<ConstantBuffer> CopyConstantBuffer(size_t bufferSize, const void* bufferData);
-
     template<typename T>
     std::shared_ptr<ConstantBuffer> CopyConstantBuffer(const T& data) {
         return CopyConstantBuffer(sizeof(T), &data);
@@ -210,26 +208,6 @@ public:
         * Load a texture by a filename.
         */
     std::shared_ptr<Texture> LoadTextureFromFile(const std::wstring& fileName, bool sRGB = false);
-
-    /**
-        * Load a scene file.
-        *
-        * @param fileName The path to the scene file definition.
-        * @param [loadingProgress] An optional callback function that can be used to report loading progress.
-        */
-    std::shared_ptr<Scene>
-        LoadSceneFromFile(const std::wstring& fileName,
-            const std::function<bool(float)>& loadingProgres = std::function<bool(float)>());
-
-    /**
-        * Load a scene from a string.
-        *
-        * @param sceneString The scene file definition as a string.
-        * @param format The format of the scene file. (for example "NFF")
-        *
-        * @see https://www.fileformat.info/format/nff/egff.htm
-        */
-    std::shared_ptr<Scene> LoadSceneFromString(const std::string& sceneString, const std::string& format);
 
     /**
         * Clear a texture.
@@ -460,6 +438,15 @@ public:
         */
     void Dispatch(uint32_t numGroupsX, uint32_t numGroupsY = 1, uint32_t numGroupsZ = 1);
 
+    // Helper function for flipping winding of geometric primitives for LH vs. RH coords
+    inline void ReverseWinding(std::vector<uint16_t>& indices, std::vector<VertexInputType>& vertices);
+    // Helper function for inverting normals for "inside" vs "outside" viewing.
+    inline void InvertNormals(std::vector<VertexInputType>& vertices);
+    // Helper function to compute a point on a unit circle aligned to the x,z plane and centered at the origin.
+    inline DirectX::XMVECTOR GetCircleVector(size_t i, size_t tessellation) noexcept;
+    // Helper function to compute a tangent vector at a point on a unit sphere aligned to the x,z plane.
+    inline DirectX::XMVECTOR GetCircleTangent(size_t i, size_t tessellation) noexcept;
+
 protected:
     // Constructor should only be called in CommandQueue::GetCommandList()
     CommandList(Device& device, D3D12_COMMAND_LIST_TYPE type);
@@ -501,24 +488,6 @@ protected:
     }
 
 private:
-    // Used for procedural mesh generation.
-    using VertexCollection = std::vector<VertexInputType>;
-    using IndexCollection = std::vector<size_t>;
-
-    // Create a scene that contains a single node with a single mesh.
-    std::shared_ptr<Scene> CreateScene(const VertexCollection& vertices, const IndexCollection& indicies);
-
-    // Helper function for flipping winding of geometric primitives for LH vs. RH coords
-    inline void ReverseWinding(IndexCollection& indices, VertexCollection& vertices);
-    // Helper function for inverting normals for "inside" vs "outside" viewing.
-    inline void InvertNormals(VertexCollection& vertices);
-    // Helper function to compute a point on a unit circle aligned to the x,z plane and centered at the origin.
-    inline DirectX::XMVECTOR GetCircleVector(size_t i, size_t tessellation) noexcept;
-    // Helper function to compute a tangent vector at a point on a unit sphere aligned to the x,z plane.
-    inline DirectX::XMVECTOR GetCircleTangent(size_t i, size_t tessellation) noexcept;
-    // Helper creates a triangle fan to close the end of a cylinder / cone
-    void CreateCylinderCap(VertexCollection& vertices, IndexCollection& indices, size_t tessellation, float height, float radius, bool isTop);
-
     // Add a resource to a list of tracked resources (ensures lifetime while command list is in-flight on a command queue.
     void TrackResource(Microsoft::WRL::ComPtr<ID3D12Object> object);
     void TrackResource(const std::shared_ptr<Resource>& res);
@@ -609,7 +578,7 @@ inline DirectX::XMVECTOR CommandList::GetCircleTangent(size_t i, size_t tessella
     return v;
 }
 
-inline void CommandList::ReverseWinding(IndexCollection& indices, VertexCollection& vertices) {
+inline void CommandList::ReverseWinding(std::vector<uint16_t>& indices, std::vector<VertexInputType>& vertices) {
     assert((indices.size() % 3) == 0);
     for(auto it = indices.begin(); it != indices.end(); it += 3) {
         std::swap(*it, *(it + 2));
@@ -620,10 +589,11 @@ inline void CommandList::ReverseWinding(IndexCollection& indices, VertexCollecti
     }
 }
 
-inline void CommandList::InvertNormals(VertexCollection& vertices) {
+inline void CommandList::InvertNormals(std::vector<VertexInputType>& vertices) {
     for(auto it = vertices.begin(); it != vertices.end(); ++it) {
         it->Normal.x = -it->Normal.x;
         it->Normal.y = -it->Normal.y;
         it->Normal.z = -it->Normal.z;
     }
 }
+

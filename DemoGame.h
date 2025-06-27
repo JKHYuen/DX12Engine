@@ -39,9 +39,11 @@ private:
     std::shared_ptr<Device>    m_Device;
     std::shared_ptr<SwapChain> m_SwapChain;
 
-    RenderTarget m_RenderTarget;
-    std::shared_ptr<RootSignature> m_RootSignature;
-    Microsoft::WRL::ComPtr<ID3D12PipelineState> m_D3d12PipelineState;
+    RenderTarget m_HDRRenderTarget;
+    std::shared_ptr<RootSignature> m_PBRRootSignature;
+    std::shared_ptr<RootSignature> m_PostProcessRootSignature;
+    Microsoft::WRL::ComPtr<ID3D12PipelineState> m_PBR_PSO;
+    Microsoft::WRL::ComPtr<ID3D12PipelineState> m_PostProcessPSO;
 
     D3D12_VIEWPORT m_Viewport;
     D3D12_RECT     m_ScissorRect;

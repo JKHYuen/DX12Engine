@@ -122,8 +122,7 @@ uint32_t ResourceStateTracker::FlushPendingResourceBarriers(const std::shared_pt
 				// If all subresources are being transitioned, and there are multiple
 				// subresources of the resource that are in a different state...
 				auto& resourceState = iter->second;
-				if(pendingTransition.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES &&
-					!resourceState.SubresourceState.empty()) {
+				if(pendingTransition.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES && !resourceState.SubresourceState.empty()) {
 					// Transition all subresources
 					for(auto subresourceState : resourceState.SubresourceState) {
 						if(pendingTransition.StateAfter != subresourceState.second) {

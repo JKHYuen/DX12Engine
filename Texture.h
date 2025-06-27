@@ -43,6 +43,8 @@ class Device;
 
 class Texture : public Resource {
 public:
+    // Creates COMMITTED resource, adds to resource state tracker 
+    // and automatically creates descriptor based on resourceDesc/resource (maybe remove this feature)
     Texture(Device& device, const D3D12_RESOURCE_DESC& resourceDesc, const D3D12_CLEAR_VALUE* clearValue = nullptr);
     Texture(Device& device, Microsoft::WRL::ComPtr<ID3D12Resource> resource, const D3D12_CLEAR_VALUE* clearValue = nullptr);
 

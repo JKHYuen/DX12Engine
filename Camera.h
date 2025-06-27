@@ -43,7 +43,6 @@ protected:
     virtual void UpdateViewMatrix() const;
     virtual void UpdateProjectionMatrix() const;
 
-    // TODO: replace with FLOAT4X4A
     // This data must be aligned otherwise the SSE intrinsics fail
     // and throw exceptions.
     __declspec(align(16)) struct AlignedData {

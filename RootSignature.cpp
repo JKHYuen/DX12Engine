@@ -39,8 +39,7 @@ void RootSignature::Destroy() {
 }
 
 void RootSignature::SetRootSignatureDesc(const D3D12_ROOT_SIGNATURE_DESC1& rootSignatureDesc) {
-    // Make sure any previously allocated root signature description is cleaned
-    // up first.
+    // Make sure any previously allocated root signature description is cleaned up first.
     Destroy();
 
     UINT                   numParameters = rootSignatureDesc.NumParameters;
@@ -55,8 +54,7 @@ void RootSignature::SetRootSignatureDesc(const D3D12_ROOT_SIGNATURE_DESC1& rootS
             D3D12_DESCRIPTOR_RANGE1* pDescriptorRanges =
                 numDescriptorRanges > 0 ? new D3D12_DESCRIPTOR_RANGE1[numDescriptorRanges] : nullptr;
 
-            memcpy(pDescriptorRanges, rootParameter.DescriptorTable.pDescriptorRanges,
-                sizeof(D3D12_DESCRIPTOR_RANGE1) * numDescriptorRanges);
+            memcpy(pDescriptorRanges, rootParameter.DescriptorTable.pDescriptorRanges, sizeof(D3D12_DESCRIPTOR_RANGE1) * numDescriptorRanges);
 
             pParameters[i].DescriptorTable.NumDescriptorRanges = numDescriptorRanges;
             pParameters[i].DescriptorTable.pDescriptorRanges = pDescriptorRanges;
@@ -87,8 +85,7 @@ void RootSignature::SetRootSignatureDesc(const D3D12_ROOT_SIGNATURE_DESC1& rootS
     D3D12_STATIC_SAMPLER_DESC* pStaticSamplers   = numStaticSamplers > 0 ? new D3D12_STATIC_SAMPLER_DESC[numStaticSamplers] : nullptr;
 
     if(pStaticSamplers) {
-        memcpy(pStaticSamplers, rootSignatureDesc.pStaticSamplers,
-            sizeof(D3D12_STATIC_SAMPLER_DESC) * numStaticSamplers);
+        memcpy(pStaticSamplers, rootSignatureDesc.pStaticSamplers, sizeof(D3D12_STATIC_SAMPLER_DESC) * numStaticSamplers);
     }
 
     m_RootSignatureDesc.NumStaticSamplers = numStaticSamplers;
@@ -105,15 +102,16 @@ void RootSignature::SetRootSignatureDesc(const D3D12_ROOT_SIGNATURE_DESC1& rootS
     // Serialize the root signature.
     Microsoft::WRL::ComPtr<ID3DBlob> rootSignatureBlob;
     Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
-    ThrowIfFailed(D3DX12SerializeVersionedRootSignature(&versionRootSignatureDesc, highestVersion,
-        &rootSignatureBlob, &errorBlob));
+    ThrowIfFailed(D3DX12SerializeVersionedRootSignature(&versionRootSignatureDesc, highestVersion, &rootSignatureBlob, &errorBlob));
 
     auto d3d12Device = m_Device.GetD3D12Device();
 
     // Create the root signature.
-    ThrowIfFailed(d3d12Device->CreateRootSignature(0, rootSignatureBlob->GetBufferPointer(),
+    ThrowIfFailed(d3d12Device->CreateRootSignature(
+        0, rootSignatureBlob->GetBufferPointer(),
         rootSignatureBlob->GetBufferSize(),
-        IID_PPV_ARGS(&m_RootSignature)));
+        IID_PPV_ARGS(&m_RootSignature)
+    ));
 }
 
 uint32_t RootSignature::GetDescriptorTableBitMask(D3D12_DESCRIPTOR_HEAP_TYPE descriptorHeapType) const {

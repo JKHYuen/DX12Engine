@@ -5,8 +5,7 @@
 #include "CommandList.h"
 #include "RootSignature.h"
 
-DynamicDescriptorHeap::DynamicDescriptorHeap(Device& device, D3D12_DESCRIPTOR_HEAP_TYPE heapType,
-    uint32_t numDescriptorsPerHeap)
+DynamicDescriptorHeap::DynamicDescriptorHeap(Device& device, D3D12_DESCRIPTOR_HEAP_TYPE heapType, uint32_t numDescriptorsPerHeap)
     : m_Device(device)
     , m_DescriptorHeapType(heapType)
     , m_NumDescriptorsPerHeap(numDescriptorsPerHeap)
@@ -18,6 +17,7 @@ DynamicDescriptorHeap::DynamicDescriptorHeap(Device& device, D3D12_DESCRIPTOR_HE
     , m_CurrentCPUDescriptorHandle(D3D12_DEFAULT)
     , m_CurrentGPUDescriptorHandle(D3D12_DEFAULT)
     , m_NumFreeHandles(0) {
+
     m_DescriptorHandleIncrementSize = m_Device.GetDescriptorHandleIncrementSize(heapType);
 
     // Allocate space for staging CPU visible descriptors.
@@ -56,28 +56,28 @@ void DynamicDescriptorHeap::ParseRootSignature(const std::shared_ptr<RootSignatu
     }
 
     // Make sure the maximum number of descriptors per descriptor heap has not been exceeded.
-    assert(
-        currentOffset <= m_NumDescriptorsPerHeap &&
-        "The root signature requires more than the maximum number of descriptors per descriptor heap. Consider increasing the maximum number of descriptors per descriptor heap.");
+    assert(currentOffset <= m_NumDescriptorsPerHeap &&
+        "The root signature requires more than the maximum number of descriptors per descriptor heap. Consider increasing the maximum number of descriptors per descriptor heap."
+    );
 }
 
-void DynamicDescriptorHeap::StageDescriptors(uint32_t rootParameterIndex, uint32_t offset, uint32_t numDescriptors,
-    const D3D12_CPU_DESCRIPTOR_HANDLE srcDescriptor) {
+void DynamicDescriptorHeap::StageDescriptors( uint32_t rootParameterIndex, uint32_t offset, uint32_t numDescriptors, const D3D12_CPU_DESCRIPTOR_HANDLE srcDescriptor) {
+
     // Cannot stage more than the maximum number of descriptors per heap.
     // Cannot stage more than MaxDescriptorTables root parameters.
     if(numDescriptors > m_NumDescriptorsPerHeap || rootParameterIndex >= MaxDescriptorTables) {
         throw std::bad_alloc();
     }
 
-    DescriptorTableCache& descriptorTableCache = m_DescriptorTableCache[rootParameterIndex];
+    DescriptorTableCache& descriptorTableCacheEntry = m_DescriptorTableCache[rootParameterIndex];
 
     // Check that the number of descriptors to copy does not exceed the number
     // of descriptors expected in the descriptor table.
-    if((offset + numDescriptors) > descriptorTableCache.NumDescriptors) {
+    if((offset + numDescriptors) > descriptorTableCacheEntry.NumDescriptors) {
         throw std::length_error("Number of descriptors exceeds the number of descriptors in the descriptor table.");
     }
 
-    D3D12_CPU_DESCRIPTOR_HANDLE* dstDescriptor = descriptorTableCache.BaseDescriptor + offset;
+    D3D12_CPU_DESCRIPTOR_HANDLE* dstDescriptor = descriptorTableCacheEntry.BaseDescriptor + offset;
     for(uint32_t i = 0; i < numDescriptors; ++i) { 
         dstDescriptor[i] = CD3DX12_CPU_DESCRIPTOR_HANDLE(srcDescriptor, i, m_DescriptorHandleIncrementSize); 
     }
@@ -149,8 +149,11 @@ Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DynamicDescriptorHeap::CreateDescri
     return descriptorHeap;
 }
 
+// Private helper function for CommitStagedDescriptorsFor[Draw/Dispatch] function
 void DynamicDescriptorHeap::CommitDescriptorTables(
-    CommandList& commandList, std::function<void(ID3D12GraphicsCommandList*, UINT, D3D12_GPU_DESCRIPTOR_HANDLE)> setFunc) {
+    CommandList& commandList,
+    std::function<void(ID3D12GraphicsCommandList*, UINT, D3D12_GPU_DESCRIPTOR_HANDLE)> setFunc) {
+
     // Compute the number of descriptors that need to be copied
     uint32_t numDescriptorsToCommit = ComputeStaleDescriptorCount();
 
@@ -183,10 +186,15 @@ void DynamicDescriptorHeap::CommitDescriptorTables(
             UINT                        pDestDescriptorRangeSizes[]  = {numSrcDescriptors};
 
             // Copy the staged CPU visible descriptors to the GPU visible descriptor heap.
-            d3d12Device->CopyDescriptors(1, pDestDescriptorRangeStarts, pDestDescriptorRangeSizes, numSrcDescriptors,
-                pSrcDescriptorHandles, nullptr, m_DescriptorHeapType);
+            // Note: source CPU descriptors come from "BaseDescriptor" in m_DescriptorTableCache entry,
+            //       which points to a CPU descriptor in a CPU descriptor heap created by DescriptorAllocator previously
+            d3d12Device->CopyDescriptors(
+                1, pDestDescriptorRangeStarts, pDestDescriptorRangeSizes,
+                numSrcDescriptors, pSrcDescriptorHandles, nullptr, m_DescriptorHeapType
+            );
 
             // Set the descriptors on the command list using the passed-in setter function.
+            // ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable or ID3D12GraphicsCommandList::SetComputeRootDescriptorTable
             setFunc(d3d12GraphicsCommandList, rootIndex, m_CurrentGPUDescriptorHandle);
 
             // Offset current CPU and GPU descriptor handles.
@@ -201,9 +209,11 @@ void DynamicDescriptorHeap::CommitDescriptorTables(
     }
 }
 
+// Private helper function for CommitStagedDescriptorsFor[Draw/Dispatch] function
 void DynamicDescriptorHeap::CommitInlineDescriptors(
     CommandList& commandList, const D3D12_GPU_VIRTUAL_ADDRESS* bufferLocations, uint32_t& bitMask,
     std::function<void(ID3D12GraphicsCommandList*, UINT, D3D12_GPU_VIRTUAL_ADDRESS)> setFunc) {
+
     if(bitMask != 0) {
         auto  d3d12GraphicsCommandList = commandList.GetD3D12CommandList().Get();
         DWORD rootIndex;
@@ -236,15 +246,14 @@ void DynamicDescriptorHeap::CommitStagedDescriptorsForDispatch(CommandList& comm
         &ID3D12GraphicsCommandList::SetComputeRootUnorderedAccessView);
 }
 
-D3D12_GPU_DESCRIPTOR_HANDLE DynamicDescriptorHeap::CopyDescriptor(CommandList& comandList,
-    D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptor) {
+D3D12_GPU_DESCRIPTOR_HANDLE DynamicDescriptorHeap::CopyDescriptor(CommandList& commandList, D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptor) {
     if(!m_CurrentDescriptorHeap || m_NumFreeHandles < 1) {
         m_CurrentDescriptorHeap = RequestDescriptorHeap();
         m_CurrentCPUDescriptorHandle = m_CurrentDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
         m_CurrentGPUDescriptorHandle = m_CurrentDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
         m_NumFreeHandles = m_NumDescriptorsPerHeap;
 
-        comandList.SetDescriptorHeap(m_DescriptorHeapType, m_CurrentDescriptorHeap.Get());
+        commandList.SetDescriptorHeap(m_DescriptorHeapType, m_CurrentDescriptorHeap.Get());
 
         // When updating the descriptor heap on the command list, all descriptor
         // tables must be (re)recopied to the new descriptor heap (not just

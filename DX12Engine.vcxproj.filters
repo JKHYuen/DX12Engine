@@ -117,19 +117,13 @@
     <ClCompile Include="ConstantBufferView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Scene.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Material.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="SceneNode.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="SwapChain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Skybox.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -245,15 +239,6 @@
     <ClInclude Include="ConstantBufferView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Scene.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Material.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SceneNode.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Visitor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -266,12 +251,25 @@
     <ClInclude Include="IGame.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Skybox.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shaders\PBR_vs.hlsl" />
     <FxCompile Include="shaders\PBR_ps.hlsl" />
     <FxCompile Include="shaders\GenerateMips_CS.hlsl" />
     <FxCompile Include="shaders\PanoToCubemap_CS.hlsl" />
+    <FxCompile Include="shaders\ConvoluteCubeMap_PS.hlsl" />
+    <FxCompile Include="shaders\ConvoluteCubeMap_VS.hlsl" />
+    <FxCompile Include="shaders\HDRCubeMap_PS.hlsl" />
+    <FxCompile Include="shaders\HDRCubeMap_VS.hlsl" />
+    <FxCompile Include="shaders\IntegrateBRDF_PS.hlsl" />
+    <FxCompile Include="shaders\IntegrateBRDF_VS.hlsl" />
+    <FxCompile Include="shaders\PreFilterCubeMap_PS.hlsl" />
+    <FxCompile Include="shaders\PreFilterCubeMap_VS.hlsl" />
+    <FxCompile Include="shaders\Skybox_PS.hlsl" />
+    <FxCompile Include="shaders\Skybox_VS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\assimp\Assimp.sln" />

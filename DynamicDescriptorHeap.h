@@ -53,8 +53,8 @@ public:
 
     /**
         * Stages a contiguous range of CPU visible descriptors.
-        * Descriptors are not copied to the GPU visible descriptor heap until
-        * the CommitStagedDescriptors function is called.
+        * i.e. copy "numDescriptors" descriptors at "srcDescriptors" to m_DescriptorTableCache[rootParameterIndex] base descriptor location + offset
+        * Descriptors are not copied to the GPU visible descriptor heap until the CommitStagedDescriptors function is called.
         */
     void StageDescriptors(uint32_t rootParameterIndex, uint32_t offset, uint32_t numDescriptors,
         const D3D12_CPU_DESCRIPTOR_HANDLE srcDescriptors);
@@ -97,7 +97,7 @@ public:
     /**
         * Parse the root signature to determine which root parameters contain
         * descriptor tables and determine the number of descriptors needed for
-        * each table.
+        * each table. Updates m_DescriptorTableCache.
         */
     void ParseRootSignature(const std::shared_ptr<RootSignature>& rootSignature);
 
@@ -130,12 +130,15 @@ private:
         * Since the DynamicDescriptorHeap can't know which function will be used, it must
         * be passed as an argument to the function.
         */
-    void CommitDescriptorTables(
+    void CommitDescriptorTables( 
         CommandList& commandList,
-        std::function<void(ID3D12GraphicsCommandList*, UINT, D3D12_GPU_DESCRIPTOR_HANDLE)> setFunc);
-    void CommitInlineDescriptors(
-        CommandList& commandList, const D3D12_GPU_VIRTUAL_ADDRESS* bufferLocations, uint32_t& bitMask,
-        std::function<void(ID3D12GraphicsCommandList*, UINT, D3D12_GPU_VIRTUAL_ADDRESS)> setFunc);
+        std::function<void(ID3D12GraphicsCommandList*, UINT, D3D12_GPU_DESCRIPTOR_HANDLE)> setFunc
+    );
+    void CommitInlineDescriptors( 
+        CommandList& commandList,
+        const D3D12_GPU_VIRTUAL_ADDRESS* bufferLocations, uint32_t& bitMask,
+        std::function<void(ID3D12GraphicsCommandList*, UINT, D3D12_GPU_VIRTUAL_ADDRESS)> setFunc
+    );
 
     /**
         * The maximum number of descriptor tables per root signature.

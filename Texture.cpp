@@ -13,8 +13,7 @@ Texture::Texture(Device& device, const D3D12_RESOURCE_DESC& resourceDesc, const 
     CreateViews();
 }
 
-Texture::Texture(Device& device, ComPtr<ID3D12Resource> resource,
-    const D3D12_CLEAR_VALUE* clearValue)
+Texture::Texture(Device& device, ComPtr<ID3D12Resource> resource, const D3D12_CLEAR_VALUE* clearValue)
     : Resource(device, resource, clearValue) {
     CreateViews();
 }

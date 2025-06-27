@@ -28,7 +28,18 @@
   *  @author Jeremiah van Oosten
   *
   *  @brief An UploadBuffer provides a convenient method to upload resources to the GPU.
+  * 
+  *  KHY - Additional Note:
+  *  This class is useful for dynamic data that changes every frame, upload buffers (pages) are persistent throughout command list execution.
+  *  Designed such that every command list will have one UploadBuffer. 
+  * 
+  *  Big static resources are copied (also with UPLOAD heap) in the CommandList class with function CommandList::CopyBuffer.
+  *  Copying whole resources with an intermediate UPLOAD resource should be used when CPU will write the data once, and the GPU will read it once. 
+  *  Otherwise, consider ID3D12GraphicsCommandList::CopyTextureRegion or ID3D12GraphicsCommandList::CopyBufferRegion
+  *  See https://learn.microsoft.com/en-us/windows/win32/direct3d12/uploading-resources
   */
+
+// NOTE: Currently unused in DemoGame project
 
 #include <wrl/client.h>
 #include <d3d12.h>

@@ -59,7 +59,7 @@ public:
     uint64_t Signal();
     bool     IsFenceComplete(uint64_t fenceValue);
     void     WaitForFenceValue(uint64_t fenceValue);
-    void     Flush();
+    void     FlushWait();
 
     // Wait for another command queue to finish.
     void Wait(const CommandQueue& other);

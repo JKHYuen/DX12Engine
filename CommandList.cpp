@@ -22,9 +22,6 @@
 #include "ShaderResourceView.h"
 #include "UnorderedAccessView.h"
 #include "ConstantBufferView.h"
-#include "Material.h"
-#include "Scene.h"
-#include "SceneNode.h"
 
 std::map<std::wstring, ID3D12Resource*> CommandList::ms_TextureCache;
 std::mutex                              CommandList::ms_TextureCacheMutex;
@@ -254,7 +251,7 @@ std::shared_ptr<Texture> CommandList::LoadTextureFromFile(const std::wstring& fi
 	}
 
 	std::lock_guard<std::mutex> lock(ms_TextureCacheMutex);
-	auto                        iter = ms_TextureCache.find(fileName);
+	auto iter = ms_TextureCache.find(fileName);
 	if(iter != ms_TextureCache.end()) {
 		texture = std::make_shared<Texture>(m_Device, iter->second);
 	}
@@ -283,16 +280,19 @@ std::shared_ptr<Texture> CommandList::LoadTextureFromFile(const std::wstring& fi
 		D3D12_RESOURCE_DESC textureDesc = {};
 		switch(metadata.dimension) {
 		case TEX_DIMENSION_TEXTURE1D:
-			textureDesc = CD3DX12_RESOURCE_DESC::Tex1D(metadata.format, static_cast<UINT64>(metadata.width),
+			textureDesc = CD3DX12_RESOURCE_DESC::Tex1D(metadata.format, 
+				static_cast<UINT64>(metadata.width),
 				static_cast<UINT16>(metadata.arraySize));
 			break;
 		case TEX_DIMENSION_TEXTURE2D:
-			textureDesc = CD3DX12_RESOURCE_DESC::Tex2D(metadata.format, static_cast<UINT64>(metadata.width),
+			textureDesc = CD3DX12_RESOURCE_DESC::Tex2D(metadata.format, 
+				static_cast<UINT64>(metadata.width),
 				static_cast<UINT>(metadata.height),
 				static_cast<UINT16>(metadata.arraySize));
 			break;
 		case TEX_DIMENSION_TEXTURE3D:
-			textureDesc = CD3DX12_RESOURCE_DESC::Tex3D(metadata.format, static_cast<UINT64>(metadata.width),
+			textureDesc = CD3DX12_RESOURCE_DESC::Tex3D(metadata.format, 
+				static_cast<UINT64>(metadata.width),
 				static_cast<UINT>(metadata.height),
 				static_cast<UINT16>(metadata.depth));
 			break;
@@ -363,8 +363,7 @@ void CommandList::GenerateMips(const std::shared_ptr<Texture>& texture) {
 	if(resourceDesc.MipLevels == 1)
 		return;
 	// Currently, only non-multi-sampled 2D textures are supported.
-	if(resourceDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE2D || resourceDesc.DepthOrArraySize != 1 ||
-		resourceDesc.SampleDesc.Count > 1) {
+	if(resourceDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE2D || resourceDesc.DepthOrArraySize != 1 || resourceDesc.SampleDesc.Count > 1) {
 		throw std::exception("GenerateMips is only supported for non-multi-sampled 2D Textures.");
 	}
 
@@ -470,8 +469,7 @@ void CommandList::GenerateMips_UAV(const std::shared_ptr<Texture>& texture, bool
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Format = isSRGB ? Texture::GetSRGBFormat(resourceDesc.Format) : resourceDesc.Format;
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.ViewDimension =
-		D3D12_SRV_DIMENSION_TEXTURE2D;  // Only 2D textures are supported (this was checked in the calling function).
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;  // Only 2D textures are supported (this was checked in the calling function).
 	srvDesc.Texture2D.MipLevels = resourceDesc.MipLevels;
 
 	auto srv = std::make_shared<ShaderResourceView>(m_Device, texture, &srvDesc);
@@ -627,8 +625,7 @@ void CommandList::PanoToCubemap(const std::shared_ptr<Texture>& cubemapTexture, 
 			);
 		}
 
-		Dispatch(Math::DivideByMultiple(panoToCubemapCB.CubemapSize, 16),
-			Math::DivideByMultiple(panoToCubemapCB.CubemapSize, 16), 6);
+		Dispatch(Math::DivideByMultiple(panoToCubemapCB.CubemapSize, 16), Math::DivideByMultiple(panoToCubemapCB.CubemapSize, 16), 6);
 
 		mipSlice += numMips;
 	}
@@ -636,51 +633,6 @@ void CommandList::PanoToCubemap(const std::shared_ptr<Texture>& cubemapTexture, 
 	if(stagingResource != cubemapResource) {
 		CopyResource(cubemapTexture, stagingTexture);
 	}
-}
-
-std::shared_ptr<Scene> CommandList::LoadSceneFromFile(const std::wstring& fileName,
-	const std::function<bool(float)>& loadingProgress) {
-	auto scene = std::make_shared<Scene>();
-
-	if(scene->LoadSceneFromFile(*this, fileName, loadingProgress)) {
-		return scene;
-	}
-
-	return nullptr;
-}
-
-std::shared_ptr<Scene> CommandList::LoadSceneFromString(const std::string& sceneString, const std::string& format) {
-	auto scene = std::make_shared<Scene>();
-
-	scene->LoadSceneFromString(*this, sceneString, format);
-
-	return scene;
-}
-
-// Helper function to create a Scene from an index and vertex buffer.
-std::shared_ptr<Scene> CommandList::CreateScene(const VertexCollection& vertices, const IndexCollection& indices) {
-	if(vertices.empty()) {
-		return nullptr;
-	}
-
-	auto vertexBuffer = CopyVertexBuffer(vertices);
-	auto indexBuffer = CopyIndexBuffer(indices);
-
-	auto mesh = std::make_shared<Mesh>();
-	// Create a default white material for new meshes.
-	auto material = std::make_shared<Material>(Material::White);
-
-	mesh->SetVertexBuffer(0, vertexBuffer);
-	mesh->SetIndexBuffer(indexBuffer);
-	mesh->SetMaterial(material);
-
-	auto node = std::make_shared<SceneNode>();
-	node->AddMesh(mesh);
-
-	auto scene = std::make_shared<Scene>();
-	scene->SetRootNode(node);
-
-	return scene;
 }
 
 void CommandList::ClearTexture(const std::shared_ptr<Texture>& texture, const float clearColor[4]) {
@@ -702,8 +654,7 @@ void CommandList::ClearDepthStencilTexture(const std::shared_ptr<Texture>& textu
 	TrackResource(texture);
 }
 
-void CommandList::CopyTextureSubresource(const std::shared_ptr<Texture>& texture, uint32_t firstSubresource,
-	uint32_t numSubresources, D3D12_SUBRESOURCE_DATA* subresourceData) {
+void CommandList::CopyTextureSubresource(const std::shared_ptr<Texture>& texture, uint32_t firstSubresource, uint32_t numSubresources, D3D12_SUBRESOURCE_DATA* subresourceData) {
 	assert(texture);
 
 	auto destinationResource = texture->GetD3D12Resource();
@@ -713,8 +664,7 @@ void CommandList::CopyTextureSubresource(const std::shared_ptr<Texture>& texture
 		TransitionBarrier(texture, D3D12_RESOURCE_STATE_COPY_DEST);
 		FlushResourceBarriers();
 
-		UINT64 requiredSize =
-			GetRequiredIntermediateSize(destinationResource.Get(), firstSubresource, numSubresources);
+		UINT64 requiredSize = GetRequiredIntermediateSize(destinationResource.Get(), firstSubresource, numSubresources);
 
 		// Create a temporary (intermediate) resource for uploading the subresources
 		ComPtr<ID3D12Resource> intermediateResource;
@@ -724,8 +674,10 @@ void CommandList::CopyTextureSubresource(const std::shared_ptr<Texture>& texture
 			&heapProps, D3D12_HEAP_FLAG_NONE, &resDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&intermediateResource))
 		);
 
-		UpdateSubresources(m_d3d12CommandList.Get(), destinationResource.Get(), intermediateResource.Get(), 0,
-			firstSubresource, numSubresources, subresourceData);
+		UpdateSubresources(
+			m_d3d12CommandList.Get(), destinationResource.Get(), intermediateResource.Get(),
+			0, firstSubresource, numSubresources, subresourceData
+		);
 
 		TrackResource(intermediateResource);
 		TrackResource(destinationResource);
@@ -941,7 +893,8 @@ void CommandList::SetShaderResourceView(uint32_t rootParameterIndex, uint32_t de
 	}
 
 	m_DynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(
-		rootParameterIndex, descriptorOffset, 1, srv->GetDescriptorHandle());
+		rootParameterIndex, descriptorOffset, 1, srv->GetDescriptorHandle()
+	);
 }
 
 void CommandList::SetShaderResourceView(int32_t rootParameterIndex, uint32_t descriptorOffset, const std::shared_ptr<Texture>& texture, 
@@ -959,7 +912,8 @@ void CommandList::SetShaderResourceView(int32_t rootParameterIndex, uint32_t des
 		TrackResource(texture);
 
 		m_DynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(
-			rootParameterIndex, descriptorOffset, 1, texture->GetShaderResourceView());
+			rootParameterIndex, descriptorOffset, 1, texture->GetShaderResourceView()
+		);
 	}
 }
 

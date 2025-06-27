@@ -64,7 +64,6 @@ std::shared_ptr<Material> Mesh::GetMaterial() const {
     return m_Material;
 }
 
-#include <iostream>
 void Mesh::Draw(CommandList& commandList, uint32_t instanceCount, uint32_t startInstance) {
     commandList.SetPrimitiveTopology(GetPrimitiveTopology());
 

@@ -44,14 +44,6 @@ public:
     Device(DXGI_GPU_PREFERENCE gpuPreference = DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, bool useWarp = false);
 
     /**
-     * Always enable the debug layer before doing anything DX12 related so all possible errors generated while creating
-     * DX12 objects are caught by the debug layer.
-     */
-    static void EnableDebugLayer();
-
-    static void ReportLiveObjects();
-
-    /**
      * Get a description of the adapter that was used to create the device.
      */
     const std::wstring GetAdapterDescription() const {

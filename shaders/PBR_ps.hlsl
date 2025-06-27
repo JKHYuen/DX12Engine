@@ -71,9 +71,9 @@ float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness) {
 float4 main(PixelInputType i) : SV_Target {
     i.uv *= 2;
     
-    float3 albedo = AlbedoTex.Sample(AnisoSampler, i.uv).rgb;
-    float ao = MaterialTex.Sample(AnisoSampler, i.uv).r;
-    float metallic = MaterialTex.Sample(AnisoSampler, i.uv).g;
+    float3 albedo   = AlbedoTex.Sample(AnisoSampler, i.uv).rgb;
+    float ao        = MaterialTex.Sample(AnisoSampler, i.uv).r;
+    float metallic  = MaterialTex.Sample(AnisoSampler, i.uv).g;
     float roughness = MaterialTex.Sample(AnisoSampler, i.uv).b;
     // Normal preprocess
     float3 normalMap = NormalTex.Sample(AnisoSampler, i.uv).xyz * 2.0 - 1.0;
@@ -133,7 +133,7 @@ float4 main(PixelInputType i) : SV_Target {
     
     // Prevent artifacts from extremely bright pixels on perfectly smooth materials (bandaid fix)
     // This may cause some specular highilghts to be omitted (e.g. marble sphere from demo scene)
-    specular = clamp(specular, 0, 10000);
+    //specular = clamp(specular, 0, 10000);
         
     // kS is equal to Fresnel
     float3 kS = F;
@@ -155,5 +155,7 @@ float4 main(PixelInputType i) : SV_Target {
     // TODO: IBL
     float3 ambient = albedo * ao * 0.1;
     
-    return float4(ambient + Lo, 1);
+    float4 retCol = float4(ambient + Lo, 1);
+    
+    return retCol;
 }

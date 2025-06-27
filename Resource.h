@@ -41,6 +41,12 @@ class Device;
 
 class Resource {
 public:
+    // Create default committed resource, will be added to global resource state tracker
+    Resource(Device& device, const D3D12_RESOURCE_DESC& resourceDesc, const D3D12_CLEAR_VALUE* clearValue = nullptr);
+    Resource(Device& device, Microsoft::WRL::ComPtr<ID3D12Resource> resource, const D3D12_CLEAR_VALUE* clearValue = nullptr);
+
+    virtual ~Resource() = default;
+
     /**
      * Get the Device that was used to create this resource.
      */
@@ -77,14 +83,6 @@ public:
     bool CheckFormatSupport(D3D12_FORMAT_SUPPORT2 formatSupport) const;
 
 protected:
-    // friend class CommandList;
-
-    // Resource creation should go through the device.
-    Resource(Device& device, const D3D12_RESOURCE_DESC& resourceDesc, const D3D12_CLEAR_VALUE* clearValue = nullptr);
-    Resource(Device& device, Microsoft::WRL::ComPtr<ID3D12Resource> resource, const D3D12_CLEAR_VALUE* clearValue = nullptr);
-
-    virtual ~Resource() = default;
-
     // The device that is used to create this resource.
     Device& m_Device;
 

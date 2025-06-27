@@ -33,7 +33,6 @@ GenerateMipsPSO::GenerateMipsPSO(Device& device) {
     );
 
     CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc(GenerateMips::NumRootParameters, rootParameters, 1, &linearClampSampler);
-
     m_RootSignature = std::make_shared<RootSignature>(device, rootSignatureDesc.Desc_1_1);
 
     // Create the PSO for GenerateMips shader.

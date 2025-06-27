@@ -65,7 +65,9 @@ public:
      */
     void ReleaseStaleDescriptors();
 
-    // Can only be created by the Device.
+    // Can only be created by the Device
+    // The 256 default descriptor count per heap/page is arbitrary, this is the max amount of contigious descriptors allowed
+    // One page *should* be able to accomodate a command list, pages are never deallocated
     DescriptorAllocator(Device& device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptorsPerHeap = 256);
 
 private:

@@ -4,8 +4,7 @@
 #include "Application.h"
 #include "Device.h"
 
-DescriptorAllocatorPage::DescriptorAllocatorPage(Device& device, D3D12_DESCRIPTOR_HEAP_TYPE type,
-    uint32_t numDescriptors)
+DescriptorAllocatorPage::DescriptorAllocatorPage(Device& device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors)
     : m_Device(device)
     , m_HeapType(type)
     , m_NumDescriptorsInHeap(numDescriptors) {
@@ -86,8 +85,9 @@ DescriptorAllocation DescriptorAllocatorPage::Allocate(uint32_t numDescriptors) 
     m_NumFreeHandles -= numDescriptors;
 
     return DescriptorAllocation(
-        CD3DX12_CPU_DESCRIPTOR_HANDLE(m_BaseDescriptor, offset, m_DescriptorHandleIncrementSize), numDescriptors,
-        m_DescriptorHandleIncrementSize, shared_from_this());
+        CD3DX12_CPU_DESCRIPTOR_HANDLE(m_BaseDescriptor, offset, m_DescriptorHandleIncrementSize),
+        numDescriptors, m_DescriptorHandleIncrementSize, shared_from_this()
+    );
 }
 
 uint32_t DescriptorAllocatorPage::ComputeOffset(D3D12_CPU_DESCRIPTOR_HANDLE handle) {

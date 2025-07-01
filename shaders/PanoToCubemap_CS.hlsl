@@ -1,5 +1,7 @@
 /**
  * This compute shader is used to convert a panoramic (equirectangular) image into a cubemap.
+ * Author: Jeremiah van Oosten 
+ * Source: https://github.com/jpvanoosten/LearningDirectX12/blob/v1.1.0/DX12Lib/Resources/Shaders/PanoToCubemap_CS.hlsl
  */
 
 #define BLOCK_SIZE 16

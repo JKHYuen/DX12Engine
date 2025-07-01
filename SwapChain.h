@@ -46,7 +46,7 @@ class Texture;
 class SwapChain {
 public:
     // Swap chains can only be created through the Device.
-    SwapChain(Device& device, HWND hWnd, bool isVsync, DXGI_FORMAT renderTargetFormat = DXGI_FORMAT_R10G10B10A2_UNORM);
+    SwapChain(Device& device, HWND hWnd, bool isVsync, DXGI_FORMAT renderTargetFormat);
 
     // Number of swapchain back buffers.
     static const UINT BufferCount = 3;

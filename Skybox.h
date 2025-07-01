@@ -16,13 +16,11 @@ class RenderTarget;
 
 class Skybox {
 public:
-	Skybox(Device& device, CommandList& copyCommandList, std::wstring hdrTextureName, std::unique_ptr<Mesh> reversedCube, RenderTarget& renderTarget);
+	Skybox(Device& device, CommandList& copyCommandList, std::wstring hdrTextureName, std::unique_ptr<Mesh> cubeMesh, RenderTarget& renderTarget);
 
 	void Render(CommandList& directCommandList, const Camera& camera);
 
 private:
-	Device& m_Device;
-
 	std::shared_ptr<RootSignature> m_SkyboxRootSignature;
 
 	std::shared_ptr<Texture> m_HDRPanoTexture;

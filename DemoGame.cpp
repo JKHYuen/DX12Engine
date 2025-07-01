@@ -129,7 +129,7 @@ namespace {
 		}
 	}
 
-	std::unique_ptr<Mesh> CreateCube(CommandList& commandList, float size = 1.0f, bool isReverseWinding = false) {
+	std::unique_ptr<Mesh> CreateCube(CommandList& commandList, float size = 1.0f) {
 		// Cube is centered at 0,0,0
 		float s = size * 0.5f;
 
@@ -170,10 +170,6 @@ namespace {
 			indices.emplace_back(f * 4 + 2);
 			indices.emplace_back(f * 4 + 3);
 			indices.emplace_back(f * 4 + 0);
-		}
-
-		if(isReverseWinding) {
-			commandList.ReverseWinding(indices, vertices);
 		}
 
 		CalculateModelVectors(vertices, indices);
@@ -275,7 +271,8 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t width, uint32_t height, bo
 	, m_Height(height)
 	, m_Vsync(vSync)
 	, m_Camera()
-	, m_HDRRenderTarget() {
+	, m_HDR_MSAA_RenderTarget() 
+	, m_Float_RenderTarget() {
 
 	m_Window = Application::Get().CreateRenderWindow(name, width, height, *this);
 
@@ -309,21 +306,18 @@ uint32_t DemoGame::Run() {
 bool DemoGame::LoadContent() {
 	m_Device = std::make_shared<Device>();
 
-	DXGI_FORMAT backBufferFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	//DXGI_FORMAT sdrBackBufferFormat = DXGI_FORMAT_R10G10B10A2_UNORM;
+	DXGI_FORMAT hdrFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
 	DXGI_FORMAT depthBufferFormat = DXGI_FORMAT_D32_FLOAT;
 	// TODO: Tweakable MSAA
-	DXGI_SAMPLE_DESC sampleDesc = m_Device->GetMultisampleQualityLevels(backBufferFormat);
+	DXGI_SAMPLE_DESC sampleDesc = m_Device->GetMultisampleQualityLevels(hdrFormat);
 
-	D3D12_RT_FORMAT_ARRAY rtvFormats = {};
-	rtvFormats.NumRenderTargets = 1;
-	rtvFormats.RTFormats[0] = backBufferFormat;
+	m_SwapChain = std::make_shared<SwapChain>(*m_Device, m_Window->GetWindowHandle(), m_Vsync, hdrFormat);
 
-	m_SwapChain = std::make_shared<SwapChain>(*m_Device, m_Window->GetWindowHandle(), m_Vsync, backBufferFormat);
-
-	/// Create render target with a single color buffer and a depth stencil buffer
+	/// Create render targets
 	// color buffer
 	auto colorDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-		backBufferFormat, m_Width, m_Height, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
+		hdrFormat, m_Width, m_Height, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
 	);
 
 	D3D12_CLEAR_VALUE colorClearValue;
@@ -349,46 +343,55 @@ bool DemoGame::LoadContent() {
 	depthTexture->SetName(L"Depth Render Target");
 
 	// Attach the textures to the render target.
-	m_HDRRenderTarget.AttachTexture(AttachmentPoint::Color0, colorTexture);
-	m_HDRRenderTarget.AttachTexture(AttachmentPoint::DepthStencil, depthTexture);
+	m_HDR_MSAA_RenderTarget.AttachTexture(AttachmentPoint::Color0, colorTexture);
+	m_HDR_MSAA_RenderTarget.AttachTexture(AttachmentPoint::DepthStencil, depthTexture);
+
+	// Non multisampled floating point intermediate render texture,
+	// multisampled HDR rendertarget will be resolved into this texture before postprocessing/tonemapping
+	auto floatDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+		hdrFormat, m_Width, m_Height, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
+	);
+
+	auto floatRenderTexture = std::make_shared<Texture>(*m_Device, floatDesc, &colorClearValue);
+	m_Float_RenderTarget.AttachTexture(AttachmentPoint::Color0, floatRenderTexture);
 	///
 
+	auto& copyCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 	/// Load Assets (COPY operations)
-	auto& commandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
-	auto copyCommandList = commandQueue.GetCommandList();
+	{
+		auto copyCommandList = copyCommandQueue.GetCommandList();
 
-	// TODO / TEMP: more dynamic scene object loading
-	//s_TestCube = CreateCube(*copyCommandList);
-	s_TestSphere = CreateSphere(*copyCommandList, 1.0f, 64);
+		// TODO / TEMP: more dynamic scene object loading
+		//s_TestCube = CreateCube(*copyCommandList);
+		s_TestSphere = CreateSphere(*copyCommandList, 1.0f, 64);
 
-	std::wstring matName = L"stonewall";
-	s_Default_Albedo   = copyCommandList->LoadTextureFromFile(L"assets/" + matName + L"_albedo.tga", true);
-	s_Default_Normal   = copyCommandList->LoadTextureFromFile(L"assets/" + matName + L"_normal.tga", false);
-	s_Default_Material = copyCommandList->LoadTextureFromFile(L"assets/" + matName + L"_mat.tga", false);
+		std::wstring matName = L"stonewall";
+		s_Default_Albedo = copyCommandList->LoadTextureFromFile(L"assets/" + matName + L"_albedo.tga", true);
+		s_Default_Normal = copyCommandList->LoadTextureFromFile(L"assets/" + matName + L"_normal.tga", false);
+		s_Default_Material = copyCommandList->LoadTextureFromFile(L"assets/" + matName + L"_mat.tga", false);
 
-	// Load Skybox Assets
-	std::wstring skyboxName = L"industrial_sunset_puresky_4k";
-	s_Skybox = std::make_unique<Skybox>(*m_Device, *copyCommandList, skyboxName, CreateCube(*copyCommandList, 1.0f), m_HDRRenderTarget);
+		// Load Skybox Assets
+		std::wstring skyboxName = L"industrial_sunset_puresky_4k";
+		s_Skybox = std::make_unique<Skybox>(*m_Device, *copyCommandList, skyboxName, CreateCube(*copyCommandList, 1.0f), m_HDR_MSAA_RenderTarget);
 
-	commandQueue.ExecuteCommandList(copyCommandList);
-	///
-
-	/// Load PBR shaders
-	ComPtr<ID3DBlob> vertexShaderBlob;
-	ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/PBR_vs.cso", &vertexShaderBlob));
-
-	ComPtr<ID3DBlob> pixelShaderBlob;
-	ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/PBR_ps.cso", &pixelShaderBlob));
+		copyCommandQueue.ExecuteCommandList(copyCommandList);
+	}
 
 	/// Create PBR Pipeline State (For rendering PBR objects)
 	{
+		// Load PBR shaders
+		ComPtr<ID3DBlob> vs;
+		ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/PBR_VS.cso", &vs));
+		ComPtr<ID3DBlob> ps;
+		ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/PBR_PS.cso", &ps));
+
+		// PBR root signature
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
-		// TODO: TEMP Test Cube Render
 		CD3DX12_ROOT_PARAMETER1 rootParameters[PBRRootParameters::NumRootParameters];
 		rootParameters[PBRRootParameters::VertexCB].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX);
 		rootParameters[PBRRootParameters::MaterialCB].InitAsConstantBufferView(0, 1, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
@@ -404,7 +407,7 @@ bool DemoGame::LoadContent() {
 
 		m_PBRRootSignature = std::make_shared<RootSignature>(*m_Device, rootSignatureDescription.Desc_1_1);
 
-		struct PipelineStateStream {
+		struct HDRPipelineStateStream {
 			CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
 			CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT InputLayout;
 			CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
@@ -413,71 +416,74 @@ bool DemoGame::LoadContent() {
 			CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
 			CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
 			CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_DESC SampleDesc;
-		} pipelineStateStream;
+		} hdrPipelineStateStream;
 
-		pipelineStateStream.pRootSignature = m_PBRRootSignature->GetD3D12RootSignature().Get();
-		pipelineStateStream.InputLayout = VertexInputType::GetInputLayout();
-		pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		pipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vertexShaderBlob.Get());
-		pipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(pixelShaderBlob.Get());
-		pipelineStateStream.DSVFormat = depthBufferFormat;
-		pipelineStateStream.RTVFormats = rtvFormats;
-		pipelineStateStream.SampleDesc = sampleDesc;
+		hdrPipelineStateStream.pRootSignature = m_PBRRootSignature->GetD3D12RootSignature().Get();
+		hdrPipelineStateStream.InputLayout = VertexInputType::GetInputLayout();
+		hdrPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		hdrPipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vs.Get());
+		hdrPipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(ps.Get());
+		hdrPipelineStateStream.DSVFormat = depthBufferFormat;
+		hdrPipelineStateStream.RTVFormats = m_HDR_MSAA_RenderTarget.GetRenderTargetFormats();
+		hdrPipelineStateStream.SampleDesc = sampleDesc;
 
 		// TODO: move this to device class
-		D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {sizeof(PipelineStateStream), &pipelineStateStream};
+		D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {sizeof(HDRPipelineStateStream), &hdrPipelineStateStream};
 		ThrowIfFailed(m_Device->GetD3D12Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_PBR_PSO)));
 	}
 
-	/// Create Post Process Pipeline State (Renders to back buffer)
-	//{
-	//	//CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+	/// Create Post Process/Tonemap Pipeline States 
+	/// Note: post process pipeline currently unused, will be used for bloom eventually
+	{
+		CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 
-	//	//CD3DX12_ROOT_PARAMETER1 rootParameters[2];
-	//	//rootParameters[0].InitAsConstants(sizeof(TonemapParameters) / 4, 0, 0, D3D12_SHADER_VISIBILITY_PIXEL);
-	//	//rootParameters[1].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
+		CD3DX12_ROOT_PARAMETER1 rootParameters[1];
+		rootParameters[0].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
-	//	CD3DX12_STATIC_SAMPLER_DESC linearClampSampler(
-	//		0, D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR, 
-	//		D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
+		CD3DX12_STATIC_SAMPLER_DESC linearClampSampler(
+			0, D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR, 
+			D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
 
-	//	CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
-	//	//rootSignatureDescription.Init_1_1(2, rootParameters, 1, &linearClampsSampler);
-	//	rootSignatureDescription.Init_1_1(0, nullptr, 1, &linearClampSampler);
+		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
+		rootSignatureDescription.Init_1_1(1, rootParameters, 1, &linearClampSampler);
 
-	//	m_PostProcessRootSignature = std::make_shared<RootSignature>(*m_Device, rootSignatureDescription.Desc_1_1);
+		m_PostProcessRootSignature = std::make_shared<RootSignature>(*m_Device, rootSignatureDescription.Desc_1_1);
 
-	//	// Create the SDR PSO
-	//	ComPtr<ID3DBlob> vs;
-	//	ComPtr<ID3DBlob> ps;
-	//	ThrowIfFailed(D3DReadFileToBlob(L"data/shaders/04-HDR/HDRtoSDR_VS.cso", &vs));
-	//	ThrowIfFailed(D3DReadFileToBlob(L"data/shaders/04-HDR/HDRtoSDR_PS.cso", &ps));
+		ComPtr<ID3DBlob> vs;
+		ComPtr<ID3DBlob> ps;
+		ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/ScreenRender_VS.cso", &vs));
+		ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/Postprocess_PS.cso", &ps));
 
-	//	// TODO: check if needed
-	//	CD3DX12_RASTERIZER_DESC rasterizerDesc(D3D12_DEFAULT);
-	//	rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
+		// Note: not sure why this is needed, ignores post processing shader without D3D12_CULL_MODE_NONE
+		CD3DX12_RASTERIZER_DESC rasterizerDesc(D3D12_DEFAULT);
+		rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
 
-	//	struct SDRPipelineStateStream {
-	//		CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE        pRootSignature;
-	//		CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY    PrimitiveTopologyType;
-	//		CD3DX12_PIPELINE_STATE_STREAM_VS                    VS;
-	//		CD3DX12_PIPELINE_STATE_STREAM_PS                    PS;
-	//		CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER            Rasterizer;
-	//		CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
-	//	} PostProcessPipelineStateStream;
+		struct PostProcessPipelineStateStream {
+			CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE        pRootSignature;
+			CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY    PrimitiveTopologyType;
+			CD3DX12_PIPELINE_STATE_STREAM_VS                    VS;
+			CD3DX12_PIPELINE_STATE_STREAM_PS                    PS;
+			CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER            Rasterizer;
+			CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
+		} postProcessPipelineStateStream;
 
-	//	PostProcessPipelineStateStream.pRootSignature = m_PostProcessRootSignature->GetD3D12RootSignature().Get();
-	//	PostProcessPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	//	PostProcessPipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vs.Get());
-	//	PostProcessPipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(ps.Get());
-	//	PostProcessPipelineStateStream.Rasterizer = rasterizerDesc;
-	//	PostProcessPipelineStateStream.RTVFormats = m_SwapChain->GetRenderTarget().GetRenderTargetFormats();
+		postProcessPipelineStateStream.pRootSignature = m_PostProcessRootSignature->GetD3D12RootSignature().Get();
+		postProcessPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		postProcessPipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vs.Get());
+		postProcessPipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(ps.Get());
+		postProcessPipelineStateStream.Rasterizer = rasterizerDesc;
+		postProcessPipelineStateStream.RTVFormats = m_SwapChain->GetRenderTarget().GetRenderTargetFormats();
 
-	//	D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {sizeof(PostProcessPipelineStateStream), &PostProcessPipelineStateStream};
-	//	ThrowIfFailed(m_Device->GetD3D12Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_PostProcessPSO)));
-	//}
+		D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {sizeof(PostProcessPipelineStateStream), &postProcessPipelineStateStream};
+		ThrowIfFailed(m_Device->GetD3D12Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_PostprocessPSO)));
 
-	commandQueue.FlushWait();  // Wait for loading operations to complete before rendering the first frame.
+		ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/Tonemap_PS.cso", &ps));
+		postProcessPipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(ps.Get());
+		pipelineStateStreamDesc = {sizeof(PostProcessPipelineStateStream), &postProcessPipelineStateStream};
+		ThrowIfFailed(m_Device->GetD3D12Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_TonemapPSO)));
+	}
+
+	copyCommandQueue.FlushWait();  // Wait for loading operations to complete before rendering the first frame.
 
 	return true;
 }
@@ -493,15 +499,22 @@ void DemoGame::OnResize(ResizeEventArgs& e) {
 	m_Camera.set_Projection(45.0f, aspectRatio, 0.1f, 100.0f);
 
 	m_Viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_Width), static_cast<float>(m_Height));
-	m_HDRRenderTarget.Resize(m_Width, m_Height);
+	m_HDR_MSAA_RenderTarget.Resize(m_Width, m_Height);
+	m_Float_RenderTarget.Resize(m_Width, m_Height);
 }
 
 // NOTE: might not be needed?
 void DemoGame::UnloadContent() {
-	m_HDRRenderTarget.Reset();
+	m_HDR_MSAA_RenderTarget.Reset();
+	m_Float_RenderTarget.Reset();
+
 	m_PBR_PSO.Reset();
+	m_TonemapPSO.Reset();
+	m_PostprocessPSO.Reset();
 
 	m_PBRRootSignature.reset();
+	m_PostProcessRootSignature.reset();
+
 	m_SwapChain.reset();
 	m_Device.reset();
 }
@@ -542,18 +555,18 @@ void DemoGame::OnUpdate(UpdateEventArgs& e) {
 }
 
 void DemoGame::OnRender(UpdateEventArgs& e) {
-	auto& commandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
-	auto directCommandList = commandQueue.GetCommandList();
+	auto& directCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
+	auto directCommandList = directCommandQueue.GetCommandList();
 
 	// Clear the render targets.
 	FLOAT clearColor[] = {0.6f, 0.6f, 0.7f, 1.0f};
-	directCommandList->ClearTexture(m_HDRRenderTarget.GetTexture(AttachmentPoint::Color0), clearColor);
-	directCommandList->ClearDepthStencilTexture(m_HDRRenderTarget.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
+	directCommandList->ClearTexture(m_HDR_MSAA_RenderTarget.GetTexture(AttachmentPoint::Color0), clearColor);
+	directCommandList->ClearDepthStencilTexture(m_HDR_MSAA_RenderTarget.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
 
 	// Setup command list for HDR rendering to intermediate render target
 	directCommandList->SetViewport(m_Viewport);
 	directCommandList->SetScissorRect(m_ScissorRect);
-	directCommandList->SetRenderTarget(m_HDRRenderTarget);
+	directCommandList->SetRenderTarget(m_HDR_MSAA_RenderTarget);
 
 	s_Skybox->Render(*directCommandList, m_Camera);
 
@@ -592,14 +605,32 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 		s_TestSphere->Draw(*directCommandList);
 	}
 
-	// Resolve the MSAA render target to the swapchain's backbuffer.
 	auto& swapChainRT = m_SwapChain->GetRenderTarget();
-	auto  swapChainBackBuffer = swapChainRT.GetTexture(AttachmentPoint::Color0);
-	auto  msaaRenderTarget = m_HDRRenderTarget.GetTexture(AttachmentPoint::Color0);
-	directCommandList->ResolveSubresource(swapChainBackBuffer, msaaRenderTarget);
+	auto  msaaResolveDstTexture = m_Float_RenderTarget.GetTexture(AttachmentPoint::Color0);
+	auto  msaaHDRRenderTexture = m_HDR_MSAA_RenderTarget.GetTexture(AttachmentPoint::Color0);
+
+	// Resolve the MSAA render target to the swapchain's backbuffer
+	directCommandList->ResolveSubresource(msaaResolveDstTexture, msaaHDRRenderTexture);
+
+	// Tonemapping
+	directCommandList->SetRenderTarget(swapChainRT);
+	directCommandList->SetViewport(swapChainRT.GetViewport());
+	directCommandList->SetPipelineState(m_TonemapPSO);
+	directCommandList->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	directCommandList->SetGraphicsRootSignature(m_PostProcessRootSignature);
+	directCommandList->SetShaderResourceView(0, 0, msaaResolveDstTexture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	// non indexed full screen render (see ScreenRender vertex shader)
+	directCommandList->Draw(3);
+
+	// TODO: Postprocessing after msaa resolve
+	//directCommandList->SetRenderTarget(swapChainRT);
+	//directCommandList->SetViewport(swapChainRT.GetViewport());
+	//directCommandList->SetPipelineState(m_PassThroughPSO);
+	//directCommandList->SetShaderResourceView(0, 0, m_SDRRenderTarget.GetTexture(AttachmentPoint::Color0), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	//directCommandList->Draw(3);
 
 	// Present
-	commandQueue.ExecuteCommandList(directCommandList);
+	directCommandQueue.ExecuteCommandList(directCommandList);
 	m_SwapChain->Present();
 }
 

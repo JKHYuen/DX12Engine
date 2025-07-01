@@ -120,7 +120,7 @@ float4 main(PixelInputType i) : SV_Target {
     float3 H = normalize(viewDirection + L);
 
     //float3 radiance = directionalLightColor.rgb;
-    float3 radiance = {4.5, 4.0, 3.5};
+    float3 radiance = {12, 10, 9};
 
     // Cook-Torrance BRDF
     float NDF = DistributionGGX(normal, H, roughness);

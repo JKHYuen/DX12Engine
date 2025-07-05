@@ -57,30 +57,12 @@ static const float2 InvAtan = float2(Inv2PI, InvPI);
 
 // Transform from dispatch ID to cubemap face direction
 static const float3x3 RotateUV[6] = {
-    // +X
-    float3x3(0, 0, 1,
-             0, -1, 0,
-             -1, 0, 0),
-    // -X
-    float3x3(0, 0, -1,
-             0, -1, 0,
-             1, 0, 0),
-    // +Y
-    float3x3(1, 0, 0,
-             0, 0, 1,
-             0, 1, 0),
-    // -Y
-    float3x3(1, 0, 0,
-             0, 0, -1,
-             0, -1, 0),
-    // +Z
-    float3x3(1, 0, 0,
-             0, -1, 0,
-             0, 0, 1),
-    // -Z
-    float3x3(-1, 0, 0,
-             0, -1, 0,
-             0, 0, -1)
+    float3x3(0, 0, 1,   0, -1, 0,   -1, 0, 0), // +X
+    float3x3(0, 0, -1,  0, -1, 0,   1, 0, 0),  // -X
+    float3x3(1, 0, 0,   0, 0, 1,    0, 1, 0),  // +Y
+    float3x3(1, 0, 0,   0, 0, -1,   0, -1, 0), // -Y
+    float3x3(1, 0, 0,   0, -1, 0,   0, 0, 1),  // +Z
+    float3x3(-1, 0, 0,  0, -1, 0,   0, 0, -1)  // -Z
 };
 
 [RootSignature(GenerateMips_RootSignature)]
@@ -126,4 +108,8 @@ void main(ComputeShaderInput IN) {
     if(PanoToCubemapCB.NumMips > 4 && (IN.GroupIndex & 0xFF) == 0) {
         DstMip5[uint3(texCoord.xy / 16, texCoord.z)] = SrcTexture.SampleLevel(LinearRepeatSampler, panoUV, PanoToCubemapCB.FirstMip + 4);
     }
+
 }
+
+
+

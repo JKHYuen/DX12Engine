@@ -15,7 +15,7 @@ Texture2D MaterialTex  : register(t2);
 SamplerState AnisoSampler : register(s0);
 
 struct PixelInputType {
-    float4 position       : SV_Position;
+    float4 position       : SV_POSITION;
     float3 normal         : NORMAL;
     float3 tangent        : TANGENT;
     float3 bitangent      : BITANGENT;

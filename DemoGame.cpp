@@ -353,6 +353,7 @@ bool DemoGame::LoadContent() {
 	);
 
 	auto floatRenderTexture = std::make_shared<Texture>(*m_Device, floatDesc, &colorClearValue);
+	floatRenderTexture->SetName(L"Intermediate Floating Point Render Target");
 	m_Float_RenderTarget.AttachTexture(AttachmentPoint::Color0, floatRenderTexture);
 	///
 
@@ -378,6 +379,12 @@ bool DemoGame::LoadContent() {
 	}
 
 	/// Create PBR Pipeline State (For rendering PBR objects)
+	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags_VSPS =
+		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
+
 	{
 		// Load PBR shaders
 		ComPtr<ID3DBlob> vs;
@@ -386,12 +393,6 @@ bool DemoGame::LoadContent() {
 		ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/PBR_PS.cso", &ps));
 
 		// PBR root signature
-		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
-			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
-
 		CD3DX12_ROOT_PARAMETER1 rootParameters[PBRRootParameters::NumRootParameters];
 		rootParameters[PBRRootParameters::VertexCB].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX);
 		rootParameters[PBRRootParameters::MaterialCB].InitAsConstantBufferView(0, 1, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
@@ -403,7 +404,7 @@ bool DemoGame::LoadContent() {
 		CD3DX12_STATIC_SAMPLER_DESC anisotropicSampler(0, D3D12_FILTER_ANISOTROPIC);
 
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
-		rootSignatureDescription.Init_1_1(PBRRootParameters::NumRootParameters, rootParameters, 1, &anisotropicSampler, rootSignatureFlags);
+		rootSignatureDescription.Init_1_1(PBRRootParameters::NumRootParameters, rootParameters, 1, &anisotropicSampler, rootSignatureFlags_VSPS);
 
 		m_PBRRootSignature = std::make_shared<RootSignature>(*m_Device, rootSignatureDescription.Desc_1_1);
 
@@ -445,8 +446,7 @@ bool DemoGame::LoadContent() {
 			D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
 
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
-		rootSignatureDescription.Init_1_1(1, rootParameters, 1, &linearClampSampler);
-
+		rootSignatureDescription.Init_1_1(1, rootParameters, 1, &linearClampSampler, rootSignatureFlags_VSPS);
 		m_PostProcessRootSignature = std::make_shared<RootSignature>(*m_Device, rootSignatureDescription.Desc_1_1);
 
 		ComPtr<ID3DBlob> vs;
@@ -483,7 +483,8 @@ bool DemoGame::LoadContent() {
 		ThrowIfFailed(m_Device->GetD3D12Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_TonemapPSO)));
 	}
 
-	copyCommandQueue.FlushWait();  // Wait for loading operations to complete before rendering the first frame.
+	// Wait for loading operations to complete before rendering the first frame
+	copyCommandQueue.FlushWait();  
 
 	return true;
 }
@@ -537,7 +538,7 @@ void DemoGame::OnUpdate(UpdateEventArgs& e) {
 		fpsTimer = 0.0;
 	}
 
-	m_SwapChain->WaitForSwapChain();
+	//m_SwapChain->WaitForSwapChain();
 
 	/// Update the camera.
 	float speedMultipler = m_ShiftPressed ? 32.0f : 16.0f;
@@ -557,6 +558,8 @@ void DemoGame::OnUpdate(UpdateEventArgs& e) {
 void DemoGame::OnRender(UpdateEventArgs& e) {
 	auto& directCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 	auto directCommandList = directCommandQueue.GetCommandList();
+
+	s_Skybox->Precompute(*directCommandList, Skybox::kIntegrateBRDFRender);
 
 	// Clear the render targets.
 	FLOAT clearColor[] = {0.6f, 0.6f, 0.7f, 1.0f};
@@ -612,6 +615,8 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 	// Resolve the MSAA render target to the swapchain's backbuffer
 	directCommandList->ResolveSubresource(msaaResolveDstTexture, msaaHDRRenderTexture);
 
+	// TODO: Postprocessing (Bloom)
+	
 	// Tonemapping
 	directCommandList->SetRenderTarget(swapChainRT);
 	directCommandList->SetViewport(swapChainRT.GetViewport());
@@ -621,13 +626,6 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 	directCommandList->SetShaderResourceView(0, 0, msaaResolveDstTexture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	// non indexed full screen render (see ScreenRender vertex shader)
 	directCommandList->Draw(3);
-
-	// TODO: Postprocessing after msaa resolve
-	//directCommandList->SetRenderTarget(swapChainRT);
-	//directCommandList->SetViewport(swapChainRT.GetViewport());
-	//directCommandList->SetPipelineState(m_PassThroughPSO);
-	//directCommandList->SetShaderResourceView(0, 0, m_SDRRenderTarget.GetTexture(AttachmentPoint::Color0), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	//directCommandList->Draw(3);
 
 	// Present
 	directCommandQueue.ExecuteCommandList(directCommandList);

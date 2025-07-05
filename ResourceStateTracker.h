@@ -44,6 +44,20 @@
   *  @see https://msdn.microsoft.com/en-us/library/dn899226(v=vs.85).aspx#implicit_state_transitions
   */
 
+// NOTE: This implementation is not entirely robust.
+//       1. The "ResourceBarrier" function only records subresource states to ResourceState.Subresourcestate map that are individually changed 
+//          (i.e. a barrier not using D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) if the resource is first encountered in a command list.
+//          This is done in the line :
+//             "m_FinalResourceStates[transitionBarrier.pResource].SetSubresourceState(transitionBarrier.Subresource, transitionBarrier.StateAfter);"
+//          
+//          If the "ResourceBarrier" function is then used with barrier with subresource: D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+//          and one or more subresources have been transitioned individually, the resource will be found in m_FinalResourceStates
+//          and only the subresources that were changed will be looped though.
+//       2. ms_GlobalResourceState leaves dangling pointers (by original design, stated in https://www.3dgep.com/learning-directx-12-3/)
+//          since "RemoveGlobalResourceState" and related garbage cleanup functions have been commented out. This is untouched from the 
+//          original source code. It is assumed that it is an unfinished feature.
+// -KHY
+
 #include <d3d12.h>
 
 #include <mutex>
@@ -74,10 +88,8 @@ public:
      * @param subResource The subresource to transition. By default, this is D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES
      * which indicates that all subresources should be transitioned to the same state.
      */
-    void TransitionResource(ID3D12Resource* resource, D3D12_RESOURCE_STATES stateAfter,
-        UINT subResource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
-    void TransitionResource(const Resource& resource, D3D12_RESOURCE_STATES stateAfter,
-        UINT subResource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+    void TransitionResource(ID3D12Resource* resource, D3D12_RESOURCE_STATES stateAfter, UINT subResource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+    void TransitionResource(const Resource& resource, D3D12_RESOURCE_STATES stateAfter, UINT subResource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 
     /**
      * Push a UAV resource barrier for the given resource.
@@ -99,7 +111,9 @@ public:
     void AliasBarrier(const Resource* resourceBefore = nullptr, const Resource* resourceAfter = nullptr);
 
     /**
-     * Flush any pending resource barriers to the command list.
+     * Flush any pending resource barriers to commandList param. 
+     * commandList is empty and created in CommandQueue::ExecuteCommandLists
+     * Used in CommandList::Close
      *
      * @return The number of resource barriers that were flushed to the command list.
      */
@@ -113,7 +127,7 @@ public:
 
     /**
      * Commit final resource states to the global resource state map.
-     * This must be called when the command list is closed.
+     * This must be called when the command list is closed. (CommandList::Close)
      */
     void CommitFinalResourceStates();
 
@@ -122,6 +136,7 @@ public:
      */
     void Reset();
 
+    // NOTE: Lock and Unlock only used in CommandQueue::ExecuteCommandLists, where operations described below occur
     /**
      * The global state must be locked before flushing pending resource barriers
      * and committing the final resource state to the global resource state.
@@ -202,7 +217,8 @@ private:
         std::map<UINT, D3D12_RESOURCE_STATES> SubresourceState;
     };
 
-    using ResourceList = std::vector<ID3D12Resource*>;
+    // used by ms_GarbageResources and related operations
+    //using ResourceList = std::vector<ID3D12Resource*>;
     using ResourceStateMap = std::unordered_map<ID3D12Resource*, ResourceState>;
 
     // The final (last known state) of the resources within a command list.

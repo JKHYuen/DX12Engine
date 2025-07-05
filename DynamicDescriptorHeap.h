@@ -214,6 +214,7 @@ private:
     DescriptorHeapPool m_DescriptorHeapPool;
     DescriptorHeapPool m_AvailableDescriptorHeaps;
 
+    // *SHADER VISIBLE heap
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_CurrentDescriptorHeap;
     CD3DX12_GPU_DESCRIPTOR_HANDLE                m_CurrentGPUDescriptorHandle;
     CD3DX12_CPU_DESCRIPTOR_HANDLE                m_CurrentCPUDescriptorHandle;

@@ -11,7 +11,7 @@
 
 SwapChain::SwapChain(Device& device, HWND hWnd, bool isVsync, DXGI_FORMAT renderTargetFormat)
     : m_Device(device)
-    , m_CommandQueue(device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT))
+    , m_DirectCommandQueue(device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT))
     , m_hWnd(hWnd)
     , m_FenceValues {0}
     , m_Width(0u)
@@ -24,7 +24,7 @@ SwapChain::SwapChain(Device& device, HWND hWnd, bool isVsync, DXGI_FORMAT render
 
     // Query the direct command queue from the device.
     // This is required to create the swapchain.
-    auto d3d12CommandQueue = m_CommandQueue.GetD3D12CommandQueue();
+    auto d3d12DirectCommandQueue = m_DirectCommandQueue.GetD3D12CommandQueue();
 
     // Query the factory from the adapter that was used to create the device.
     auto dxgiAdapter = m_Device.GetAdapter();
@@ -67,8 +67,9 @@ SwapChain::SwapChain(Device& device, HWND hWnd, bool isVsync, DXGI_FORMAT render
 
     // Now create the swap chain.
     ComPtr<IDXGISwapChain1> dxgiSwapChain1;
-    ThrowIfFailed(dxgiFactory5->CreateSwapChainForHwnd(d3d12CommandQueue.Get(), m_hWnd, &swapChainDesc, nullptr,
-        nullptr, &dxgiSwapChain1));
+    ThrowIfFailed(dxgiFactory5->CreateSwapChainForHwnd(
+        d3d12DirectCommandQueue.Get(), m_hWnd, &swapChainDesc, nullptr, nullptr, &dxgiSwapChain1)
+    );
 
     // Cast to swapchain4
     ThrowIfFailed(dxgiSwapChain1.As(&m_dxgiSwapChain));
@@ -132,31 +133,31 @@ const RenderTarget& SwapChain::GetRenderTarget() const {
 }
 
 UINT SwapChain::Present(const std::shared_ptr<Texture>& texture) {
-    auto commandList = m_CommandQueue.GetCommandList();
+    auto directCommandList = m_DirectCommandQueue.GetCommandList();
     auto backBuffer = m_BackBufferTextures[m_CurrentBackBufferIndex];
 
     if(texture) {
         if(texture->GetD3D12ResourceDesc().SampleDesc.Count > 1) {
-            commandList->ResolveSubresource(backBuffer, texture);
+            directCommandList->ResolveSubresource(backBuffer, texture);
         }
         else {
-            commandList->CopyResource(backBuffer, texture);
+            directCommandList->CopyResource(backBuffer, texture);
         }
     }
 
-    commandList->TransitionBarrier(backBuffer, D3D12_RESOURCE_STATE_PRESENT);
-    m_CommandQueue.ExecuteCommandList(commandList);
+    directCommandList->TransitionBarrier(backBuffer, D3D12_RESOURCE_STATE_PRESENT);
+    m_DirectCommandQueue.ExecuteCommandList(directCommandList);
 
     UINT syncInterval = m_VSync ? 1 : 0;
     UINT presentFlags = m_TearingSupported && !m_Fullscreen && !m_VSync ? DXGI_PRESENT_ALLOW_TEARING : 0;
     ThrowIfFailed(m_dxgiSwapChain->Present(syncInterval, presentFlags));
 
-    m_FenceValues[m_CurrentBackBufferIndex] = m_CommandQueue.Signal();
+    m_FenceValues[m_CurrentBackBufferIndex] = m_DirectCommandQueue.Signal();
 
     m_CurrentBackBufferIndex = m_dxgiSwapChain->GetCurrentBackBufferIndex();
 
     auto fenceValue = m_FenceValues[m_CurrentBackBufferIndex];
-    m_CommandQueue.WaitForFenceValue(fenceValue);
+    m_DirectCommandQueue.WaitForFenceValue(fenceValue);
 
     m_Device.ReleaseStaleDescriptors();
 

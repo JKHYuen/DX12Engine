@@ -29,7 +29,7 @@ float3 HableTMO(float3 v) {
     return curr * white_scale;
 }
 
-float4 main(float2 uv : TEXCOORD) : SV_Target0 {
+float4 main(float2 uv : TEXCOORD0) : SV_TARGET0 {
     float4 color = screenTexture.Sample(ClampSampler, uv);
     
     // Tonemap

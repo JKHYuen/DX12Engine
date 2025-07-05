@@ -17,10 +17,22 @@ class RenderTarget;
 class Skybox {
 public:
 	Skybox(Device& device, CommandList& copyCommandList, std::wstring hdrTextureName, std::unique_ptr<Mesh> cubeMesh, RenderTarget& renderTarget);
-
+	
+	// Draw skybox
 	void Render(CommandList& directCommandList, const Camera& camera);
 
+	enum ComputeMode {
+		kConvolutionRender = 0,
+		kPrefilterRender = 1,
+		kIntegrateBRDFRender = 2,
+		NumComputeType
+	};
+
+	// Compute/draw precomputed textures for IBL
+	void Precompute(CommandList& directCommandList, ComputeMode mode);
+
 private:
+
 	std::shared_ptr<RootSignature> m_SkyboxRootSignature;
 
 	std::shared_ptr<Texture> m_HDRPanoTexture;

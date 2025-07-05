@@ -54,12 +54,10 @@ CommandList::CommandList(Device& device, D3D12_COMMAND_LIST_TYPE type)
 
 CommandList::~CommandList() {};
 
-void CommandList::TransitionBarrier(Microsoft::WRL::ComPtr<ID3D12Resource> resource, D3D12_RESOURCE_STATES stateAfter,
-	UINT subresource, bool flushBarriers) {
+void CommandList::TransitionBarrier(Microsoft::WRL::ComPtr<ID3D12Resource> resource, D3D12_RESOURCE_STATES stateAfter, UINT subresource, bool flushBarriers) {
 	if(resource) {
 		// The "before" state is not important. It will be resolved by the resource state tracker.
-		auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(resource.Get(), D3D12_RESOURCE_STATE_COMMON, stateAfter,
-			subresource);
+		auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(resource.Get(), D3D12_RESOURCE_STATE_COMMON, stateAfter, subresource);
 		m_ResourceStateTracker->ResourceBarrier(barrier);
 	}
 
@@ -68,8 +66,7 @@ void CommandList::TransitionBarrier(Microsoft::WRL::ComPtr<ID3D12Resource> resou
 	}
 }
 
-void CommandList::TransitionBarrier(const std::shared_ptr<Resource>& resource, D3D12_RESOURCE_STATES stateAfter,
-	UINT subresource, bool flushBarriers) {
+void CommandList::TransitionBarrier(const std::shared_ptr<Resource>& resource, D3D12_RESOURCE_STATES stateAfter, UINT subresource, bool flushBarriers) {
 	if(resource) {
 		TransitionBarrier(resource->GetD3D12Resource(), stateAfter, subresource, flushBarriers);
 	}

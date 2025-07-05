@@ -143,7 +143,7 @@ private:
     // The command queue will be signaled right after the Present
     // to ensure that the swapchain's back buffers are not in-flight before
     // the next frame is allowed to be rendered.
-    CommandQueue& m_CommandQueue;
+    CommandQueue& m_DirectCommandQueue;
     Microsoft::WRL::ComPtr<IDXGISwapChain4> m_dxgiSwapChain;
     std::shared_ptr<Texture>                m_BackBufferTextures[BufferCount];
     mutable RenderTarget                    m_RenderTarget;

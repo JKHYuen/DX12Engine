@@ -131,6 +131,7 @@ uint64_t CommandQueue::ExecuteCommandLists(const std::vector<std::shared_ptr<Com
         }
         d3d12CommandLists.push_back(commandList->GetD3D12CommandList().Get());
 
+        // Does this need to be done if pendingCommandList is empty?
         toBeQueued.push_back(pendingCommandList);
         toBeQueued.push_back(commandList);
 

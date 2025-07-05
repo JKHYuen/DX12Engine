@@ -262,9 +262,12 @@
     <FxCompile Include="shaders\PanoToCubemap_CS.hlsl" />
     <FxCompile Include="shaders\Skybox_PS.hlsl" />
     <FxCompile Include="shaders\Skybox_VS.hlsl" />
-    <FxCompile Include="Tonemap_PS.hlsl" />
-    <FxCompile Include="ScreenRender_VS.hlsl" />
-    <FxCompile Include="Postprocess_PS.hlsl" />
+    <FxCompile Include="shaders\Tonemap_PS.hlsl" />
+    <FxCompile Include="shaders\ScreenRender_VS.hlsl" />
+    <FxCompile Include="shaders\Postprocess_PS.hlsl" />
+    <FxCompile Include="shaders\PrefilterCubemap_CS.hlsl" />
+    <FxCompile Include="shaders\ConvoluteCubemap_CS.hlsl" />
+    <FxCompile Include="shaders\IntegrateBRDF_PS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\assimp\Assimp.sln" />

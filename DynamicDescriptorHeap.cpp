@@ -228,22 +228,16 @@ void DynamicDescriptorHeap::CommitInlineDescriptors(
 
 void DynamicDescriptorHeap::CommitStagedDescriptorsForDraw(CommandList& commandList) {
     CommitDescriptorTables(commandList, &ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable);
-    CommitInlineDescriptors(commandList, m_InlineCBV, m_StaleCBVBitMask,
-        &ID3D12GraphicsCommandList::SetGraphicsRootConstantBufferView);
-    CommitInlineDescriptors(commandList, m_InlineSRV, m_StaleSRVBitMask,
-        &ID3D12GraphicsCommandList::SetGraphicsRootShaderResourceView);
-    CommitInlineDescriptors(commandList, m_InlineUAV, m_StaleUAVBitMask,
-        &ID3D12GraphicsCommandList::SetGraphicsRootUnorderedAccessView);
+    CommitInlineDescriptors(commandList, m_InlineCBV, m_StaleCBVBitMask, &ID3D12GraphicsCommandList::SetGraphicsRootConstantBufferView);
+    CommitInlineDescriptors(commandList, m_InlineSRV, m_StaleSRVBitMask, &ID3D12GraphicsCommandList::SetGraphicsRootShaderResourceView);
+    CommitInlineDescriptors(commandList, m_InlineUAV, m_StaleUAVBitMask, &ID3D12GraphicsCommandList::SetGraphicsRootUnorderedAccessView);
 }
 
 void DynamicDescriptorHeap::CommitStagedDescriptorsForDispatch(CommandList& commandList) {
     CommitDescriptorTables(commandList, &ID3D12GraphicsCommandList::SetComputeRootDescriptorTable);
-    CommitInlineDescriptors(commandList, m_InlineCBV, m_StaleCBVBitMask,
-        &ID3D12GraphicsCommandList::SetComputeRootConstantBufferView);
-    CommitInlineDescriptors(commandList, m_InlineSRV, m_StaleSRVBitMask,
-        &ID3D12GraphicsCommandList::SetComputeRootShaderResourceView);
-    CommitInlineDescriptors(commandList, m_InlineUAV, m_StaleUAVBitMask,
-        &ID3D12GraphicsCommandList::SetComputeRootUnorderedAccessView);
+    CommitInlineDescriptors(commandList, m_InlineCBV, m_StaleCBVBitMask, &ID3D12GraphicsCommandList::SetComputeRootConstantBufferView);
+    CommitInlineDescriptors(commandList, m_InlineSRV, m_StaleSRVBitMask, &ID3D12GraphicsCommandList::SetComputeRootShaderResourceView);
+    CommitInlineDescriptors(commandList, m_InlineUAV, m_StaleUAVBitMask, &ID3D12GraphicsCommandList::SetComputeRootUnorderedAccessView);
 }
 
 D3D12_GPU_DESCRIPTOR_HANDLE DynamicDescriptorHeap::CopyDescriptor(CommandList& commandList, D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptor) {

@@ -11,6 +11,7 @@ cbuffer MaterialCB : register(b0, space1) {
 Texture2D AlbedoTex    : register(t0);
 Texture2D NormalTex    : register(t1);
 Texture2D MaterialTex  : register(t2);
+TextureCube<float4> IrradianceTex : register(t3);
 
 SamplerState AnisoSampler : register(s0);
 
@@ -78,6 +79,8 @@ float4 main(PixelInputType i) : SV_Target {
     // Normal preprocess
     float3 normalMap = NormalTex.Sample(AnisoSampler, i.uv).xyz * 2.0 - 1.0;
     float3 normal = normalize((normalMap.x * i.tangent) + (normalMap.y * i.bitangent) + (normalMap.z * i.normal));
+    
+    float3 irradiance = IrradianceTex.Sample(AnisoSampler, normal);
    
     //// BLINN PHONG TEST
     //// Diffuse
@@ -120,7 +123,8 @@ float4 main(PixelInputType i) : SV_Target {
     float3 H = normalize(viewDirection + L);
 
     //float3 radiance = directionalLightColor.rgb;
-    float3 radiance = {12, 10, 9};
+    //float3 radiance = {12, 10, 9};
+    float3 radiance = {0, 0, 0};
 
     // Cook-Torrance BRDF
     float NDF = DistributionGGX(normal, H, roughness);
@@ -129,22 +133,18 @@ float4 main(PixelInputType i) : SV_Target {
            
     float3 numerator = NDF * G * F;
     float denominator = 4.0 * max(dot(normal, viewDirection), 0.0) * max(dot(normal, L), 0.0) + 0.0001;
+    // Currently only from directional light
     float3 specular = numerator / denominator;
     
     // Prevent artifacts from extremely bright pixels on perfectly smooth materials (bandaid fix)
     // This may cause some specular highilghts to be omitted (e.g. marble sphere from demo scene)
     //specular = clamp(specular, 0, 10000);
-        
-    // kS is equal to Fresnel
-    float3 kS = F;
-    // for energy conservation, the diffuse and specular light can't
-    // be above 1.0 (unless the surface emits light); to preserve this
-    // relationship the diffuse component (kD) should equal 1.0 - kS.
+    
+    float3 kS = FresnelSchlickRoughness(max(dot(normal, viewDirection), 0.0), F0, roughness);
     float3 kD = 1.0 - kS;
-    // multiply kD by the inverse metalness such that only non-metals 
-    // have diffuse lighting, or a linear blend if partly metal (pure metals
-    // have no diffuse light).
     kD *= 1.0 - metallic;
+    float3 diffuse = irradiance * albedo;
+    float3 ambient = (kD * diffuse) * ao;
 
     // scale light by NdotL
     float NdotL = max(dot(normal, L), 0.0);
@@ -153,7 +153,7 @@ float4 main(PixelInputType i) : SV_Target {
     Lo += (kD * albedo / PI + specular) * radiance * NdotL;
 
     // TODO: IBL
-    float3 ambient = albedo * ao * 0.1;
+    //float3 ambient = albedo * ao * 0.1;
     
     float4 retCol = float4(ambient + Lo, 1);
     

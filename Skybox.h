@@ -1,18 +1,15 @@
 #pragma once
-#include <wrl/client.h>
-#include <d3d12.h>
 #include <memory>
 #include <string>
+#include "RenderTarget.h"
 
 class Device;
 class RootSignature;
-class RenderTarget;
 class Texture;
 class CommandList;
 class ShaderResourceView;
 class Camera;
 class Mesh;
-class RenderTarget;
 
 class Skybox {
 public:
@@ -22,14 +19,16 @@ public:
 	void Render(CommandList& directCommandList, const Camera& camera);
 
 	enum ComputeMode {
-		kConvolutionRender = 0,
-		kPrefilterRender = 1,
+		kConvolutionRender   = 0,
+		kPrefilterRender     = 1,
 		kIntegrateBRDFRender = 2,
 		NumComputeType
 	};
 
 	// Compute/draw precomputed textures for IBL
-	void Precompute(CommandList& directCommandList, ComputeMode mode);
+	void Precompute(CommandList& directCommandList, const Camera& camera, ComputeMode mode);
+
+	std::shared_ptr<ShaderResourceView> GetIrradianceSRV() const;
 
 private:
 
@@ -38,6 +37,10 @@ private:
 	std::shared_ptr<Texture> m_HDRPanoTexture;
 	std::shared_ptr<Texture> m_SkyCubemapTexture;
 
+	RenderTarget m_IrradianceConvolutionCubemap_RT;
+	RenderTarget m_PrefilterCubemap_RT;
+
 	std::shared_ptr<ShaderResourceView> m_SkyCubemapSRV;
+	std::shared_ptr<ShaderResourceView> m_IrradianceCubemapSRV;
 };
 

@@ -6,7 +6,8 @@
 
 // Static definitions.
 std::mutex                             ResourceStateTracker::ms_GlobalMutex;
-bool                                   ResourceStateTracker::ms_IsLocked = false;
+// This is only used to guarantee that ms_GlobalMutex is locked during "FlushPendingResourceBarriers"
+bool                                   ResourceStateTracker::ms_IsLocked = false; 
 ResourceStateTracker::ResourceStateMap ResourceStateTracker::ms_GlobalResourceState;
 //ResourceStateTracker::ResourceList     ResourceStateTracker::ms_GarbageResources;
 
@@ -25,8 +26,7 @@ void ResourceStateTracker::ResourceBarrier(const D3D12_RESOURCE_BARRIER& barrier
 		if(iter != m_FinalResourceStates.end()) {
 			auto& resourceState = iter->second;
 			// If the known final state of the resource is different...
-			if(transitionBarrier.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES &&
-				!resourceState.SubresourceState.empty()) {
+			if(transitionBarrier.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES && !resourceState.SubresourceState.empty()) {
 				// First transition all of the subresources if they are different than the StateAfter.
 				for(auto subresourceState : resourceState.SubresourceState) {
 					if(transitionBarrier.StateAfter != subresourceState.second) {
@@ -37,6 +37,7 @@ void ResourceStateTracker::ResourceBarrier(const D3D12_RESOURCE_BARRIER& barrier
 					}
 				}
 			}
+			// If all subresources are same state (resourceState.SubresourceState is empty) or only transitioning one subresource
 			else {
 				auto finalState = resourceState.GetSubresourceState(transitionBarrier.Subresource);
 				if(transitionBarrier.StateAfter != finalState) {
@@ -55,6 +56,7 @@ void ResourceStateTracker::ResourceBarrier(const D3D12_RESOURCE_BARRIER& barrier
 		}
 
 		// Push the final known state (possibly replacing the previously known state for the subresource).
+		// Can be an issue with indivually transitioned subresources, see note at top of header
 		m_FinalResourceStates[transitionBarrier.pResource].SetSubresourceState(transitionBarrier.Subresource,
 			transitionBarrier.StateAfter);
 	}

@@ -44,14 +44,19 @@ class Device;
 class Texture : public Resource {
 public:
     // Creates COMMITTED resource, adds to resource state tracker 
-    // and automatically creates descriptor based on resourceDesc/resource (maybe remove this feature)
-    Texture(Device& device, const D3D12_RESOURCE_DESC& resourceDesc, const D3D12_CLEAR_VALUE* clearValue = nullptr);
-    Texture(Device& device, Microsoft::WRL::ComPtr<ID3D12Resource> resource, const D3D12_CLEAR_VALUE* clearValue = nullptr);
+    // and optionally creates descriptor (resource view) based on resourceDesc/resource description
+    Texture(Device& device, const D3D12_RESOURCE_DESC& resourceDesc, const D3D12_CLEAR_VALUE* clearValue = nullptr, bool b_CreateDefaultView = true);
+    Texture(Device& device, Microsoft::WRL::ComPtr<ID3D12Resource> resource, const D3D12_CLEAR_VALUE* clearValue = nullptr, bool b_CreateDefaultView = true);
 
     /**
      * Resize the texture.
      */
     void Resize(uint32_t width, uint32_t height, uint32_t depthOrArraySize = 1);
+
+    /**
+     * Create non-default RTV
+     */
+    void CreateRenderTargetView(const D3D12_RENDER_TARGET_VIEW_DESC& rtvDesc);
 
     /**
      * Get the RTV for the texture.
@@ -114,7 +119,7 @@ public:
     static DXGI_FORMAT GetUAVCompatableFormat(DXGI_FORMAT format);
 
 private:
-    void CreateViews();
+    void CreateDefaultViews();
 
     DescriptorAllocation m_RenderTargetView;
     DescriptorAllocation m_DepthStencilView;

@@ -29,6 +29,7 @@ ConstantBuffer<PanoToCubemap> PanoToCubemapCB : register(b0);
 Texture2D<float4> SrcTexture : register(t0);
 
 // Destination texture as a mip slice in the cubemap texture (texture array with 6 elements).
+// 5 destinations because we process up to 5 mips at a time
 RWTexture2DArray<float4> DstMip1 : register(u0);
 RWTexture2DArray<float4> DstMip2 : register(u1);
 RWTexture2DArray<float4> DstMip3 : register(u2);
@@ -38,16 +39,16 @@ RWTexture2DArray<float4> DstMip5 : register(u4);
 // Linear repeat sampler.
 SamplerState LinearRepeatSampler : register(s0);
 
-#define GenerateMips_RootSignature \
-    "RootFlags(0), " \
-    "RootConstants(b0, num32BitConstants = 3), " \
-    "DescriptorTable( SRV(t0, numDescriptors = 1) )," \
-    "DescriptorTable( UAV(u0, numDescriptors = 5) )," \
-    "StaticSampler(s0," \
-        "addressU = TEXTURE_ADDRESS_WRAP," \
-        "addressV = TEXTURE_ADDRESS_WRAP," \
-        "addressW = TEXTURE_ADDRESS_WRAP," \
-        "filter = FILTER_MIN_MAG_LINEAR_MIP_POINT )"
+//#define GenerateMips_RootSignature \
+//    "RootFlags(0), " \
+//    "RootConstants(b0, num32BitConstants = 3), " \
+//    "DescriptorTable( SRV(t0, numDescriptors = 1) )," \
+//    "DescriptorTable( UAV(u0, numDescriptors = 5) )," \
+//    "StaticSampler(s0," \
+//        "addressU = TEXTURE_ADDRESS_WRAP," \
+//        "addressV = TEXTURE_ADDRESS_WRAP," \
+//        "addressW = TEXTURE_ADDRESS_WRAP," \
+//        "filter = FILTER_MIN_MAG_LINEAR_MIP_POINT )"
 
 
 // 1 / PI
@@ -65,7 +66,7 @@ static const float3x3 RotateUV[6] = {
     float3x3(-1, 0, 0,  0, -1, 0,   0, 0, -1)  // -Z
 };
 
-[RootSignature(GenerateMips_RootSignature)]
+//[RootSignature(GenerateMips_RootSignature)]
 [numthreads(BLOCK_SIZE, BLOCK_SIZE, 1)]
 void main(ComputeShaderInput IN) {
     // Cubemap texture coords.

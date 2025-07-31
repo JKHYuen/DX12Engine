@@ -8,6 +8,7 @@ float3 ReinhardJodieTMO(float3 v) {
     return lerp(v / (1.0 + l_in), tv, tv);
 }
 
+/// UNUSED
 // https://64.github.io/tonemapping/#uncharted-2
 // http://filmicworlds.com/blog/filmic-tonemapping-with-piecewise-power-curves/
 float3 uncharted2_tonemap_partial(float3 x) {

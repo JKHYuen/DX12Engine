@@ -8,14 +8,14 @@
 #include "ResourceStateTracker.h"
 
 
-Texture::Texture(Device& device, const D3D12_RESOURCE_DESC& resourceDesc, const D3D12_CLEAR_VALUE* clearValue)
+Texture::Texture(Device& device, const D3D12_RESOURCE_DESC& resourceDesc, const D3D12_CLEAR_VALUE* clearValue, bool b_CreateDefaultView)
     : Resource(device, resourceDesc, clearValue) {
-    CreateViews();
+    if(b_CreateDefaultView) CreateDefaultViews();
 }
 
-Texture::Texture(Device& device, ComPtr<ID3D12Resource> resource, const D3D12_CLEAR_VALUE* clearValue)
+Texture::Texture(Device& device, ComPtr<ID3D12Resource> resource, const D3D12_CLEAR_VALUE* clearValue, bool b_CreateDefaultView)
     : Resource(device, resource, clearValue) {
-    CreateViews();
+    if(b_CreateDefaultView) CreateDefaultViews();
 }
 
 void Texture::Resize(uint32_t width, uint32_t height, uint32_t depthOrArraySize) {
@@ -42,7 +42,7 @@ void Texture::Resize(uint32_t width, uint32_t height, uint32_t depthOrArraySize)
 
         ResourceStateTracker::AddGlobalResourceState(m_d3d12Resource.Get(), D3D12_RESOURCE_STATE_COMMON);
 
-        CreateViews();
+        CreateDefaultViews();
     }
 }
 
@@ -92,10 +92,9 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(const D3D12_RESOURCE_DESC& resDesc, 
     return uavDesc;
 }
 
-void Texture::CreateViews() {
+void Texture::CreateDefaultViews() {
     if(m_d3d12Resource) {
         auto d3d12Device = m_Device.GetD3D12Device();
-
         CD3DX12_RESOURCE_DESC desc(m_d3d12Resource->GetDesc());
 
         // Create RTV
@@ -114,8 +113,7 @@ void Texture::CreateViews() {
             d3d12Device->CreateShaderResourceView(m_d3d12Resource.Get(), nullptr, m_ShaderResourceView.GetDescriptorHandle());
         }
         // Create UAV for each mip (only supported for 1D and 2D textures).
-        if((desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS) != 0 && CheckUAVSupport() &&
-            desc.DepthOrArraySize == 1) {
+        if((desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS) != 0 && CheckUAVSupport() && desc.DepthOrArraySize == 1) {
             m_UnorderedAccessView = m_Device.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, desc.MipLevels);
             for(int i = 0; i < desc.MipLevels; ++i) {
                 auto uavDesc = GetUAVDesc(desc, i);
@@ -123,6 +121,16 @@ void Texture::CreateViews() {
             }
         }
     }
+}
+
+void Texture::CreateRenderTargetView(const D3D12_RENDER_TARGET_VIEW_DESC& rtvDesc) {
+    assert(m_d3d12Resource);
+    auto d3d12Device = m_Device.GetD3D12Device();
+    CD3DX12_RESOURCE_DESC desc(m_d3d12Resource->GetDesc());
+    assert((desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET) != 0 && CheckRTVSupport());
+    
+    m_RenderTargetView = m_Device.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    d3d12Device->CreateRenderTargetView(m_d3d12Resource.Get(), &rtvDesc, m_RenderTargetView.GetDescriptorHandle());
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetRenderTargetView() const {

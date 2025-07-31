@@ -7,16 +7,16 @@ struct VertexShaderInput {
 };
 
 struct VertexShaderOutput {
-    // 3d skybox coord
-    float3 uv : TEXCOORD;
     float4 Position : SV_POSITION;
+    // 3d skybox coord
+    float3 uvw : TEXCOORD;
 };
 
-VertexShaderOutput main(VertexShaderInput IN) {
-    VertexShaderOutput OUT;
+VertexShaderOutput main(VertexShaderInput i) {
+    VertexShaderOutput o;
 
-    OUT.Position = mul(ViewProjectionMatrix, float4(IN.Position, 1.0f));
-    OUT.uv = IN.Position;
+    o.Position = mul(ViewProjectionMatrix, float4(i.Position, 1.0f));
+    o.uvw = i.Position;
 
-    return OUT;
+    return o;
 }

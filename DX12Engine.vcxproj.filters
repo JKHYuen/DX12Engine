@@ -265,9 +265,9 @@
     <FxCompile Include="shaders\Tonemap_PS.hlsl" />
     <FxCompile Include="shaders\ScreenRender_VS.hlsl" />
     <FxCompile Include="shaders\Postprocess_PS.hlsl" />
-    <FxCompile Include="shaders\PrefilterCubemap_CS.hlsl" />
-    <FxCompile Include="shaders\ConvoluteCubemap_CS.hlsl" />
     <FxCompile Include="shaders\IntegrateBRDF_PS.hlsl" />
+    <FxCompile Include="shaders\PreFilterCubeMap_PS.hlsl" />
+    <FxCompile Include="shaders\ConvoluteCubeMap_PS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\assimp\Assimp.sln" />

@@ -110,8 +110,7 @@ void CommandList::FlushResourceBarriers() {
 	m_ResourceStateTracker->FlushResourceBarriers(shared_from_this());
 }
 
-void CommandList::CopyResource(Microsoft::WRL::ComPtr<ID3D12Resource> dstRes,
-	Microsoft::WRL::ComPtr<ID3D12Resource> srcRes) {
+void CommandList::CopyResource(Microsoft::WRL::ComPtr<ID3D12Resource> dstRes, Microsoft::WRL::ComPtr<ID3D12Resource> srcRes) {
 	assert(dstRes);
 	assert(srcRes);
 
@@ -622,6 +621,7 @@ void CommandList::PanoToCubemap(const std::shared_ptr<Texture>& cubemapTexture, 
 			);
 		}
 
+		// Note: BLOCK_SIZE is 16 in compute shader
 		Dispatch(Math::DivideByMultiple(panoToCubemapCB.CubemapSize, 16), Math::DivideByMultiple(panoToCubemapCB.CubemapSize, 16), 6);
 
 		mipSlice += numMips;
@@ -641,8 +641,7 @@ void CommandList::ClearTexture(const std::shared_ptr<Texture>& texture, const fl
 	TrackResource(texture);
 }
 
-void CommandList::ClearDepthStencilTexture(const std::shared_ptr<Texture>& texture, D3D12_CLEAR_FLAGS clearFlags,
-	float depth, uint8_t stencil) {
+void CommandList::ClearDepthStencilTexture(const std::shared_ptr<Texture>& texture, D3D12_CLEAR_FLAGS clearFlags, float depth, uint8_t stencil) {
 	assert(texture);
 
 	TransitionBarrier(texture, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, true);
@@ -914,7 +913,8 @@ void CommandList::SetShaderResourceView(int32_t rootParameterIndex, uint32_t des
 	}
 }
 
-void CommandList::SetUnorderedAccessView(uint32_t rootParameterIndex, uint32_t descriptorOffset, const std::shared_ptr<UnorderedAccessView>& uav,														   D3D12_RESOURCE_STATES stateAfter, UINT firstSubresource, UINT numSubresources) {
+void CommandList::SetUnorderedAccessView(uint32_t rootParameterIndex, uint32_t descriptorOffset, const std::shared_ptr<UnorderedAccessView>& uav,
+						                 D3D12_RESOURCE_STATES stateAfter, UINT firstSubresource, UINT numSubresources) {
 	assert(uav);
 
 	auto resource = uav->GetResource();
@@ -931,10 +931,13 @@ void CommandList::SetUnorderedAccessView(uint32_t rootParameterIndex, uint32_t d
 		TrackResource(resource);
 	}
 
-	m_DynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(rootParameterIndex, descriptorOffset, 1, uav->GetDescriptorHandle());
+	m_DynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(
+		rootParameterIndex, descriptorOffset, 1, uav->GetDescriptorHandle()
+	);
 }
 
-void CommandList::SetUnorderedAccessView(uint32_t rootParameterIndex, uint32_t descriptorOffset, const std::shared_ptr<Texture>& texture, UINT mip,												           D3D12_RESOURCE_STATES stateAfter, UINT firstSubresource, UINT numSubresources) {
+void CommandList::SetUnorderedAccessView(uint32_t rootParameterIndex, uint32_t descriptorOffset, const std::shared_ptr<Texture>& texture, UINT mip,
+										 D3D12_RESOURCE_STATES stateAfter, UINT firstSubresource, UINT numSubresources) {
 	if(texture) {
 		if(numSubresources < D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) {
 			for(uint32_t i = 0; i < numSubresources; ++i) {
@@ -948,7 +951,8 @@ void CommandList::SetUnorderedAccessView(uint32_t rootParameterIndex, uint32_t d
 		TrackResource(texture);
 
 		m_DynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(
-			rootParameterIndex, descriptorOffset, 1, texture->GetUnorderedAccessView(mip));
+			rootParameterIndex, descriptorOffset, 1, texture->GetUnorderedAccessView(mip)
+		);
 	}
 }
 

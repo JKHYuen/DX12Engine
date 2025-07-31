@@ -3,6 +3,7 @@
 #include <d3dx12.h>
 #include <d3dcompiler.h>
 #include <memory>
+#include <array>
 
 #include "Device.h"
 #include "RootSignature.h"
@@ -27,20 +28,38 @@ namespace {
 	std::shared_ptr<RootSignature> s_PrefilterRootSignature;
 
 	RenderTarget s_PrecomputedBRDF_RT {};
-	//std::shared_ptr<Texture> s_PrecomputedBRDFTexture;
 
 	D3D12_RECT s_DefaultScissorRect = CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX);
 
 	std::unique_ptr<Mesh> s_SkyboxCubeMesh;
 	bool s_IsInitialized = false;
 	bool s_IsBRDFPrecomputed = false;
+	bool s_IsIrradiancePrecomputed = false;
 
-	constexpr int sk_DefaultSkyboxIndex         = 0;
-	constexpr int sk_CubeFaceResolution         = 2048;
-	constexpr int sk_CubeMapMipLevels           = 9;
-	constexpr int sk_IrradianceMapResolution    = 32;
+	constexpr int sk_DefaultSkyboxIndex = 0;
+	constexpr int sk_CubeFaceResolution = 2048;
+	constexpr int sk_CubeMapMipLevels = 9;
+	constexpr int sk_IrradianceMapResolution = 32;
 	constexpr int sk_FullPrefilterMapResolution = 512;
-	constexpr int sk_PrecomputedBRDFResolution  = 512;
+	constexpr int sk_PrecomputedBRDFResolution = 512;
+
+	constexpr XMFLOAT3 float3_000  {0.0f,   0.0f,  0.0f};
+	constexpr XMFLOAT3 float3_100  {1.0f,   0.0f,  0.0f};
+	constexpr XMFLOAT3 float3_010  {0.0f,   1.0f,  0.0f};
+	constexpr XMFLOAT3 float3_n100 {-1.0f,  0.0f,  0.0f};
+	constexpr XMFLOAT3 float3_00n1 {0.0f,   0.0f, -1.0f};
+	constexpr XMFLOAT3 float3_0n10 {0.0f,  -1.0f,  0.0f};
+	constexpr XMFLOAT3 float3_001  {0.0f,   0.0f,  1.0f};
+
+	const std::array<XMMATRIX, 6> s_CubeMapCaptureViewMats = {
+		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_100),  XMLoadFloat3(&float3_010)),
+		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_n100), XMLoadFloat3(&float3_010)),
+		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_010),  XMLoadFloat3(&float3_00n1)),
+		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_0n10),	XMLoadFloat3(&float3_001)),
+		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_001),	XMLoadFloat3(&float3_010)),
+		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_00n1), XMLoadFloat3(&float3_010)),
+	};
+
 }
 
 // TODO: seperate initialization that requires COPY CommandList for less error prone construction
@@ -49,34 +68,36 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, std::wstring hdrTex
 	s_SkyboxCubeMesh = std::move(cubeMesh);
 	m_HDRPanoTexture = copyCommandList.LoadTextureFromFile(L"assets/" + hdrTextureName + L".hdr", true);
 
+	// Convert hdr panoramic texture to cubemap
 	auto cubemapDesc = m_HDRPanoTexture->GetD3D12ResourceDesc();
-	// TODO: make face resolution tweakable
 	cubemapDesc.Width = cubemapDesc.Height = sk_CubeFaceResolution;
 	cubemapDesc.DepthOrArraySize = 6;
 	cubemapDesc.MipLevels = 0;
 	
-	m_SkyCubemapTexture = std::make_shared<Texture>(device, cubemapDesc);
+	m_SkyCubemapTexture = std::make_shared<Texture>(device, cubemapDesc, nullptr, false);
 	m_SkyCubemapTexture->SetName(hdrTextureName + L" Skybox Cubemap");
 
 	copyCommandList.PanoToCubemap(m_SkyCubemapTexture, m_HDRPanoTexture);
 
+	// Create cubemap SRV 
 	D3D12_SHADER_RESOURCE_VIEW_DESC cubeMapSRVDesc = {};
 	cubeMapSRVDesc.Format = cubemapDesc.Format;
 	cubeMapSRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	cubeMapSRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
 	cubeMapSRVDesc.TextureCube.MipLevels = (UINT)-1;  // Use all mips.
-
 	m_SkyCubemapSRV = std::make_shared<ShaderResourceView>(device, m_SkyCubemapTexture, &cubeMapSRVDesc);
 
 	// Static variable initialization (PSO and Root Signatures)
 	if(!s_IsInitialized) {
 		s_IsInitialized = true;
 
-		/// Skybox Rendering
-		Microsoft::WRL::ComPtr<ID3DBlob> vs;
-		Microsoft::WRL::ComPtr<ID3DBlob> ps;
-		ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/Skybox_VS.cso", &vs));
-		ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/Skybox_PS.cso", &ps));
+		//
+		// Skybox Rendering
+		//
+		Microsoft::WRL::ComPtr<ID3DBlob> skybox_vs;
+		Microsoft::WRL::ComPtr<ID3DBlob> skybox_ps;
+		ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/Skybox_VS.cso", &skybox_vs));
+		ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/Skybox_PS.cso", &skybox_ps));
 
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags_VSPS =
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
@@ -121,8 +142,8 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, std::wstring hdrTex
 		skyboxPipelineStateStream.pRootSignature = m_SkyboxRootSignature->GetD3D12RootSignature().Get();
 		skyboxPipelineStateStream.InputLayout = {inputLayout, 1};
 		skyboxPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		skyboxPipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vs.Get());
-		skyboxPipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(ps.Get());
+		skyboxPipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(skybox_vs.Get());
+		skyboxPipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(skybox_ps.Get());
 		skyboxPipelineStateStream.RTVFormats = hdrRenderTarget.GetRenderTargetFormats();
 		skyboxPipelineStateStream.SampleDesc = hdrRenderTarget.GetSampleDesc();
 		skyboxPipelineStateStream.RasterizerDesc = rasterizerDesc;
@@ -131,18 +152,51 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, std::wstring hdrTex
 		ThrowIfFailed(device.GetD3D12Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&s_SkyboxPSO)));
 
 
-		/// BRDF Integration
-		ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/IntegrateBRDF_PS.cso", &ps));
+		//
+		// Irradiance Convolution (cubemap)
+		//
+		// Skybox_VS.cso vertex shader used
+		Microsoft::WRL::ComPtr<ID3DBlob> convoluteCubemap_ps;
+		ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/ConvoluteCubeMap_PS.cso", &convoluteCubemap_ps));
+
+		// Same root sig as skybox rendering (one inline matrix, one SRV)
+		skyboxPipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(convoluteCubemap_ps.Get());
+		skyboxPipelineStateStream.SampleDesc = {1, 0};
+
+		pipelineStateStreamDesc = {sizeof(SkyboxPipelineState), &skyboxPipelineStateStream};
+		ThrowIfFailed(device.GetD3D12Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&s_ConvolutionPSO)));
+
+		// Create cubemap render texture for irradiance convolution
+		auto convolutionCubemapDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+			DXGI_FORMAT_R16G16B16A16_FLOAT, sk_IrradianceMapResolution, sk_IrradianceMapResolution,
+			6, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
+		);
+
+		auto irradianceConvolutionTexture = std::make_shared<Texture>(device, convolutionCubemapDesc, nullptr, false);
+
+		irradianceConvolutionTexture->SetName(L"Irradiance Convolution Cubemap");
+		m_IrradianceConvolutionCubemap_RT.AttachTexture(AttachmentPoint::Color0, irradianceConvolutionTexture);
+
+		/// TEMP
+		cubeMapSRVDesc.Format = m_IrradianceConvolutionCubemap_RT.GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0];
+		m_IrradianceCubemapSRV = std::make_shared<ShaderResourceView>(device, irradianceConvolutionTexture, &cubeMapSRVDesc);
+
+		//
+		// BRDF Integration
+		//
+		Microsoft::WRL::ComPtr<ID3DBlob> screenRender_vs;
+		Microsoft::WRL::ComPtr<ID3DBlob> integrateBRDF_ps;
 		// TODO: this is loaded a second time in DemoGame, combine these
-		ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/ScreenRender_VS.cso", &vs));
+		ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/ScreenRender_VS.cso", &screenRender_vs));
+		ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/IntegrateBRDF_PS.cso", &integrateBRDF_ps));
 
 		// Create render texture for precomputed BRDF
-		auto colorDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+		auto precomputedTextureDesc = CD3DX12_RESOURCE_DESC::Tex2D(
 			DXGI_FORMAT_R16G16_FLOAT, sk_PrecomputedBRDFResolution, sk_PrecomputedBRDFResolution,
 			1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
 		);
+		auto precomputeBRDFTexture = std::make_shared<Texture>(device, precomputedTextureDesc);
 
-		auto precomputeBRDFTexture = std::make_shared<Texture>(device, colorDesc, nullptr);
 		precomputeBRDFTexture->SetName(L"Integrated BRDF Texture");
 		s_PrecomputedBRDF_RT.AttachTexture(AttachmentPoint::Color0, precomputeBRDFTexture);
 
@@ -154,14 +208,13 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, std::wstring hdrTex
 		// BRDF Precompute Pipeline State
 		skyboxPipelineStateStream.pRootSignature = s_IntegrateBRDFRootSignature->GetD3D12RootSignature().Get();
 		skyboxPipelineStateStream.InputLayout = CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT();
-		skyboxPipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(ps.Get());
-		skyboxPipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vs.Get());
+		skyboxPipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(integrateBRDF_ps.Get());
+		skyboxPipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(screenRender_vs.Get());
 		skyboxPipelineStateStream.RTVFormats = s_PrecomputedBRDF_RT.GetRenderTargetFormats();
 		skyboxPipelineStateStream.SampleDesc = s_PrecomputedBRDF_RT.GetSampleDesc();
 		pipelineStateStreamDesc = {sizeof(SkyboxPipelineState), &skyboxPipelineStateStream};
 		ThrowIfFailed(device.GetD3D12Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&s_IntegrateBRDF_PSO)));
 
-		/// BRDF Integration
 
 	}
 }
@@ -180,8 +233,8 @@ void Skybox::Render(CommandList& directCommandList, const Camera& camera) {
 	s_SkyboxCubeMesh->Draw(directCommandList);
 }
 
-// TODO: make sure convolution and prefilter steps are only computed once per skybox
-void Skybox::Precompute(CommandList& directCommandList, ComputeMode mode) {
+// TODO: seperate functions maybe
+void Skybox::Precompute(CommandList& directCommandList, const Camera& camera, ComputeMode mode) {
 	switch(mode) {
 	case ComputeMode::kIntegrateBRDFRender:
 		if(s_IsBRDFPrecomputed) return;
@@ -195,9 +248,33 @@ void Skybox::Precompute(CommandList& directCommandList, ComputeMode mode) {
 		directCommandList.Draw(3);
 		break;
 	case ComputeMode::kConvolutionRender:
+		if(s_IsIrradiancePrecomputed) return;
+		s_IsIrradiancePrecomputed = true;
 
-		directCommandList.SetPipelineState(s_ConvolutionPSO);
-		directCommandList.SetGraphicsRootSignature(s_ConvolutionSignature);
+		for(int i = 0; i < 6; i++) {
+			auto viewMatrix = s_CubeMapCaptureViewMats[i];
+			auto projMatrix = camera.get_ProjectionMatrix();
+			auto viewProjMatrix = viewMatrix * projMatrix;
+
+			D3D12_RENDER_TARGET_VIEW_DESC rtvDesc {};
+			rtvDesc.Format = m_IrradianceConvolutionCubemap_RT.GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0];
+			rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+			rtvDesc.Texture2DArray.MipSlice = 0;
+			rtvDesc.Texture2DArray.FirstArraySlice = i;
+			rtvDesc.Texture2DArray.ArraySize = 1;
+			m_IrradianceConvolutionCubemap_RT.GetTexture(AttachmentPoint::Color0)->CreateRenderTargetView(rtvDesc);
+
+			directCommandList.SetRenderTarget(m_IrradianceConvolutionCubemap_RT);
+			directCommandList.SetViewport(m_IrradianceConvolutionCubemap_RT.GetViewport());
+			directCommandList.SetScissorRect(s_DefaultScissorRect);
+			directCommandList.SetPipelineState(s_ConvolutionPSO);
+			directCommandList.SetGraphicsRootSignature(m_SkyboxRootSignature);
+
+			directCommandList.SetGraphics32BitConstants(0, viewProjMatrix);
+			directCommandList.SetShaderResourceView(1, 0, m_SkyCubemapSRV, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			s_SkyboxCubeMesh->Draw(directCommandList);
+		}
+
 		break;
 	case ComputeMode::kPrefilterRender:
 		directCommandList.SetPipelineState(s_PrefilterPSO);
@@ -206,4 +283,8 @@ void Skybox::Precompute(CommandList& directCommandList, ComputeMode mode) {
 	default:
 		assert(false && "Invalid ComputeMode.");
 	}
+}
+
+std::shared_ptr<ShaderResourceView> Skybox::GetIrradianceSRV() const {
+	return m_IrradianceCubemapSRV;
 }

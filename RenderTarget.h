@@ -38,6 +38,7 @@
 
 #include <cstdint>
 #include <vector>
+#include "DirectXMath.h"
 
 #include "Texture.h"
 

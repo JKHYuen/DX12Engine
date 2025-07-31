@@ -11,6 +11,5 @@ ShaderResourceView::ShaderResourceView(Device& device, const std::shared_ptr<Res
     auto d3d12Resource = m_Resource ? m_Resource->GetD3D12Resource() : nullptr;
 
     m_Descriptor = device.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
     device.GetD3D12Device()->CreateShaderResourceView(d3d12Resource.Get(), srv, m_Descriptor.GetDescriptorHandle());
 }

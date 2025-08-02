@@ -323,7 +323,7 @@ std::shared_ptr<Texture> CommandList::LoadTextureFromFile(const std::wstring& fi
 		CopyTextureSubresource(texture, 0, static_cast<uint32_t>(subresources.size()), subresources.data());
 
 		if(subresources.size() < textureResource->GetDesc().MipLevels) {
-			GenerateMips(texture);
+			GenerateMipsCompute(texture);
 		}
 
 		// Add the texture resource to the texture cache.
@@ -333,7 +333,7 @@ std::shared_ptr<Texture> CommandList::LoadTextureFromFile(const std::wstring& fi
 	return texture;
 }
 
-void CommandList::GenerateMips(const std::shared_ptr<Texture>& texture) {
+void CommandList::GenerateMipsCompute(const std::shared_ptr<Texture>& texture) {
 	if(!texture)
 		return;
 
@@ -343,7 +343,7 @@ void CommandList::GenerateMips(const std::shared_ptr<Texture>& texture) {
 		if(!m_ComputeCommandList) {
 			m_ComputeCommandList = m_Device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE).GetCommandList();
 		}
-		m_ComputeCommandList->GenerateMips(texture);
+		m_ComputeCommandList->GenerateMipsCompute(texture);
 		return;
 	}
 
@@ -536,14 +536,14 @@ void CommandList::GenerateMips_UAV(const std::shared_ptr<Texture>& texture, bool
 	}
 }
 
-void CommandList::PanoToCubemap(const std::shared_ptr<Texture>& cubemapTexture, const std::shared_ptr<Texture>& panoTexture) {
+void CommandList::PanoToCubemapCompute(const std::shared_ptr<Texture>& cubemapTexture, const std::shared_ptr<Texture>& panoTexture) {
 	assert(cubemapTexture && panoTexture);
 
 	if(m_d3d12CommandListType == D3D12_COMMAND_LIST_TYPE_COPY) {
 		if(!m_ComputeCommandList) {
 			m_ComputeCommandList = m_Device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE).GetCommandList();
 		}
-		m_ComputeCommandList->PanoToCubemap(cubemapTexture, panoTexture);
+		m_ComputeCommandList->PanoToCubemapCompute(cubemapTexture, panoTexture);
 		return;
 	}
 

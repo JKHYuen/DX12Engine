@@ -52,7 +52,7 @@ public:
     ~DynamicDescriptorHeap();
 
     /**
-        * Stages a contiguous range of CPU visible descriptors.
+        * Stages a contiguous range of CPU visible descriptors. (descriptor tables)
         * i.e. copy "numDescriptors" descriptors at "srcDescriptors" to m_DescriptorTableCache[rootParameterIndex] base descriptor location + offset
         * Descriptors are not copied to the GPU visible descriptor heap until the CommitStagedDescriptors function is called.
         */

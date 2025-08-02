@@ -564,7 +564,7 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 	///
 
 	// Clear the render targets.
-	FLOAT clearColor[] = {0.6f, 0.6f, 0.7f, 1.0f};
+	float clearColor[] = {0.6f, 0.6f, 0.7f, 1.0f};
 	directCommandList->ClearTexture(m_HDR_MSAA_RenderTarget.GetTexture(AttachmentPoint::Color0), clearColor);
 	directCommandList->ClearDepthStencilTexture(m_HDR_MSAA_RenderTarget.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
 

@@ -1,3 +1,5 @@
+// Adapted from https://learnopengl.com/PBR/IBL/Diffuse-irradiance
+
 TextureCube CubeMapTexture : register(t0);
 SamplerState WrapSampler : register(s0);
 

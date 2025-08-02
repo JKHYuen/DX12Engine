@@ -225,12 +225,12 @@ public:
         * The first subresource is used to generate the mip chain.
         * Mips are automatically generated for textures loaded from files.
         */
-    void GenerateMips(const std::shared_ptr<Texture>& texture);
+    void GenerateMipsCompute(const std::shared_ptr<Texture>& texture);
 
     /**
         * Generate a cubemap texture from a panoramic (equirectangular) texture.
         */
-    void PanoToCubemap(const std::shared_ptr<Texture>& cubemapTexture, const std::shared_ptr<Texture>& panoTexture);
+    void PanoToCubemapCompute(const std::shared_ptr<Texture>& cubemapTexture, const std::shared_ptr<Texture>& panoTexture);
 
     /**
         * Copy subresource data to a texture.

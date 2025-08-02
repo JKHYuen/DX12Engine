@@ -9,7 +9,7 @@ struct VertexShaderInput {
 struct VertexShaderOutput {
     float4 Position : SV_POSITION;
     // 3d skybox coord
-    float3 uvw : TEXCOORD;
+    float3 uvw : TEXCOORD0;
 };
 
 VertexShaderOutput main(VertexShaderInput i) {

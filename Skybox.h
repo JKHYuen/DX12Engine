@@ -32,8 +32,6 @@ public:
 
 private:
 
-	std::shared_ptr<RootSignature> m_SkyboxRootSignature;
-
 	std::shared_ptr<Texture> m_HDRPanoTexture;
 	std::shared_ptr<Texture> m_SkyCubemapTexture;
 
@@ -42,5 +40,6 @@ private:
 
 	std::shared_ptr<ShaderResourceView> m_SkyCubemapSRV;
 	std::shared_ptr<ShaderResourceView> m_IrradianceCubemapSRV;
+	std::shared_ptr<ShaderResourceView> m_PrefilterCubemapSRV;
 };
 

@@ -1,11 +1,10 @@
 // Adapted from https://learnopengl.com/PBR/IBL/Specular-IBL
 
 TextureCube CubeMapTexture : register(t0);
-SamplerState WrapSampleType : register(s0);
+SamplerState WrapSampler : register(s0);
 
-cbuffer PrefilterParamBuffer {
+cbuffer PrefilterParamBuffer : register(b0) {
     float roughness;
-    float3 padding;
 };
 
 struct PixelInputType {
@@ -96,7 +95,7 @@ float4 main(PixelInputType i) : SV_TARGET {
 
             float mipLevel = roughness == 0.0 ? 0.0 : 0.5 * log2(saSample / saTexel);
             
-            prefilteredColor += CubeMapTexture.SampleLevel(WrapSampleType, L, mipLevel).rgb * NdotL;
+            prefilteredColor += CubeMapTexture.SampleLevel(WrapSampler, L, mipLevel).rgb * NdotL;
             totalWeight += NdotL;
         }
     }

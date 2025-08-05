@@ -1,7 +1,7 @@
 // Adapted from https://learnopengl.com/PBR/IBL/Specular-IBL
 
-TextureCube CubeMapTexture : register(t0);
-SamplerState WrapSampler : register(s0);
+TextureCube<float4> CubeMapTexture : register(t0);
+SamplerState ClampSampler : register(s0);
 
 cbuffer PrefilterParamBuffer : register(b0) {
     float roughness;
@@ -95,7 +95,7 @@ float4 main(PixelInputType i) : SV_TARGET {
 
             float mipLevel = roughness == 0.0 ? 0.0 : 0.5 * log2(saSample / saTexel);
             
-            prefilteredColor += CubeMapTexture.SampleLevel(WrapSampler, L, mipLevel).rgb * NdotL;
+            prefilteredColor += CubeMapTexture.SampleLevel(ClampSampler, L, mipLevel).rgb * NdotL;
             totalWeight += NdotL;
         }
     }

@@ -1,7 +1,7 @@
 struct PixelShaderInput {
     float4 Position : SV_POSITION;
     // 3d skybox coord
-    float3 uvw : TEXCOORD;
+    float3 uvw : TEXCOORD0;
 };
 
 TextureCube<float4> SkyboxTexture : register(t0);

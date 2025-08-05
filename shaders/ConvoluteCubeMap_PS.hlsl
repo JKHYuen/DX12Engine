@@ -1,12 +1,12 @@
 // Adapted from https://learnopengl.com/PBR/IBL/Diffuse-irradiance
 
-TextureCube CubeMapTexture : register(t0);
-SamplerState WrapSampler : register(s0);
+TextureCube<float4> CubeMapTexture : register(t0);
+SamplerState ClampSampler: register(s0);
 
 struct PixelInputType {
     float4 position : SV_POSITION;
     float3 uvw : TEXCOORD0;
-};
+}; 
 
 static const float PI = 3.14159265359;
 
@@ -27,7 +27,7 @@ float4 main(PixelInputType i) : SV_TARGET {
             // tangent space to world
             float3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * N;
             
-            irradiance += CubeMapTexture.Sample(WrapSampler, sampleVec).rgb * cos(theta) * sin(theta);
+            irradiance += CubeMapTexture.Sample(ClampSampler, sampleVec).rgb * cos(theta) * sin(theta);
             nrSamples++;
         }
     }

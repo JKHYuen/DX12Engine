@@ -15,7 +15,7 @@ struct VertexShaderOutput {
 VertexShaderOutput main(VertexShaderInput i) {
     VertexShaderOutput o;
 
-    o.Position = mul(ViewProjectionMatrix, float4(i.Position, 1.0f));
+    o.Position = mul(ViewProjectionMatrix, float4(i.Position, 1.0f)).xyww;
     o.uvw = i.Position;
 
     return o;

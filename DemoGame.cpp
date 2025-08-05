@@ -32,10 +32,12 @@ namespace {
 	enum PBRRootParameters {
 		VertexCB,       // ConstantBuffer<Mat> VertexCB : register(b0);
 		MaterialCB,     // ConstantBuffer<Material> MaterialCB : register( b0, space1 );
-		Textures,       // Range Size: 3
-						// Texture2D AlbedoTex   : register( t0 );
-						// Texture2D NormalTex   : register( t1 );
-						// Texture2D MaterialTex : register( t2 );
+		Textures,       // Texture2D AlbedoTex         : register( t0 );
+						// Texture2D NormalTex         : register( t1 );
+						// Texture2D MaterialTex       : register( t2 );
+						// Texture2D IrradianceCubemap : register( t3 );
+						// Texture2D PrefilterCubemap  : register( t4 );
+						// Texture2D BRDFLut           : register( t5 );
 		NumRootParameters
 	};
 
@@ -59,6 +61,7 @@ namespace {
 		XMFLOAT4X4A Pad5;
 	};
 
+	/// TODO: TEMP
 	// Textures are shared pointers for texture cache use in CommandList class
 	std::shared_ptr<Texture> s_Default_Albedo;
 	std::shared_ptr<Texture> s_Default_Normal;
@@ -366,13 +369,13 @@ bool DemoGame::LoadContent() {
 		//s_TestCube = CreateCube(*copyCommandList);
 		s_TestSphere = CreateSphere(*copyCommandList, 1.0f, 64);
 
-		std::wstring matName = L"stonewall";
+		std::wstring matName = L"marble";
 		s_Default_Albedo = copyCommandList->LoadTextureFromFile(L"assets/" + matName + L"_albedo.tga", true);
 		s_Default_Normal = copyCommandList->LoadTextureFromFile(L"assets/" + matName + L"_normal.tga", false);
 		s_Default_Material = copyCommandList->LoadTextureFromFile(L"assets/" + matName + L"_mat.tga", false);
 
 		// Load Skybox Assets
-		std::wstring skyboxName = L"industrial_sunset_puresky_4k";
+		std::wstring skyboxName = L"abandoned_tiled_room_4k";
 		s_Skybox = std::make_unique<Skybox>(*m_Device, *copyCommandList, skyboxName, CreateCube(*copyCommandList, 1.0f), m_HDR_MSAA_RenderTarget);
 
 		copyCommandQueue.ExecuteCommandList(copyCommandList);
@@ -397,14 +400,15 @@ bool DemoGame::LoadContent() {
 		rootParameters[PBRRootParameters::VertexCB].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX);
 		rootParameters[PBRRootParameters::MaterialCB].InitAsConstantBufferView(0, 1, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
 
-		CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 4, 0);
+		CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 6, 0);
 		rootParameters[PBRRootParameters::Textures].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
-		//CD3DX12_STATIC_SAMPLER_DESC linearRepeatSampler(0, D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR);
 		CD3DX12_STATIC_SAMPLER_DESC anisotropicSampler(0, D3D12_FILTER_ANISOTROPIC);
+		CD3DX12_STATIC_SAMPLER_DESC linearClampSampler(1, D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
+		CD3DX12_STATIC_SAMPLER_DESC samplers[] = {anisotropicSampler, linearClampSampler};
 
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
-		rootSignatureDescription.Init_1_1(PBRRootParameters::NumRootParameters, rootParameters, 1, &anisotropicSampler, rootSignatureFlags_VSPS);
+		rootSignatureDescription.Init_1_1(PBRRootParameters::NumRootParameters, rootParameters, 2, samplers, rootSignatureFlags_VSPS);
 
 		m_PBRRootSignature = std::make_shared<RootSignature>(*m_Device, rootSignatureDescription.Desc_1_1);
 
@@ -486,6 +490,15 @@ bool DemoGame::LoadContent() {
 	// Wait for loading operations to complete before rendering the first frame
 	copyCommandQueue.FlushWait();  
 
+	// Precompute
+	auto& directCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
+	auto directCommandList = directCommandQueue.GetCommandList();
+	/// TEMP
+	s_Skybox->Precompute(*directCommandList, m_Camera, Skybox::kConvolutionRender);
+	s_Skybox->Precompute(*directCommandList, m_Camera, Skybox::kIntegrateBRDFRender);
+	s_Skybox->Precompute(*directCommandList, m_Camera, Skybox::kPrefilterRender);
+	directCommandQueue.ExecuteCommandList(directCommandList);
+
 	return true;
 }
 
@@ -559,10 +572,6 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 	auto& directCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 	auto directCommandList = directCommandQueue.GetCommandList();
 
-	/// TEMP
-	s_Skybox->Precompute(*directCommandList, m_Camera, Skybox::kConvolutionRender);
-	///
-
 	// Clear the render targets.
 	float clearColor[] = {0.6f, 0.6f, 0.7f, 1.0f};
 	directCommandList->ClearTexture(m_HDR_MSAA_RenderTarget.GetTexture(AttachmentPoint::Color0), clearColor);
@@ -598,7 +607,7 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 		MaterialProps materialCB;
 		XMVECTORF32 timeVec = {(float)e.Time, (float)e.DeltaTime, 0.0f, 0.0f};
 		XMStoreFloat4A(&materialCB.Time, timeVec);
-		XMVECTORF32 dirLight = {0.4f, -1.0f, 0.8f, 0.0f};
+		XMVECTORF32 dirLight = {-0.4f, -1.0f, 0.0f, 0.0f};
 		XMStoreFloat4A(&materialCB.DirLight, XMVector3Normalize(dirLight));
 
 		directCommandList->SetGraphicsDynamicConstantBuffer(PBRRootParameters::MaterialCB, materialCB);
@@ -606,6 +615,8 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 1, s_Default_Normal, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 2, s_Default_Material, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 3, s_Skybox->GetIrradianceSRV(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 4, s_Skybox->GetPrefilterSRV(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 5, s_Skybox->Get_BRDF_LUT_SRV(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 		//s_TestCube->Draw(*commandList);
 		s_TestSphere->Draw(*directCommandList);

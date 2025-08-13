@@ -13,10 +13,7 @@ namespace {
 	constexpr int sk_SRVHeapSize = 64;
 }
 
-EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWND hwnd) : m_Device {device} {
-
-	// TODO: make this a class static for now
-	static FreeListDescriptorHeapAllocator s_D3DSrvDescHeapAlloc;
+EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWND hwnd) {
 
 	// ImGui SRV Heap with free list allocation
 	{
@@ -25,11 +22,11 @@ EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWN
 		desc.NumDescriptors = sk_SRVHeapSize;
 		desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
-		if(FAILED(m_Device.GetD3D12Device()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_D3DSrvDescHeap)))) {
-			throw std::exception();
+		if(FAILED(device.GetD3D12Device()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_D3DSrvDescHeap)))) {
+			throw std::exception("Failed to create ImGui SRV Heap");
 		}
 
-		s_D3DSrvDescHeapAlloc.Create(m_Device.GetD3D12Device().Get(), m_D3DSrvDescHeap);
+		s_D3DSrvDescHeapAlloc.Create(device.GetD3D12Device().Get(), m_D3DSrvDescHeap);
 	}
 
 	// Setup Dear ImGui context
@@ -44,9 +41,9 @@ EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWN
 	ImGui_ImplWin32_Init(hwnd);
 	
 	ImGui_ImplDX12_InitInfo init_info = {};
-	init_info.Device = m_Device.GetD3D12Device().Get();
+	init_info.Device = device.GetD3D12Device().Get();
 	// Current engine implementation only has one direct command queue per device
-	init_info.CommandQueue = m_Device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT).GetD3D12CommandQueue().Get();
+	init_info.CommandQueue = device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT).GetD3D12CommandQueue().Get();
 	init_info.NumFramesInFlight = bufferCount;
 	init_info.RTVFormat = RTVformat;
 
@@ -79,6 +76,28 @@ void EditorGui::NewFrame() {
 
 	/// TEMP
 	ImGui::ShowDemoWindow();
+
+	{
+		static float f = 0.0f;
+		static int counter = 0;
+
+		ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+
+		ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
+
+		static char buf1[32] = "";
+		ImGui::InputText("default", buf1, IM_ARRAYSIZE(buf1));
+
+		ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+
+		if(ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+			counter++;
+		ImGui::SameLine();
+		ImGui::Text("counter = %d", counter);
+
+		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+		ImGui::End();
+	}
 }
 
 void EditorGui::Render(CommandList& directCommandList) {

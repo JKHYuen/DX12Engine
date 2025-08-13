@@ -269,7 +269,7 @@ void Application::Quit() {
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
+LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     if(ImGui_ImplWin32_WndProcHandler(hwnd, message, wParam, lParam))
         return true;
 
@@ -301,11 +301,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
             // This message contains the character code we need to send the KeyPressed event.
             // Inspired by the SDL 1.2 implementation.
             if(PeekMessage(&charMsg, hwnd, 0, 0, PM_NOREMOVE) && charMsg.message == WM_CHAR) {
-                GetMessage(&charMsg, hwnd, 0, 0);
                 c = static_cast<unsigned int>(charMsg.wParam);
-
-                //if(charMsg.wParam > 0 && charMsg.wParam < 0x10000)
-                //    ImGui::GetIO().AddInputCharacter((unsigned short)charMsg.wParam);
             }
             bool shift = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
             bool control = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
@@ -375,46 +371,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
             delete[] lpb;
         }
         break;
-
-        //case WM_LBUTTONDOWN:
-        //case WM_RBUTTONDOWN:
-        //case WM_MBUTTONDOWN:
-        //{
-        //    bool lButton = (wParam & MK_LBUTTON) != 0;
-        //    bool rButton = (wParam & MK_RBUTTON) != 0;
-        //    bool mButton = (wParam & MK_MBUTTON) != 0;
-        //    bool shift   = (wParam & MK_SHIFT)   != 0;
-        //    bool control = (wParam & MK_CONTROL) != 0;
-
-        //    int x = ((int)(short)LOWORD(lParam));
-        //    int y = ((int)(short)HIWORD(lParam));
-
-        //    MouseButtonEventArgs mouseButtonEventArgs(
-        //        DecodeMouseButton(message), MouseButtonEventArgs::Pressed, lButton, mButton, rButton, control, shift, x, y
-        //    );
-        //    pWindow->OnMouseButtonPressed(mouseButtonEventArgs);
-        //}
-        //break;
-
-        //case WM_LBUTTONUP:
-        //case WM_RBUTTONUP:
-        //case WM_MBUTTONUP:
-        //{
-        //    bool lButton = (wParam & MK_LBUTTON) != 0;
-        //    bool rButton = (wParam & MK_RBUTTON) != 0;
-        //    bool mButton = (wParam & MK_MBUTTON) != 0;
-        //    bool shift   = (wParam & MK_SHIFT)   != 0;
-        //    bool control = (wParam & MK_CONTROL) != 0;
-
-        //    int x = ((int)(short)LOWORD(lParam));
-        //    int y = ((int)(short)HIWORD(lParam));
-
-        //    MouseButtonEventArgs mouseButtonEventArgs(
-        //        DecodeMouseButton(message), MouseButtonEventArgs::Released, lButton, mButton, rButton, control, shift, x, y
-        //    );
-        //    pWindow->OnMouseButtonReleased(mouseButtonEventArgs);
-        //}
-        //break;
 
         case WM_MOUSEWHEEL:
         {

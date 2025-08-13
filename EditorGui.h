@@ -23,7 +23,7 @@ public:
 
 private:
 	// Simple free list based allocator from https://github.com/ocornut/imgui/blob/master/examples/example_win32_directx12/main.cpp
-	struct FreeListDescriptorHeapAllocator {
+	struct DescriptorHeapAllocator {
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> Heap = nullptr;
 		D3D12_DESCRIPTOR_HEAP_TYPE  HeapType = D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES;
 		D3D12_CPU_DESCRIPTOR_HANDLE HeapStartCpu;
@@ -62,6 +62,6 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_D3DSrvDescHeap = nullptr;
 
-	Device& m_Device;
+	static inline DescriptorHeapAllocator s_D3DSrvDescHeapAlloc;
 };
 

@@ -307,7 +307,7 @@ uint32_t DemoGame::Run() {
 	Initialize();
 	m_Window->Show();
 
-	// Windows msg loop
+	// Starts Windows msg loop
 	// OnUpdate() called on WM_PAINT message
 	uint32_t retCode = Application::Get().Run();
 

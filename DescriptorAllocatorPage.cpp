@@ -99,7 +99,7 @@ void DescriptorAllocatorPage::Free(DescriptorAllocation&& descriptor) {
     auto offset = ComputeOffset(descriptor.GetDescriptorHandle());
 
     std::lock_guard<std::mutex> lock(m_AllocationMutex);
-    // Don't add the block directly to the free list until the frame has completed.
+    // Don't add the block directly to the free list until the frame has completed. (i.e. when ReleaseStaleDescriptors() is called)
     m_StaleDescriptors.emplace(offset, descriptor.GetNumHandles());
 }
 

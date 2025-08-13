@@ -43,6 +43,7 @@ class Resource {
 public:
     // Create default committed resource, will be added to global resource state tracker
     Resource(Device& device, const D3D12_RESOURCE_DESC& resourceDesc, const D3D12_CLEAR_VALUE* clearValue = nullptr);
+    // Simply sets m_d3d12Resource to resource, DOES NOT add to global resource state tracker
     Resource(Device& device, Microsoft::WRL::ComPtr<ID3D12Resource> resource, const D3D12_CLEAR_VALUE* clearValue = nullptr);
 
     virtual ~Resource() = default;

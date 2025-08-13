@@ -145,7 +145,7 @@ private:
         * A 32-bit mask is used to keep track of the root parameter indices that
         * are descriptor tables.
         */
-    static const uint32_t MaxDescriptorTables = 32;
+    static const uint32_t kMaxDescriptorTables = 32;
 
     /**
         * A structure that represents a descriptor table entry in the root signature.
@@ -189,14 +189,14 @@ private:
     std::unique_ptr<D3D12_CPU_DESCRIPTOR_HANDLE[]> m_DescriptorHandleCache;
 
     // Descriptor handle cache per descriptor table.
-    DescriptorTableCache m_DescriptorTableCache[MaxDescriptorTables];
+    DescriptorTableCache m_DescriptorTableCache[kMaxDescriptorTables];
 
     // Inline CBV
-    D3D12_GPU_VIRTUAL_ADDRESS m_InlineCBV[MaxDescriptorTables];
+    D3D12_GPU_VIRTUAL_ADDRESS m_InlineCBV[kMaxDescriptorTables];
     // Inline SRV
-    D3D12_GPU_VIRTUAL_ADDRESS m_InlineSRV[MaxDescriptorTables];
+    D3D12_GPU_VIRTUAL_ADDRESS m_InlineSRV[kMaxDescriptorTables];
     // Inline UAV
-    D3D12_GPU_VIRTUAL_ADDRESS m_InlineUAV[MaxDescriptorTables];
+    D3D12_GPU_VIRTUAL_ADDRESS m_InlineUAV[kMaxDescriptorTables];
 
     // Each bit in the bit mask represents the index in the root signature
     // that contains a descriptor table.

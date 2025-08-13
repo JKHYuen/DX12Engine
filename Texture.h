@@ -43,8 +43,9 @@ class Device;
 
 class Texture : public Resource {
 public:
-    // Creates COMMITTED resource, automatically added to resource state tracker 
-    // and optionally creates descriptor (resource view) based on resourceDesc/resource description
+    // Creates COMMITTED resource, 
+    // automatically added to resource state tracker ONLY if first constructor is used (i.e. one that accepts const D3D12_RESOURCE_DESC& resourceDesc)
+    // b_CreateDefaultView: optionally creates descriptor (resource view) based on resourceDesc/resource description
     Texture(Device& device, const D3D12_RESOURCE_DESC& resourceDesc, const D3D12_CLEAR_VALUE* clearValue = nullptr, bool b_CreateDefaultView = true);
     Texture(Device& device, Microsoft::WRL::ComPtr<ID3D12Resource> resource, const D3D12_CLEAR_VALUE* clearValue = nullptr, bool b_CreateDefaultView = true);
 

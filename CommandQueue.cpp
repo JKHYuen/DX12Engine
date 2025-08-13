@@ -17,7 +17,7 @@ CommandQueue::CommandQueue(Device& device, D3D12_COMMAND_LIST_TYPE type)
     : m_Device(device)
     , m_FenceValue(0)
     , m_CommandListType(type)
-    , m_bProcessInFlightCommandLists(true) {
+    , mb_ProcessInFlightCommandLists(true) {
 
     auto d3d12Device = m_Device.GetD3D12Device();
 
@@ -46,7 +46,7 @@ CommandQueue::CommandQueue(Device& device, D3D12_COMMAND_LIST_TYPE type)
 }
 
 CommandQueue::~CommandQueue() {
-    m_bProcessInFlightCommandLists = false;
+    mb_ProcessInFlightCommandLists = false;
     m_ProcessInFlightCommandListsThread.join();
 }
 
@@ -174,7 +174,7 @@ Microsoft::WRL::ComPtr<ID3D12CommandQueue> CommandQueue::GetD3D12CommandQueue() 
 void CommandQueue::ProccessInFlightCommandLists() {
     std::unique_lock<std::mutex> lock(m_ProcessInFlightCommandListsThreadMutex, std::defer_lock);
 
-    while(m_bProcessInFlightCommandLists) {
+    while(mb_ProcessInFlightCommandLists) {
         CommandListEntry commandListEntry;
 
         lock.lock();

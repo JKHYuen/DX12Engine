@@ -86,7 +86,7 @@ private:
 
     // A thread to process in-flight command lists.
     std::thread             m_ProcessInFlightCommandListsThread;
-    std::atomic_bool        m_bProcessInFlightCommandLists;
+    std::atomic_bool        mb_ProcessInFlightCommandLists;
     std::mutex              m_ProcessInFlightCommandListsThreadMutex;
     std::condition_variable m_ProcessInFlightCommandListsThreadCV;
 };

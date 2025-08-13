@@ -23,9 +23,16 @@
 #include "Window.h"
 #include "Mesh.h"
 #include "Skybox.h"
+#include "EditorGui.h"
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
+
+// static parameters
+namespace {
+	constexpr DXGI_FORMAT sk_HDRFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	constexpr DXGI_FORMAT sk_DepthBufferFormat = DXGI_FORMAT_D32_FLOAT;
+}
 
 /// TODO: TEMP, need scene/gameobject system to replace
 namespace {
@@ -63,9 +70,9 @@ namespace {
 
 	/// TODO: TEMP
 	// Textures are shared pointers for texture cache use in CommandList class
-	std::shared_ptr<Texture> s_Default_Albedo;
-	std::shared_ptr<Texture> s_Default_Normal;
-	std::shared_ptr<Texture> s_Default_Material; // r: AO, g: metallic, b: roughness, a: height 
+	std::shared_ptr<Texture> s_Test_Albedo;
+	std::shared_ptr<Texture> s_Test_Normal;
+	std::shared_ptr<Texture> s_Test_Material; // r: AO, g: metallic, b: roughness, a: height 
 
 	std::unique_ptr<Skybox> s_Skybox;	
 
@@ -296,31 +303,33 @@ DemoGame::~DemoGame() {
 }
 
 uint32_t DemoGame::Run() {
-	LoadContent();
+	// m_Device created here
+	Initialize();
 	m_Window->Show();
 
-	// Start Window msg loop
+	// Windows msg loop
+	// OnUpdate() called on WM_PAINT message
 	uint32_t retCode = Application::Get().Run();
 
 	UnloadContent();
+
 	return retCode;
 }
 
-bool DemoGame::LoadContent() {
+bool DemoGame::Initialize() {
 	m_Device = std::make_shared<Device>();
 
-	//DXGI_FORMAT sdrBackBufferFormat = DXGI_FORMAT_R10G10B10A2_UNORM;
-	DXGI_FORMAT hdrFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
-	DXGI_FORMAT depthBufferFormat = DXGI_FORMAT_D32_FLOAT;
-	// TODO: Tweakable MSAA
-	DXGI_SAMPLE_DESC sampleDesc = m_Device->GetMultisampleQualityLevels(hdrFormat);
+	m_EditorGui = std::make_unique<EditorGui>(*m_Device, sk_HDRFormat, SwapChain::sk_BufferCount, m_Window->GetWindowHandle());
 
-	m_SwapChain = std::make_shared<SwapChain>(*m_Device, m_Window->GetWindowHandle(), m_Vsync, hdrFormat);
+	// TODO: Tweakable MSAA
+	DXGI_SAMPLE_DESC sampleDesc = m_Device->GetMultisampleQualityLevels(sk_HDRFormat);
+
+	m_SwapChain = std::make_shared<SwapChain>(*m_Device, m_Window->GetWindowHandle(), m_Vsync, sk_HDRFormat);
 
 	/// Create render targets
 	// color buffer
 	auto colorDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-		hdrFormat, m_Width, m_Height, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
+		sk_HDRFormat, m_Width, m_Height, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
 	);
 
 	D3D12_CLEAR_VALUE colorClearValue;
@@ -335,7 +344,7 @@ bool DemoGame::LoadContent() {
 
 	// depth buffer
 	auto depthDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-		depthBufferFormat, m_Width, m_Height, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
+		sk_DepthBufferFormat, m_Width, m_Height, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
 	);
 
 	D3D12_CLEAR_VALUE depthClearValue;
@@ -352,7 +361,7 @@ bool DemoGame::LoadContent() {
 	// Non multisampled floating point intermediate render texture,
 	// multisampled HDR rendertarget will be resolved into this texture before postprocessing/tonemapping
 	auto floatDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-		hdrFormat, m_Width, m_Height, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
+		sk_HDRFormat, m_Width, m_Height, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
 	);
 
 	auto floatRenderTexture = std::make_shared<Texture>(*m_Device, floatDesc, &colorClearValue);
@@ -365,17 +374,17 @@ bool DemoGame::LoadContent() {
 	{
 		auto copyCommandList = copyCommandQueue.GetCommandList();
 
-		// TODO / TEMP: more dynamic scene object loading
+		/// TODO / TEMP: more dynamic scene object loading
 		//s_TestCube = CreateCube(*copyCommandList);
 		s_TestSphere = CreateSphere(*copyCommandList, 1.0f, 64);
 
-		std::wstring matName = L"marble";
-		s_Default_Albedo = copyCommandList->LoadTextureFromFile(L"assets/" + matName + L"_albedo.tga", true);
-		s_Default_Normal = copyCommandList->LoadTextureFromFile(L"assets/" + matName + L"_normal.tga", false);
-		s_Default_Material = copyCommandList->LoadTextureFromFile(L"assets/" + matName + L"_mat.tga", false);
+		std::wstring matName = L"stonewall";
+		s_Test_Albedo = copyCommandList->LoadTextureFromFile(L"assets/materials/" + matName + L"_albedo.tga", true);
+		s_Test_Normal = copyCommandList->LoadTextureFromFile(L"assets/materials/" + matName + L"_normal.tga", false);
+		s_Test_Material = copyCommandList->LoadTextureFromFile(L"assets/materials/" + matName + L"_mat.tga", false);
 
 		// Load Skybox Assets
-		std::wstring skyboxName = L"abandoned_tiled_room_4k";
+		std::wstring skyboxName = L"industrial_sunset_puresky_4k";
 		s_Skybox = std::make_unique<Skybox>(*m_Device, *copyCommandList, skyboxName, CreateCube(*copyCommandList, 1.0f), m_HDR_MSAA_RenderTarget);
 
 		copyCommandQueue.ExecuteCommandList(copyCommandList);
@@ -428,7 +437,7 @@ bool DemoGame::LoadContent() {
 		hdrPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		hdrPipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vs.Get());
 		hdrPipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(ps.Get());
-		hdrPipelineStateStream.DSVFormat = depthBufferFormat;
+		hdrPipelineStateStream.DSVFormat = sk_DepthBufferFormat;
 		hdrPipelineStateStream.RTVFormats = m_HDR_MSAA_RenderTarget.GetRenderTargetFormats();
 		hdrPipelineStateStream.SampleDesc = sampleDesc;
 
@@ -493,7 +502,7 @@ bool DemoGame::LoadContent() {
 	// Precompute
 	auto& directCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 	auto directCommandList = directCommandQueue.GetCommandList();
-	/// TEMP
+	/// TEMP: combine these calls
 	s_Skybox->Precompute(*directCommandList, m_Camera, Skybox::kConvolutionRender);
 	s_Skybox->Precompute(*directCommandList, m_Camera, Skybox::kIntegrateBRDFRender);
 	s_Skybox->Precompute(*directCommandList, m_Camera, Skybox::kPrefilterRender);
@@ -553,6 +562,9 @@ void DemoGame::OnUpdate(UpdateEventArgs& e) {
 
 	//m_SwapChain->WaitForSwapChain();
 
+	/// ImGui Rendering
+	m_EditorGui->NewFrame();
+
 	/// Update the camera.
 	float speedMultipler = m_ShiftPressed ? 32.0f : 16.0f;
 
@@ -611,9 +623,9 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 		XMStoreFloat4A(&materialCB.DirLight, XMVector3Normalize(dirLight));
 
 		directCommandList->SetGraphicsDynamicConstantBuffer(PBRRootParameters::MaterialCB, materialCB);
-		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 0, s_Default_Albedo, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 1, s_Default_Normal, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 2, s_Default_Material, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 0, s_Test_Albedo, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 1, s_Test_Normal, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 2, s_Test_Material, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 3, s_Skybox->GetIrradianceSRV(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 4, s_Skybox->GetPrefilterSRV(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 5, s_Skybox->Get_BRDF_LUT_SRV(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -640,6 +652,9 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 	directCommandList->SetShaderResourceView(0, 0, msaaResolveDstTexture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	// non indexed full screen render (see ScreenRender vertex shader)
 	directCommandList->Draw(3);
+
+	// Draw ImGui
+	m_EditorGui->Render(*directCommandList);
 
 	// Present
 	directCommandQueue.ExecuteCommandList(directCommandList);

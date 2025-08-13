@@ -114,7 +114,7 @@ float4 main(PixelInputType i) : SV_Target {
 
     // TODO: put this in CB
     //float3 radiance = directionalLightColor.rgb;
-    float3 radiance = {12, 10, 8};
+    float3 radiance = {12, 9, 6};
     //float3 radiance = {0, 0, 0};
 
     // Cook-Torrance BRDF

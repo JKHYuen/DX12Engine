@@ -70,7 +70,7 @@ namespace {
 Skybox::Skybox(Device& device, CommandList& copyCommandList, std::wstring hdrTextureName, std::unique_ptr<Mesh> cubeMesh, RenderTarget& hdrRenderTarget) {
 
 	s_SkyboxCubeMesh = std::move(cubeMesh);
-	m_HDRPanoTexture = copyCommandList.LoadTextureFromFile(L"assets/" + hdrTextureName + L".hdr", true);
+	m_HDRPanoTexture = copyCommandList.LoadTextureFromFile(L"assets/cubemaps/" + hdrTextureName + L".hdr", true);
 
 	// Convert hdr panoramic texture to cubemap
 	auto cubemapDesc = m_HDRPanoTexture->GetD3D12ResourceDesc();

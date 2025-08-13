@@ -101,8 +101,9 @@ private:
 
     HINSTANCE m_hInstance;
 
-    // Set to true while the application is running.
-    std::atomic_bool m_bIsRunning;
-    // Should the application quit?
+    // Set to true while the application is running. 
+    // Used to make sure singleton is initialized before running message loop
+    std::atomic_bool mb_IsInitialized;
+    // Quit() sets this to true, ending message loop
     std::atomic_bool m_RequestQuit;
 };

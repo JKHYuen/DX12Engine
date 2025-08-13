@@ -16,7 +16,10 @@ DynamicDescriptorHeap::DynamicDescriptorHeap(Device& device, D3D12_DESCRIPTOR_HE
     , m_StaleUAVBitMask(0)
     , m_CurrentCPUDescriptorHandle(D3D12_DEFAULT)
     , m_CurrentGPUDescriptorHandle(D3D12_DEFAULT)
-    , m_NumFreeHandles(0) {
+    , m_NumFreeHandles(0)
+    , m_InlineCBV {}
+    , m_InlineSRV {}
+    , m_InlineUAV {} {
 
     m_DescriptorHandleIncrementSize = m_Device.GetDescriptorHandleIncrementSize(heapType);
 
@@ -65,7 +68,7 @@ void DynamicDescriptorHeap::StageDescriptors( uint32_t rootParameterIndex, uint3
 
     // Cannot stage more than the maximum number of descriptors per heap.
     // Cannot stage more than MaxDescriptorTables root parameters.
-    if(numDescriptors > m_NumDescriptorsPerHeap || rootParameterIndex >= MaxDescriptorTables) {
+    if(numDescriptors > m_NumDescriptorsPerHeap || rootParameterIndex >= kMaxDescriptorTables) {
         throw std::bad_alloc();
     }
 
@@ -88,21 +91,21 @@ void DynamicDescriptorHeap::StageDescriptors( uint32_t rootParameterIndex, uint3
 }
 
 void DynamicDescriptorHeap::StageInlineCBV(uint32_t rootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation) {
-    assert(rootParameterIndex < MaxDescriptorTables);
+    assert(rootParameterIndex < kMaxDescriptorTables);
 
     m_InlineCBV[rootParameterIndex] = bufferLocation;
     m_StaleCBVBitMask |= (1 << rootParameterIndex);
 }
 
 void DynamicDescriptorHeap::StageInlineSRV(uint32_t rootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation) {
-    assert(rootParameterIndex < MaxDescriptorTables);
+    assert(rootParameterIndex < kMaxDescriptorTables);
 
     m_InlineSRV[rootParameterIndex] = bufferLocation;
     m_StaleSRVBitMask |= (1 << rootParameterIndex);
 }
 
 void DynamicDescriptorHeap::StageInlineUAV(uint32_t rootParamterIndex, D3D12_GPU_VIRTUAL_ADDRESS bufferLocation) {
-    assert(rootParamterIndex < MaxDescriptorTables);
+    assert(rootParamterIndex < kMaxDescriptorTables);
 
     m_InlineUAV[rootParamterIndex] = bufferLocation;
     m_StaleUAVBitMask |= (1 << rootParamterIndex);
@@ -150,8 +153,7 @@ Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DynamicDescriptorHeap::CreateDescri
 }
 
 // Private helper function for CommitStagedDescriptorsFor[Draw/Dispatch] function
-void DynamicDescriptorHeap::CommitDescriptorTables(
-    CommandList& commandList,
+void DynamicDescriptorHeap::CommitDescriptorTables( CommandList& commandList, 
     std::function<void(ID3D12GraphicsCommandList*, UINT, D3D12_GPU_DESCRIPTOR_HANDLE)> setFunc) {
 
     // Compute the number of descriptors that need to be copied
@@ -280,7 +282,7 @@ void DynamicDescriptorHeap::Reset() {
     m_StaleUAVBitMask = 0;
 
     // Reset the descriptor cache
-    for(int i = 0; i < MaxDescriptorTables; ++i) {
+    for(int i = 0; i < kMaxDescriptorTables; ++i) {
         m_DescriptorTableCache[i].Reset();
         m_InlineCBV[i] = 0ull;
         m_InlineSRV[i] = 0ull;

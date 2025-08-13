@@ -14,6 +14,7 @@ class Device;
 class SwapChain;
 class Texture;
 class Window;
+class EditorGui;
 
 class DemoGame : public IGame {
 public:
@@ -21,7 +22,7 @@ public:
     virtual ~DemoGame();
 
     uint32_t Run()       override;
-    bool LoadContent()   override;
+    bool Initialize()    override;
     void UnloadContent() override;
 
     void OnUpdate(UpdateEventArgs& e)          override;
@@ -34,10 +35,12 @@ public:
 private:
     void OnRender(UpdateEventArgs& e);
 
-    // NOTE: Can be unique_ptr?
-    std::shared_ptr<Window>    m_Window;
+    // NOTE: Can be unique_ptrs?
     std::shared_ptr<Device>    m_Device;
+    std::shared_ptr<Window>    m_Window;
     std::shared_ptr<SwapChain> m_SwapChain;
+
+    std::unique_ptr<EditorGui> m_EditorGui;
 
     RenderTarget m_HDR_MSAA_RenderTarget;
     RenderTarget m_Float_RenderTarget;

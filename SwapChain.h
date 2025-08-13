@@ -49,7 +49,7 @@ public:
     SwapChain(Device& device, HWND hWnd, bool isVsync, DXGI_FORMAT renderTargetFormat);
 
     // Number of swapchain back buffers.
-    static const UINT BufferCount = 3;
+    static const UINT sk_BufferCount = 3;
 
     /*
      * Check to see if the swap chain is in full-screen exclusive mode.
@@ -134,6 +134,7 @@ public:
     }
 
 private:
+    // Called on SwapChain creation and on Resize()
     void UpdateRenderTargetViews();
 
     // The device that was used to create the SwapChain.
@@ -145,12 +146,12 @@ private:
     // the next frame is allowed to be rendered.
     CommandQueue& m_DirectCommandQueue;
     Microsoft::WRL::ComPtr<IDXGISwapChain4> m_dxgiSwapChain;
-    std::shared_ptr<Texture>                m_BackBufferTextures[BufferCount];
+    std::shared_ptr<Texture>                m_BackBufferTextures[sk_BufferCount];
     mutable RenderTarget                    m_RenderTarget;
 
     // The current backbuffer index of the swap chain.
     UINT   m_CurrentBackBufferIndex;
-    UINT64 m_FenceValues[BufferCount];  // The fence values to wait for before leaving the Present method.
+    UINT64 m_FenceValues[sk_BufferCount];  // The fence values to wait for before leaving the Present method.
 
     // A handle to a waitable object. Used to wait for the swapchain before presenting.
     HANDLE m_hFrameLatencyWaitableObject;

@@ -10,6 +10,9 @@
 #include "DescriptorAllocator.h"
 #include "Window.h"
 
+#include "imgui.h"
+#include "imgui_impl_win32.h"
+
 #define APP_ICON 101
 
 static Application* gs_pSingelton = nullptr;
@@ -81,7 +84,7 @@ static void CreateConsole() {
 
 Application::Application(HINSTANCE hInst)
     : m_hInstance(hInst)
-    , m_bIsRunning(false)
+    , mb_IsInitialized(false)
     , m_RequestQuit(false) {
     // Windows 10 Creators update adds Per Monitor V2 DPI awareness context.
     // Using this awareness context allows the client area of the window
@@ -187,8 +190,8 @@ std::shared_ptr<Window> Application::GetWindowByName(const std::wstring& windowN
 
 
 int32_t Application::Run() {
-    assert(!m_bIsRunning);
-    m_bIsRunning = true;
+    assert(!mb_IsInitialized);
+    mb_IsInitialized = true;
 
     /// Initialize Raw Input (Mouse only for now)
     RAWINPUTDEVICE Rid[1];
@@ -205,20 +208,24 @@ int32_t Application::Run() {
         OutputDebugString(TEXT("No device found for raw input.\n"));
     ///
 
+    // NOTE: WM_PAINT will be called every frame
     MSG msg = {};
-    while(::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) && msg.message != WM_QUIT) {
+    while(::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
         ::TranslateMessage(&msg);
         ::DispatchMessage(&msg);
 
-        // Check to see of the application wants to quit.
+        // Quit() sets m_RequestQuit to true
         if(m_RequestQuit) {
             ::PostQuitMessage(0);
             m_RequestQuit = false;
         }
+
+        if(msg.message == WM_QUIT) {
+            break; 
+        }
     }
 
-    m_bIsRunning = false;
-
+    mb_IsInitialized = false;
     return static_cast<int32_t>(msg.wParam);
 }
 
@@ -260,7 +267,12 @@ void Application::Quit() {
 //    return mouseButton;
 //}
 
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
+    if(ImGui_ImplWin32_WndProcHandler(hwnd, message, wParam, lParam))
+        return true;
+
     std::shared_ptr<Window> pWindow;
     {
         auto iter = gs_WindowMap.find(hwnd);
@@ -466,6 +478,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
             if(iter != gs_WindowMap.end()) {
                 gs_WindowMap.erase(iter);
             }
+            ::PostQuitMessage(0);
+            return 0;
         }
         break;
 

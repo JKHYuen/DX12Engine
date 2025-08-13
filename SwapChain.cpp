@@ -57,7 +57,7 @@ SwapChain::SwapChain(Device& device, HWND hWnd, bool isVsync, DXGI_FORMAT render
     swapChainDesc.Stereo = FALSE;
     swapChainDesc.SampleDesc = {1, 0};
     swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    swapChainDesc.BufferCount = BufferCount;
+    swapChainDesc.BufferCount = sk_BufferCount;
     swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
     swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
@@ -82,7 +82,7 @@ SwapChain::SwapChain(Device& device, HWND hWnd, bool isVsync, DXGI_FORMAT render
     m_CurrentBackBufferIndex = m_dxgiSwapChain->GetCurrentBackBufferIndex();
 
     // Set maximum frame latency to reduce input latency.
-    m_dxgiSwapChain->SetMaximumFrameLatency(BufferCount - 1);
+    m_dxgiSwapChain->SetMaximumFrameLatency(sk_BufferCount - 1);
     // Get the SwapChain's waitable object.
     m_hFrameLatencyWaitableObject = m_dxgiSwapChain->GetFrameLatencyWaitableObject();
 
@@ -111,14 +111,14 @@ void SwapChain::Resize(uint32_t width, uint32_t height) {
 
         // Release all references to back buffer textures.
         m_RenderTarget.Reset();
-        for(UINT i = 0; i < BufferCount; ++i) {
+        for(UINT i = 0; i < sk_BufferCount; ++i) {
             //ResourceStateTracker::RemoveGlobalResourceState( m_BackBufferTextures[i]->GetD3D12Resource().Get(), true );
             m_BackBufferTextures[i].reset();
         }
 
         DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
         ThrowIfFailed(m_dxgiSwapChain->GetDesc(&swapChainDesc));
-        ThrowIfFailed(m_dxgiSwapChain->ResizeBuffers(BufferCount, m_Width, m_Height, swapChainDesc.BufferDesc.Format,
+        ThrowIfFailed(m_dxgiSwapChain->ResizeBuffers(sk_BufferCount, m_Width, m_Height, swapChainDesc.BufferDesc.Format,
             swapChainDesc.Flags));
 
         m_CurrentBackBufferIndex = m_dxgiSwapChain->GetCurrentBackBufferIndex();
@@ -165,16 +165,13 @@ UINT SwapChain::Present(const std::shared_ptr<Texture>& texture) {
 }
 
 void SwapChain::UpdateRenderTargetViews() {
-    for(UINT i = 0; i < BufferCount; ++i) {
+    for(UINT i = 0; i < sk_BufferCount; ++i) {
         ComPtr<ID3D12Resource> backBuffer;
         ThrowIfFailed(m_dxgiSwapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffer)));
 
         ResourceStateTracker::AddGlobalResourceState(backBuffer.Get(), D3D12_RESOURCE_STATE_COMMON);
 
         m_BackBufferTextures[i] = std::make_shared<Texture>(m_Device, backBuffer);
-
-        // Set the names for the backbuffer textures.
-        // Useful for debugging.
         m_BackBufferTextures[i]->SetName(L"Backbuffer[" + std::to_wstring(i) + L"]");
     }
 }

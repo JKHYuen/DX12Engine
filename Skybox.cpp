@@ -29,16 +29,8 @@ namespace {
 
 	RenderTarget s_BRDF_LUT_RT {};
 
-	D3D12_RECT s_DefaultScissorRect = CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX);
-
 	std::unique_ptr<Mesh> s_SkyboxCubeMesh;
 	bool s_IsInitialized = false;
-
-	/// TEMP
-	bool s_IsBRDFPrecomputed = false;
-	bool s_IsIrradiancePrecomputed = false;
-	bool s_IsPrefilterPrecomputed = false;
-	/// 
 
 	constexpr int sk_DefaultSkyboxIndex         = 0;
 	constexpr int sk_CubeFaceResolution         = 2048;
@@ -66,7 +58,7 @@ namespace {
 
 }
 
-// TODO: seperate initialization that requires COPY CommandList for less error prone construction
+// TODO: cubeMesh is passed in because CreateCube() function is currently in DemoGame.cpp, it should probably in CommandList.cpp
 Skybox::Skybox(Device& device, CommandList& copyCommandList, std::wstring hdrTextureName, std::unique_ptr<Mesh> cubeMesh, RenderTarget& hdrRenderTarget) {
 
 	s_SkyboxCubeMesh = std::move(cubeMesh);
@@ -279,30 +271,14 @@ void Skybox::Render(CommandList& directCommandList, const Camera& camera) {
 	s_SkyboxCubeMesh->Draw(directCommandList);
 }
 
-// TODO: remove switch maybe
-void Skybox::Precompute(CommandList& directCommandList, const Camera& camera, ComputeMode mode) {
+void Skybox::ComputeIBLMaps(CommandList& directCommandList, const Camera& camera) {
+
 	XMMATRIX cubemapProjectionMat = XMMatrixPerspectiveFovLH(XMConvertToRadians(90.0f), 1.0f, 0.1f, 10.0f);
-	switch(mode) {
-	case ComputeMode::kIntegrateBRDFRender:
-		/// TEMP
-		if(s_IsBRDFPrecomputed) return;
-		s_IsBRDFPrecomputed = true;
-		directCommandList.SetRenderTarget(s_BRDF_LUT_RT);
-		directCommandList.SetViewport(s_BRDF_LUT_RT.GetViewport());
-		directCommandList.SetScissorRect(s_DefaultScissorRect);
-		directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		directCommandList.SetPipelineState(s_BRDF_LUT_PSO);
-		directCommandList.SetGraphicsRootSignature(s_BRDF_LUT_RootSignature);
-		directCommandList.Draw(3);
-		break;
+	directCommandList.SetScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX));
 
-	case ComputeMode::kConvolutionRender:
-		/// TEMP
-		if(s_IsIrradiancePrecomputed) return;
-		s_IsIrradiancePrecomputed = true;
-
+	/// Irradiance Convolution Map
+	{
 		directCommandList.SetViewport(m_IrradianceConvolutionCubemap_RT.GetViewport());
-		directCommandList.SetScissorRect(s_DefaultScissorRect);
 		directCommandList.SetPipelineState(s_ConvolutionPSO);
 		directCommandList.SetGraphicsRootSignature(s_SkyboxRootSignature);
 		directCommandList.SetShaderResourceView(1, 0, m_SkyCubemapSRV, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -311,7 +287,7 @@ void Skybox::Precompute(CommandList& directCommandList, const Camera& camera, Co
 			auto viewMatrix = s_CubeMapCaptureViewMats[i];
 			auto viewProjMatrix = viewMatrix * cubemapProjectionMat;
 
-			D3D12_RENDER_TARGET_VIEW_DESC rtvDesc {};
+			D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
 			rtvDesc.Format = m_IrradianceConvolutionCubemap_RT.GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0];
 			rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
 			rtvDesc.Texture2DArray.MipSlice = 0;
@@ -323,14 +299,22 @@ void Skybox::Precompute(CommandList& directCommandList, const Camera& camera, Co
 			directCommandList.SetGraphics32BitConstants(0, viewProjMatrix);
 			s_SkyboxCubeMesh->Draw(directCommandList);
 		}
-		break;
+	}
 
-	case ComputeMode::kPrefilterRender:
-		/// TEMP
-		if(s_IsPrefilterPrecomputed) return;
-		s_IsPrefilterPrecomputed = true;
+	/// BRDF Integration Map
+	static bool s_IsBRDFIntegrated = false;
+	if(!s_IsBRDFIntegrated) {
+		s_IsBRDFIntegrated = true;
+		directCommandList.SetRenderTarget(s_BRDF_LUT_RT);
+		directCommandList.SetViewport(s_BRDF_LUT_RT.GetViewport());
+		directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		directCommandList.SetPipelineState(s_BRDF_LUT_PSO);
+		directCommandList.SetGraphicsRootSignature(s_BRDF_LUT_RootSignature);
+		directCommandList.Draw(3);
+	}
 
-		directCommandList.SetScissorRect(s_DefaultScissorRect);
+	/// Prefiltered Convolution Map
+	{
 		directCommandList.SetPipelineState(s_PrefilterPSO);
 		directCommandList.SetGraphicsRootSignature(s_PrefilterRootSignature);
 		directCommandList.SetShaderResourceView(1, 0, m_SkyCubemapSRV, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -342,7 +326,7 @@ void Skybox::Precompute(CommandList& directCommandList, const Camera& camera, Co
 				auto viewMatrix = s_CubeMapCaptureViewMats[i];
 				auto viewProjMatrix = viewMatrix * cubemapProjectionMat;
 
-				D3D12_RENDER_TARGET_VIEW_DESC rtvDesc {};
+				D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
 				rtvDesc.Format = m_PrefilterCubemap_RT.GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0];
 				rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
 				rtvDesc.Texture2DArray.MipSlice = mipSlice;
@@ -351,7 +335,7 @@ void Skybox::Precompute(CommandList& directCommandList, const Camera& camera, Co
 				m_PrefilterCubemap_RT.GetTexture(AttachmentPoint::Color0)->CreateRenderTargetView(rtvDesc);
 				directCommandList.SetRenderTarget(m_PrefilterCubemap_RT);
 
-				directCommandList.SetViewport(m_PrefilterCubemap_RT.GetViewport({(float)currMipScale, (float)currMipScale}));
+				directCommandList.SetViewport(m_PrefilterCubemap_RT.GetViewport({ (float)currMipScale, (float)currMipScale }));
 
 				directCommandList.SetGraphics32BitConstants(0, viewProjMatrix);
 				float roughness = (float)mipSlice / (float)(sk_CubemapMipLevels - 1);
@@ -360,10 +344,6 @@ void Skybox::Precompute(CommandList& directCommandList, const Camera& camera, Co
 				s_SkyboxCubeMesh->Draw(directCommandList);
 			}
 		}
-		break;
-
-	default:
-		assert(false && "Invalid ComputeMode.");
 	}
 }
 

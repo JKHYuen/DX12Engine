@@ -34,6 +34,7 @@ public:
 
 private:
     void OnRender(UpdateEventArgs& e);
+    void ShowImGuiWindow(CommandList& directCommandList);
 
     // NOTE: Can be unique_ptrs?
     std::shared_ptr<Device>    m_Device;
@@ -72,10 +73,12 @@ private:
     float m_Pitch;
     float m_Yaw;
 
-    bool m_ShiftPressed;
+    bool m_IsShiftPressed;
 
     int  m_Width;
     int  m_Height;
-    bool m_Vsync;
+    bool m_IsVsync;
+
+    bool m_ShowImGuiWindow;
 };
 

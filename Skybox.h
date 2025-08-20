@@ -18,15 +18,8 @@ public:
 	// Draw skybox
 	void Render(CommandList& directCommandList, const Camera& camera);
 
-	enum ComputeMode {
-		kConvolutionRender   = 0,
-		kPrefilterRender     = 1,
-		kIntegrateBRDFRender = 2,
-		NumComputeType
-	};
-
 	// Compute/draw precomputed textures for IBL
-	void Precompute(CommandList& directCommandList, const Camera& camera, ComputeMode mode);
+	void ComputeIBLMaps(CommandList& directCommandList, const Camera& camera);
 
 	std::shared_ptr<ShaderResourceView> GetIrradianceSRV() const { return m_IrradianceCubemapSRV; };
 	std::shared_ptr<ShaderResourceView> GetPrefilterSRV() const { return m_PrefilterCubemapSRV; };

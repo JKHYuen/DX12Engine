@@ -4,6 +4,7 @@
 // Note: Seperate free list allocator and static SRV descriptor heap used instead of DynamicDescriptorHeap in main engine for simplicity
 
 #include "imgui.h"
+
 #include <d3dx12.h>
 #include <wrl/client.h>
 
@@ -15,14 +16,22 @@ public:
 	EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWND hwnd);
 	~EditorGui();
 
+	// Disable copy and move
+	EditorGui(const EditorGui&)       = delete;
+	EditorGui(EditorGui&&)            = delete;
+	EditorGui& operator=(EditorGui&)  = delete;
+	EditorGui& operator=(EditorGui&&) = delete;
+
 	// Called at start of frame
 	void NewFrame();
 
-	// Called after rendering 3D elements
+	// Called after rendering 3D elements before present, 
+	// it is assumed that screen render target is set to pipeline already
 	void Render(CommandList& directCommandList);
 
 private:
-	// Simple free list based allocator from https://github.com/ocornut/imgui/blob/master/examples/example_win32_directx12/main.cpp
+	// Simple free list based allocator
+	// Source: https://github.com/ocornut/imgui/blob/master/examples/example_win32_directx12/main.cpp
 	struct DescriptorHeapAllocator {
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> Heap = nullptr;
 		D3D12_DESCRIPTOR_HEAP_TYPE  HeapType = D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES;
@@ -60,8 +69,9 @@ private:
 		}
 	};
 
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_D3DSrvDescHeap = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_D3DSrvDescHeap;
 
+	// static so it can be used in ImGui callback lambdas
 	static inline DescriptorHeapAllocator s_D3DSrvDescHeapAlloc;
 };
 

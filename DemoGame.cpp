@@ -25,6 +25,8 @@
 #include "Skybox.h"
 #include "EditorGui.h"
 
+#include "imgui.h"
+
 using namespace DirectX;
 using namespace Microsoft::WRL;
 
@@ -276,10 +278,11 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t width, uint32_t height, bo
 	, m_Down(0)
 	, m_Pitch(0)
 	, m_Yaw(0)
-	, m_ShiftPressed(false)
+	, m_IsShiftPressed(false)
+	, m_ShowImGuiWindow(false)
 	, m_Width(width)
 	, m_Height(height)
-	, m_Vsync(vSync)
+	, m_IsVsync(vSync)
 	, m_Camera()
 	, m_HDR_MSAA_RenderTarget() 
 	, m_Float_RenderTarget() {
@@ -324,7 +327,7 @@ bool DemoGame::Initialize() {
 	// TODO: Tweakable MSAA
 	DXGI_SAMPLE_DESC sampleDesc = m_Device->GetMultisampleQualityLevels(sk_HDRFormat);
 
-	m_SwapChain = std::make_shared<SwapChain>(*m_Device, m_Window->GetWindowHandle(), m_Vsync, sk_HDRFormat);
+	m_SwapChain = std::make_shared<SwapChain>(*m_Device, m_Window->GetWindowHandle(), m_IsVsync, sk_HDRFormat);
 
 	/// Create render targets
 	// color buffer
@@ -499,13 +502,10 @@ bool DemoGame::Initialize() {
 	// Wait for loading operations to complete before rendering the first frame
 	copyCommandQueue.FlushWait();  
 
-	// Precompute
+	// Precompute skybox IBL textures
 	auto& directCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 	auto directCommandList = directCommandQueue.GetCommandList();
-	/// TEMP: combine these calls
-	s_Skybox->Precompute(*directCommandList, m_Camera, Skybox::kConvolutionRender);
-	s_Skybox->Precompute(*directCommandList, m_Camera, Skybox::kIntegrateBRDFRender);
-	s_Skybox->Precompute(*directCommandList, m_Camera, Skybox::kPrefilterRender);
+	s_Skybox->ComputeIBLMaps(*directCommandList, m_Camera);
 	directCommandQueue.ExecuteCommandList(directCommandList);
 
 	return true;
@@ -562,22 +562,46 @@ void DemoGame::OnUpdate(UpdateEventArgs& e) {
 
 	//m_SwapChain->WaitForSwapChain();
 
-	/// ImGui Rendering
-	m_EditorGui->NewFrame();
-
 	/// Update the camera.
-	float speedMultipler = m_ShiftPressed ? 32.0f : 16.0f;
+	if(!m_ShowImGuiWindow) {
+		float speedMultipler = m_IsShiftPressed ? 32.0f : 16.0f;
 
-	XMVECTOR cameraTranslate = XMVectorSet(m_Right - m_Left, 0.0f, m_Forward - m_Backward, 1.0f) * speedMultipler * (float)e.DeltaTime;
-	XMVECTOR cameraPan = XMVectorSet(0.0f, m_Up - m_Down, 0.0f, 1.0f) * speedMultipler * (float)e.DeltaTime;
-	m_Camera.Translate(cameraTranslate, Space::Local);
-	m_Camera.Translate(cameraPan, Space::Local);
+		XMVECTOR cameraTranslate = XMVectorSet(m_Right - m_Left, 0.0f, m_Forward - m_Backward, 1.0f) * speedMultipler * (float)e.DeltaTime;
+		XMVECTOR cameraPan = XMVectorSet(0.0f, m_Up - m_Down, 0.0f, 1.0f) * speedMultipler * (float)e.DeltaTime;
+		m_Camera.Translate(cameraTranslate, Space::Local);
+		m_Camera.Translate(cameraPan, Space::Local);
 
-	XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(-m_Pitch), XMConvertToRadians(-m_Yaw), 0.0f);
-	m_Camera.set_Rotation(cameraRotation);
+		XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(-m_Pitch), XMConvertToRadians(-m_Yaw), 0.0f);
+		m_Camera.set_Rotation(cameraRotation);
+	}
 	///
 
 	OnRender(e);
+}
+
+void DemoGame::ShowImGuiWindow(CommandList& directCommandList) {
+	m_EditorGui->NewFrame();
+
+	if(m_ShowImGuiWindow) {
+		ImGui::Begin("DX12 Engine");
+
+		/// Exit button
+		ImGui::PushStyleColor(ImGuiCol_Button,        (ImVec4)ImColor::HSV(0.0f, 0.6f, 0.6f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor::HSV(0.0f, 0.7f, 0.7f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive,  (ImVec4)ImColor::HSV(0.0f, 0.8f, 0.8f));
+		if(ImGui::Button("EXIT APP")) {
+			Application::Get().Quit();
+		}
+		ImGui::PopStyleColor(3);
+
+		static float fov = m_Camera.get_FoV();
+		ImGui::SliderFloat("FOV", &fov, 12.0f, 90.0f);
+		m_Camera.set_FoV(fov);
+
+		ImGui::End();
+	}
+
+	m_EditorGui->Render(directCommandList);
 }
 
 void DemoGame::OnRender(UpdateEventArgs& e) {
@@ -630,7 +654,7 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 4, s_Skybox->GetPrefilterSRV(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 5, s_Skybox->Get_BRDF_LUT_SRV(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-		//s_TestCube->Draw(*commandList);
+		//s_TestCube->Draw(*directCommandList);
 		s_TestSphere->Draw(*directCommandList);
 	}
 
@@ -654,7 +678,7 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 	directCommandList->Draw(3);
 
 	// Draw ImGui
-	m_EditorGui->Render(*directCommandList);
+	ShowImGuiWindow(*directCommandList);
 
 	// Present
 	directCommandQueue.ExecuteCommandList(directCommandList);
@@ -662,11 +686,12 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 }
 
 void DemoGame::OnMouseMoved(MouseMotionEventArgs& e) {
-	constexpr float mouseSpeed = 0.1f;
-
-	m_Pitch -= e.DeltaY * mouseSpeed;
-	m_Pitch = std::clamp(m_Pitch, -90.0f, 90.0f);
-	m_Yaw -= e.DeltaX * mouseSpeed;
+	if(!m_ShowImGuiWindow) {
+		constexpr float mouseSpeed = 0.1f;
+		m_Pitch -= e.DeltaY * mouseSpeed;
+		m_Pitch = std::clamp(m_Pitch, -90.0f, 90.0f);
+		m_Yaw -= e.DeltaX * mouseSpeed;
+	}
 }
 
 void DemoGame::OnKeyPressed(KeyEventArgs& e) {
@@ -703,7 +728,7 @@ void DemoGame::OnKeyPressed(KeyEventArgs& e) {
 		m_SwapChain->ToggleVSync();
 		break;
 	case KeyCode::ShiftKey:
-		m_ShiftPressed = true;
+		m_IsShiftPressed = true;
 		break;
 	}
 }
@@ -731,8 +756,11 @@ void DemoGame::OnKeyReleased(KeyEventArgs& e) {
 	case KeyCode::E:
 		m_Up = 0.0f;
 		break;
+	case KeyCode::Tab:
+		m_ShowImGuiWindow = !m_ShowImGuiWindow;
+		break;
 	case KeyCode::ShiftKey:
-		m_ShiftPressed = false;
+		m_IsShiftPressed = false;
 		break;
 	}
 }

@@ -9,7 +9,7 @@
 #endif
 #include <algorithm> // For std::min and std::max.
 
-#include <d3dx12.h>
+//#include <d3dx12.h>
 #include <DirectXMath.h>
 #include <d3dcompiler.h>
 
@@ -26,6 +26,7 @@
 #include "EditorGui.h"
 
 #include "imgui.h"
+#include "implot.h"
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -81,6 +82,7 @@ namespace {
 	std::unique_ptr<Mesh> s_TestCube;
 	std::unique_ptr<Mesh> s_TestSphere;
 
+	/// TODO: move functions below to CommandList.cpp?
 	// Algorithm from https://rastertek.com/dx11win10tut20.html
 	// Refactored and simplified by KHY
 	void CalculateModelVectors(std::vector<VertexInputType>& vertices, const std::vector<uint16_t>& indices) {
@@ -268,8 +270,8 @@ namespace {
 }
 
 DemoGame::DemoGame(const std::wstring& name, uint32_t width, uint32_t height, bool vSync)
-	: m_ScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX))
-	, m_Viewport(CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)))
+	: m_DefaultScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX))
+	, m_ScreenViewport(CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)))
 	, m_Forward(0)
 	, m_Backward(0)
 	, m_Left(0)
@@ -521,7 +523,7 @@ void DemoGame::OnResize(ResizeEventArgs& e) {
 	float aspectRatio = m_Width / (float)m_Height;
 	m_Camera.set_Projection(45.0f, aspectRatio, 0.1f, 100.0f);
 
-	m_Viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_Width), static_cast<float>(m_Height));
+	m_ScreenViewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_Width), static_cast<float>(m_Height));
 	m_HDR_MSAA_RenderTarget.Resize(m_Width, m_Height);
 	m_Float_RenderTarget.Resize(m_Width, m_Height);
 }
@@ -541,24 +543,17 @@ void DemoGame::UnloadContent() {
 	m_SwapChain.reset();
 	m_Device.reset();
 }
-
 void DemoGame::OnUpdate(UpdateEventArgs& e) {
-	static uint64_t frameCount = 0;
-	static double fpsTimer = 0.0;
 
-	fpsTimer += e.DeltaTime;
-	frameCount++;
+	// Moving average frame rate (over 128 [sk_frameTimeSamples] frames)
+	static uint64_t frameIndex = 0;
+	static double frameTimeSum = 0;
+	frameTimeSum -= m_frameTimeHistory[frameIndex];
+	frameTimeSum += e.DeltaTime;
+	m_frameTimeHistory[frameIndex] = e.DeltaTime;
 
-	if(fpsTimer > 1.0) {
-		double fps = frameCount / fpsTimer;
-
-		wchar_t buffer[256];
-		swprintf_s(buffer, L" FPS: %f\n", fps);
-		m_Window->SetWindowTitle(buffer);
-
-		frameCount = 0;
-		fpsTimer = 0.0;
-	}
+	frameIndex = (frameIndex + 1) % DemoGame::sk_frameTimeSamples;
+	m_CurrentAvgFPS = DemoGame::sk_frameTimeSamples / frameTimeSum;
 
 	//m_SwapChain->WaitForSwapChain();
 
@@ -582,21 +577,106 @@ void DemoGame::OnUpdate(UpdateEventArgs& e) {
 void DemoGame::ShowImGuiWindow(CommandList& directCommandList) {
 	m_EditorGui->NewFrame();
 
+	struct ScrollingBuffer {
+		int MaxSize;
+		int Offset;
+		ImVector<ImVec2> Data;
+		ScrollingBuffer(int max_size = 2000) {
+			MaxSize = max_size;
+			Offset = 0;
+			Data.reserve(MaxSize);
+		}
+		void AddPoint(float x, float y) {
+			if(Data.size() < MaxSize)
+				Data.push_back(ImVec2(x, y));
+			else {
+				Data[Offset] = ImVec2(x, y);
+				Offset = (Offset + 1) % MaxSize;
+			}
+		}
+	};
+
 	if(m_ShowImGuiWindow) {
 		ImGui::Begin("DX12 Engine");
 
-		/// Exit button
-		ImGui::PushStyleColor(ImGuiCol_Button,        (ImVec4)ImColor::HSV(0.0f, 0.6f, 0.6f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor::HSV(0.0f, 0.7f, 0.7f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive,  (ImVec4)ImColor::HSV(0.0f, 0.8f, 0.8f));
-		if(ImGui::Button("EXIT APP")) {
-			Application::Get().Quit();
-		}
-		ImGui::PopStyleColor(3);
+		// Performance Graph 
+		// Graph data update rate based on s_GraphUpdateRate, default: 60hz
+		// This is to throttle the rate ScrollingBuffer records data so we don't need a huge buffer for high frame rates over a big time scale
+		{
+			static ScrollingBuffer s_FPSGraphBuffer;
 
-		static float fov = m_Camera.get_FoV();
-		ImGui::SliderFloat("FOV", &fov, 12.0f, 90.0f);
-		m_Camera.set_FoV(fov);
+			if(s_FPSGraphBuffer.Data.size() == 0) {
+				s_FPSGraphBuffer.AddPoint(ImGui::GetTime(), m_CurrentAvgFPS);
+			}
+
+			// Save x axis extents for update ticks faster than s_GraphUpdateRate
+			static ImVec2 xCurrentAxisExtents = {0.0f, 1.0f};
+			static ImVec2 yCurrentAxisExtents = {0.0f, 1.0f};
+
+			static const float s_GraphUpdateRate = 1.0f / 60.0f;
+			static float timer = s_GraphUpdateRate;
+			timer -= ImGui::GetIO().DeltaTime;
+			if(timer <= 0) {
+				s_FPSGraphBuffer.AddPoint(ImGui::GetTime(), m_CurrentAvgFPS);
+				timer = s_GraphUpdateRate;
+			}
+
+			ImGui::Text("FPS: %d", m_CurrentAvgFPS);
+
+			static int timeScale = 5;
+			if(ImPlot::BeginPlot("##FPS Graph", ImVec2(-1, 100), ImPlotFlags_NoFrame | ImPlotFlags_NoLegend | ImPlotFlags_NoInputs)) {
+				ImPlot::SetupAxes(
+					nullptr, nullptr,
+					// x axis flags
+					ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_Lock, 
+					// y axis flags
+					ImPlotAxisFlags_LockMin
+				);				
+
+				// Update axis extents
+				if(timer == s_GraphUpdateRate) {
+					ImPlot::SetupAxisLimits(ImAxis_X1, ImGui::GetTime() - timeScale, ImGui::GetTime(), ImGuiCond_Always);
+					xCurrentAxisExtents.x = ImGui::GetTime() - timeScale;
+					xCurrentAxisExtents.y = ImGui::GetTime();
+
+					if(m_CurrentAvgFPS >= yCurrentAxisExtents.y || m_CurrentAvgFPS * 1.5f <= yCurrentAxisExtents.y) {
+						float newYMax = m_CurrentAvgFPS * 1.3f;
+						ImPlot::SetupAxisLimits(ImAxis_Y1, 0, newYMax, ImGuiCond_Always);
+						yCurrentAxisExtents.y = newYMax;
+					}
+				}
+				else {
+					ImPlot::SetupAxisLimits(ImAxis_X1, xCurrentAxisExtents.x, xCurrentAxisExtents.y, ImGuiCond_Always);
+					ImPlot::SetupAxisLimits(ImAxis_Y1, 0, yCurrentAxisExtents.y, ImGuiCond_Always);
+				}
+
+				ImPlot::PlotLine("FPS", &s_FPSGraphBuffer.Data[0].x, &s_FPSGraphBuffer.Data[0].y,
+					s_FPSGraphBuffer.Data.size(), 0, s_FPSGraphBuffer.Offset, 2 * sizeof(float)
+				);
+
+				ImPlot::EndPlot();
+
+				ImGui::SliderInt("Time Scale", &timeScale, 1, 30, "%d s");
+			}
+		}
+
+		// Exit button
+		{
+			ImGui::PushStyleColor(ImGuiCol_Button,        (ImVec4)ImColor::HSV(0.0f, 0.6f, 0.6f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor::HSV(0.0f, 0.7f, 0.7f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive,  (ImVec4)ImColor::HSV(0.0f, 0.8f, 0.8f));
+			if(ImGui::Button("EXIT APP")) {
+				Application::Get().Quit();
+			}
+			ImGui::PopStyleColor(3);
+		}
+		
+		// FOV Slider
+		{
+			static float fov = m_Camera.get_FoV();
+			ImGui::SliderFloat("FOV", &fov, 12.0f, 90.0f);
+			m_Camera.set_FoV(fov);
+		}
 
 		ImGui::End();
 	}
@@ -614,8 +694,8 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 	directCommandList->ClearDepthStencilTexture(m_HDR_MSAA_RenderTarget.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
 
 	// Setup command list for HDR rendering to intermediate render target
-	directCommandList->SetViewport(m_Viewport);
-	directCommandList->SetScissorRect(m_ScissorRect);
+	directCommandList->SetViewport(m_ScreenViewport);
+	directCommandList->SetScissorRect(m_DefaultScissorRect);
 	directCommandList->SetRenderTarget(m_HDR_MSAA_RenderTarget);
 
 	s_Skybox->Render(*directCommandList, m_Camera);
@@ -665,7 +745,7 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 	// Resolve the MSAA render target to the swapchain's backbuffer
 	directCommandList->ResolveSubresource(msaaResolveDstTexture, msaaHDRRenderTexture);
 
-	// TODO: Postprocessing (Bloom)
+	// TODO: Bloom
 	
 	// Tonemapping
 	directCommandList->SetRenderTarget(swapChainRT);
@@ -766,10 +846,12 @@ void DemoGame::OnKeyReleased(KeyEventArgs& e) {
 }
 
 void DemoGame::OnMouseWheel(MouseWheelEventArgs& e) {
-	auto fov = m_Camera.get_FoV();
+	if(!m_ShowImGuiWindow) {
+		auto fov = m_Camera.get_FoV();
 
-	fov -= e.WheelDelta;
-	fov = std::clamp(fov, 12.0f, 90.0f);
+		fov -= e.WheelDelta;
+		fov = std::clamp(fov, 12.0f, 90.0f);
 
-	m_Camera.set_FoV(fov);
+		m_Camera.set_FoV(fov);
+	}
 }

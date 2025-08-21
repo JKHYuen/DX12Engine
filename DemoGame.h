@@ -51,8 +51,8 @@ private:
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_TonemapPSO;
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_PostprocessPSO;
 
-    D3D12_VIEWPORT m_Viewport;
-    D3D12_RECT     m_ScissorRect;
+    D3D12_VIEWPORT m_ScreenViewport;
+    D3D12_RECT     m_DefaultScissorRect;
 
     // TODO: use MiniEngine Math headers
     Camera m_Camera;
@@ -80,5 +80,9 @@ private:
     bool m_IsVsync;
 
     bool m_ShowImGuiWindow;
+
+    int m_CurrentAvgFPS;
+    static const int sk_frameTimeSamples = 128;
+    double m_frameTimeHistory[sk_frameTimeSamples] = {};
 };
 

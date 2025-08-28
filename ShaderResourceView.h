@@ -47,10 +47,10 @@ public:
     }
 
     D3D12_CPU_DESCRIPTOR_HANDLE GetDescriptorHandle() const {
-        return m_Descriptor.GetDescriptorHandle();
+        return m_DescriptorAllocation.GetDescriptorHandle();
     }
 
 private:
     std::shared_ptr<Resource> m_Resource;
-    DescriptorAllocation      m_Descriptor;
+    DescriptorAllocation      m_DescriptorAllocation;
 };

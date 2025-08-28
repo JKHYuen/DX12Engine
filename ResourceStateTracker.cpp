@@ -107,7 +107,7 @@ uint32_t ResourceStateTracker::FlushPendingResourceBarriers(const std::shared_pt
 	// Resolve the pending resource barriers by checking the global state of the
 	// (sub)resources. Add barriers if the pending state and the global state do
 	//  not match.
-	ResourceBarriers resourceBarriers;
+	std::vector<D3D12_RESOURCE_BARRIER> resourceBarriers;
 	// Reserve enough space (worst-case, all pending barriers).
 	resourceBarriers.reserve(m_PendingResourceBarriers.size());
 

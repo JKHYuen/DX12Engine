@@ -10,6 +10,7 @@
 
 class Device;
 class CommandList;
+class Resource;
 
 class EditorGui {
 public:
@@ -29,6 +30,16 @@ public:
 	// it is assumed that screen render target is set to pipeline already
 	void Render(CommandList& directCommandList);
 
+	struct GuiDescriptorAllocation {
+		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle;
+		D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
+	};
+
+	// Allocate to s_D3DSrvDescHeapAlloc
+	static GuiDescriptorAllocation AllocateImageSRV(Device& device, const std::shared_ptr<Resource>& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* srvDesc);
+
+	static void FreeImageSRV(GuiDescriptorAllocation alloc);
+
 private:
 	// Simple free list based allocator
 	// Source: https://github.com/ocornut/imgui/blob/master/examples/example_win32_directx12/main.cpp
@@ -40,7 +51,7 @@ private:
 		UINT                        HeapHandleIncrement;
 		ImVector<int>               FreeIndices;
 
-		void Create(ID3D12Device* device, Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> heap) {
+		void Initialize(ID3D12Device* device, Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> heap) {
 			IM_ASSERT(Heap == nullptr && FreeIndices.empty());
 			Heap = heap;
 			D3D12_DESCRIPTOR_HEAP_DESC desc = heap->GetDesc();

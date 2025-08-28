@@ -271,6 +271,7 @@ public:
         SetCompute32BitConstants(rootParameterIndex, sizeof(T) / sizeof(uint32_t), &constants);
     }
 
+    /// NOTE: according to https://stackoverflow.com/a/56812889, it may be better to not use D3D12_HEAP_TYPE_UPLOAD heaps for IB and VB
     /**
      * Set the vertex buffer to the rendering pipeline.
      *
@@ -442,9 +443,9 @@ public:
     void Dispatch(uint32_t numGroupsX, uint32_t numGroupsY = 1, uint32_t numGroupsZ = 1);
 
     // Helper function for flipping winding of geometric primitives for LH vs. RH coords
-    inline void ReverseWinding(std::vector<uint16_t>& indices, std::vector<VertexInputType>& vertices);
+    inline void ReverseWinding(std::vector<uint16_t>& indices, std::vector<VertexInput>& vertices);
     // Helper function for inverting normals for "inside" vs "outside" viewing.
-    inline void InvertNormals(std::vector<VertexInputType>& vertices);
+    inline void InvertNormals(std::vector<VertexInput>& vertices);
     // Helper function to compute a point on a unit circle aligned to the x,z plane and centered at the origin.
     inline DirectX::XMVECTOR GetCircleVector(size_t i, size_t tessellation) noexcept;
     // Helper function to compute a tangent vector at a point on a unit sphere aligned to the x,z plane.
@@ -578,7 +579,7 @@ inline DirectX::XMVECTOR CommandList::GetCircleTangent(size_t i, size_t tessella
     return v;
 }
 
-inline void CommandList::ReverseWinding(std::vector<uint16_t>& indices, std::vector<VertexInputType>& vertices) {
+inline void CommandList::ReverseWinding(std::vector<uint16_t>& indices, std::vector<VertexInput>& vertices) {
     assert((indices.size() % 3) == 0);
     for(auto it = indices.begin(); it != indices.end(); it += 3) {
         std::swap(*it, *(it + 2));
@@ -589,7 +590,7 @@ inline void CommandList::ReverseWinding(std::vector<uint16_t>& indices, std::vec
     }
 }
 
-inline void CommandList::InvertNormals(std::vector<VertexInputType>& vertices) {
+inline void CommandList::InvertNormals(std::vector<VertexInput>& vertices) {
     for(auto it = vertices.begin(); it != vertices.end(); ++it) {
         it->Normal.x = -it->Normal.x;
         it->Normal.y = -it->Normal.y;

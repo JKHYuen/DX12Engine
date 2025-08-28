@@ -760,7 +760,6 @@ void CommandList::SetGraphicsDynamicStructuredBuffer(uint32_t slot, size_t numEl
 	size_t bufferSize = numElements * elementSize;
 
 	auto heapAllocation = m_UploadBuffer->Allocate(bufferSize, elementSize);
-
 	memcpy(heapAllocation.CPU, bufferData, bufferSize);
 
 	m_d3d12CommandList->SetGraphicsRootShaderResourceView(slot, heapAllocation.GPU);

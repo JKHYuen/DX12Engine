@@ -2,6 +2,7 @@
 #include "Device.h"
 #include "CommandQueue.h"
 #include "CommandList.h"
+#include "Resource.h"
 
 #include "imgui.h"
 #include "implot.h"
@@ -16,18 +17,17 @@ namespace {
 
 EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWND hwnd) {
 
-	// ImGui SRV Heap with free list allocation
+	// Create ImGui SRV Heap and initialize free list allocator
 	{
 		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 		desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		desc.NumDescriptors = sk_SRVHeapSize;
 		desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-
 		if(FAILED(device.GetD3D12Device()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_D3DSrvDescHeap)))) {
 			throw std::exception("Failed to create ImGui SRV Heap");
 		}
 
-		s_D3DSrvDescHeapAlloc.Create(device.GetD3D12Device().Get(), m_D3DSrvDescHeap);
+		s_D3DSrvDescHeapAlloc.Initialize(device.GetD3D12Device().Get(), m_D3DSrvDescHeap);
 	}
 
 	// Setup Dear ImGui context
@@ -54,16 +54,29 @@ EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWN
 	init_info.SrvDescriptorHeap = m_D3DSrvDescHeap.Get();
 	
 	init_info.SrvDescriptorAllocFn = 
-		[](ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_handle) {
-			s_D3DSrvDescHeapAlloc.Alloc(out_cpu_handle, out_gpu_handle);
+		[](ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE* out_CpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE* out_GpuHandle) {
+			s_D3DSrvDescHeapAlloc.Alloc(out_CpuHandle, out_GpuHandle);
 		};
 
 	init_info.SrvDescriptorFreeFn = 
-		[](ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle) {
-			s_D3DSrvDescHeapAlloc.Free(cpu_handle, gpu_handle);
+		[](ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle) {
+			s_D3DSrvDescHeapAlloc.Free(cpuHandle, gpuHandle);
 		};
 
 	ImGui_ImplDX12_Init(&init_info);
+}
+
+EditorGui::GuiDescriptorAllocation EditorGui::AllocateImageSRV(Device& device, const std::shared_ptr<Resource>& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* srvDesc) {
+	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle {};
+	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle {};
+	s_D3DSrvDescHeapAlloc.Alloc(&cpuHandle, &gpuHandle);
+	device.GetD3D12Device()->CreateShaderResourceView(resource->GetD3D12Resource().Get(), srvDesc, cpuHandle);
+
+	return {cpuHandle, gpuHandle};
+}
+
+void EditorGui::FreeImageSRV(EditorGui::GuiDescriptorAllocation alloc) {
+	s_D3DSrvDescHeapAlloc.Free(alloc.cpuHandle, alloc.gpuHandle);
 }
 
 EditorGui::~EditorGui() {

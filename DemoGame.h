@@ -15,6 +15,8 @@ class SwapChain;
 class Texture;
 class Window;
 class EditorGui;
+class Skybox;
+class ShaderResourceView;
 
 class DemoGame : public IGame {
 public:
@@ -42,6 +44,7 @@ private:
     std::shared_ptr<SwapChain> m_SwapChain;
 
     std::unique_ptr<EditorGui> m_EditorGui;
+    std::unique_ptr<Skybox> m_Skybox;
 
     RenderTarget m_HDR_MSAA_RenderTarget;
     RenderTarget m_Float_RenderTarget;

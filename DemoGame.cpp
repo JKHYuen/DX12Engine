@@ -9,7 +9,7 @@
 #endif
 #include <algorithm> // For std::min and std::max.
 
-//#include <d3dx12.h>
+#include <d3dx12.h>
 #include <DirectXMath.h>
 #include <d3dcompiler.h>
 
@@ -24,9 +24,11 @@
 #include "Mesh.h"
 #include "Skybox.h"
 #include "EditorGui.h"
+#include "ShaderResourceView.h"
 
 #include "imgui.h"
 #include "implot.h"
+
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -77,29 +79,29 @@ namespace {
 	std::shared_ptr<Texture> s_Test_Normal;
 	std::shared_ptr<Texture> s_Test_Material; // r: AO, g: metallic, b: roughness, a: height 
 
-	std::unique_ptr<Skybox> s_Skybox;	
+	std::unique_ptr<Mesh> s_TestFloorMesh;
+	std::unique_ptr<Mesh> s_TestMesh_0;
 
-	std::unique_ptr<Mesh> s_TestCube;
-	std::unique_ptr<Mesh> s_TestSphere;
+	EditorGui::GuiDescriptorAllocation s_GuiImageAllocation;
 
 	/// TODO: move functions below to CommandList.cpp?
 	// Algorithm from https://rastertek.com/dx11win10tut20.html
 	// Refactored and simplified by KHY
-	void CalculateModelVectors(std::vector<VertexInputType>& vertices, const std::vector<uint16_t>& indices) {
+	void CalculateModelVectors(std::vector<VertexInput>& vertices, const std::vector<uint16_t>& indices) {
 		XMVECTOR tangent {}, bitangent {};
 		float vector1[3] {}, vector2[3] {};
 		float tuVector[2] {}, tvVector[2] {};
 
-		int triangleCount = indices.size() / 3;
+		size_t triangleCount = indices.size() / 3;
 
 		// Index of index buffer
 		size_t i = 0;
 
 		// Go through all triangles and calculate the the tangent and bitangent vectors
 		for(int f = 0; f < triangleCount; f++) {
-			VertexInputType vertex1 = vertices[indices[i++]];
-			VertexInputType vertex2 = vertices[indices[i++]];
-			VertexInputType vertex3 = vertices[indices[i++]];
+			VertexInput vertex1 = vertices[indices[i++]];
+			VertexInput vertex2 = vertices[indices[i++]];
+			VertexInput vertex3 = vertices[indices[i++]];
 
 			// Calculate tangent and bitangent
 			{
@@ -164,10 +166,10 @@ namespace {
 			5, 0, 3, 6   // -Z
 		};
 
-		std::vector<VertexInputType> vertices;
+		std::vector<VertexInput> vertices;
 		std::vector<uint16_t>  indices;
 
-		for(size_t f = 0; f < 6; ++f)  // For each face of the cube.
+		for(int f = 0; f < 6; ++f)  // For each face of the cube.
 		{
 			// Four vertices per face.
 			vertices.emplace_back(p[i[f * 4 + 0]], n[f], uv[0]);
@@ -203,7 +205,7 @@ namespace {
 		if(tessellation < 3)
 			throw std::out_of_range("tessellation parameter out of range");
 
-		std::vector<VertexInputType> vertices;
+		std::vector<VertexInput> vertices;
 		std::vector<uint16_t>  indices;
 
 		size_t verticalSegments = tessellation;
@@ -239,12 +241,12 @@ namespace {
 		}
 
 		// Fill the index buffer with triangles joining each pair of latitude rings.
-		size_t stride = horizontalSegments + 1;
+		uint16_t stride = (uint16_t)horizontalSegments + 1;
 
-		for(size_t i = 0; i < verticalSegments; i++) {
-			for(size_t j = 0; j < horizontalSegments; j++) {
-				size_t nextI = i + 1;
-				size_t nextJ = (j + 1) % stride;
+		for(uint16_t i = 0; i < verticalSegments; i++) {
+			for(uint16_t j = 0; j < horizontalSegments; j++) {
+				uint16_t nextI = i + 1;
+				uint16_t nextJ = (j + 1) % stride;
 
 				indices.push_back(i * stride + nextJ);
 				indices.push_back(nextI * stride + j);
@@ -267,11 +269,34 @@ namespace {
 
 		return sphereMeshPtr;
 	}
+
+	std::unique_ptr<Mesh> CreateQuad(CommandList& commandList, float width, float height) {
+		// Define a plane that is aligned with the X-Z plane and the normal is facing up in the Y-axis.
+		std::vector<VertexInput> vertices = {
+			VertexInput(XMFLOAT3(-0.5f * width, 0.0f, 0.5f * height),  XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f)), // 0
+			VertexInput(XMFLOAT3(0.5f * width, 0.0f, 0.5f * height),   XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f)), // 1
+			VertexInput(XMFLOAT3(0.5f * width, 0.0f, -0.5f * height),  XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT3(1.0f, 1.0f, 0.0f)), // 2
+			VertexInput(XMFLOAT3(-0.5f * width, 0.0f, -0.5f * height), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f))  // 3
+		};
+
+		std::vector<uint16_t> indices = {1, 3, 0, 2, 3, 1};
+
+		CalculateModelVectors(vertices, indices);
+
+		auto vertexBuffer = commandList.CopyVertexBuffer(vertices);
+		auto indexBuffer = commandList.CopyIndexBuffer(indices);
+
+		auto planeMeshPtr = std::make_unique<Mesh>();
+		planeMeshPtr ->SetVertexBuffer(0, vertexBuffer);
+		planeMeshPtr ->SetIndexBuffer(indexBuffer);
+
+		return planeMeshPtr;
+	}
 }
 
 DemoGame::DemoGame(const std::wstring& name, uint32_t width, uint32_t height, bool vSync)
 	: m_DefaultScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX))
-	, m_ScreenViewport(CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)))
+	, m_ScreenViewport(CD3DX12_VIEWPORT(0.0f, 0.0f, (float)width, (float)height))
 	, m_Forward(0)
 	, m_Backward(0)
 	, m_Left(0)
@@ -370,7 +395,7 @@ bool DemoGame::Initialize() {
 	);
 
 	auto floatRenderTexture = std::make_shared<Texture>(*m_Device, floatDesc, &colorClearValue);
-	floatRenderTexture->SetName(L"Intermediate Floating Point Render Target");
+	floatRenderTexture->SetName(L"Screen Floating Point Render Target");
 	m_Float_RenderTarget.AttachTexture(AttachmentPoint::Color0, floatRenderTexture);
 	///
 
@@ -380,8 +405,8 @@ bool DemoGame::Initialize() {
 		auto copyCommandList = copyCommandQueue.GetCommandList();
 
 		/// TODO / TEMP: more dynamic scene object loading
-		//s_TestCube = CreateCube(*copyCommandList);
-		s_TestSphere = CreateSphere(*copyCommandList, 1.0f, 64);
+		s_TestFloorMesh = CreateQuad(*copyCommandList, 1.0f, 1.0f);
+		s_TestMesh_0 = CreateSphere(*copyCommandList, 1.0f, 64);
 
 		std::wstring matName = L"stonewall";
 		s_Test_Albedo = copyCommandList->LoadTextureFromFile(L"assets/materials/" + matName + L"_albedo.tga", true);
@@ -390,7 +415,7 @@ bool DemoGame::Initialize() {
 
 		// Load Skybox Assets
 		std::wstring skyboxName = L"industrial_sunset_puresky_4k";
-		s_Skybox = std::make_unique<Skybox>(*m_Device, *copyCommandList, skyboxName, CreateCube(*copyCommandList, 1.0f), m_HDR_MSAA_RenderTarget);
+		m_Skybox = std::make_unique<Skybox>(*m_Device, *copyCommandList, skyboxName, CreateCube(*copyCommandList, 1.0f), m_HDR_MSAA_RenderTarget);
 
 		copyCommandQueue.ExecuteCommandList(copyCommandList);
 	}
@@ -438,7 +463,7 @@ bool DemoGame::Initialize() {
 		} hdrPipelineStateStream;
 
 		hdrPipelineStateStream.pRootSignature = m_PBRRootSignature->GetD3D12RootSignature().Get();
-		hdrPipelineStateStream.InputLayout = VertexInputType::GetInputLayout();
+		hdrPipelineStateStream.InputLayout = VertexInput::GetInputLayout();
 		hdrPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		hdrPipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vs.Get());
 		hdrPipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(ps.Get());
@@ -507,12 +532,11 @@ bool DemoGame::Initialize() {
 	// Precompute skybox IBL textures
 	auto& directCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 	auto directCommandList = directCommandQueue.GetCommandList();
-	s_Skybox->ComputeIBLMaps(*directCommandList, m_Camera);
+	m_Skybox->ComputeIBLMaps(*directCommandList, m_Camera);
 	directCommandQueue.ExecuteCommandList(directCommandList);
 
 	return true;
 }
-
 
 void DemoGame::OnResize(ResizeEventArgs& e) {
 	m_Width = std::max(1, e.Width);
@@ -543,8 +567,8 @@ void DemoGame::UnloadContent() {
 	m_SwapChain.reset();
 	m_Device.reset();
 }
-void DemoGame::OnUpdate(UpdateEventArgs& e) {
 
+void DemoGame::OnUpdate(UpdateEventArgs& e) {
 	// Moving average frame rate (over 128 [sk_frameTimeSamples] frames)
 	static uint64_t frameIndex = 0;
 	static double frameTimeSum = 0;
@@ -553,7 +577,7 @@ void DemoGame::OnUpdate(UpdateEventArgs& e) {
 	m_frameTimeHistory[frameIndex] = e.DeltaTime;
 
 	frameIndex = (frameIndex + 1) % DemoGame::sk_frameTimeSamples;
-	m_CurrentAvgFPS = DemoGame::sk_frameTimeSamples / frameTimeSum;
+	m_CurrentAvgFPS = (int)(DemoGame::sk_frameTimeSamples / frameTimeSum);
 
 	//m_SwapChain->WaitForSwapChain();
 
@@ -599,6 +623,18 @@ void DemoGame::ShowImGuiWindow(CommandList& directCommandList) {
 	if(m_ShowImGuiWindow) {
 		ImGui::Begin("DX12 Engine");
 
+		// Exit button
+		{
+			ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(0.0f, 0.6f, 0.6f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor::HSV(0.0f, 0.7f, 0.7f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor::HSV(0.0f, 0.8f, 0.8f));
+			if(ImGui::Button("EXIT APP")) {
+				Application::Get().Quit();
+			}
+			ImGui::PopStyleColor(3);
+		}
+
+		/// TODO: move this to it's own window?
 		// Performance Graph 
 		// Graph data update rate based on s_GraphUpdateRate, default: 60hz
 		// This is to throttle the rate ScrollingBuffer records data so we don't need a huge buffer for high frame rates over a big time scale
@@ -606,18 +642,18 @@ void DemoGame::ShowImGuiWindow(CommandList& directCommandList) {
 			static ScrollingBuffer s_FPSGraphBuffer;
 
 			if(s_FPSGraphBuffer.Data.size() == 0) {
-				s_FPSGraphBuffer.AddPoint(ImGui::GetTime(), m_CurrentAvgFPS);
+				s_FPSGraphBuffer.AddPoint((float)ImGui::GetTime(), (float)m_CurrentAvgFPS);
 			}
 
-			// Save x axis extents for update ticks faster than s_GraphUpdateRate
-			static ImVec2 xCurrentAxisExtents = {0.0f, 1.0f};
-			static ImVec2 yCurrentAxisExtents = {0.0f, 1.0f};
+			// Save axis extents for update ticks faster than s_GraphUpdateRate
+			static std::pair xCurrentAxisExtents = {0.0, 1.0};
+			static std::pair yCurrentAxisExtents = {0.0, 1.0};
 
 			static const float s_GraphUpdateRate = 1.0f / 60.0f;
 			static float timer = s_GraphUpdateRate;
 			timer -= ImGui::GetIO().DeltaTime;
 			if(timer <= 0) {
-				s_FPSGraphBuffer.AddPoint(ImGui::GetTime(), m_CurrentAvgFPS);
+				s_FPSGraphBuffer.AddPoint((float)ImGui::GetTime(), (float)m_CurrentAvgFPS);
 				timer = s_GraphUpdateRate;
 			}
 
@@ -636,18 +672,18 @@ void DemoGame::ShowImGuiWindow(CommandList& directCommandList) {
 				// Update axis extents
 				if(timer == s_GraphUpdateRate) {
 					ImPlot::SetupAxisLimits(ImAxis_X1, ImGui::GetTime() - timeScale, ImGui::GetTime(), ImGuiCond_Always);
-					xCurrentAxisExtents.x = ImGui::GetTime() - timeScale;
-					xCurrentAxisExtents.y = ImGui::GetTime();
+					xCurrentAxisExtents.first = ImGui::GetTime() - timeScale;
+					xCurrentAxisExtents.second = ImGui::GetTime();
 
-					if(m_CurrentAvgFPS >= yCurrentAxisExtents.y || m_CurrentAvgFPS * 1.5f <= yCurrentAxisExtents.y) {
-						float newYMax = m_CurrentAvgFPS * 1.3f;
+					if(m_CurrentAvgFPS >= yCurrentAxisExtents.second || m_CurrentAvgFPS * 2.0f <= yCurrentAxisExtents.second) {
+						float newYMax = std::max(144.0f, m_CurrentAvgFPS * 1.5f);
 						ImPlot::SetupAxisLimits(ImAxis_Y1, 0, newYMax, ImGuiCond_Always);
-						yCurrentAxisExtents.y = newYMax;
+						yCurrentAxisExtents.second = newYMax;
 					}
 				}
 				else {
-					ImPlot::SetupAxisLimits(ImAxis_X1, xCurrentAxisExtents.x, xCurrentAxisExtents.y, ImGuiCond_Always);
-					ImPlot::SetupAxisLimits(ImAxis_Y1, 0, yCurrentAxisExtents.y, ImGuiCond_Always);
+					ImPlot::SetupAxisLimits(ImAxis_X1, xCurrentAxisExtents.first, xCurrentAxisExtents.second, ImGuiCond_Always);
+					ImPlot::SetupAxisLimits(ImAxis_Y1, 0, yCurrentAxisExtents.second, ImGuiCond_Always);
 				}
 
 				ImPlot::PlotLine("FPS", &s_FPSGraphBuffer.Data[0].x, &s_FPSGraphBuffer.Data[0].y,
@@ -656,19 +692,8 @@ void DemoGame::ShowImGuiWindow(CommandList& directCommandList) {
 
 				ImPlot::EndPlot();
 
-				ImGui::SliderInt("Time Scale", &timeScale, 1, 30, "%d s");
+				ImGui::SliderInt("Time Scale", &timeScale, 1, 30, "%ds");
 			}
-		}
-
-		// Exit button
-		{
-			ImGui::PushStyleColor(ImGuiCol_Button,        (ImVec4)ImColor::HSV(0.0f, 0.6f, 0.6f));
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor::HSV(0.0f, 0.7f, 0.7f));
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive,  (ImVec4)ImColor::HSV(0.0f, 0.8f, 0.8f));
-			if(ImGui::Button("EXIT APP")) {
-				Application::Get().Quit();
-			}
-			ImGui::PopStyleColor(3);
 		}
 		
 		// FOV Slider
@@ -678,8 +703,22 @@ void DemoGame::ShowImGuiWindow(CommandList& directCommandList) {
 			m_Camera.set_FoV(fov);
 		}
 
+
 		ImGui::End();
 	}
+
+	{
+		ImGui::Begin("Image Render Test");
+		static float imageScale = 1;
+		ImGui::SliderFloat("Scale", &imageScale, 1.0, 10.0, "%.1fx");
+		ImVec2 imageSize = ImVec2(1920.0f / imageScale, 1080.0f / imageScale);
+
+		ImGui::Image(
+			(ImTextureID)s_GuiImageAllocation.gpuHandle.ptr, imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f)
+		);
+		ImGui::End();
+	}
+
 
 	m_EditorGui->Render(directCommandList);
 }
@@ -693,22 +732,23 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 	directCommandList->ClearTexture(m_HDR_MSAA_RenderTarget.GetTexture(AttachmentPoint::Color0), clearColor);
 	directCommandList->ClearDepthStencilTexture(m_HDR_MSAA_RenderTarget.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
 
-	// Setup command list for HDR rendering to intermediate render target
+	// Setup command list for HDR rendering to intermediate render target (before multisample resolve)
 	directCommandList->SetViewport(m_ScreenViewport);
 	directCommandList->SetScissorRect(m_DefaultScissorRect);
 	directCommandList->SetRenderTarget(m_HDR_MSAA_RenderTarget);
 
-	s_Skybox->Render(*directCommandList, m_Camera);
+	m_Skybox->Render(*directCommandList, m_Camera);
 
 	/// TEMP: Render Test Scene
 	{
 		directCommandList->SetPipelineState(m_PBR_PSO);
 		directCommandList->SetGraphicsRootSignature(m_PBRRootSignature);
 
-		// Vertex Shader Buffers
+		/// Render Objects
+		// Floor Render
 		XMMATRIX translationMat = XMMatrixTranslation(1.0f, 1.0f, 1.0f);
 		XMMATRIX rotationMat = XMMatrixIdentity();
-		XMMATRIX scaleMat = XMMatrixScaling(5.0f, 5.0f, 5.0f);
+		XMMATRIX scaleMat = XMMatrixScaling(20.0f, 1.0f, 20.0f);
 		XMMATRIX SRTMat = scaleMat * rotationMat * translationMat;
 
 		VertexProps vertexCB;
@@ -730,37 +770,68 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 0, s_Test_Albedo, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 1, s_Test_Normal, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 2, s_Test_Material, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 3, s_Skybox->GetIrradianceSRV(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 4, s_Skybox->GetPrefilterSRV(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 5, s_Skybox->Get_BRDF_LUT_SRV(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 3, m_Skybox->GetIrradianceSRV(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 4, m_Skybox->GetPrefilterSRV(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 5, m_Skybox->Get_BRDF_LUT_SRV(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-		//s_TestCube->Draw(*directCommandList);
-		s_TestSphere->Draw(*directCommandList);
+		s_TestFloorMesh->Draw(*directCommandList);
+
+		/// TEMP: Object above floor
+		translationMat = XMMatrixTranslation(1.0f, 4.0f, 1.0f);
+		rotationMat = XMMatrixIdentity();
+		scaleMat = XMMatrixScaling(1.0f, 1.0f, 1.0f);
+		SRTMat = scaleMat * rotationMat * translationMat;
+
+		XMStoreFloat4x4A(&vertexCB.SRT, SRTMat);
+		XMStoreFloat4x4A(&vertexCB.MVP, SRTMat * m_Camera.get_ViewMatrix() * m_Camera.get_ProjectionMatrix());
+		XMStoreFloat4A(&vertexCB.CameraPosition, m_Camera.get_Translation());
+
+		directCommandList->SetGraphicsDynamicConstantBuffer(PBRRootParameters::VertexCB, vertexCB);
+		s_TestMesh_0->Draw(*directCommandList);
 	}
 
-	auto& swapChainRT = m_SwapChain->GetRenderTarget();
-	auto  msaaResolveDstTexture = m_Float_RenderTarget.GetTexture(AttachmentPoint::Color0);
-	auto  msaaHDRRenderTexture = m_HDR_MSAA_RenderTarget.GetTexture(AttachmentPoint::Color0);
+	/// Post Processing
+	{
+		auto& swapChainRT = m_SwapChain->GetRenderTarget();
+		auto  msaaResolveDstTexture = m_Float_RenderTarget.GetTexture(AttachmentPoint::Color0);
+		auto  msaaHDRRenderTexture = m_HDR_MSAA_RenderTarget.GetTexture(AttachmentPoint::Color0);
 
-	// Resolve the MSAA render target to the swapchain's backbuffer
-	directCommandList->ResolveSubresource(msaaResolveDstTexture, msaaHDRRenderTexture);
+		// Resolve the MSAA render target to the swapchain's backbuffer
+		directCommandList->ResolveSubresource(msaaResolveDstTexture, msaaHDRRenderTexture);
 
-	// TODO: Bloom
-	
-	// Tonemapping
-	directCommandList->SetRenderTarget(swapChainRT);
-	directCommandList->SetViewport(swapChainRT.GetViewport());
-	directCommandList->SetPipelineState(m_TonemapPSO);
-	directCommandList->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	directCommandList->SetGraphicsRootSignature(m_PostProcessRootSignature);
-	directCommandList->SetShaderResourceView(0, 0, msaaResolveDstTexture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	// non indexed full screen render (see ScreenRender vertex shader)
-	directCommandList->Draw(3);
+		// TODO: Bloom
 
-	// Draw ImGui
+		// Tonemapping
+		directCommandList->SetRenderTarget(swapChainRT);
+		directCommandList->SetViewport(swapChainRT.GetViewport());
+		directCommandList->SetPipelineState(m_TonemapPSO);
+		directCommandList->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		directCommandList->SetGraphicsRootSignature(m_PostProcessRootSignature);
+		directCommandList->SetShaderResourceView(0, 0, msaaResolveDstTexture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		// non indexed full screen render (see ScreenRender vertex shader)
+		directCommandList->Draw(3);
+	}
+
+	/// Draw ImGui
+
+	/// TEMP: preview texture in GUI
+	static bool init;
+	if(!init) {
+		init = true;
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
+		ZeroMemory(&srvDesc, sizeof(srvDesc));
+		srvDesc.Format = sk_HDRFormat;
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		srvDesc.Texture2D.MipLevels = 1;
+		srvDesc.Texture2D.MostDetailedMip = 0;
+		srvDesc.Texture2D.PlaneSlice = 0;
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		s_GuiImageAllocation = EditorGui::AllocateImageSRV(*m_Device, m_Float_RenderTarget.GetTexture(AttachmentPoint::Color0), &srvDesc);
+	}
+
 	ShowImGuiWindow(*directCommandList);
 
-	// Present
+	/// Present
 	directCommandQueue.ExecuteCommandList(directCommandList);
 	m_SwapChain->Present();
 }

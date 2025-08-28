@@ -170,16 +170,13 @@ public:
 
 protected:
 private:
-    // An array (vector) of resource barriers.
-    using ResourceBarriers = std::vector<D3D12_RESOURCE_BARRIER>;
-
     // Pending resource transitions are committed before a command list
     // is executed on the command queue. This guarantees that resources will
     // be in the expected state at the beginning of a command list.
-    ResourceBarriers m_PendingResourceBarriers;
+    std::vector<D3D12_RESOURCE_BARRIER> m_PendingResourceBarriers;
 
     // Resource barriers that need to be committed to the command list.
-    ResourceBarriers m_ResourceBarriers;
+    std::vector<D3D12_RESOURCE_BARRIER> m_ResourceBarriers;
 
     // Tracks the state of a particular resource and all of its subresources.
     struct ResourceState {

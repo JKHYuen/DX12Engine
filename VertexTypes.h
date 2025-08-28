@@ -33,10 +33,10 @@
 #include <DirectXMath.h>
 #include <d3d12.h>
 
-struct VertexInputType {
-    VertexInputType() = default;
+struct VertexInput {
+    VertexInput() = default;
 
-    explicit VertexInputType(
+    explicit VertexInput(
         const DirectX::XMFLOAT3& position,
         const DirectX::XMFLOAT3& normal,
         const DirectX::XMFLOAT3& texCoord,
@@ -48,7 +48,7 @@ struct VertexInputType {
         , Bitangent(bitangent)
         , TexCoord(texCoord) {}
 
-    explicit VertexInputType(
+    explicit VertexInput(
         DirectX::FXMVECTOR position,
         DirectX::FXMVECTOR normal, 
         DirectX::FXMVECTOR texCoord,

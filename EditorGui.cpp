@@ -27,7 +27,7 @@ EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWN
 			throw std::exception("Failed to create ImGui SRV Heap");
 		}
 
-		s_D3DSrvDescHeapAlloc.Initialize(device.GetD3D12Device().Get(), m_D3DSrvDescHeap);
+		s_D3DSrvDescHeapAllocator.Initialize(device.GetD3D12Device().Get(), m_D3DSrvDescHeap);
 	}
 
 	// Setup Dear ImGui context
@@ -55,12 +55,12 @@ EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWN
 	
 	init_info.SrvDescriptorAllocFn = 
 		[](ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE* out_CpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE* out_GpuHandle) {
-			s_D3DSrvDescHeapAlloc.Alloc(out_CpuHandle, out_GpuHandle);
+			s_D3DSrvDescHeapAllocator.Alloc(out_CpuHandle, out_GpuHandle);
 		};
 
 	init_info.SrvDescriptorFreeFn = 
 		[](ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle, D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle) {
-			s_D3DSrvDescHeapAlloc.Free(cpuHandle, gpuHandle);
+			s_D3DSrvDescHeapAllocator.Free(cpuHandle, gpuHandle);
 		};
 
 	ImGui_ImplDX12_Init(&init_info);
@@ -69,14 +69,14 @@ EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWN
 EditorGui::GuiDescriptorAllocation EditorGui::AllocateImageSRV(Device& device, const std::shared_ptr<Resource>& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* srvDesc) {
 	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle {};
 	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle {};
-	s_D3DSrvDescHeapAlloc.Alloc(&cpuHandle, &gpuHandle);
+	s_D3DSrvDescHeapAllocator.Alloc(&cpuHandle, &gpuHandle);
 	device.GetD3D12Device()->CreateShaderResourceView(resource->GetD3D12Resource().Get(), srvDesc, cpuHandle);
 
 	return {cpuHandle, gpuHandle};
 }
 
 void EditorGui::FreeImageSRV(EditorGui::GuiDescriptorAllocation alloc) {
-	s_D3DSrvDescHeapAlloc.Free(alloc.cpuHandle, alloc.gpuHandle);
+	s_D3DSrvDescHeapAllocator.Free(alloc.cpuHandle, alloc.gpuHandle);
 }
 
 EditorGui::~EditorGui() {

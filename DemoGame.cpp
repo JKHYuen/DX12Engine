@@ -24,7 +24,7 @@
 #include "Mesh.h"
 #include "Skybox.h"
 #include "EditorGui.h"
-#include "ShaderResourceView.h"
+#include "DirectionalLight.h"
 
 #include "imgui.h"
 #include "implot.h"
@@ -39,7 +39,7 @@ namespace {
 	constexpr DXGI_FORMAT sk_DepthBufferFormat = DXGI_FORMAT_D32_FLOAT;
 }
 
-/// TODO: TEMP, need scene/gameobject system to replace
+/// TODO: TEMP, need scene/gameobject system to replace all this
 namespace {
 	enum PBRRootParameters {
 		VertexCB,       // ConstantBuffer<Mat> VertexCB : register(b0);
@@ -66,7 +66,7 @@ namespace {
 	struct MaterialProps {
 		XMFLOAT4A   Time;
 		XMFLOAT4A   DirLight;
-		XMFLOAT4A   Pad1;
+		XMFLOAT4A   DirLightColor;
 		XMFLOAT4A   Pad2;
 		XMFLOAT4X4A Pad3;
 		XMFLOAT4X4A Pad4;
@@ -82,7 +82,9 @@ namespace {
 	std::unique_ptr<Mesh> s_TestFloorMesh;
 	std::unique_ptr<Mesh> s_TestMesh_0;
 
-	EditorGui::GuiDescriptorAllocation s_GuiImageAllocation;
+	EditorGui::GuiDescriptorAllocation s_GuiImageDescriptor;
+
+	DirectionalLight s_DirLight {XMFLOAT3(9.0f, 8.0f, 7.0f), XMFLOAT3(50.0f, 230.0f, 0.0f)};
 
 	/// TODO: move functions below to CommandList.cpp?
 	// Algorithm from https://rastertek.com/dx11win10tut20.html
@@ -326,6 +328,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t width, uint32_t height, bo
 
 	m_pAlignedCameraData->m_InitialCamPos = m_Camera.get_Translation();
 	m_pAlignedCameraData->m_InitialCamRot = m_Camera.get_Rotation();
+
 }
 
 DemoGame::~DemoGame() {
@@ -545,7 +548,7 @@ void DemoGame::OnResize(ResizeEventArgs& e) {
 	m_SwapChain->Resize(m_Width, m_Height);
 
 	float aspectRatio = m_Width / (float)m_Height;
-	m_Camera.set_Projection(45.0f, aspectRatio, 0.1f, 100.0f);
+	m_Camera.set_Projection(45.0f, aspectRatio, 0.1f, 1000.0f);
 
 	m_ScreenViewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_Width), static_cast<float>(m_Height));
 	m_HDR_MSAA_RenderTarget.Resize(m_Width, m_Height);
@@ -621,7 +624,7 @@ void DemoGame::ShowImGuiWindow(CommandList& directCommandList) {
 	};
 
 	if(m_ShowImGuiWindow) {
-		ImGui::Begin("DX12 Engine");
+		ImGui::Begin("DX12 Engine", &m_ShowImGuiWindow, ImGuiWindowFlags_NoCollapse);
 
 		// Exit button
 		{
@@ -703,19 +706,17 @@ void DemoGame::ShowImGuiWindow(CommandList& directCommandList) {
 			m_Camera.set_FoV(fov);
 		}
 
+		{
+			ImGui::Text("Image Render Test");
+			static float imageScale = 0.3f;
+			ImGui::SliderFloat("Scale", &imageScale, 0.0, 1.0, "%.2fx");
+			ImVec2 imageSize = ImVec2(1920.0f * imageScale, 1080.0f * imageScale);
 
-		ImGui::End();
-	}
+			ImGui::Image(
+				(ImTextureID)s_GuiImageDescriptor.gpuHandle.ptr, imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f)
+			);
+		}
 
-	{
-		ImGui::Begin("Image Render Test");
-		static float imageScale = 1;
-		ImGui::SliderFloat("Scale", &imageScale, 1.0, 10.0, "%.1fx");
-		ImVec2 imageSize = ImVec2(1920.0f / imageScale, 1080.0f / imageScale);
-
-		ImGui::Image(
-			(ImTextureID)s_GuiImageAllocation.gpuHandle.ptr, imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f)
-		);
 		ImGui::End();
 	}
 
@@ -763,8 +764,11 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 		MaterialProps materialCB;
 		XMVECTORF32 timeVec = {(float)e.Time, (float)e.DeltaTime, 0.0f, 0.0f};
 		XMStoreFloat4A(&materialCB.Time, timeVec);
-		XMVECTORF32 dirLight = {-0.4f, -1.0f, 0.0f, 0.0f};
-		XMStoreFloat4A(&materialCB.DirLight, XMVector3Normalize(dirLight));
+
+		XMFLOAT3 dirLightDirection = s_DirLight.GetDirection();
+		XMStoreFloat4A(&materialCB.DirLight, XMVector3Normalize(XMLoadFloat3(&dirLightDirection)));
+		XMFLOAT4 dirLightColor = s_DirLight.GetColor();
+		XMStoreFloat4A(&materialCB.DirLightColor, XMLoadFloat4(&dirLightColor));
 
 		directCommandList->SetGraphicsDynamicConstantBuffer(PBRRootParameters::MaterialCB, materialCB);
 		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 0, s_Test_Albedo, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -826,7 +830,7 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 		srvDesc.Texture2D.MostDetailedMip = 0;
 		srvDesc.Texture2D.PlaneSlice = 0;
 		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		s_GuiImageAllocation = EditorGui::AllocateImageSRV(*m_Device, m_Float_RenderTarget.GetTexture(AttachmentPoint::Color0), &srvDesc);
+		s_GuiImageDescriptor = EditorGui::AllocateImageSRV(*m_Device, m_Float_RenderTarget.GetTexture(AttachmentPoint::Color0), &srvDesc);
 	}
 
 	ShowImGuiWindow(*directCommandList);

@@ -3,7 +3,7 @@
 cbuffer MaterialCB : register(b0, space1) {
     float4 Time;
     float3 DirLight;
-    float4 Pad1;
+    float4 DirLightColor;
     float4 Pad2;
     matrix Pad3;
     matrix Pad4;
@@ -113,9 +113,8 @@ float4 main(PixelInputType i) : SV_Target {
     float3 H = normalize(viewDirection + L);
 
     // TODO: put this in CB
-    //float3 radiance = directionalLightColor.rgb;
-    float3 radiance = {12, 9, 6};
-    //float3 radiance = {0, 0, 0};
+    float3 radiance = DirLightColor.rgb;
+    //float3 radiance = {12, 9, 6};
 
     // Cook-Torrance BRDF
     float NDF = DistributionGGX(normal, H, roughness);

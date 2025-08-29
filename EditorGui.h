@@ -83,6 +83,6 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_D3DSrvDescHeap;
 
 	// static so it can be used in ImGui callback lambdas
-	static inline DescriptorHeapAllocator s_D3DSrvDescHeapAlloc;
+	static inline DescriptorHeapAllocator s_D3DSrvDescHeapAllocator;
 };
 

@@ -260,6 +260,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="DirectionalLight.cpp" />
     <ClCompile Include="DynamicDescriptorHeap.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
@@ -402,6 +403,7 @@
     <ClInclude Include="DescriptorAllocator.h" />
     <ClInclude Include="DescriptorAllocatorPage.h" />
     <ClInclude Include="Device.h" />
+    <ClInclude Include="DirectionalLight.h" />
     <ClInclude Include="DynamicDescriptorHeap.h" />
     <ClInclude Include="IGame.h" />
     <ClInclude Include="GenerateMipsPSO.h" />

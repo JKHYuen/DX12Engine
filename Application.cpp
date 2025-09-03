@@ -243,19 +243,13 @@ static void DecodeMouseData(UINT messageID, WPARAM wParam, LPARAM lParam, MouseB
 
     switch(messageID)
     {
-    case WM_LBUTTONDOWN:
-    case WM_LBUTTONUP:
-    case WM_LBUTTONDBLCLK:
+    case WM_LBUTTONDOWN: case WM_LBUTTONUP: case WM_LBUTTONDBLCLK:
         out_MouseButton = MouseButtonEventArgs::Left;
         break;
-    case WM_RBUTTONDOWN:
-    case WM_RBUTTONUP:
-    case WM_RBUTTONDBLCLK:
+    case WM_RBUTTONDOWN: case WM_RBUTTONUP: case WM_RBUTTONDBLCLK:
         out_MouseButton = MouseButtonEventArgs::Right;
         break;
-    case WM_MBUTTONDOWN:
-    case WM_MBUTTONUP:
-    case WM_MBUTTONDBLCLK:
+    case WM_MBUTTONDOWN: case WM_MBUTTONUP: case WM_MBUTTONDBLCLK:
         out_MouseButton = MouseButtonEventArgs::Middle;
         break;
     }
@@ -377,32 +371,42 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
         }
         break;
 
-        case WM_LBUTTONDOWN:
-        case WM_RBUTTONDOWN:
-        case WM_MBUTTONDOWN:
+        case WM_LBUTTONDOWN: case WM_RBUTTONDOWN: case WM_MBUTTONDOWN:
+        case WM_LBUTTONUP: case WM_RBUTTONUP: case WM_MBUTTONUP:
         {
             MouseButtonEventArgs::MouseButton mouseButton;
             bool lButton, rButton, mButton, shift, control;
             int x, y;
             DecodeMouseData(message, wParam, lParam, mouseButton, lButton, rButton, mButton, shift, control, x, y);
 
-            MouseButtonEventArgs mouseButtonEventArgs(mouseButton, MouseButtonEventArgs::Pressed, lButton, mButton, rButton, control, shift, x, y);
-            pWindow->OnMouseButtonPressed(mouseButtonEventArgs);
-        }
-        break;
-        case WM_LBUTTONUP:
-        case WM_RBUTTONUP:
-        case WM_MBUTTONUP:
-        {
-            MouseButtonEventArgs::MouseButton mouseButton;
-            bool lButton, rButton, mButton, shift, control;
-            int x, y;
-            DecodeMouseData(message, wParam, lParam, mouseButton, lButton, rButton, mButton, shift, control, x, y);
+            MouseButtonEventArgs::ButtonState buttonState = MouseButtonEventArgs::Released;
+            if(message == WM_LBUTTONDOWN || message == WM_RBUTTONDOWN || message == WM_MBUTTONDOWN)
+                buttonState = MouseButtonEventArgs::Pressed;
 
-            MouseButtonEventArgs mouseButtonEventArgs(mouseButton, MouseButtonEventArgs::Released, lButton, mButton, rButton, control, shift, x, y);
-            pWindow->OnMouseButtonReleased(mouseButtonEventArgs);
+            MouseButtonEventArgs mouseButtonEventArgs(mouseButton, buttonState, lButton, mButton, rButton, control, shift, x, y);
+
+            if(buttonState == MouseButtonEventArgs::Pressed) {
+                pWindow->OnMouseButtonPressed(mouseButtonEventArgs);
+            }
+            else {
+                pWindow->OnMouseButtonReleased(mouseButtonEventArgs);
+            }
         }
         break;
+
+        //case WM_LBUTTONUP:
+        //case WM_RBUTTONUP:
+        //case WM_MBUTTONUP:
+        //{
+        //    MouseButtonEventArgs::MouseButton mouseButton;
+        //    bool lButton, rButton, mButton, shift, control;
+        //    int x, y;
+        //    DecodeMouseData(message, wParam, lParam, mouseButton, lButton, rButton, mButton, shift, control, x, y);
+
+        //    MouseButtonEventArgs mouseButtonEventArgs(mouseButton, MouseButtonEventArgs::Released, lButton, mButton, rButton, control, shift, x, y);
+        //    pWindow->OnMouseButtonReleased(mouseButtonEventArgs);
+        //}
+        //break;
 
         case WM_MOUSEWHEEL:
         {

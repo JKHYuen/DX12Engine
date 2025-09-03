@@ -588,10 +588,12 @@ void DemoGame::OnUpdate(UpdateEventArgs& e) {
 	/// Update the camera.
 	if(!m_ShowImGuiWindow) {
 		float speedMultipler = m_IsShiftPressed ? 32.0f : 16.0f;
-
-		XMVECTOR cameraTranslate = XMVectorSet(m_Right - m_Left, 0.0f, m_Forward - m_Backward, 1.0f) * speedMultipler * (float)e.DeltaTime;
+		
+		XMVECTOR cameraTranslation = 
+			XMVector3Normalize(XMVectorSet(m_Right - m_Left, 0.0f, m_Forward - m_Backward, 1.0f))
+			* speedMultipler * (float)e.DeltaTime;
 		XMVECTOR cameraPan = XMVectorSet(0.0f, m_Up - m_Down, 0.0f, 1.0f) * speedMultipler * (float)e.DeltaTime;
-		m_Camera.Translate(cameraTranslate, Space::Local);
+		m_Camera.Translate(cameraTranslation, Space::Local);
 		m_Camera.Translate(cameraPan, Space::Local);
 
 		XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(-m_Pitch), XMConvertToRadians(-m_Yaw), 0.0f);

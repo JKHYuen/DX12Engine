@@ -30,6 +30,12 @@
   *  @brief The application class is used to create windows for our application.
   */
 
+// Additional Notes - KHY
+// 
+// Handles windows message loop.
+// Mouse buttons and keyboard buttons are handled by windows api.
+// Mouse movement is handled by raw input (experimental).
+
 #include "DescriptorAllocation.h"
 
 #include <d3d12.h>

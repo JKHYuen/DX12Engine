@@ -133,8 +133,8 @@ void Window::OnKeyReleased(KeyEventArgs& e) {
     m_Game.OnKeyReleased(e);
 }
 
-void Window::OnMouseMoved(MouseMotionEventArgs& e) {
-    m_Game.OnMouseMoved(e);
+void Window::OnMouseMove(MouseMotionEventArgs& e) {
+    m_Game.OnMouseMove(e);
 }
 
 void Window::OnMouseButtonPressed(MouseButtonEventArgs& e) {

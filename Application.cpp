@@ -237,35 +237,40 @@ void Application::Quit() {
     m_RequestQuit = true;
 }
 
-//// Convert the message ID into a MouseButton ID
-//MouseButtonEventArgs::MouseButton DecodeMouseButton(UINT messageID) {
-//    MouseButtonEventArgs::MouseButton mouseButton = MouseButtonEventArgs::None;
-//    switch(messageID) {
-//    case WM_LBUTTONDOWN:
-//    case WM_LBUTTONUP:
-//    case WM_LBUTTONDBLCLK:
-//    {
-//        mouseButton = MouseButtonEventArgs::Left;
-//    }
-//    break;
-//    case WM_RBUTTONDOWN:
-//    case WM_RBUTTONUP:
-//    case WM_RBUTTONDBLCLK:
-//    {
-//        mouseButton = MouseButtonEventArgs::Right;
-//    }
-//    break;
-//    case WM_MBUTTONDOWN:
-//    case WM_MBUTTONUP:
-//    case WM_MBUTTONDBLCLK:
-//    {
-//        mouseButton = MouseButtonEventArgs::Middle;
-//    }
-//    break;
-//    }
-//
-//    return mouseButton;
-//}
+static void DecodeMouseData(UINT messageID, WPARAM wParam, LPARAM lParam, MouseButtonEventArgs::MouseButton& out_MouseButton, 
+    bool& out_LButton, bool& out_RButton, bool& out_MButton, bool& out_Shift, bool& out_Control,
+    int& out_X, int& out_Y) {
+
+    switch(messageID)
+    {
+    case WM_LBUTTONDOWN:
+    case WM_LBUTTONUP:
+    case WM_LBUTTONDBLCLK:
+        out_MouseButton = MouseButtonEventArgs::Left;
+        break;
+    case WM_RBUTTONDOWN:
+    case WM_RBUTTONUP:
+    case WM_RBUTTONDBLCLK:
+        out_MouseButton = MouseButtonEventArgs::Right;
+        break;
+    case WM_MBUTTONDOWN:
+    case WM_MBUTTONUP:
+    case WM_MBUTTONDBLCLK:
+        out_MouseButton = MouseButtonEventArgs::Middle;
+        break;
+    }
+
+    short keyStates = (short)LOWORD(wParam);
+
+    out_LButton = (keyStates & MK_LBUTTON) != 0;
+    out_RButton = (keyStates & MK_RBUTTON) != 0;
+    out_MButton = (keyStates & MK_MBUTTON) != 0;
+    out_Shift   = (keyStates & MK_SHIFT)   != 0;
+    out_Control = (keyStates & MK_CONTROL) != 0;
+
+    out_X = ((int)(short)LOWORD(lParam));
+    out_Y = ((int)(short)HIWORD(lParam));
+}
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -365,29 +370,52 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 int deltaY = raw->data.mouse.lLastY;
 
                 MouseMotionEventArgs mouseMotionEventArgs(lButton, mButton, rButton, deltaX, deltaY);
-                pWindow->OnMouseMoved(mouseMotionEventArgs);
+                pWindow->OnMouseMove(mouseMotionEventArgs);
             }
 
             delete[] lpb;
         }
         break;
 
+        case WM_LBUTTONDOWN:
+        case WM_RBUTTONDOWN:
+        case WM_MBUTTONDOWN:
+        {
+            MouseButtonEventArgs::MouseButton mouseButton;
+            bool lButton, rButton, mButton, shift, control;
+            int x, y;
+            DecodeMouseData(message, wParam, lParam, mouseButton, lButton, rButton, mButton, shift, control, x, y);
+
+            MouseButtonEventArgs mouseButtonEventArgs(mouseButton, MouseButtonEventArgs::Pressed, lButton, mButton, rButton, control, shift, x, y);
+            pWindow->OnMouseButtonPressed(mouseButtonEventArgs);
+        }
+        break;
+        case WM_LBUTTONUP:
+        case WM_RBUTTONUP:
+        case WM_MBUTTONUP:
+        {
+            MouseButtonEventArgs::MouseButton mouseButton;
+            bool lButton, rButton, mButton, shift, control;
+            int x, y;
+            DecodeMouseData(message, wParam, lParam, mouseButton, lButton, rButton, mButton, shift, control, x, y);
+
+            MouseButtonEventArgs mouseButtonEventArgs(mouseButton, MouseButtonEventArgs::Released, lButton, mButton, rButton, control, shift, x, y);
+            pWindow->OnMouseButtonReleased(mouseButtonEventArgs);
+        }
+        break;
+
         case WM_MOUSEWHEEL:
         {
+            // mouseButton is unused
+            MouseButtonEventArgs::MouseButton mouseButton;
+            bool lButton, rButton, mButton, shift, control;
+            int x, y;
+            DecodeMouseData(message, wParam, lParam, mouseButton, lButton, rButton, mButton, shift, control, x, y);
+
             // The distance the mouse wheel is rotated.
             // A positive value indicates the wheel was rotated to the right.
             // A negative value indicates the wheel was rotated to the left.
             float zDelta = ((int)(short)HIWORD(wParam)) / (float)WHEEL_DELTA;
-            short keyStates = (short)LOWORD(wParam);
-
-            bool lButton = (keyStates & MK_LBUTTON) != 0;
-            bool rButton = (keyStates & MK_RBUTTON) != 0;
-            bool mButton = (keyStates & MK_MBUTTON) != 0;
-            bool shift   = (keyStates & MK_SHIFT)   != 0;
-            bool control = (keyStates & MK_CONTROL) != 0;
-
-            int x = ((int)(short)LOWORD(lParam));
-            int y = ((int)(short)HIWORD(lParam));
 
             // Convert the screen coordinates to client coordinates.
             POINT clientToScreenPoint;

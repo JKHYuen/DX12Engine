@@ -18,7 +18,7 @@ public:
 
     virtual void OnKeyPressed(KeyEventArgs& e) {};
     virtual void OnKeyReleased(KeyEventArgs& e) {};
-    virtual void OnMouseMoved(MouseMotionEventArgs& e) {};
+    virtual void OnMouseMove(MouseMotionEventArgs& e) {};
     virtual void OnMouseButtonPressed(MouseButtonEventArgs& e) {};
     virtual void OnMouseButtonReleased(MouseButtonEventArgs& e) {};
     virtual void OnMouseWheel(MouseWheelEventArgs& e) {};

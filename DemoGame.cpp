@@ -548,6 +548,7 @@ void DemoGame::OnResize(ResizeEventArgs& e) {
 	m_SwapChain->Resize(m_Width, m_Height);
 
 	float aspectRatio = m_Width / (float)m_Height;
+	/// TODO: Define default z values somewhere
 	m_Camera.set_Projection(45.0f, aspectRatio, 0.1f, 1000.0f);
 
 	m_ScreenViewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_Width), static_cast<float>(m_Height));
@@ -840,12 +841,24 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 	m_SwapChain->Present();
 }
 
-void DemoGame::OnMouseMoved(MouseMotionEventArgs& e) {
+void DemoGame::OnMouseMove(MouseMotionEventArgs& e) {
 	if(!m_ShowImGuiWindow) {
 		constexpr float mouseSpeed = 0.1f;
 		m_Pitch -= e.DeltaY * mouseSpeed;
 		m_Pitch = std::clamp(m_Pitch, -90.0f, 90.0f);
 		m_Yaw -= e.DeltaX * mouseSpeed;
+	}
+}
+
+void DemoGame::OnMouseButtonPressed(MouseButtonEventArgs& e) {
+	if(e.Button == MouseButtonEventArgs::Left) {
+		m_Forward = 1.0f;
+	}
+}
+
+void DemoGame::OnMouseButtonReleased(MouseButtonEventArgs& e) {
+	if(e.Button == MouseButtonEventArgs::Left) {
+		m_Forward = 0.0f;
 	}
 }
 

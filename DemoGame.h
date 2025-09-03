@@ -28,11 +28,13 @@ public:
     void UnloadContent() override;
 
     void OnUpdate(UpdateEventArgs& e)          override;
+    void OnResize(ResizeEventArgs& e)          override;
     void OnKeyPressed(KeyEventArgs& e)         override;
     void OnKeyReleased(KeyEventArgs& e)        override;
     void OnMouseWheel(MouseWheelEventArgs& e)  override;
-    void OnMouseMoved(MouseMotionEventArgs& e) override;
-    void OnResize(ResizeEventArgs& e)          override;
+    void OnMouseMove(MouseMotionEventArgs& e)  override;
+    void OnMouseButtonPressed(MouseButtonEventArgs& e)  override;
+    void OnMouseButtonReleased(MouseButtonEventArgs& e) override;
 
 private:
     void OnRender(UpdateEventArgs& e);

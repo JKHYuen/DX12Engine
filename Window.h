@@ -85,7 +85,7 @@ protected:
 
     void OnKeyPressed(KeyEventArgs& e);
     void OnKeyReleased(KeyEventArgs& e);
-    void OnMouseMoved(MouseMotionEventArgs& e);
+    void OnMouseMove(MouseMotionEventArgs& e);
     void OnMouseButtonPressed(MouseButtonEventArgs& e);
     void OnMouseButtonReleased(MouseButtonEventArgs& e);
     void OnMouseWheel(MouseWheelEventArgs& e);

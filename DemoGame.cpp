@@ -25,6 +25,7 @@
 #include "Skybox.h"
 #include "EditorGui.h"
 #include "DirectionalLight.h"
+#include "ShaderResourceView.h"
 
 #include "imgui.h"
 #include "implot.h"
@@ -37,40 +38,50 @@ using namespace Microsoft::WRL;
 namespace {
 	constexpr DXGI_FORMAT sk_HDRFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
 	constexpr DXGI_FORMAT sk_DepthBufferFormat = DXGI_FORMAT_D32_FLOAT;
+
+	// Directional Light Shadow params
+	int   s_ShadowMapResolution = 2048;
+	float s_ShadowMapNear       = 0.1f;
+	float s_ShadowMapFar        = 150.0f;
+	float s_ShadowDistance      = 100.0f;
+	float s_ShadowBias          = 0.001f;
 }
 
 /// TODO: TEMP, need scene/gameobject system to replace all this
 namespace {
+	// TODO: maybe move root sig / PSO creation in new class
 	enum PBRRootParameters {
-		VertexCB,       // ConstantBuffer<Mat> VertexCB : register(b0);
-		MaterialCB,     // ConstantBuffer<Material> MaterialCB : register( b0, space1 );
-		Textures,       // Texture2D AlbedoTex         : register( t0 );
-						// Texture2D NormalTex         : register( t1 );
-						// Texture2D MaterialTex       : register( t2 );
-						// Texture2D IrradianceCubemap : register( t3 );
-						// Texture2D PrefilterCubemap  : register( t4 );
-						// Texture2D BRDFLut           : register( t5 );
+		VertexCB,         // ConstantBuffer<Mat> VertexCB : register(b0);
+		MaterialCB,       // ConstantBuffer<Material> MaterialCB : register( b0, space1 );
+		Textures,         // Texture2D AlbedoTex            : register(t0);
+						  // Texture2D NormalTex            : register(t1);
+						  // Texture2D MaterialTex          : register(t2);
+						  // Texture2D IrradianceCubemap    : register(t3);
+						  // Texture2D PrefilterCubemap     : register(t4);
+						  // Texture2D BRDFLut              : register(t5);
+		VolatileTextures, // Texture2D DirectionalShadowMap : register(t6);		
+		
 		NumRootParameters
 	};
 
 	struct VertexProps {
-		XMFLOAT4X4A SRT;
-		XMFLOAT4X4A MVP;
-		XMFLOAT4A   CameraPosition;
-		XMFLOAT4A   Pad1;
-		XMFLOAT4A   Pad2;
-		XMFLOAT4A   Pad3;
-		XMFLOAT4X4A Pad4;
+		XMFLOAT4X4 SRT;
+		XMFLOAT4X4 MVP;
+		XMFLOAT4X4 directionalLightMVP;
+		XMFLOAT4   CameraPosition;
+		XMFLOAT4   Pad1;
+		XMFLOAT4   Pad2;
+		XMFLOAT4   Pad3;
 	};
 
 	struct MaterialProps {
-		XMFLOAT4A   Time;
-		XMFLOAT4A   DirLight;
-		XMFLOAT4A   DirLightColor;
-		XMFLOAT4A   Pad2;
-		XMFLOAT4X4A Pad3;
-		XMFLOAT4X4A Pad4;
-		XMFLOAT4X4A Pad5;
+		XMFLOAT4   Time;
+		XMFLOAT4   DirLight;
+		XMFLOAT4   DirLightColor;
+		XMFLOAT4   Pad2;
+		XMFLOAT4X4 Pad3;
+		XMFLOAT4X4 Pad4;
+		XMFLOAT4X4 Pad5;
 	};
 
 	/// TODO: TEMP
@@ -82,9 +93,11 @@ namespace {
 	std::unique_ptr<Mesh> s_TestFloorMesh;
 	std::unique_ptr<Mesh> s_TestMesh_0;
 
-	EditorGui::GuiDescriptorAllocation s_GuiImageDescriptor;
+	EditorGui::GuiDescriptorAllocation s_GuiShadowMapDebugSRV;
 
-	DirectionalLight s_DirLight {XMFLOAT3(9.0f, 8.0f, 7.0f), XMFLOAT3(50.0f, 230.0f, 0.0f)};
+	DirectionalLight s_DirectionalLight {XMFLOAT3(9.0f, 8.0f, 7.0f), XMFLOAT3(50.0f, 230.0f, 0.0f), s_ShadowMapResolution, s_ShadowDistance, s_ShadowMapNear, s_ShadowMapFar, s_ShadowBias};
+
+	std::shared_ptr<ShaderResourceView> s_ShadowMapSRV;
 
 	/// TODO: move functions below to CommandList.cpp?
 	// Algorithm from https://rastertek.com/dx11win10tut20.html
@@ -309,12 +322,14 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t width, uint32_t height, bo
 	, m_Yaw(0)
 	, m_IsShiftPressed(false)
 	, m_ShowImGuiWindow(false)
+	, m_CurrentAvgFPS(0)
 	, m_Width(width)
 	, m_Height(height)
 	, m_IsVsync(vSync)
 	, m_Camera()
 	, m_HDR_MSAA_RenderTarget() 
-	, m_Float_RenderTarget() {
+	, m_FloatRenderTarget()
+	, m_DirectionalShadowMap() {
 
 	m_Window = Application::Get().CreateRenderWindow(name, width, height, *this);
 
@@ -360,47 +375,71 @@ bool DemoGame::Initialize() {
 	m_SwapChain = std::make_shared<SwapChain>(*m_Device, m_Window->GetWindowHandle(), m_IsVsync, sk_HDRFormat);
 
 	/// Create render targets
-	// color buffer
-	auto colorDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-		sk_HDRFormat, m_Width, m_Height, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
-	);
+	{
+		// color buffer
+		auto colorDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+			sk_HDRFormat, m_Width, m_Height, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
+		);
 
-	D3D12_CLEAR_VALUE colorClearValue;
-	colorClearValue.Format = colorDesc.Format;
-	colorClearValue.Color[0] = 0.6f;
-	colorClearValue.Color[1] = 0.6f;
-	colorClearValue.Color[2] = 0.7f;
-	colorClearValue.Color[3] = 1.0f;
+		D3D12_CLEAR_VALUE colorClearValue;
+		colorClearValue.Format = colorDesc.Format;
+		colorClearValue.Color[0] = 0.6f;
+		colorClearValue.Color[1] = 0.6f;
+		colorClearValue.Color[2] = 0.7f;
+		colorClearValue.Color[3] = 1.0f;
 
-	auto colorTexture = std::make_shared<Texture>(*m_Device, colorDesc, &colorClearValue);
-	colorTexture->SetName(L"Color Render Target");
+		auto colorTexture = std::make_shared<Texture>(*m_Device, colorDesc, &colorClearValue);
+		colorTexture->SetName(L"Color Render Target");
 
-	// depth buffer
-	auto depthDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-		sk_DepthBufferFormat, m_Width, m_Height, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
-	);
+		// depth buffer
+		auto depthDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+			sk_DepthBufferFormat, m_Width, m_Height, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
+		);
 
-	D3D12_CLEAR_VALUE depthClearValue;
-	depthClearValue.Format = depthDesc.Format;
-	depthClearValue.DepthStencil = {1.0f, 0};
+		D3D12_CLEAR_VALUE depthClearValue;
+		depthClearValue.Format = depthDesc.Format;
+		depthClearValue.DepthStencil = { 1.0f, 0 };
 
-	auto depthTexture = std::make_shared<Texture>(*m_Device, depthDesc, &depthClearValue);
-	depthTexture->SetName(L"Depth Render Target");
+		auto depthTexture = std::make_shared<Texture>(*m_Device, depthDesc, &depthClearValue);
+		depthTexture->SetName(L"Depth Render Target");
 
-	// Attach the textures to the render target.
-	m_HDR_MSAA_RenderTarget.AttachTexture(AttachmentPoint::Color0, colorTexture);
-	m_HDR_MSAA_RenderTarget.AttachTexture(AttachmentPoint::DepthStencil, depthTexture);
+		m_HDR_MSAA_RenderTarget.AttachTexture(AttachmentPoint::Color0, colorTexture);
+		m_HDR_MSAA_RenderTarget.AttachTexture(AttachmentPoint::DepthStencil, depthTexture);
 
-	// Non multisampled floating point intermediate render texture,
-	// multisampled HDR rendertarget will be resolved into this texture before postprocessing/tonemapping
-	auto floatDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-		sk_HDRFormat, m_Width, m_Height, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
-	);
+		// Non multisampled floating point render texture,
+		// multisampled HDR rendertarget will be resolved into this texture before postprocessing/tonemapping
+		auto floatTextureDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+			sk_HDRFormat, m_Width, m_Height, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
+		);
 
-	auto floatRenderTexture = std::make_shared<Texture>(*m_Device, floatDesc, &colorClearValue);
-	floatRenderTexture->SetName(L"Screen Floating Point Render Target");
-	m_Float_RenderTarget.AttachTexture(AttachmentPoint::Color0, floatRenderTexture);
-	///
+		auto floatRenderTexture = std::make_shared<Texture>(*m_Device, floatTextureDesc, &colorClearValue);
+		floatRenderTexture->SetName(L"Screen Floating Point Render Target");
+		m_FloatRenderTarget.AttachTexture(AttachmentPoint::Color0, floatRenderTexture);
+
+		/// TODO: store this in directional light?
+		// Create directional light shadow map
+		auto shadowMapDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+			sk_DepthBufferFormat, s_ShadowMapResolution, s_ShadowMapResolution, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
+		);
+
+		auto shadowMapDepthTexture = std::make_shared<Texture>(*m_Device, shadowMapDesc, &depthClearValue);
+		shadowMapDepthTexture->SetName(L"Directional Light Shadow Map");
+		m_DirectionalShadowMap.AttachTexture(AttachmentPoint::DepthStencil, shadowMapDepthTexture);
+
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
+		ZeroMemory(&srvDesc, sizeof(srvDesc));
+		srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		srvDesc.Texture2D.MipLevels = 1;
+		srvDesc.Texture2D.MostDetailedMip = 0;
+		srvDesc.Texture2D.PlaneSlice = 0;
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		s_ShadowMapSRV = std::make_shared<ShaderResourceView>(*m_Device, shadowMapDepthTexture, &srvDesc);
+
+		// Initialize ImGui SRV for debug
+		// Note: SRVs for ImGui render have its own allocator and descriptor heap (instead of the two stage DynamicDescriptorHeap system) to keep things simple
+		s_GuiShadowMapDebugSRV = EditorGui::AllocateImageSRV(*m_Device, m_DirectionalShadowMap.GetTexture(AttachmentPoint::DepthStencil), &srvDesc);
+	}
 
 	auto& copyCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 	/// Load Assets (COPY operations)
@@ -423,13 +462,13 @@ bool DemoGame::Initialize() {
 		copyCommandQueue.ExecuteCommandList(copyCommandList);
 	}
 
-	/// Create PBR Pipeline State (For rendering PBR objects)
 	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags_VSPS =
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
+	/// Create PBR Pipeline State (For rendering PBR objects)
 	{
 		// Load PBR shaders
 		ComPtr<ID3DBlob> vs;
@@ -442,8 +481,13 @@ bool DemoGame::Initialize() {
 		rootParameters[PBRRootParameters::VertexCB].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX);
 		rootParameters[PBRRootParameters::MaterialCB].InitAsConstantBufferView(0, 1, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
 
+		// Static descriptors
 		CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 6, 0);
 		rootParameters[PBRRootParameters::Textures].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
+
+		// Volatile descriptors
+		CD3DX12_DESCRIPTOR_RANGE1 volatileDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6, 0U, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE);
+		rootParameters[PBRRootParameters::VolatileTextures].InitAsDescriptorTable(1, &volatileDescriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
 		CD3DX12_STATIC_SAMPLER_DESC anisotropicSampler(0, D3D12_FILTER_ANISOTROPIC);
 		CD3DX12_STATIC_SAMPLER_DESC linearClampSampler(1, D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
@@ -492,7 +536,7 @@ bool DemoGame::Initialize() {
 			D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
 
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
-		rootSignatureDescription.Init_1_1(1, rootParameters, 1, &linearClampSampler, rootSignatureFlags_VSPS);
+		rootSignatureDescription.Init_1_1(_countof(rootParameters), rootParameters, 1, &linearClampSampler, rootSignatureFlags_VSPS);
 		m_PostProcessRootSignature = std::make_shared<RootSignature>(*m_Device, rootSignatureDescription.Desc_1_1);
 
 		ComPtr<ID3DBlob> vs;
@@ -504,6 +548,7 @@ bool DemoGame::Initialize() {
 		CD3DX12_RASTERIZER_DESC rasterizerDesc(D3D12_DEFAULT);
 		rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
 
+		/// TODO: disable depth?
 		struct PostProcessPipelineStateStream {
 			CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE        pRootSignature;
 			CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY    PrimitiveTopologyType;
@@ -523,10 +568,41 @@ bool DemoGame::Initialize() {
 		D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {sizeof(PostProcessPipelineStateStream), &postProcessPipelineStateStream};
 		ThrowIfFailed(m_Device->GetD3D12Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_PostprocessPSO)));
 
+		// Tonemap PSO
 		ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/Tonemap_PS.cso", &ps));
 		postProcessPipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(ps.Get());
 		pipelineStateStreamDesc = {sizeof(PostProcessPipelineStateStream), &postProcessPipelineStateStream};
 		ThrowIfFailed(m_Device->GetD3D12Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_TonemapPSO)));
+	}
+
+	/// TODO: store this in directional light?
+	/// Create Depth Only Render Pipeline State (for shadow mapping)
+	{
+		/// TODO: we are loading basic model VS again, shader blobs should probably be cached
+		ComPtr<ID3DBlob> vs;
+		ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/PBR_VS.cso", &vs));
+
+		struct ShadowDepthPipelineStateStream {
+			CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE        pRootSignature;
+			CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT          InputLayout;
+			CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY    PrimitiveTopologyType;
+			CD3DX12_PIPELINE_STATE_STREAM_VS                    VS;
+			CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER            Rasterizer;
+			CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT  DSVFormat;
+		} shadowDepthPipelineStateStream;
+
+		CD3DX12_RASTERIZER_DESC rasterizerDesc(D3D12_DEFAULT);
+		rasterizerDesc.CullMode = D3D12_CULL_MODE_FRONT;
+
+		shadowDepthPipelineStateStream.pRootSignature = m_PBRRootSignature->GetD3D12RootSignature().Get();
+		shadowDepthPipelineStateStream.InputLayout = VertexInput::GetInputLayout();
+		shadowDepthPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		shadowDepthPipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vs.Get());
+		shadowDepthPipelineStateStream.Rasterizer = rasterizerDesc;
+		shadowDepthPipelineStateStream.DSVFormat = m_DirectionalShadowMap.GetDepthStencilFormat();
+
+		D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = { sizeof(ShadowDepthPipelineStateStream), &shadowDepthPipelineStateStream };
+		ThrowIfFailed(m_Device->GetD3D12Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_ShadowDepthPSO)));
 	}
 
 	// Wait for loading operations to complete before rendering the first frame
@@ -553,13 +629,13 @@ void DemoGame::OnResize(ResizeEventArgs& e) {
 
 	m_ScreenViewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_Width), static_cast<float>(m_Height));
 	m_HDR_MSAA_RenderTarget.Resize(m_Width, m_Height);
-	m_Float_RenderTarget.Resize(m_Width, m_Height);
+	m_FloatRenderTarget.Resize(m_Width, m_Height);
 }
 
 // NOTE: might not be needed?
 void DemoGame::UnloadContent() {
 	m_HDR_MSAA_RenderTarget.Reset();
-	m_Float_RenderTarget.Reset();
+	m_FloatRenderTarget.Reset();
 
 	m_PBR_PSO.Reset();
 	m_TonemapPSO.Reset();
@@ -574,6 +650,7 @@ void DemoGame::UnloadContent() {
 
 void DemoGame::OnUpdate(UpdateEventArgs& e) {
 	// Moving average frame rate (over 128 [sk_frameTimeSamples] frames)
+	// moving average used for realtime updates tp FPS graph (rather than once a second)
 	static uint64_t frameIndex = 0;
 	static double frameTimeSum = 0;
 	frameTimeSum -= m_frameTimeHistory[frameIndex];
@@ -592,7 +669,9 @@ void DemoGame::OnUpdate(UpdateEventArgs& e) {
 		XMVECTOR cameraTranslation = 
 			XMVector3Normalize(XMVectorSet(m_Right - m_Left, 0.0f, m_Forward - m_Backward, 1.0f))
 			* speedMultipler * (float)e.DeltaTime;
-		XMVECTOR cameraPan = XMVectorSet(0.0f, m_Up - m_Down, 0.0f, 1.0f) * speedMultipler * (float)e.DeltaTime;
+		XMVECTOR cameraPan = XMVectorSet(0.0f, m_Up - m_Down, 0.0f, 1.0f) 
+			* speedMultipler * (float)e.DeltaTime;
+
 		m_Camera.Translate(cameraTranslation, Space::Local);
 		m_Camera.Translate(cameraPan, Space::Local);
 
@@ -606,6 +685,8 @@ void DemoGame::OnUpdate(UpdateEventArgs& e) {
 
 void DemoGame::ShowImGuiWindow(CommandList& directCommandList) {
 	m_EditorGui->NewFrame();
+
+	static ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
 
 	struct ScrollingBuffer {
 		int MaxSize;
@@ -709,14 +790,20 @@ void DemoGame::ShowImGuiWindow(CommandList& directCommandList) {
 			m_Camera.set_FoV(fov);
 		}
 
+		static float sceneDirLightAngle[2] { 50.0f, 230.0f };
+		if(ImGui::DragFloat2("[x, y]", sceneDirLightAngle, 0.1f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
+			sceneDirLightAngle[0] = std::fmod(sceneDirLightAngle[0], 360.0f);
+			sceneDirLightAngle[1] = std::fmod(sceneDirLightAngle[1], 360.0f);
+			s_DirectionalLight.SetDirection(sceneDirLightAngle[0], sceneDirLightAngle[1], 0.0f);
+		}
+
 		{
-			ImGui::Text("Image Render Test");
 			static float imageScale = 0.3f;
 			ImGui::SliderFloat("Scale", &imageScale, 0.0, 1.0, "%.2fx");
 			ImVec2 imageSize = ImVec2(1920.0f * imageScale, 1080.0f * imageScale);
 
 			ImGui::Image(
-				(ImTextureID)s_GuiImageDescriptor.gpuHandle.ptr, imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f)
+				(ImTextureID)s_GuiShadowMapDebugSRV.gpuHandle.ptr, imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f)
 			);
 		}
 
@@ -731,47 +818,50 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 	auto& directCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 	auto directCommandList = directCommandQueue.GetCommandList();
 
+	/// TEMP: Render Test Scene
 	// Clear the render targets.
 	float clearColor[] = {0.6f, 0.6f, 0.7f, 1.0f};
 	directCommandList->ClearTexture(m_HDR_MSAA_RenderTarget.GetTexture(AttachmentPoint::Color0), clearColor);
 	directCommandList->ClearDepthStencilTexture(m_HDR_MSAA_RenderTarget.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
 
 	// Setup command list for HDR rendering to intermediate render target (before multisample resolve)
-	directCommandList->SetViewport(m_ScreenViewport);
 	directCommandList->SetScissorRect(m_DefaultScissorRect);
+	directCommandList->SetViewport(m_ScreenViewport);
 	directCommandList->SetRenderTarget(m_HDR_MSAA_RenderTarget);
 
 	m_Skybox->Render(*directCommandList, m_Camera);
 
-	/// TEMP: Render Test Scene
+	XMFLOAT4X4 v = s_DirectionalLight.GetViewMatrix();
+	XMFLOAT4X4 o = s_DirectionalLight.GetOrthoMatrix();
+	XMMATRIX directionalLightViewMat = XMLoadFloat4x4(&v);
+	XMMATRIX directionalLightOrthoMat = XMLoadFloat4x4(&o);
+
 	{
 		directCommandList->SetPipelineState(m_PBR_PSO);
 		directCommandList->SetGraphicsRootSignature(m_PBRRootSignature);
 
 		/// Render Objects
-		// Floor Render
+		/// Floor
 		XMMATRIX translationMat = XMMatrixTranslation(1.0f, 1.0f, 1.0f);
 		XMMATRIX rotationMat = XMMatrixIdentity();
-		XMMATRIX scaleMat = XMMatrixScaling(20.0f, 1.0f, 20.0f);
+		XMMATRIX scaleMat = XMMatrixScaling(40.0f, 1.0f, 40.0f);
 		XMMATRIX SRTMat = scaleMat * rotationMat * translationMat;
-
 		VertexProps vertexCB;
-		XMStoreFloat4x4A(&vertexCB.SRT, SRTMat);
-		XMStoreFloat4x4A(&vertexCB.MVP, SRTMat * m_Camera.get_ViewMatrix() * m_Camera.get_ProjectionMatrix());
-		XMStoreFloat4A(&vertexCB.CameraPosition, m_Camera.get_Translation());
+		XMStoreFloat4x4(&vertexCB.SRT, SRTMat);
+		XMStoreFloat4x4(&vertexCB.MVP, SRTMat * m_Camera.get_ViewMatrix() * m_Camera.get_ProjectionMatrix());
+		XMStoreFloat4x4(&vertexCB.directionalLightMVP, SRTMat * directionalLightViewMat * directionalLightOrthoMat);
+		XMStoreFloat4(&vertexCB.CameraPosition, m_Camera.get_Translation());
 
 		directCommandList->SetGraphicsDynamicConstantBuffer(PBRRootParameters::VertexCB, vertexCB);
 
 		// Pixel Shader Buffers
 		// TODO: lighting vars
 		MaterialProps materialCB;
-		XMVECTORF32 timeVec = {(float)e.Time, (float)e.DeltaTime, 0.0f, 0.0f};
-		XMStoreFloat4A(&materialCB.Time, timeVec);
+		XMVECTORF32 timeVec = { (float)e.Time, (float)e.DeltaTime, 0.0f, 0.0f };
+		XMStoreFloat4(&materialCB.Time, timeVec);
 
-		XMFLOAT3 dirLightDirection = s_DirLight.GetDirection();
-		XMStoreFloat4A(&materialCB.DirLight, XMVector3Normalize(XMLoadFloat3(&dirLightDirection)));
-		XMFLOAT4 dirLightColor = s_DirLight.GetColor();
-		XMStoreFloat4A(&materialCB.DirLightColor, XMLoadFloat4(&dirLightColor));
+		materialCB.DirLight = s_DirectionalLight.GetDirection();
+		materialCB.DirLightColor = s_DirectionalLight.GetColor();
 
 		directCommandList->SetGraphicsDynamicConstantBuffer(PBRRootParameters::MaterialCB, materialCB);
 		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 0, s_Test_Albedo, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -781,26 +871,57 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 4, m_Skybox->GetPrefilterSRV(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 5, m_Skybox->Get_BRDF_LUT_SRV(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
+		directCommandList->SetShaderResourceView(PBRRootParameters::VolatileTextures, 0, s_ShadowMapSRV, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
 		s_TestFloorMesh->Draw(*directCommandList);
 
-		/// TEMP: Object above floor
+		/// Object above floor
 		translationMat = XMMatrixTranslation(1.0f, 4.0f, 1.0f);
 		rotationMat = XMMatrixIdentity();
 		scaleMat = XMMatrixScaling(1.0f, 1.0f, 1.0f);
 		SRTMat = scaleMat * rotationMat * translationMat;
-
-		XMStoreFloat4x4A(&vertexCB.SRT, SRTMat);
-		XMStoreFloat4x4A(&vertexCB.MVP, SRTMat * m_Camera.get_ViewMatrix() * m_Camera.get_ProjectionMatrix());
-		XMStoreFloat4A(&vertexCB.CameraPosition, m_Camera.get_Translation());
-
+		XMStoreFloat4x4(&vertexCB.SRT, SRTMat);
+		XMStoreFloat4x4(&vertexCB.MVP, SRTMat * m_Camera.get_ViewMatrix() * m_Camera.get_ProjectionMatrix());
+		XMStoreFloat4x4(&vertexCB.directionalLightMVP, SRTMat * directionalLightViewMat * directionalLightOrthoMat);
+		XMStoreFloat4(&vertexCB.CameraPosition, m_Camera.get_Translation());
 		directCommandList->SetGraphicsDynamicConstantBuffer(PBRRootParameters::VertexCB, vertexCB);
+		s_TestMesh_0->Draw(*directCommandList);
+	}
+
+	/// Render depth from directional light for same objects above
+	{
+		directCommandList->ClearDepthStencilTexture(m_DirectionalShadowMap.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
+		directCommandList->SetRenderTarget(m_DirectionalShadowMap);
+		directCommandList->SetPipelineState(m_ShadowDepthPSO);
+		directCommandList->SetGraphicsRootSignature(m_PBRRootSignature);
+		directCommandList->SetViewport(s_DirectionalLight.GetViewPort());
+
+		XMMATRIX translationMat = XMMatrixTranslation(1.0f, 1.0f, 1.0f);
+		XMMATRIX rotationMat = XMMatrixIdentity();
+		XMMATRIX scaleMat = XMMatrixScaling(20.0f, 1.0f, 20.0f);
+		XMMATRIX SRTMat = scaleMat * rotationMat * translationMat;
+
+		VertexProps shadowDepthVertexCB;
+		XMStoreFloat4x4(&shadowDepthVertexCB.SRT, SRTMat);
+		XMStoreFloat4x4(&shadowDepthVertexCB.MVP, SRTMat * directionalLightViewMat * directionalLightOrthoMat);
+		directCommandList->SetGraphicsDynamicConstantBuffer(PBRRootParameters::VertexCB, shadowDepthVertexCB);
+		s_TestFloorMesh->Draw(*directCommandList);
+
+		translationMat = XMMatrixTranslation(1.0f, 4.0f, 1.0f);
+		rotationMat = XMMatrixIdentity();
+		scaleMat = XMMatrixScaling(1.0f, 1.0f, 1.0f);
+		SRTMat = scaleMat * rotationMat * translationMat;
+		XMStoreFloat4x4(&shadowDepthVertexCB.SRT, SRTMat);
+		XMStoreFloat4x4(&shadowDepthVertexCB.MVP, SRTMat * directionalLightViewMat * directionalLightOrthoMat);
+
+		directCommandList->SetGraphicsDynamicConstantBuffer(PBRRootParameters::VertexCB, shadowDepthVertexCB);
 		s_TestMesh_0->Draw(*directCommandList);
 	}
 
 	/// Post Processing
 	{
 		auto& swapChainRT = m_SwapChain->GetRenderTarget();
-		auto  msaaResolveDstTexture = m_Float_RenderTarget.GetTexture(AttachmentPoint::Color0);
+		auto  msaaResolveDstTexture = m_FloatRenderTarget.GetTexture(AttachmentPoint::Color0);
 		auto  msaaHDRRenderTexture = m_HDR_MSAA_RenderTarget.GetTexture(AttachmentPoint::Color0);
 
 		// Resolve the MSAA render target to the swapchain's backbuffer
@@ -820,22 +941,6 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 	}
 
 	/// Draw ImGui
-
-	/// TEMP: preview texture in GUI
-	static bool init;
-	if(!init) {
-		init = true;
-		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
-		ZeroMemory(&srvDesc, sizeof(srvDesc));
-		srvDesc.Format = sk_HDRFormat;
-		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-		srvDesc.Texture2D.MipLevels = 1;
-		srvDesc.Texture2D.MostDetailedMip = 0;
-		srvDesc.Texture2D.PlaneSlice = 0;
-		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		s_GuiImageDescriptor = EditorGui::AllocateImageSRV(*m_Device, m_Float_RenderTarget.GetTexture(AttachmentPoint::Color0), &srvDesc);
-	}
-
 	ShowImGuiWindow(*directCommandList);
 
 	/// Present

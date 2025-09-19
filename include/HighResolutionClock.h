@@ -1,6 +1,6 @@
 /**
  * High resolution clock used for performing timings.
- * // From https://github.com/jpvanoosten/LearningDirectX12/blob/v0.0.2/DX12Lib/inc/
+ * From https://github.com/jpvanoosten/LearningDirectX12/blob/v0.0.2/DX12Lib/inc/
  */
 
 #pragma once

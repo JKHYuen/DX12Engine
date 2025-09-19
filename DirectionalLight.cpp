@@ -3,9 +3,12 @@
 
 using namespace DirectX;
 
-DirectionalLight::DirectionalLight(XMFLOAT3 color, XMFLOAT3 eulerDir, float shadowBias) 
+DirectionalLight::DirectionalLight(XMFLOAT3 color, XMFLOAT3 eulerDir, int shadowMapResolution, float shadowDistance, float shadowMapNearZ, float shadowMapFarZ, float shadowBias)
     : m_ShadowBias(shadowBias)
-    , m_Color(XMFLOAT4(color.x, color.y, color.z, 1.0f)) {
+    , m_Color(XMFLOAT4(color.x, color.y, color.z, 1.0f))
+    , m_ViewPort(D3D12_VIEWPORT(0.0f, 0.0f, (float)shadowMapResolution, (float)shadowMapResolution, 0.0f, 1.0f)) {
+
+    XMStoreFloat4x4(&m_OrthoMatrix, XMMatrixOrthographicLH(shadowDistance, shadowDistance, shadowMapNearZ, shadowMapFarZ));
     SetDirection(eulerDir.x, eulerDir.y, eulerDir.z);
 }
 
@@ -14,9 +17,9 @@ void DirectionalLight::SetColor(float red, float green, float blue) {
 }
 
 void DirectionalLight::SetDirection(float rotX, float rotY, float rotZ) {
-    rotX = std::fmod(rotX, 360.0f);
-    rotY = std::fmod(rotY, 360.0f);
-    rotZ = std::fmod(rotZ, 360.0f);
+    rotX = XMConvertToRadians(std::fmod(rotX, 360.0f));
+    rotY = XMConvertToRadians(std::fmod(rotY, 360.0f));
+    rotZ = XMConvertToRadians(std::fmod(rotZ, 360.0f));
 
     SetQuaternionDirection(XMQuaternionRotationRollPitchYaw(rotX, rotY, rotZ));
 }
@@ -25,7 +28,7 @@ void DirectionalLight::SetQuaternionDirection(XMVECTOR rotationQuaternion) {
     XMVECTOR dirVec = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
     dirVec = XMVector3Rotate(dirVec, rotationQuaternion);
 
-    XMStoreFloat3(&m_Direction, dirVec);
+    XMStoreFloat4(&m_Direction, dirVec);
 
     m_Position.x = XMVectorGetX(dirVec) * m_LightDistance;
     m_Position.y = XMVectorGetY(dirVec) * m_LightDistance;
@@ -39,11 +42,7 @@ void DirectionalLight::GenerateViewMatrix() {
     static XMFLOAT3 up{ 0.0f, 1.0f, 0.0f };
     // Always look at origin, direction determined by m_Position
     static XMFLOAT3 lookAt{ 0.0f, 0.0f, 0.0f };
-    m_ViewMatrix = XMMatrixLookAtLH(XMLoadFloat3(&m_Position), XMLoadFloat3(&lookAt), XMLoadFloat3(&up));
-}
-
-void DirectionalLight::GenerateOrthoMatrix(float width, float nearPlane, float depthPlane) {
-    m_OrthoMatrix = XMMatrixOrthographicLH(width, width, nearPlane, depthPlane);
+    XMStoreFloat4x4(&m_ViewMatrix, XMMatrixLookAtLH(XMLoadFloat3(&m_Position), XMLoadFloat3(&lookAt), XMLoadFloat3(&up)));
 }
 
 // Note: a bit hacky

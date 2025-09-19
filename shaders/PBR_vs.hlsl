@@ -1,11 +1,8 @@
-cbuffer VertexCB : register(b0) {
+cbuffer VertexCB : register(b0, space0) {
     matrix SRT;
     matrix MVP;
+    matrix directionalLightMVP;
     float3 CameraPosition;
-    float4 Pad1;
-    float4 Pad2;
-    float4 Pad3;
-    matrix pad4;
 };
 
 struct VertexInput {
@@ -17,13 +14,14 @@ struct VertexInput {
 };
 
 struct PixelInputType {
-    float4 position       : SV_POSITION;
-    float3 normal         : NORMAL;
-    float3 tangent        : TANGENT;
-    float3 bitangent      : BITANGENT;
-    float2 uv             : TEXCOORD0;
-    float4 worldPosition  : TEXCOORD1;
-    float3 cameraPosition : TEXCOORD2;
+    float4 position                     : SV_POSITION;
+    float3 normal                       : NORMAL;
+    float3 tangent                      : TANGENT;
+    float3 bitangent                    : BITANGENT;
+    float2 uv                           : TEXCOORD0;
+    float4 worldPosition                : TEXCOORD1;
+    float3 cameraPosition               : TEXCOORD2;
+    float4 directionalLightViewPosition : TEXCOORD3;
 };
 
 PixelInputType main(VertexInput i) {
@@ -42,6 +40,8 @@ PixelInputType main(VertexInput i) {
     o.uv = i.uv;
     o.worldPosition = mul(SRT, hVertexPos);
     o.cameraPosition = CameraPosition;
+    
+    o.directionalLightViewPosition = mul(directionalLightMVP, hVertexPos);
     
     return o;
 }

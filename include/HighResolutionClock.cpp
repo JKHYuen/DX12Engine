@@ -1,5 +1,3 @@
-// From https://github.com/jpvanoosten/LearningDirectX12/blob/v0.0.2/DX12Lib/inc/
-
 #include <DX12LibPCH.h>
 #include "HighResolutionClock.h"
 

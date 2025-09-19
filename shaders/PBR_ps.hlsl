@@ -4,10 +4,6 @@ cbuffer MaterialCB : register(b0, space1) {
     float4 Time;
     float3 DirLight;
     float4 DirLightColor;
-    float4 Pad2;
-    matrix Pad3;
-    matrix Pad4;
-    matrix Pad5;
 };
 
 Texture2D AlbedoTex                   : register(t0);
@@ -16,19 +12,21 @@ Texture2D MaterialTex                 : register(t2);
 TextureCube<float4> IrradianceCubemap : register(t3);
 TextureCube<float4> PrefilterCubemap  : register(t4);
 Texture2D BRDFLut                     : register(t5);
+Texture2D DirectionalShadowMap        : register(t6);
 
 // TODO: add border sampler
 SamplerState AnisoWrapSampler : register(s0);
 SamplerState ClampSampler     : register(s1);
 
 struct PixelInputType {
-    float4 position       : SV_POSITION;
-    float3 normal         : NORMAL;
-    float3 tangent        : TANGENT;
-    float3 bitangent      : BITANGENT;
-    float2 uv             : TEXCOORD0;
-    float4 worldPosition  : TEXCOORD1;
-    float3 cameraPosition : TEXCOORD2;
+    float4 position                     : SV_POSITION;
+    float3 normal                       : NORMAL;
+    float3 tangent                      : TANGENT;
+    float3 bitangent                    : BITANGENT;
+    float2 uv                           : TEXCOORD0;
+    float4 worldPosition                : TEXCOORD1;
+    float3 cameraPosition               : TEXCOORD2;
+    float4 directionalLightViewPosition : TEXCOORD3;
 };
 
 static const float PI = 3.14159265359;
@@ -112,9 +110,7 @@ float4 main(PixelInputType i) : SV_Target {
     float3 L = -DirLight;
     float3 H = normalize(viewDirection + L);
 
-    // TODO: put this in CB
     float3 radiance = DirLightColor.rgb;
-    //float3 radiance = {12, 9, 6};
 
     // Cook-Torrance BRDF
     float NDF = DistributionGGX(normal, H, roughness);
@@ -160,6 +156,42 @@ float4 main(PixelInputType i) : SV_Target {
     float3 indirectSpecular = prefilterMap * (F * envBRDF.x + envBRDF.y);
 
     float3 ambient = (indirect_kD * diffuse + indirectSpecular) * ao;
+    
+//
+// Calculate Shadow
+//
+    // Calculate the projected texture coordinates.
+    float2 projectTexCoord = float2(i.directionalLightViewPosition.x, -i.directionalLightViewPosition.y);
+    projectTexCoord = projectTexCoord / i.directionalLightViewPosition.w * 0.5 + 0.5;
 
-    return float4(ambient + Lo, 1);
+    // Calculate the depth of the light.
+    float lightDepthValue = i.directionalLightViewPosition.z / i.directionalLightViewPosition.w;
+        
+    // Adaptive shadow bias
+    //float shadowBias = max(0.05 * (1.0 - dot(normal, -lightDirection)), 0.005);
+    
+    // apply bias
+    //lightDepthValue = lightDepthValue - shadowBias;
+    lightDepthValue = lightDepthValue - 0.001;
+        
+    // Shadowmap with basic 5x5 PCF multisampling
+    float shadowFactor = 0.0; // 0: in shadow, 1: not in shadow
+    float width, height, numOfLevels;
+    DirectionalShadowMap.GetDimensions(0, width, height, numOfLevels);
+    float2 texelSize = 1.0 / width;
+    for (int x = -2; x <= 2; ++x) {
+        for (int y = -2; y <= 2; ++y) {
+            // TODO: use border sampler
+            float pcfDepth = DirectionalShadowMap.Sample(ClampSampler, projectTexCoord + float2(x, y) * texelSize).r;
+            shadowFactor += lightDepthValue > pcfDepth ? 0.0 : 1.0;
+        }
+    }
+    shadowFactor /= 25.0;
+    
+    if (lightDepthValue >= 1.0)
+        shadowFactor = 1.0;
+
+    //return shadowFactor;
+    
+    return float4(ambient + Lo * shadowFactor, 1);
 }

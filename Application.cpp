@@ -241,8 +241,7 @@ static void DecodeMouseData(UINT messageID, WPARAM wParam, LPARAM lParam, MouseB
     bool& out_LButton, bool& out_RButton, bool& out_MButton, bool& out_Shift, bool& out_Control,
     int& out_X, int& out_Y) {
 
-    switch(messageID)
-    {
+    switch(messageID) {
     case WM_LBUTTONDOWN: case WM_LBUTTONUP: case WM_LBUTTONDBLCLK:
         out_MouseButton = MouseButtonEventArgs::Left;
         break;

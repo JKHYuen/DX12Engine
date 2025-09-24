@@ -29,7 +29,7 @@ namespace {
 
 	RenderTarget s_BRDF_LUT_RT {};
 
-	std::unique_ptr<Mesh> s_SkyboxCubeMesh;
+	std::shared_ptr<Mesh> s_SkyboxCubeMesh;
 	bool s_IsInitialized = false;
 
 	constexpr int sk_DefaultSkyboxIndex         = 0;
@@ -59,9 +59,8 @@ namespace {
 }
 
 // TODO: cubeMesh is passed in because CreateCube() function is currently in DemoGame.cpp, it should probably in CommandList.cpp
-Skybox::Skybox(Device& device, CommandList& copyCommandList, std::wstring hdrTextureName, std::unique_ptr<Mesh> cubeMesh, RenderTarget& hdrRenderTarget) {
-
-	s_SkyboxCubeMesh = std::move(cubeMesh);
+Skybox::Skybox(Device& device, CommandList& copyCommandList, std::wstring hdrTextureName, std::shared_ptr<Mesh> cubeMesh, RenderTarget& hdrRenderTarget) {
+	s_SkyboxCubeMesh = cubeMesh;
 	m_HDRPanoTexture = copyCommandList.LoadTextureFromFile(L"assets/cubemaps/" + hdrTextureName + L".hdr", true);
 
 	// Convert hdr panoramic texture to cubemap

@@ -1,5 +1,5 @@
 Texture2D screenTexture : register(t0);
-SamplerState ClampSampler : register(s0);
+SamplerState PointClampSampler : register(s0);
  
 // https://64.github.io/tonemapping/#reinhard-jodie
 float3 ReinhardJodieTMO(float3 v) {
@@ -31,7 +31,7 @@ float3 HableTMO(float3 v) {
 }
 
 float4 main(float2 uv : TEXCOORD0) : SV_TARGET0 {
-    float4 color = screenTexture.Sample(ClampSampler, uv);
+    float4 color = screenTexture.Sample(PointClampSampler, uv);
     
     // Tonemap
     color.rgb = ReinhardJodieTMO(color.rgb);

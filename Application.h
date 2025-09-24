@@ -49,10 +49,12 @@ class Window;
 class IGame;
 
 class Application {
-
     friend LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 public:
+    // Hard coded until something more complicated needed (e.g. game switching in editor app)
+    static const inline std::wstring assetFolderPath = L"assets";
+
     // Create an application instance.
     Application(HINSTANCE hInst);
     ~Application();

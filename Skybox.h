@@ -13,7 +13,7 @@ class Mesh;
 
 class Skybox {
 public:
-	Skybox(Device& device, CommandList& copyCommandList, std::wstring hdrTextureName, std::unique_ptr<Mesh> cubeMesh, RenderTarget& renderTarget);
+	Skybox(Device& device, CommandList& copyCommandList, std::wstring hdrTextureName, std::shared_ptr<Mesh> cubeMesh, RenderTarget& renderTarget);
 	
 	// Draw skybox
 	void Render(CommandList& directCommandList, const Camera& camera);

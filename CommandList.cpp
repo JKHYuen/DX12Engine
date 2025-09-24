@@ -1103,3 +1103,211 @@ void CommandList::SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, ID3D12D
 		m_d3d12CommandList->SetDescriptorHeaps(numDescriptorHeaps, descriptorHeaps);
 	}
 }
+
+// Algorithm from https://rastertek.com/dx11win10tut20.html
+// Refactored and simplified by KHY
+static void CalculateModelVectors(std::vector<VertexInput>& vertices, const std::vector<uint16_t>& indices) {
+	XMVECTOR tangent{}, bitangent{};
+	float vector1[3]{}, vector2[3]{};
+	float tuVector[2]{}, tvVector[2]{};
+
+	size_t triangleCount = indices.size() / 3;
+
+	// Index of index buffer
+	size_t i = 0;
+
+	// Go through all triangles and calculate the the tangent and bitangent vectors
+	for(int f = 0; f < triangleCount; f++) {
+		VertexInput vertex1 = vertices[indices[i++]];
+		VertexInput vertex2 = vertices[indices[i++]];
+		VertexInput vertex3 = vertices[indices[i++]];
+
+		// Calculate tangent and bitangent
+		{
+			// Calculate the two vectors for this face
+			vector1[0] = vertex2.Position.x - vertex1.Position.x;
+			vector1[1] = vertex2.Position.y - vertex1.Position.y;
+			vector1[2] = vertex2.Position.z - vertex1.Position.z;
+
+			vector2[0] = vertex3.Position.x - vertex1.Position.x;
+			vector2[1] = vertex3.Position.y - vertex1.Position.y;
+			vector2[2] = vertex3.Position.z - vertex1.Position.z;
+
+			// Calculate the tu and tv texture space vectors.
+			tuVector[0] = vertex2.TexCoord.x - vertex1.TexCoord.x;
+			tvVector[0] = vertex2.TexCoord.y - vertex1.TexCoord.y;
+
+			tuVector[1] = vertex3.TexCoord.x - vertex1.TexCoord.x;
+			tvVector[1] = vertex3.TexCoord.y - vertex1.TexCoord.y;
+
+			// Calculate the cross products, multiply by the coefficient and normalize to get the tangent and bitangent
+			tangent = XMVector3Normalize(XMVectorSet(
+				(tvVector[1] * vector1[0] - tvVector[0] * vector2[0]),
+				(tvVector[1] * vector1[1] - tvVector[0] * vector2[1]),
+				(tvVector[1] * vector1[2] - tvVector[0] * vector2[2]), 1.0f)
+			);
+			bitangent = XMVector3Normalize(XMVectorSet(
+				(tuVector[0] * vector2[0] - tuVector[1] * vector1[0]),
+				(tuVector[0] * vector2[1] - tuVector[1] * vector1[1]),
+				(tuVector[0] * vector2[2] - tuVector[1] * vector1[2]), 1.0f)
+			);
+		}
+
+		// Store the tangent and binormal 
+		// NOTE: some repeated work done
+		XMStoreFloat3(&vertices[indices[i - 1]].Tangent, tangent);
+		XMStoreFloat3(&vertices[indices[i - 1]].Bitangent, bitangent);
+		XMStoreFloat3(&vertices[indices[i - 2]].Tangent, tangent);
+		XMStoreFloat3(&vertices[indices[i - 2]].Bitangent, bitangent);
+		XMStoreFloat3(&vertices[indices[i - 3]].Tangent, tangent);
+		XMStoreFloat3(&vertices[indices[i - 3]].Bitangent, bitangent);
+	}
+}
+
+std::shared_ptr<Mesh> CommandList::CreateCube(float size) {
+	// Cube is centered at 0,0,0
+	float s = size * 0.5f;
+
+	// 8 edges of cube.
+	XMFLOAT3 p[8] = { { s, s, -s }, { s, s, s }, { s, -s, s }, { s, -s, -s },{ -s, s, s }, { -s, s, -s }, { -s, -s, -s }, { -s, -s, s } };
+	// 6 face normals
+	XMFLOAT3 n[6] = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } };
+	// 4 unique texture coordinates
+	XMFLOAT3 uv[4] = { { 0, 0, 0 }, { 1, 0, 0 }, { 1, 1, 0 }, { 0, 1, 0 } };
+
+	// Indices for the vertex positions.
+	size_t i[24] = {
+		0, 1, 2, 3,  // +X
+		4, 5, 6, 7,  // -X
+		4, 1, 0, 5,  // +Y
+		2, 7, 6, 3,  // -Y
+		1, 4, 7, 2,  // +Z
+		5, 0, 3, 6   // -Z
+	};
+
+	std::vector<VertexInput> vertices;
+	std::vector<uint16_t>  indices;
+
+	for(int f = 0; f < 6; ++f)  // For each face of the cube.
+	{
+		// Four vertices per face.
+		vertices.emplace_back(p[i[f * 4 + 0]], n[f], uv[0]);
+		vertices.emplace_back(p[i[f * 4 + 1]], n[f], uv[1]);
+		vertices.emplace_back(p[i[f * 4 + 2]], n[f], uv[2]);
+		vertices.emplace_back(p[i[f * 4 + 3]], n[f], uv[3]);
+
+		// First triangle.
+		indices.emplace_back(f * 4 + 0);
+		indices.emplace_back(f * 4 + 1);
+		indices.emplace_back(f * 4 + 2);
+
+		// Second triangle
+		indices.emplace_back(f * 4 + 2);
+		indices.emplace_back(f * 4 + 3);
+		indices.emplace_back(f * 4 + 0);
+	}
+
+	CalculateModelVectors(vertices, indices);
+
+	auto vertexBuffer = CopyVertexBuffer(vertices);
+	auto indexBuffer = CopyIndexBuffer(indices);
+
+	auto cubeMeshPtr = std::make_shared<Mesh>();
+	cubeMeshPtr->SetVertexBuffer(0, vertexBuffer);
+	cubeMeshPtr->SetIndexBuffer(indexBuffer);
+
+	return cubeMeshPtr;
+}
+
+std::shared_ptr<Mesh> CommandList::CreateSphere(float radius, uint32_t tessellation) {
+
+	if(tessellation < 3)
+		throw std::out_of_range("tessellation parameter out of range");
+
+	std::vector<VertexInput> vertices;
+	std::vector<uint16_t>  indices;
+
+	size_t verticalSegments = tessellation;
+	size_t horizontalSegments = tessellation * 2;
+
+	// Create rings of vertices at progressively higher latitudes.
+	for(size_t i = 0; i <= verticalSegments; i++) {
+		float v = 1 - (float)i / verticalSegments;
+
+		float latitude = (i * XM_PI / verticalSegments) - XM_PIDIV2;
+		float dy, dxz;
+
+		XMScalarSinCos(&dy, &dxz, latitude);
+
+		// Create a single ring of vertices at this latitude.
+		for(size_t j = 0; j <= horizontalSegments; j++) {
+			float u = (float)j / horizontalSegments;
+
+			float longitude = j * XM_2PI / horizontalSegments;
+			float dx, dz;
+
+			XMScalarSinCos(&dx, &dz, longitude);
+
+			dx *= dxz;
+			dz *= dxz;
+
+			auto normal = XMVectorSet(dx, dy, dz, 0);
+			auto textureCoordinate = XMVectorSet(u, v, 0, 0);
+			auto position = normal * radius;
+
+			vertices.emplace_back(position, normal, textureCoordinate);
+		}
+	}
+
+	// Fill the index buffer with triangles joining each pair of latitude rings.
+	uint16_t stride = (uint16_t)horizontalSegments + 1;
+
+	for(uint16_t i = 0; i < verticalSegments; i++) {
+		for(uint16_t j = 0; j < horizontalSegments; j++) {
+			uint16_t nextI = i + 1;
+			uint16_t nextJ = (j + 1) % stride;
+
+			indices.push_back(i * stride + nextJ);
+			indices.push_back(nextI * stride + j);
+			indices.push_back(i * stride + j);
+
+			indices.push_back(nextI * stride + nextJ);
+			indices.push_back(nextI * stride + j);
+			indices.push_back(i * stride + nextJ);
+		}
+	}
+
+	CalculateModelVectors(vertices, indices);
+
+	auto vertexBuffer = CopyVertexBuffer(vertices);
+	auto indexBuffer = CopyIndexBuffer(indices);
+
+	auto sphereMeshPtr = std::make_shared<Mesh>();
+	sphereMeshPtr->SetVertexBuffer(0, vertexBuffer);
+	sphereMeshPtr->SetIndexBuffer(indexBuffer);
+
+	return sphereMeshPtr;
+}
+
+std::shared_ptr<Mesh> CommandList::CreateQuad(float width, float height) {
+	// Define a plane that is aligned with the X-Z plane and the normal is facing up in the Y-axis.
+	std::vector<VertexInput> vertices = {
+		VertexInput(XMFLOAT3(-0.5f * width, 0.0f, 0.5f * height),  XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f)), // 0
+		VertexInput(XMFLOAT3(0.5f * width, 0.0f, 0.5f * height),   XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f)), // 1
+		VertexInput(XMFLOAT3(0.5f * width, 0.0f, -0.5f * height),  XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT3(1.0f, 1.0f, 0.0f)), // 2
+		VertexInput(XMFLOAT3(-0.5f * width, 0.0f, -0.5f * height), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f))  // 3
+	};
+
+	std::vector<uint16_t> indices = { 1, 3, 0, 2, 3, 1 };
+
+	CalculateModelVectors(vertices, indices);
+
+	auto vertexBuffer = CopyVertexBuffer(vertices);
+	auto indexBuffer = CopyIndexBuffer(indices);
+
+	auto planeMeshPtr = std::make_shared<Mesh>();
+	planeMeshPtr->SetVertexBuffer(0, vertexBuffer);
+	planeMeshPtr->SetIndexBuffer(indexBuffer);
+
+	return planeMeshPtr;
+}

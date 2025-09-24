@@ -43,8 +43,7 @@ protected:
     virtual void UpdateViewMatrix() const;
     virtual void UpdateProjectionMatrix() const;
 
-    // This data must be aligned otherwise the SSE intrinsics fail
-    // and throw exceptions.
+    // This data must be aligned otherwise the SSE intrinsics fail and throw exceptions.
     __declspec(align(16)) struct AlignedData {
         // World-space position of the camera.
         DirectX::XMVECTOR m_Translation;

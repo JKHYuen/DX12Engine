@@ -90,223 +90,14 @@ namespace {
 	std::shared_ptr<Texture> s_Test_Normal;
 	std::shared_ptr<Texture> s_Test_Material; // r: AO, g: metallic, b: roughness, a: height 
 
-	std::unique_ptr<Mesh> s_TestFloorMesh;
-	std::unique_ptr<Mesh> s_TestMesh_0;
+	std::shared_ptr<Mesh> s_TestFloorMesh;
+	std::shared_ptr<Mesh> s_TestMesh_0;
 
 	EditorGui::GuiDescriptorAllocation s_GuiShadowMapDebugSRV;
 
 	DirectionalLight s_DirectionalLight {XMFLOAT3(9.0f, 8.0f, 7.0f), XMFLOAT3(50.0f, 230.0f, 0.0f), s_ShadowMapResolution, s_ShadowDistance, s_ShadowMapNear, s_ShadowMapFar, s_ShadowBias};
 
 	std::shared_ptr<ShaderResourceView> s_ShadowMapSRV;
-
-	/// TODO: move functions below to CommandList.cpp?
-	// Algorithm from https://rastertek.com/dx11win10tut20.html
-	// Refactored and simplified by KHY
-	void CalculateModelVectors(std::vector<VertexInput>& vertices, const std::vector<uint16_t>& indices) {
-		XMVECTOR tangent {}, bitangent {};
-		float vector1[3] {}, vector2[3] {};
-		float tuVector[2] {}, tvVector[2] {};
-
-		size_t triangleCount = indices.size() / 3;
-
-		// Index of index buffer
-		size_t i = 0;
-
-		// Go through all triangles and calculate the the tangent and bitangent vectors
-		for(int f = 0; f < triangleCount; f++) {
-			VertexInput vertex1 = vertices[indices[i++]];
-			VertexInput vertex2 = vertices[indices[i++]];
-			VertexInput vertex3 = vertices[indices[i++]];
-
-			// Calculate tangent and bitangent
-			{
-				// Calculate the two vectors for this face
-				vector1[0] = vertex2.Position.x - vertex1.Position.x;
-				vector1[1] = vertex2.Position.y - vertex1.Position.y;
-				vector1[2] = vertex2.Position.z - vertex1.Position.z;
-
-				vector2[0] = vertex3.Position.x - vertex1.Position.x;
-				vector2[1] = vertex3.Position.y - vertex1.Position.y;
-				vector2[2] = vertex3.Position.z - vertex1.Position.z;
-
-				// Calculate the tu and tv texture space vectors.
-				tuVector[0] = vertex2.TexCoord.x - vertex1.TexCoord.x;
-				tvVector[0] = vertex2.TexCoord.y - vertex1.TexCoord.y;
-
-				tuVector[1] = vertex3.TexCoord.x - vertex1.TexCoord.x;
-				tvVector[1] = vertex3.TexCoord.y - vertex1.TexCoord.y;
-
-				// Calculate the cross products, multiply by the coefficient and normalize to get the tangent and bitangent
-				tangent = XMVector3Normalize(XMVectorSet(
-					(tvVector[1] * vector1[0] - tvVector[0] * vector2[0]),
-					(tvVector[1] * vector1[1] - tvVector[0] * vector2[1]),
-					(tvVector[1] * vector1[2] - tvVector[0] * vector2[2]), 1.0f)
-				);
-				bitangent = XMVector3Normalize(XMVectorSet(
-					(tuVector[0] * vector2[0] - tuVector[1] * vector1[0]),
-					(tuVector[0] * vector2[1] - tuVector[1] * vector1[1]),
-					(tuVector[0] * vector2[2] - tuVector[1] * vector1[2]), 1.0f)
-				);
-			}
-
-			// Store the tangent and binormal 
-			// NOTE: some repeated work done
-			XMStoreFloat3(&vertices[indices[i - 1]].Tangent, tangent);
-			XMStoreFloat3(&vertices[indices[i - 1]].Bitangent, bitangent);
-			XMStoreFloat3(&vertices[indices[i - 2]].Tangent, tangent);
-			XMStoreFloat3(&vertices[indices[i - 2]].Bitangent, bitangent);
-			XMStoreFloat3(&vertices[indices[i - 3]].Tangent, tangent);
-			XMStoreFloat3(&vertices[indices[i - 3]].Bitangent, bitangent);
-		}
-	}
-
-	std::unique_ptr<Mesh> CreateCube(CommandList& commandList, float size = 1.0f) {
-		// Cube is centered at 0,0,0
-		float s = size * 0.5f;
-
-		// 8 edges of cube.
-		XMFLOAT3 p[8] = {{ s, s, -s }, { s, s, s }, { s, -s, s }, { s, -s, -s },{ -s, s, s }, { -s, s, -s }, { -s, -s, -s }, { -s, -s, s }};
-		// 6 face normals
-		XMFLOAT3 n[6] = {{ 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 }};
-		// 4 unique texture coordinates
-		XMFLOAT3 uv[4] = {{ 0, 0, 0 }, { 1, 0, 0 }, { 1, 1, 0 }, { 0, 1, 0 }};
-
-		// Indices for the vertex positions.
-		size_t i[24] = {
-			0, 1, 2, 3,  // +X
-			4, 5, 6, 7,  // -X
-			4, 1, 0, 5,  // +Y
-			2, 7, 6, 3,  // -Y
-			1, 4, 7, 2,  // +Z
-			5, 0, 3, 6   // -Z
-		};
-
-		std::vector<VertexInput> vertices;
-		std::vector<uint16_t>  indices;
-
-		for(int f = 0; f < 6; ++f)  // For each face of the cube.
-		{
-			// Four vertices per face.
-			vertices.emplace_back(p[i[f * 4 + 0]], n[f], uv[0]);
-			vertices.emplace_back(p[i[f * 4 + 1]], n[f], uv[1]);
-			vertices.emplace_back(p[i[f * 4 + 2]], n[f], uv[2]);
-			vertices.emplace_back(p[i[f * 4 + 3]], n[f], uv[3]);
-
-			// First triangle.
-			indices.emplace_back(f * 4 + 0);
-			indices.emplace_back(f * 4 + 1);
-			indices.emplace_back(f * 4 + 2);
-
-			// Second triangle
-			indices.emplace_back(f * 4 + 2);
-			indices.emplace_back(f * 4 + 3);
-			indices.emplace_back(f * 4 + 0);
-		}
-
-		CalculateModelVectors(vertices, indices);
-
-		auto vertexBuffer = commandList.CopyVertexBuffer(vertices);
-		auto indexBuffer = commandList.CopyIndexBuffer(indices);
-
-		auto cubeMeshPtr = std::make_unique<Mesh>();
-		cubeMeshPtr->SetVertexBuffer(0, vertexBuffer);
-		cubeMeshPtr->SetIndexBuffer(indexBuffer);
-
-		return cubeMeshPtr;
-	}
-
-	std::unique_ptr<Mesh> CreateSphere(CommandList& commandList, float radius, uint32_t tessellation) {
-
-		if(tessellation < 3)
-			throw std::out_of_range("tessellation parameter out of range");
-
-		std::vector<VertexInput> vertices;
-		std::vector<uint16_t>  indices;
-
-		size_t verticalSegments = tessellation;
-		size_t horizontalSegments = tessellation * 2;
-
-		// Create rings of vertices at progressively higher latitudes.
-		for(size_t i = 0; i <= verticalSegments; i++) {
-			float v = 1 - (float)i / verticalSegments;
-
-			float latitude = (i * XM_PI / verticalSegments) - XM_PIDIV2;
-			float dy, dxz;
-
-			XMScalarSinCos(&dy, &dxz, latitude);
-
-			// Create a single ring of vertices at this latitude.
-			for(size_t j = 0; j <= horizontalSegments; j++) {
-				float u = (float)j / horizontalSegments;
-
-				float longitude = j * XM_2PI / horizontalSegments;
-				float dx, dz;
-
-				XMScalarSinCos(&dx, &dz, longitude);
-
-				dx *= dxz;
-				dz *= dxz;
-
-				auto normal = XMVectorSet(dx, dy, dz, 0);
-				auto textureCoordinate = XMVectorSet(u, v, 0, 0);
-				auto position = normal * radius;
-
-				vertices.emplace_back(position, normal, textureCoordinate);
-			}
-		}
-
-		// Fill the index buffer with triangles joining each pair of latitude rings.
-		uint16_t stride = (uint16_t)horizontalSegments + 1;
-
-		for(uint16_t i = 0; i < verticalSegments; i++) {
-			for(uint16_t j = 0; j < horizontalSegments; j++) {
-				uint16_t nextI = i + 1;
-				uint16_t nextJ = (j + 1) % stride;
-
-				indices.push_back(i * stride + nextJ);
-				indices.push_back(nextI * stride + j);
-				indices.push_back(i * stride + j);
-
-				indices.push_back(nextI * stride + nextJ);
-				indices.push_back(nextI * stride + j);
-				indices.push_back(i * stride + nextJ);
-			}
-		}
-
-		CalculateModelVectors(vertices, indices);
-
-		auto vertexBuffer = commandList.CopyVertexBuffer(vertices);
-		auto indexBuffer = commandList.CopyIndexBuffer(indices);
-
-		auto sphereMeshPtr = std::make_unique<Mesh>();
-		sphereMeshPtr->SetVertexBuffer(0, vertexBuffer);
-		sphereMeshPtr->SetIndexBuffer(indexBuffer);
-
-		return sphereMeshPtr;
-	}
-
-	std::unique_ptr<Mesh> CreateQuad(CommandList& commandList, float width, float height) {
-		// Define a plane that is aligned with the X-Z plane and the normal is facing up in the Y-axis.
-		std::vector<VertexInput> vertices = {
-			VertexInput(XMFLOAT3(-0.5f * width, 0.0f, 0.5f * height),  XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f)), // 0
-			VertexInput(XMFLOAT3(0.5f * width, 0.0f, 0.5f * height),   XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f)), // 1
-			VertexInput(XMFLOAT3(0.5f * width, 0.0f, -0.5f * height),  XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT3(1.0f, 1.0f, 0.0f)), // 2
-			VertexInput(XMFLOAT3(-0.5f * width, 0.0f, -0.5f * height), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f))  // 3
-		};
-
-		std::vector<uint16_t> indices = {1, 3, 0, 2, 3, 1};
-
-		CalculateModelVectors(vertices, indices);
-
-		auto vertexBuffer = commandList.CopyVertexBuffer(vertices);
-		auto indexBuffer = commandList.CopyIndexBuffer(indices);
-
-		auto planeMeshPtr = std::make_unique<Mesh>();
-		planeMeshPtr ->SetVertexBuffer(0, vertexBuffer);
-		planeMeshPtr ->SetIndexBuffer(indexBuffer);
-
-		return planeMeshPtr;
-	}
 }
 
 DemoGame::DemoGame(const std::wstring& name, uint32_t width, uint32_t height, bool vSync)
@@ -366,7 +157,6 @@ uint32_t DemoGame::Run() {
 
 bool DemoGame::Initialize() {
 	m_Device = std::make_shared<Device>();
-
 	m_EditorGui = std::make_unique<EditorGui>(*m_Device, sk_HDRFormat, SwapChain::sk_BufferCount, m_Window->GetWindowHandle());
 
 	// TODO: Tweakable MSAA
@@ -447,8 +237,11 @@ bool DemoGame::Initialize() {
 		auto copyCommandList = copyCommandQueue.GetCommandList();
 
 		/// TODO / TEMP: more dynamic scene object loading
-		s_TestFloorMesh = CreateQuad(*copyCommandList, 1.0f, 1.0f);
-		s_TestMesh_0 = CreateSphere(*copyCommandList, 1.0f, 64);
+		s_TestFloorMesh = copyCommandList->CreateQuad(1.0f, 1.0f);
+		s_TestMesh_0 = copyCommandList->CreateSphere(1.0f, 64);
+
+		//s_TestFloorMesh = CreateQuad(*copyCommandList, 1.0f, 1.0f);
+		//s_TestMesh_0 = CreateSphere(*copyCommandList, 1.0f, 64);
 
 		std::wstring matName = L"stonewall";
 		s_Test_Albedo = copyCommandList->LoadTextureFromFile(L"assets/materials/" + matName + L"_albedo.tga", true);
@@ -457,7 +250,9 @@ bool DemoGame::Initialize() {
 
 		// Load Skybox Assets
 		std::wstring skyboxName = L"industrial_sunset_puresky_4k";
-		m_Skybox = std::make_unique<Skybox>(*m_Device, *copyCommandList, skyboxName, CreateCube(*copyCommandList, 1.0f), m_HDR_MSAA_RenderTarget);
+		//m_Skybox = std::make_unique<Skybox>(*m_Device, *copyCommandList, skyboxName, CreateCube(*copyCommandList, 1.0f), m_HDR_MSAA_RenderTarget);
+
+		m_Skybox = std::make_unique<Skybox>(*m_Device, *copyCommandList, skyboxName, copyCommandList->CreateCube(1.0f), m_HDR_MSAA_RenderTarget);
 
 		copyCommandQueue.ExecuteCommandList(copyCommandList);
 	}
@@ -490,7 +285,7 @@ bool DemoGame::Initialize() {
 		rootParameters[PBRRootParameters::VolatileTextures].InitAsDescriptorTable(1, &volatileDescriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
 		CD3DX12_STATIC_SAMPLER_DESC anisotropicSampler(0, D3D12_FILTER_ANISOTROPIC);
-		CD3DX12_STATIC_SAMPLER_DESC linearClampSampler(1, D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
+		CD3DX12_STATIC_SAMPLER_DESC linearClampSampler(1, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
 		CD3DX12_STATIC_SAMPLER_DESC samplers[] = {anisotropicSampler, linearClampSampler};
 
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
@@ -531,12 +326,12 @@ bool DemoGame::Initialize() {
 		CD3DX12_ROOT_PARAMETER1 rootParameters[1];
 		rootParameters[0].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
-		CD3DX12_STATIC_SAMPLER_DESC linearClampSampler(
-			0, D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR, 
+		CD3DX12_STATIC_SAMPLER_DESC pointClampSampler(
+			0, D3D12_FILTER_MIN_MAG_MIP_POINT,
 			D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
 
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
-		rootSignatureDescription.Init_1_1(_countof(rootParameters), rootParameters, 1, &linearClampSampler, rootSignatureFlags_VSPS);
+		rootSignatureDescription.Init_1_1(_countof(rootParameters), rootParameters, 1, &pointClampSampler, rootSignatureFlags_VSPS);
 		m_PostProcessRootSignature = std::make_shared<RootSignature>(*m_Device, rootSignatureDescription.Desc_1_1);
 
 		ComPtr<ID3DBlob> vs;
@@ -632,14 +427,16 @@ void DemoGame::OnResize(ResizeEventArgs& e) {
 	m_FloatRenderTarget.Resize(m_Width, m_Height);
 }
 
-// NOTE: might not be needed?
+// NOTE: only needed if multiple IGame objects are loaded in one session
 void DemoGame::UnloadContent() {
 	m_HDR_MSAA_RenderTarget.Reset();
 	m_FloatRenderTarget.Reset();
+	m_DirectionalShadowMap.Reset();
 
 	m_PBR_PSO.Reset();
 	m_TonemapPSO.Reset();
 	m_PostprocessPSO.Reset();
+	m_ShadowDepthPSO.Reset();
 
 	m_PBRRootSignature.reset();
 	m_PostProcessRootSignature.reset();
@@ -798,7 +595,7 @@ void DemoGame::ShowImGuiWindow(CommandList& directCommandList) {
 		}
 
 		{
-			static float imageScale = 0.3f;
+			static float imageScale = 0.25f;
 			ImGui::SliderFloat("Scale", &imageScale, 0.0, 1.0, "%.2fx");
 			ImVec2 imageSize = ImVec2(1920.0f * imageScale, 1080.0f * imageScale);
 

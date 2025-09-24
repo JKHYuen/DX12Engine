@@ -63,6 +63,7 @@ class Texture;
 class UnorderedAccessView;
 class UploadBuffer;
 class VertexBuffer;
+class Mesh;
 
 class CommandList : public std::enable_shared_from_this<CommandList> {
     friend class CommandQueue;
@@ -450,6 +451,10 @@ public:
     inline DirectX::XMVECTOR GetCircleVector(size_t i, size_t tessellation) noexcept;
     // Helper function to compute a tangent vector at a point on a unit sphere aligned to the x,z plane.
     inline DirectX::XMVECTOR GetCircleTangent(size_t i, size_t tessellation) noexcept;
+
+    std::shared_ptr<Mesh> CreateCube(float size = 1.0f);
+    std::shared_ptr<Mesh> CreateSphere(float radius, uint32_t tessellation);
+    std::shared_ptr<Mesh> CreateQuad(float width, float height);
 
 protected:
     // Constructor should only be called in CommandQueue::GetCommandList()

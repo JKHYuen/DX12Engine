@@ -11,7 +11,6 @@
 // HLSL Compute Shader
 #include "GenerateMips_CS.h"
 
-
 GenerateMipsPSO::GenerateMipsPSO(Device& device) {
     auto d3d12Device = device.GetD3D12Device();
 

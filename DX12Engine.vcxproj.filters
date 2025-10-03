@@ -171,6 +171,9 @@
     <ClCompile Include="Scene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PBRObjectPSO.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Helpers.h">
@@ -284,9 +287,6 @@
     <ClInclude Include="ConstantBufferView.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Visitor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -342,6 +342,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Scene.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PBRObjectPSO.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

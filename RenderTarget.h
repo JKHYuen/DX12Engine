@@ -42,8 +42,7 @@
 
 #include "Texture.h"
 
-   // Don't use scoped enums to avoid the explicit cast required to use these as 
-  // array indices.
+// Don't use scoped enums to avoid the explicit cast required to use these as array indices.
 enum AttachmentPoint {
     Color0,
     Color1,

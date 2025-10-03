@@ -6,6 +6,6 @@ class Scene {
 public:
 
 private:
-	std::vector<GameObject> SceneObjects;
+	std::vector<GameObject> m_SceneObjects;
 };
 

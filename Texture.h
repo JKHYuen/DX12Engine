@@ -40,6 +40,7 @@
 #include <unordered_map>
 
 class Device;
+class ShaderResourceView;
 
 class Texture : public Resource {
 public:
@@ -127,3 +128,7 @@ private:
     DescriptorAllocation m_ShaderResourceView;
     DescriptorAllocation m_UnorderedAccessView;
 };
+
+
+
+

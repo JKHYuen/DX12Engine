@@ -4,7 +4,6 @@
 #include "IndexBuffer.h"
 #include "Mesh.h"
 #include "VertexBuffer.h"
-#include "Visitor.h"
 
 Mesh::Mesh() : m_PrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST) {}
 
@@ -81,10 +80,6 @@ void Mesh::Draw(CommandList& commandList, uint32_t instanceCount, uint32_t start
     else if(vertexCount > 0) {
         commandList.Draw(vertexCount, instanceCount, 0u, startInstance);
     }
-}
-
-void Mesh::Accept(Visitor& visitor) {
-    visitor.Visit(*this);
 }
 
 void Mesh::SetAABB(const DirectX::BoundingBox& aabb) {

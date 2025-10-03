@@ -2,13 +2,28 @@
 
 #include <directxmath.h>
 #include <d3d12.h>
+#include <wrl/client.h>
+
+#include "RenderTarget.h"
 
 using namespace DirectX;
+using namespace Microsoft::WRL;
+
+class ShaderResourceView;
+class CommandList;
+class RootSignature;
+class Mesh;
 
 class DirectionalLight {
 public:
+    // Root signature and Input layout is for shadow caster depth rendering on shadow map
     // Note: eulerDir is in radians
-    DirectionalLight(XMFLOAT3 color, XMFLOAT3 eulerDir, int shadowMapResolution, float shadowDistance, float shadowMapNearZ, float shadowMapFarZ, float shadowBias);
+    DirectionalLight(
+        Device& device, std::shared_ptr<RootSignature> depthRenderRootSignature, 
+        CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT depthRenderInputLayout,
+        XMFLOAT3 color, XMFLOAT3 eulerDir, int shadowMapResolution, float shadowDistance,
+        float shadowMapNearZ, float shadowMapFarZ, float shadowBias
+    );
 
     void GenerateViewMatrix();
 
@@ -34,7 +49,14 @@ public:
     XMFLOAT4X4 GetViewMatrix() const { return m_ViewMatrix; }
     D3D12_VIEWPORT GetViewPort() const { return m_ViewPort; }
 
+    std::shared_ptr<ShaderResourceView> GetShadowMapSRV() const { return m_ShadowMapSRV; }
+    
+    void SetShadowDepthPipelineState(CommandList& directCommandList) const;
+    void RenderObjectToDepth(std::shared_ptr<CommandList> directCommandList, std::shared_ptr<Mesh> mesh, XMMATRIX modelMatrix) const;
+
 private:
+    Device& m_Device;
+
     float m_LightDistance = -100.0f;
     XMFLOAT4 m_Color{};
 
@@ -49,5 +71,10 @@ private:
     XMFLOAT4X4 m_OrthoMatrix;
     XMFLOAT4X4 m_ViewMatrix;
     D3D12_VIEWPORT m_ViewPort;
+
+    RenderTarget m_DirectionalShadowMap;
+    ComPtr<ID3D12PipelineState> m_DepthRenderPSO;
+    std::shared_ptr<RootSignature> m_DepthRenderRootSignature;
+    std::shared_ptr<ShaderResourceView> m_ShadowMapSRV;
 };
 

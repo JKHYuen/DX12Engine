@@ -23,8 +23,18 @@
 #include "UnorderedAccessView.h"
 #include "ConstantBufferView.h"
 
-std::map<std::wstring, ID3D12Resource*> CommandList::ms_TextureCache;
-std::mutex                              CommandList::ms_TextureCacheMutex;
+namespace {
+	// Hash names for primitive meshes created by functions for ms_MeshCache
+	const std::wstring sk_CubePrimitiveName   = L"Cube_Primitive";
+	const std::wstring sk_SpherePrimitiveName = L"Sphere_Primitive";
+	const std::wstring sk_QuadPrimitiveName   = L"Quad_Primitive";
+}
+
+std::unordered_map<std::wstring, ID3D12Resource*> CommandList::ms_TextureCache;
+std::mutex                                        CommandList::ms_TextureCacheMutex;
+
+std::unordered_map<std::wstring, std::shared_ptr<Mesh>> CommandList::ms_MeshCache;
+std::mutex                                              CommandList::ms_MeshCacheMutex;
 
 CommandList::CommandList(Device& device, D3D12_COMMAND_LIST_TYPE type)
 	: m_Device(device)
@@ -1310,4 +1320,43 @@ std::shared_ptr<Mesh> CommandList::CreateQuad(float width, float height) {
 	planeMeshPtr->SetIndexBuffer(indexBuffer);
 
 	return planeMeshPtr;
+}
+
+std::shared_ptr<Mesh> CommandList::CreateCubePrimitive() {
+	std::lock_guard<std::mutex> lock(ms_MeshCacheMutex);
+	
+	auto iter = ms_MeshCache.find(sk_CubePrimitiveName);
+	if(iter != ms_MeshCache.end()) {
+		return iter->second;
+	}
+	else {
+		ms_MeshCache[sk_CubePrimitiveName] = CreateCube(1.0f);
+		return ms_MeshCache[sk_CubePrimitiveName];
+	}
+}
+
+std::shared_ptr<Mesh> CommandList::CreateSpherePrimitive() {
+	std::lock_guard<std::mutex> lock(ms_MeshCacheMutex);
+
+	auto iter = ms_MeshCache.find(sk_SpherePrimitiveName);
+	if(iter != ms_MeshCache.end()) {
+		return iter->second;
+	}
+	else {
+		ms_MeshCache[sk_SpherePrimitiveName] = CreateSphere(1.0f, 64);
+		return ms_MeshCache[sk_SpherePrimitiveName];
+	}
+}
+
+std::shared_ptr<Mesh> CommandList::CreateQuadPrimitive() {
+	std::lock_guard<std::mutex> lock(ms_MeshCacheMutex);
+
+	auto iter = ms_MeshCache.find(sk_QuadPrimitiveName);
+	if(iter != ms_MeshCache.end()) {
+		return iter->second;
+	}
+	else {
+		ms_MeshCache[sk_QuadPrimitiveName] = CreateQuad(1.0f, 1.0f);
+		return ms_MeshCache[sk_QuadPrimitiveName];
+	}
 }

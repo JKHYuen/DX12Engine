@@ -1,4 +1,3 @@
-#include <DX12LibPCH.h>
 #include "VertexTypes.h"
 
 const D3D12_INPUT_ELEMENT_DESC VertexInput::InputElements[] = {

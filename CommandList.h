@@ -68,8 +68,6 @@ class Mesh;
 class CommandList : public std::enable_shared_from_this<CommandList> {
     friend class CommandQueue;
     friend class DynamicDescriptorHeap;
-
-    /// TEMP
     friend class EditorGui;
 
 public:
@@ -452,9 +450,9 @@ public:
     // Helper function to compute a tangent vector at a point on a unit sphere aligned to the x,z plane.
     inline DirectX::XMVECTOR GetCircleTangent(size_t i, size_t tessellation) noexcept;
 
-    std::shared_ptr<Mesh> CreateCube(float size = 1.0f);
-    std::shared_ptr<Mesh> CreateSphere(float radius, uint32_t tessellation);
-    std::shared_ptr<Mesh> CreateQuad(float width, float height);
+    std::shared_ptr<Mesh> CreateCubePrimitive();
+    std::shared_ptr<Mesh> CreateSpherePrimitive();
+    std::shared_ptr<Mesh> CreateQuadPrimitive();
 
 protected:
     // Constructor should only be called in CommandQueue::GetCommandList()
@@ -559,8 +557,15 @@ private:
     std::vector<Microsoft::WRL::ComPtr<ID3D12Object>> m_TrackedObjects;
 
     // Keep track of loaded textures to avoid loading the same texture multiple times.
-    static std::map<std::wstring, ID3D12Resource*> ms_TextureCache;
+    static std::unordered_map<std::wstring, ID3D12Resource*> ms_TextureCache;
     static std::mutex                              ms_TextureCacheMutex;
+
+    static std::unordered_map<std::wstring, std::shared_ptr<Mesh>> ms_MeshCache;
+    static std::mutex                                    ms_MeshCacheMutex;
+
+    std::shared_ptr<Mesh> CreateCube(float size);
+    std::shared_ptr<Mesh> CreateSphere(float radius, uint32_t tessellation);
+    std::shared_ptr<Mesh> CreateQuad(float width, float height);
 };
 
 // Definition for inline functions.

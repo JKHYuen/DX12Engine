@@ -31,8 +31,8 @@
   */
 
 
-#include <d3d12.h>  // For D3D12_SHADER_RESOURCE_VIEW_DESC and D3D12_CPU_DESCRIPTOR_HANDLE
-#include <memory>   // For std::shared_ptr
+#include <d3d12.h> 
+#include <memory>   
 #include "DescriptorAllocation.h"
 
 class Device;

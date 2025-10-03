@@ -5,8 +5,8 @@
 #include "Device.h"
 #include "Application.h"
 #include "Helpers.h"
+#include "ShaderResourceView.h"
 #include "ResourceStateTracker.h"
-
 
 Texture::Texture(Device& device, const D3D12_RESOURCE_DESC& resourceDesc, const D3D12_CLEAR_VALUE* clearValue, bool b_CreateDefaultView)
     : Resource(device, resourceDesc, clearValue) {

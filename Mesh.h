@@ -92,11 +92,6 @@ public:
         */
     void Draw(CommandList& commandList, uint32_t instanceCount = 1, uint32_t startInstance = 0);
 
-    /**
-        * Accept a visitor.
-        */
-    void Accept(Visitor& visitor);
-
 private:
     BufferMap                    m_VertexBuffers;
     std::shared_ptr<IndexBuffer> m_IndexBuffer;

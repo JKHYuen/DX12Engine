@@ -33,6 +33,7 @@ namespace {
 std::unordered_map<std::wstring, ID3D12Resource*> CommandList::ms_TextureCache;
 std::mutex                                        CommandList::ms_TextureCacheMutex;
 
+// Cache all loaded meshes for session. We can clear on scene load if needed in the future.
 std::unordered_map<std::wstring, std::shared_ptr<Mesh>> CommandList::ms_MeshCache;
 std::mutex                                              CommandList::ms_MeshCacheMutex;
 
@@ -646,7 +647,7 @@ void CommandList::ClearTexture(const std::shared_ptr<Texture>& texture, const fl
 	assert(texture);
 
 	TransitionBarrier(texture, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, true);
-	m_d3d12CommandList->ClearRenderTargetView(texture->GetRenderTargetView(), clearColor, 0, nullptr);
+	m_d3d12CommandList->ClearRenderTargetView(texture->GetRenderTargetViewHandle(), clearColor, 0, nullptr);
 
 	TrackResource(texture);
 }
@@ -655,7 +656,7 @@ void CommandList::ClearDepthStencilTexture(const std::shared_ptr<Texture>& textu
 	assert(texture);
 
 	TransitionBarrier(texture, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, true);
-	m_d3d12CommandList->ClearDepthStencilView(texture->GetDepthStencilView(), clearFlags, depth, stencil, 0, nullptr);
+	m_d3d12CommandList->ClearDepthStencilView(texture->GetDepthStencilViewHandle(), clearFlags, depth, stencil, 0, nullptr);
 
 	TrackResource(texture);
 }
@@ -847,7 +848,8 @@ void CommandList::SetConstantBufferView(uint32_t rootParameterIndex, const std::
 		TransitionBarrier(d3d12Resource, stateAfter);
 
 		m_DynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageInlineCBV(
-			rootParameterIndex, d3d12Resource->GetGPUVirtualAddress() + bufferOffset);
+			rootParameterIndex, d3d12Resource->GetGPUVirtualAddress() + bufferOffset
+		);
 
 		TrackResource(buffer);
 	}
@@ -917,7 +919,7 @@ void CommandList::SetShaderResourceView(int32_t rootParameterIndex, uint32_t des
 		TrackResource(texture);
 
 		m_DynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(
-			rootParameterIndex, descriptorOffset, 1, texture->GetShaderResourceView()
+			rootParameterIndex, descriptorOffset, 1, texture->GetShaderResourceViewHandle()
 		);
 	}
 }
@@ -960,7 +962,7 @@ void CommandList::SetUnorderedAccessView(uint32_t rootParameterIndex, uint32_t d
 		TrackResource(texture);
 
 		m_DynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(
-			rootParameterIndex, descriptorOffset, 1, texture->GetUnorderedAccessView(mip)
+			rootParameterIndex, descriptorOffset, 1, texture->GetUnorderedAccessViewHandle(mip)
 		);
 	}
 }
@@ -991,7 +993,7 @@ void CommandList::SetRenderTarget(const RenderTarget& renderTarget) {
 
 		if(texture) {
 			TransitionBarrier(texture, D3D12_RESOURCE_STATE_RENDER_TARGET);
-			renderTargetDescriptors.push_back(texture->GetRenderTargetView());
+			renderTargetDescriptors.push_back(texture->GetRenderTargetViewHandle());
 
 			TrackResource(texture);
 		}
@@ -1002,7 +1004,7 @@ void CommandList::SetRenderTarget(const RenderTarget& renderTarget) {
 	CD3DX12_CPU_DESCRIPTOR_HANDLE depthStencilDescriptor(D3D12_DEFAULT);
 	if(depthTexture) {
 		TransitionBarrier(depthTexture, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-		depthStencilDescriptor = depthTexture->GetDepthStencilView();
+		depthStencilDescriptor = depthTexture->GetDepthStencilViewHandle();
 
 		TrackResource(depthTexture);
 	}

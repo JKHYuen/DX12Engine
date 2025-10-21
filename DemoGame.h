@@ -53,14 +53,13 @@ private:
 
     std::shared_ptr<RootSignature> m_PostProcessRootSignature;
 
-    std::unique_ptr<PBRObjectPSO> m_PBR_PSO;
+    std::shared_ptr<PBRObjectPSO> m_PBR_PSO;
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_TonemapPSO;
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_PostprocessPSO;
 
     D3D12_VIEWPORT m_ScreenViewport;
     D3D12_RECT     m_DefaultScissorRect;
 
-    // TODO: use MiniEngine Math headers
     Camera m_Camera;
     struct alignas(16) CameraData {
         DirectX::XMVECTOR m_InitialCamPos;

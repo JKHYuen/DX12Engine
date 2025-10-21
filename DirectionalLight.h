@@ -49,10 +49,11 @@ public:
     XMFLOAT4X4 GetViewMatrix() const { return m_ViewMatrix; }
     D3D12_VIEWPORT GetViewPort() const { return m_ViewPort; }
 
-    std::shared_ptr<ShaderResourceView> GetShadowMapSRV() const { return m_ShadowMapSRV; }
+    //std::shared_ptr<ShaderResourceView> GetShadowMapSRV() const { return m_ShadowMapSRV; }
+    std::shared_ptr<Texture> GetShadowMapTexture() const { return m_DirectionalShadowMap.GetTexture(AttachmentPoint::DepthStencil); }
     
     void SetShadowDepthPipelineState(CommandList& directCommandList) const;
-    void RenderObjectToDepth(std::shared_ptr<CommandList> directCommandList, std::shared_ptr<Mesh> mesh, XMMATRIX modelMatrix) const;
+    void RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, XMMATRIX modelMatrix) const;
 
 private:
     Device& m_Device;
@@ -75,6 +76,6 @@ private:
     RenderTarget m_DirectionalShadowMap;
     ComPtr<ID3D12PipelineState> m_DepthRenderPSO;
     std::shared_ptr<RootSignature> m_DepthRenderRootSignature;
-    std::shared_ptr<ShaderResourceView> m_ShadowMapSRV;
+    //std::shared_ptr<ShaderResourceView> m_ShadowMapSRV;
 };
 

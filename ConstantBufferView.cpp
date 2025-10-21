@@ -4,8 +4,7 @@
 #include "ConstantBuffer.h"
 #include "Device.h"
 
-ConstantBufferView::ConstantBufferView(Device& device, const std::shared_ptr<ConstantBuffer>& constantBuffer,
-    size_t offset)
+ConstantBufferView::ConstantBufferView(Device& device, const std::shared_ptr<ConstantBuffer>& constantBuffer, size_t offset)
     : m_ConstantBuffer(constantBuffer) {
     assert(constantBuffer);
 

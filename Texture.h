@@ -61,25 +61,30 @@ public:
     void CreateRenderTargetView(const D3D12_RENDER_TARGET_VIEW_DESC& rtvDesc);
 
     /**
+     * Create non-default SRV
+     */
+    void CreateShaderResourceView(const D3D12_SHADER_RESOURCE_VIEW_DESC& srvDesc);
+
+    /**
      * Get the RTV for the texture.
      */
-    D3D12_CPU_DESCRIPTOR_HANDLE GetRenderTargetView() const;
+    D3D12_CPU_DESCRIPTOR_HANDLE GetRenderTargetViewHandle() const;
 
     /**
      * Get the DSV for the texture.
      */
-    D3D12_CPU_DESCRIPTOR_HANDLE GetDepthStencilView() const;
+    D3D12_CPU_DESCRIPTOR_HANDLE GetDepthStencilViewHandle() const;
 
     /**
      * Get the default SRV for the texture.
      */
-    D3D12_CPU_DESCRIPTOR_HANDLE GetShaderResourceView() const;
+    D3D12_CPU_DESCRIPTOR_HANDLE GetShaderResourceViewHandle() const;
 
     /**
      * Get the UAV for the texture at a specific mip level.
      * Note: Only only supported for 1D and 2D textures.
      */
-    D3D12_CPU_DESCRIPTOR_HANDLE GetUnorderedAccessView(uint32_t mip) const;
+    D3D12_CPU_DESCRIPTOR_HANDLE GetUnorderedAccessViewHandle(uint32_t mip) const;
 
     bool CheckSRVSupport() const {
         return CheckFormatSupport(D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE);

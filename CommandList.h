@@ -450,6 +450,7 @@ public:
     // Helper function to compute a tangent vector at a point on a unit sphere aligned to the x,z plane.
     inline DirectX::XMVECTOR GetCircleTangent(size_t i, size_t tessellation) noexcept;
 
+    // Use these functions to create cached primitive meshes with predefined parameters
     std::shared_ptr<Mesh> CreateCubePrimitive();
     std::shared_ptr<Mesh> CreateSpherePrimitive();
     std::shared_ptr<Mesh> CreateQuadPrimitive();
@@ -563,6 +564,7 @@ private:
     static std::unordered_map<std::wstring, std::shared_ptr<Mesh>> ms_MeshCache;
     static std::mutex                                    ms_MeshCacheMutex;
 
+    // These helper functions do not use the mesh cache, use public functions to generate reusable primitives  
     std::shared_ptr<Mesh> CreateCube(float size);
     std::shared_ptr<Mesh> CreateSphere(float radius, uint32_t tessellation);
     std::shared_ptr<Mesh> CreateQuad(float width, float height);

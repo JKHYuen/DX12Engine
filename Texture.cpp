@@ -8,6 +8,8 @@
 #include "ShaderResourceView.h"
 #include "ResourceStateTracker.h"
 
+using namespace Microsoft::WRL;
+
 Texture::Texture(Device& device, const D3D12_RESOURCE_DESC& resourceDesc, const D3D12_CLEAR_VALUE* clearValue, bool b_CreateDefaultView)
     : Resource(device, resourceDesc, clearValue) {
     if(b_CreateDefaultView) CreateDefaultViews();
@@ -133,19 +135,31 @@ void Texture::CreateRenderTargetView(const D3D12_RENDER_TARGET_VIEW_DESC& rtvDes
     d3d12Device->CreateRenderTargetView(m_d3d12Resource.Get(), &rtvDesc, m_RenderTargetView.GetDescriptorHandle());
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetRenderTargetView() const {
+void Texture::CreateShaderResourceView(const D3D12_SHADER_RESOURCE_VIEW_DESC& srvDesc) {
+    assert(m_d3d12Resource);
+    auto d3d12Device = m_Device.GetD3D12Device();
+    CD3DX12_RESOURCE_DESC desc(m_d3d12Resource->GetDesc());
+
+    /// TODO: add this assert back when shadow mapping is fixed
+    //assert((desc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE) == 0 && CheckSRVSupport());
+
+    m_ShaderResourceView = m_Device.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    d3d12Device->CreateShaderResourceView(m_d3d12Resource.Get(), &srvDesc, m_ShaderResourceView.GetDescriptorHandle());
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetRenderTargetViewHandle() const {
     return m_RenderTargetView.GetDescriptorHandle();
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetDepthStencilView() const {
+D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetDepthStencilViewHandle() const {
     return m_DepthStencilView.GetDescriptorHandle();
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetShaderResourceView() const {
+D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetShaderResourceViewHandle() const {
     return m_ShaderResourceView.GetDescriptorHandle();
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetUnorderedAccessView(uint32_t mip) const {
+D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetUnorderedAccessViewHandle(uint32_t mip) const {
     return m_UnorderedAccessView.GetDescriptorHandle(mip);
 }
 

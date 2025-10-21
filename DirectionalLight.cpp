@@ -48,7 +48,8 @@ DirectionalLight::DirectionalLight(
     srvDesc.Texture2D.MostDetailedMip = 0;
     srvDesc.Texture2D.PlaneSlice = 0;
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    m_ShadowMapSRV = std::make_shared<ShaderResourceView>(m_Device, shadowMapDepthTexture, &srvDesc);
+    //m_ShadowMapSRV = std::make_shared<ShaderResourceView>(m_Device, shadowMapDepthTexture, &srvDesc);
+    shadowMapDepthTexture->CreateShaderResourceView(srvDesc);
 
     // Initialize ImGui SRV for debug
     // Note: SRVs for ImGui render have its own allocator and descriptor heap (instead of the two stage DynamicDescriptorHeap system) to keep things simple
@@ -137,12 +138,11 @@ void DirectionalLight::SetShadowDepthPipelineState(CommandList& directCommandLis
     directCommandList.SetViewport(m_ViewPort);
 }
 
-void DirectionalLight::RenderObjectToDepth(
-    std::shared_ptr<CommandList> directCommandList, std::shared_ptr<Mesh> mesh, XMMATRIX modelMatrix) const {
+void DirectionalLight::RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, XMMATRIX modelMatrix) const {
     PBRObjectPSO::VertexProps shadowDepthVertexCB;
 
     XMStoreFloat4x4(&shadowDepthVertexCB.SRT, modelMatrix);
     XMStoreFloat4x4(&shadowDepthVertexCB.MVP, modelMatrix * XMLoadFloat4x4(&m_ViewMatrix) * XMLoadFloat4x4(&m_OrthoMatrix));
-    directCommandList->SetGraphicsDynamicConstantBuffer(PBRObjectPSO::PBRRootParameters::VertexCB, shadowDepthVertexCB);
-    mesh->Draw(*directCommandList);
+    directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::PBRRootParameters::VertexCB, shadowDepthVertexCB);
+    mesh.Draw(directCommandList);
 }

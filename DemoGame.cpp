@@ -28,6 +28,7 @@
 #include "ShaderResourceView.h"
 #include "GameObject.h"
 #include "PBRObjectPSO.h"
+#include "Logger.h"
 
 #include "imgui.h"
 #include "implot.h"
@@ -95,13 +96,12 @@ namespace {
 	std::shared_ptr<Mesh> s_TestFloorMesh;
 	std::shared_ptr<Mesh> s_TestMesh_0;
 
-	GameObject s_TestGameObject;
-
 	EditorGui::GuiDescriptorAllocation s_GuiShadowMapDebugSRV;
 
 	std::unique_ptr<DirectionalLight> s_DirectionalLight;
 
-	std::vector<GameObject> s_SceneObjects;
+	std::unique_ptr<GameObject> s_SphereObject;
+	std::unique_ptr<GameObject> s_FloorObject;
 }
 
 DemoGame::DemoGame(const std::wstring& name, uint32_t width, uint32_t height, bool vSync)
@@ -161,7 +161,6 @@ uint32_t DemoGame::Run() {
 bool DemoGame::Initialize() {
 	m_Device = std::make_shared<Device>();
 	m_EditorGui = std::make_unique<EditorGui>(*m_Device, sk_HDRFormat, SwapChain::sk_BufferCount, m_Window->GetWindowHandle());
-
 	// TODO: Tweakable MSAA
 	DXGI_SAMPLE_DESC sampleDesc = m_Device->GetMultisampleQualityLevels(sk_HDRFormat);
 
@@ -210,42 +209,52 @@ bool DemoGame::Initialize() {
 		m_FloatRenderTarget.AttachTexture(AttachmentPoint::Color0, floatRenderTexture);
 	}
 
+	/// Create PBR Pipeline State (For rendering PBR objects)
+	m_PBR_PSO = std::make_unique<PBRObjectPSO>(*m_Device, sampleDesc, m_HDR_MSAA_RenderTarget.GetRenderTargetFormats(), sk_DepthBufferFormat);
+
 	auto& copyCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 	/// Load Assets (COPY operations)
 	{
 		auto copyCommandList = copyCommandQueue.GetCommandList();
 
 		/// TODO / TEMP: more dynamic scene object loading
-		s_TestFloorMesh = copyCommandList->CreateQuadPrimitive();
-		s_TestMesh_0 = copyCommandList->CreateSpherePrimitive();
+		//s_TestFloorMesh = copyCommandList->CreateQuadPrimitive();
+		//s_TestMesh_0 = copyCommandList->CreateSpherePrimitive();
 
 		std::wstring matName = L"stonewall";
-		
-		s_Test_Albedo = copyCommandList->LoadTextureFromFile(L"assets/materials/" + matName + L"_albedo.tga", true);
-		s_Test_Normal = copyCommandList->LoadTextureFromFile(L"assets/materials/" + matName + L"_normal.tga", false);
-		s_Test_Material = copyCommandList->LoadTextureFromFile(L"assets/materials/" + matName + L"_mat.tga", false);
+		//s_Test_Albedo = copyCommandList->LoadTextureFromFile(L"assets/materials/" + matName + L"_albedo.tga", true);
+		//s_Test_Normal = copyCommandList->LoadTextureFromFile(L"assets/materials/" + matName + L"_normal.tga", false);
+		//s_Test_Material = copyCommandList->LoadTextureFromFile(L"assets/materials/" + matName + L"_mat.tga", false);
+
+		// Initialize directional light
+		s_DirectionalLight = std::make_unique<DirectionalLight>(*m_Device, m_PBR_PSO->GetRootSignature(), VertexInput::GetInputLayout(), XMFLOAT3(9.0f, 8.0f, 7.0f), XMFLOAT3(50.0f, 230.0f, 0.0f), s_ShadowMapResolution, s_ShadowDistance, s_ShadowMapNear, s_ShadowMapFar, s_ShadowBias);
+
+		//// Initialize ImGui SRV for debug
+		//// Note: SRVs for ImGui render have its own allocator and descriptor heap (instead of the two stage DynamicDescriptorHeap system) to keep things simple
+		//s_GuiShadowMapDebugSRV = EditorGui::AllocateImageSRV(*m_Device, m_DirectionalShadowMap.GetTexture(AttachmentPoint::DepthStencil), &srvDesc);
 
 		// Load Skybox Assets
 		std::wstring skyboxName = L"industrial_sunset_puresky_4k";
 		m_Skybox = std::make_unique<Skybox>(*m_Device, *copyCommandList, skyboxName, copyCommandList->CreateCubePrimitive(), m_HDR_MSAA_RenderTarget);
 
+		s_SphereObject = std::make_unique<GameObject>(XMMatrixTranslation(1.0f, 4.0f, 1.0f), XMMatrixIdentity(), XMMatrixScaling(1.0f, 1.0f, 1.0f), *s_DirectionalLight, m_Camera, m_PBR_PSO);
+		s_SphereObject->LoadResources(*copyCommandList, *m_Skybox, matName, copyCommandList->CreateSpherePrimitive());
+
+		s_FloorObject = std::make_unique<GameObject>(XMMatrixTranslation(1.0f, 1.0f, 1.0f), XMMatrixIdentity(), XMMatrixScaling(40.0f, 1.0f, 40.0f), *s_DirectionalLight, m_Camera, m_PBR_PSO);
+		s_FloorObject->LoadResources(*copyCommandList, *m_Skybox, matName, copyCommandList->CreateQuadPrimitive());
+
 		copyCommandQueue.ExecuteCommandList(copyCommandList);
-	}
-
-	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags_VSPS =
-		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
-
-	/// Create PBR Pipeline State (For rendering PBR objects)
-	{
-		m_PBR_PSO = std::make_unique<PBRObjectPSO>(*m_Device, sampleDesc, m_HDR_MSAA_RenderTarget.GetRenderTargetFormats(), sk_DepthBufferFormat);
 	}
 
 	/// Create Post Process/Tonemap Pipeline States 
 	/// Note: post process pipeline currently unused, will be used for bloom eventually
 	{
+		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags_VSPS =
+			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
+
 		CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 
 		CD3DX12_ROOT_PARAMETER1 rootParameters[1];
@@ -295,17 +304,6 @@ bool DemoGame::Initialize() {
 		ThrowIfFailed(m_Device->GetD3D12Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_TonemapPSO)));
 	}
 
-	/// TODO: store this in directional light?
-	/// Create Depth Only Render Pipeline State (for shadow mapping)
-	{
-		// Initialize directional light
-		s_DirectionalLight = std::make_unique<DirectionalLight>(*m_Device, m_PBR_PSO->GetRootSignature(), VertexInput::GetInputLayout(), XMFLOAT3(9.0f, 8.0f, 7.0f), XMFLOAT3(50.0f, 230.0f, 0.0f), s_ShadowMapResolution, s_ShadowDistance, s_ShadowMapNear, s_ShadowMapFar, s_ShadowBias);
-
-		//// Initialize ImGui SRV for debug
-		//// Note: SRVs for ImGui render have its own allocator and descriptor heap (instead of the two stage DynamicDescriptorHeap system) to keep things simple
-		//s_GuiShadowMapDebugSRV = EditorGui::AllocateImageSRV(*m_Device, m_DirectionalShadowMap.GetTexture(AttachmentPoint::DepthStencil), &srvDesc);
-	}
-
 	// Wait for loading operations to complete before rendering the first frame
 	copyCommandQueue.FlushWait();  
 
@@ -325,7 +323,7 @@ void DemoGame::OnResize(ResizeEventArgs& e) {
 	m_SwapChain->Resize(m_Width, m_Height);
 
 	float aspectRatio = m_Width / (float)m_Height;
-	/// TODO: Define default z values somewhere
+	/// TODO: Define default z values somewhere (maybe scene class that's not written yet)
 	m_Camera.set_Projection(45.0f, aspectRatio, 0.1f, 1000.0f);
 
 	m_ScreenViewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_Width), static_cast<float>(m_Height));
@@ -532,74 +530,29 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 	directCommandList->SetViewport(m_ScreenViewport);
 	directCommandList->SetRenderTarget(m_HDR_MSAA_RenderTarget);
 
+	// TODO: set pipeline state in m_Skybox
 	m_Skybox->Render(*directCommandList, m_Camera);
 
-	XMFLOAT4X4 v = s_DirectionalLight->GetViewMatrix();
-	XMFLOAT4X4 o = s_DirectionalLight->GetOrthoMatrix();
-	XMMATRIX directionalLightViewMat = XMLoadFloat4x4(&v);
-	XMMATRIX directionalLightOrthoMat = XMLoadFloat4x4(&o);
-
 	{
-		directCommandList->SetPipelineState(m_PBR_PSO->GetD3D12PipelineState());
-		directCommandList->SetGraphicsRootSignature(m_PBR_PSO->GetRootSignature());
-
-		/// Render Objects
-		/// Floor
-		XMMATRIX translationMat = XMMatrixTranslation(1.0f, 1.0f, 1.0f);
-		XMMATRIX rotationMat = XMMatrixIdentity();
-		XMMATRIX scaleMat = XMMatrixScaling(40.0f, 1.0f, 40.0f);
-		XMMATRIX SRTMat = scaleMat * rotationMat * translationMat;
-		VertexProps vertexCB;
-		XMStoreFloat4x4(&vertexCB.SRT, SRTMat);
-		XMStoreFloat4x4(&vertexCB.MVP, SRTMat * m_Camera.get_ViewMatrix() * m_Camera.get_ProjectionMatrix());
-		XMStoreFloat4x4(&vertexCB.directionalLightMVP, SRTMat * directionalLightViewMat * directionalLightOrthoMat);
-		XMStoreFloat4(&vertexCB.CameraPosition, m_Camera.get_Translation());
-
-		directCommandList->SetGraphicsDynamicConstantBuffer(PBRRootParameters::VertexCB, vertexCB);
-
-		// Pixel Shader Buffers
-		// TODO: lighting vars
-		MaterialProps materialCB;
-		XMVECTORF32 timeVec = { (float)e.Time, (float)e.DeltaTime, 0.0f, 0.0f };
-		XMStoreFloat4(&materialCB.Time, timeVec);
-
-		materialCB.DirLight = s_DirectionalLight->GetDirection();
-		materialCB.DirLightColor = s_DirectionalLight->GetColor();
-
-		directCommandList->SetGraphicsDynamicConstantBuffer(PBRRootParameters::MaterialCB, materialCB);
-		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 0, s_Test_Albedo, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 1, s_Test_Normal, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 2, s_Test_Material, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 3, m_Skybox->GetIrradianceSRV(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 4, m_Skybox->GetPrefilterSRV(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		directCommandList->SetShaderResourceView(PBRRootParameters::Textures, 5, m_Skybox->Get_BRDF_LUT_SRV(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
-		directCommandList->SetShaderResourceView(PBRRootParameters::VolatileTextures, 0, s_DirectionalLight->GetShadowMapSRV(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
-		s_TestFloorMesh->Draw(*directCommandList);
-
-		/// Object above floor
-		translationMat = XMMatrixTranslation(1.0f, 4.0f, 1.0f);
-		rotationMat = XMMatrixIdentity();
-		scaleMat = XMMatrixScaling(1.0f, 1.0f, 1.0f);
-		SRTMat = scaleMat * rotationMat * translationMat;
-		XMStoreFloat4x4(&vertexCB.SRT, SRTMat);
-		XMStoreFloat4x4(&vertexCB.MVP, SRTMat * m_Camera.get_ViewMatrix() * m_Camera.get_ProjectionMatrix());
-		XMStoreFloat4x4(&vertexCB.directionalLightMVP, SRTMat * directionalLightViewMat * directionalLightOrthoMat);
-		XMStoreFloat4(&vertexCB.CameraPosition, m_Camera.get_Translation());
-		directCommandList->SetGraphicsDynamicConstantBuffer(PBRRootParameters::VertexCB, vertexCB);
-		s_TestMesh_0->Draw(*directCommandList);
+		/// TODO: do this in Scene class
+		m_PBR_PSO->SetPipelineState(*directCommandList, m_HDR_MSAA_RenderTarget, m_ScreenViewport, m_DefaultScissorRect);
+		s_SphereObject->Render(*directCommandList, e);
+		s_FloorObject->Render(*directCommandList, e);
 	}
 
 	/// Render depth from directional light for same objects above
 	{
 		s_DirectionalLight->SetShadowDepthPipelineState(*directCommandList);
 
-		XMMATRIX translationMat = XMMatrixTranslation(1.0f, 4.0f, 1.0f);
-		XMMATRIX rotationMat = XMMatrixIdentity();
-		XMMATRIX scaleMat = XMMatrixScaling(1.0f, 1.0f, 1.0f);
-		XMMATRIX SRTMat = scaleMat * rotationMat * translationMat;
-		s_DirectionalLight->RenderObjectToDepth(directCommandList, s_TestMesh_0, SRTMat);
+		/// TODO: do this in Scene (DirectionalLight?) class
+		//XMMATRIX translationMat = XMMatrixTranslation(1.0f, 4.0f, 1.0f);
+		//XMMATRIX rotationMat = XMMatrixIdentity();
+		//XMMATRIX scaleMat = XMMatrixScaling(1.0f, 1.0f, 1.0f);
+		//XMMATRIX SRTMat = scaleMat * rotationMat * translationMat;
+		//s_DirectionalLight->RenderObjectToDepth(directCommandList, s_TestMesh_0, SRTMat);
+		s_SphereObject->RenderToDirectionalShadowMap(*directCommandList);
+		s_FloorObject->RenderToDirectionalShadowMap(*directCommandList);
+
 	}
 
 	/// Post Processing

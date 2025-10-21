@@ -8,6 +8,7 @@
 #include "Application.h"
 #include "Device.h"
 #include "DemoGame.h"
+#include "Logger.h"
 #include "Helpers.h"
 
 #include <dxgidebug.h>
@@ -17,9 +18,13 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
     int retCode = 0;
 
 #if defined( _DEBUG )
+    // Enable DirectX debug layer
     Microsoft::WRL::ComPtr<ID3D12Debug> debugInterface;
     ThrowIfFailed(D3D12GetDebugInterface(IID_PPV_ARGS(&debugInterface)));
     debugInterface->EnableDebugLayer();
+
+    // Initialize basic global console logger
+    Logger::InitializeConsole();
 #endif
 
     // Set the working directory to the path of the executable.

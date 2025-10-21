@@ -35,53 +35,6 @@ struct MakeWindow : public Window {
         : Window(hWnd, windowName, clientWidth, clientHeight, game) {}
 };
 
-static void CreateConsole() {
-    // Allocate a console.
-    if(AllocConsole()) {
-        HANDLE lStdHandle = GetStdHandle(STD_OUTPUT_HANDLE);
-
-        // Increase screen buffer to allow more lines of text than the default.
-        CONSOLE_SCREEN_BUFFER_INFO consoleInfo;
-        GetConsoleScreenBufferInfo(lStdHandle, &consoleInfo);
-        consoleInfo.dwSize.Y = MAX_CONSOLE_LINES;
-        SetConsoleScreenBufferSize(lStdHandle, consoleInfo.dwSize);
-        SetConsoleCursorPosition(lStdHandle, {0, 0});
-
-        // Redirect unbuffered STDOUT to the console.
-        int   hConHandle = _open_osfhandle((intptr_t)lStdHandle, _O_TEXT);
-        FILE* fp = _fdopen(hConHandle, "w");
-        freopen_s(&fp, "CONOUT$", "w", stdout);
-        setvbuf(stdout, nullptr, _IONBF, 0);
-
-        // Redirect unbuffered STDIN to the console.
-        lStdHandle = GetStdHandle(STD_INPUT_HANDLE);
-        hConHandle = _open_osfhandle((intptr_t)lStdHandle, _O_TEXT);
-        fp = _fdopen(hConHandle, "r");
-        freopen_s(&fp, "CONIN$", "r", stdin);
-        setvbuf(stdin, nullptr, _IONBF, 0);
-
-        // Redirect unbuffered STDERR to the console.
-        lStdHandle = GetStdHandle(STD_ERROR_HANDLE);
-        hConHandle = _open_osfhandle((intptr_t)lStdHandle, _O_TEXT);
-        fp = _fdopen(hConHandle, "w");
-        freopen_s(&fp, "CONOUT$", "w", stderr);
-        setvbuf(stderr, nullptr, _IONBF, 0);
-
-        // Clear the error state for each of the C++ standard stream objects. We
-        // need to do this, as attempts to access the standard streams before
-        // they refer to a valid target will cause the iostream objects to enter
-        // an error state. In versions of Visual Studio after 2005, this seems
-        // to always occur during startup regardless of whether anything has
-        // been read from or written to the console or not.
-        std::wcout.clear();
-        std::cout.clear();
-        std::wcerr.clear();
-        std::cerr.clear();
-        std::wcin.clear();
-        std::cin.clear();
-    }
-}
-
 Application::Application(HINSTANCE hInst)
     : m_hInstance(hInst)
     , mb_IsInitialized(false)
@@ -92,11 +45,6 @@ Application::Application(HINSTANCE hInst)
     // be rendered in a DPI sensitive fashion.
     // @see https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setthreaddpiawarenesscontext
     SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-
-#if defined( _DEBUG )
-    // Create a console window for std::cout
-    CreateConsole();
-#endif
 
     // Initializes the COM library for use by the calling thread, sets the thread's concurrency model, and creates a new
     // apartment for the thread if one is required.

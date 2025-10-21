@@ -9,6 +9,7 @@
 #include <d3dx12.h>
 #include <d3dcompiler.h>
 #include <wrl/client.h>
+#include <cassert>
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -31,6 +32,8 @@ PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT
 	rootParameters[PBRRootParameters::VertexCB].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX);
 	rootParameters[PBRRootParameters::MaterialCB].InitAsConstantBufferView(0, 1, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
 
+	/// Note: descriptor range sizes are hard coded, should match enum PBRTextures, but static and volatile textures are not
+	///		  differentiated in the enum right now
 	// Static descriptors
 	CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 6, 0);
 	rootParameters[PBRRootParameters::Textures].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
@@ -72,9 +75,8 @@ PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT
 	ThrowIfFailed(device.GetD3D12Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_D3d12PipelineState)));
 }
 
-void PBRObjectPSO::SetPipelineState(CommandList& directCommandList, const RenderTarget& renderTarget, D3D12_VIEWPORT viewPort, D3D12_RECT scissorRect, float clearColor[]) const {
-	directCommandList.ClearTexture(renderTarget.GetTexture(AttachmentPoint::Color0), clearColor);
-	directCommandList.ClearDepthStencilTexture(renderTarget.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
+// TODO: remove renderTarget, viewPort, scissorRect and clearColor
+void PBRObjectPSO::SetPipelineState(CommandList& directCommandList, const RenderTarget& renderTarget, D3D12_VIEWPORT viewPort, D3D12_RECT scissorRect) const {
 
 	// Setup command list for HDR rendering to intermediate render target (before multisample resolve)
 	directCommandList.SetScissorRect(scissorRect);
@@ -85,14 +87,19 @@ void PBRObjectPSO::SetPipelineState(CommandList& directCommandList, const Render
 	directCommandList.SetGraphicsRootSignature(m_RootSignature);
 }
 
-void PBRObjectPSO::UpdateResources(CommandList& directCommandList, const std::vector<std::shared_ptr<ShaderResourceView>>& pbrSRVs, VertexProps vertexProps, MaterialProps materialProps) {
-	assert((pbrSRVs.size() == PBRTextures::NumPBRTextures) && "Incorrect number of PBR textures.");
+void PBRObjectPSO::UpdateResources(CommandList& directCommandList, const std::vector<std::shared_ptr<Texture>>& pbrTextures, VertexProps vertexProps, MaterialProps materialProps) {
+	assert((pbrTextures.size() == sk_NumTextures) && "Incorrect number of PBR textures.");
 
 	directCommandList.SetGraphicsDynamicConstantBuffer(PBRRootParameters::VertexCB, vertexProps);
 	directCommandList.SetGraphicsDynamicConstantBuffer(PBRRootParameters::MaterialCB, materialProps);
 
-	for(int i = 0; i < PBRTextures::NumPBRTextures; i++) {
-		directCommandList.SetShaderResourceView(PBRRootParameters::Textures, i, pbrSRVs[i], D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	// Static Textures
+	for(int i = 0; i < PBRTextureIndex::NumPBRTextures; i++) {
+		directCommandList.SetShaderResourceView(PBRRootParameters::Textures, i, pbrTextures[i], D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	}
-	directCommandList.SetShaderResourceView(PBRRootParameters::VolatileTextures, 0, pbrSRVs[PBRTextures::DirectionalShadowMap], D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+	// Volatile Textures
+	for(int i = PBRTextureIndex::NumPBRTextures - 1, j = 0; i < sk_NumTextures; i++, j++) {
+		directCommandList.SetShaderResourceView(PBRRootParameters::VolatileTextures, j, pbrTextures[i], D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	}
 }

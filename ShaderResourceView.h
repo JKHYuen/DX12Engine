@@ -40,7 +40,9 @@ class Resource;
 
 class ShaderResourceView {
 public:
-    ShaderResourceView(Device& device, const std::shared_ptr<Resource>& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* srv = nullptr);
+    // NOTE: resource or srcDesc can be null (this matches CreateShaderResourceView API call) 
+    //       null resource creates null descriptor and null srcDesc creates default descriptor
+    ShaderResourceView(Device& device, const std::shared_ptr<Resource>& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* srcDesc = nullptr);
 
     std::shared_ptr<Resource> GetResource() const {
         return m_Resource;

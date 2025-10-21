@@ -21,20 +21,26 @@ public:
 	// Compute/draw precomputed textures for IBL
 	void ComputeIBLMaps(CommandList& directCommandList, const Camera& camera);
 
-	std::shared_ptr<ShaderResourceView> GetIrradianceSRV() const { return m_IrradianceCubemapSRV; };
-	std::shared_ptr<ShaderResourceView> GetPrefilterSRV() const { return m_PrefilterCubemapSRV; };
-	std::shared_ptr<ShaderResourceView> Get_BRDF_LUT_SRV() const { return m_BRDF_LUT_SRV; };
+	//std::shared_ptr<ShaderResourceView> GetIrradianceSRV() const { return m_IrradianceCubemapSRV; };
+	//std::shared_ptr<ShaderResourceView> GetPrefilterSRV() const { return m_PrefilterCubemapSRV; };
+	//std::shared_ptr<ShaderResourceView> Get_BRDF_LUT_SRV() const { return m_BRDF_LUT_SRV; };
+
+	std::shared_ptr<Texture> GetIrradianceSRV() const { return m_IrradianceConvolutionCubemap_RT.GetTexture(AttachmentPoint::Color0); };
+	std::shared_ptr<Texture> GetPrefilterSRV() const { return m_PrefilterCubemap_RT.GetTexture(AttachmentPoint::Color0); };
+	std::shared_ptr<Texture> Get_BRDF_LUT_SRV() const { return m_BRDF_LUT_RT.GetTexture(AttachmentPoint::Color0); };
 
 private:
+	/// TODO: Convert to unique pointers if possible
 	std::shared_ptr<Texture> m_HDRPanoTexture;
 	std::shared_ptr<Texture> m_SkyCubemapTexture;
 
 	RenderTarget m_IrradianceConvolutionCubemap_RT;
 	RenderTarget m_PrefilterCubemap_RT;
+	RenderTarget m_BRDF_LUT_RT;
 
-	std::shared_ptr<ShaderResourceView> m_SkyCubemapSRV;
-	std::shared_ptr<ShaderResourceView> m_IrradianceCubemapSRV;
-	std::shared_ptr<ShaderResourceView> m_PrefilterCubemapSRV;
-	std::shared_ptr<ShaderResourceView> m_BRDF_LUT_SRV;
+	//std::shared_ptr<ShaderResourceView> m_SkyCubemapSRV;
+	//std::shared_ptr<ShaderResourceView> m_IrradianceCubemapSRV;
+	//std::shared_ptr<ShaderResourceView> m_PrefilterCubemapSRV;
+	//std::shared_ptr<ShaderResourceView> m_BRDF_LUT_SRV;
 };
 

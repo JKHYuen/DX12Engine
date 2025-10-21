@@ -15,21 +15,35 @@ class Mesh;
 class PBRObjectPSO;
 class Texture;
 class Skybox;
+class Camera;
 class DirectionalLight;
+class UpdateEventArgs;
 
 class GameObject {
 public:
-	void LoadResources(CommandList& copyCommandList, const Skybox& skybox, const DirectionalLight& directionalLight, const std::wstring& pbrMatName, const std::wstring& meshName);
-	void Render();
+	GameObject(XMMATRIX translationMat, XMMATRIX  rotationMat, XMMATRIX  scaleMat, DirectionalLight& directionalLight, Camera& mainCamera, std::shared_ptr<PBRObjectPSO> pbrPSO);
+	
+	// Load resources with a mesh from file name
+	void LoadResources(CommandList& copyCommandList, const Skybox& skybox, const std::wstring& pbrMatName, const std::wstring& meshName);
+
+	// Load resources with a created mesh from file name
+	void LoadResources(CommandList& copyCommandList, const Skybox& skybox, const std::wstring& pbrMatName, std::shared_ptr<Mesh> mesh);
+
+	void Render(CommandList& directCommandList, UpdateEventArgs& e);
+
+	void RenderToDirectionalShadowMap(CommandList& directCommandList);
 	
 private:
 	std::shared_ptr<Mesh> m_Mesh;
-	std::vector<std::shared_ptr<Texture>> textureResources;
 
-	std::shared_ptr<PBRObjectPSO> pbrPSO;
+	std::vector<std::shared_ptr<Texture>> m_TextureResources;
+	std::shared_ptr<PBRObjectPSO> m_PBR_PSO;
 
-	XMFLOAT4X4 translationMat;
-	XMFLOAT4X4 rotationMat;
-	XMFLOAT4X4 scaleMat;
+	Camera& m_MainCamera;
+	DirectionalLight& m_DirectionalLight;
+
+	XMFLOAT4X4 m_TranslationMat;
+	XMFLOAT4X4 m_RotationMat;
+	XMFLOAT4X4 m_ScaleMat;
 };
 

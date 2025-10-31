@@ -13,34 +13,32 @@ class Mesh;
 
 class Skybox {
 public:
-	Skybox(Device& device, CommandList& copyCommandList, std::wstring hdrTextureName, std::shared_ptr<Mesh> cubeMesh, RenderTarget& renderTarget);
+	struct SkyboxParams {
+		std::wstring hdrTextureName;
+		std::shared_ptr<Mesh> cubeMesh;
+		RenderTarget& hdrRenderTarget;
+	};
+
+	// cubemesh should be fully initialized using CommandList functions for mesh caching
+	Skybox(Device& device, CommandList& copyCommandList, SkyboxParams params);
 	
 	// Draw skybox
+	// Note: Render target needs to be set externally
 	void Render(CommandList& directCommandList, const Camera& camera);
 
 	// Compute/draw precomputed textures for IBL
-	void ComputeIBLMaps(CommandList& directCommandList, const Camera& camera);
+	void ComputeIBLMaps(CommandList& directCommandList);
 
-	//std::shared_ptr<ShaderResourceView> GetIrradianceSRV() const { return m_IrradianceCubemapSRV; };
-	//std::shared_ptr<ShaderResourceView> GetPrefilterSRV() const { return m_PrefilterCubemapSRV; };
-	//std::shared_ptr<ShaderResourceView> Get_BRDF_LUT_SRV() const { return m_BRDF_LUT_SRV; };
-
-	std::shared_ptr<Texture> GetIrradianceSRV() const { return m_IrradianceConvolutionCubemap_RT.GetTexture(AttachmentPoint::Color0); };
-	std::shared_ptr<Texture> GetPrefilterSRV() const { return m_PrefilterCubemap_RT.GetTexture(AttachmentPoint::Color0); };
-	std::shared_ptr<Texture> Get_BRDF_LUT_SRV() const { return m_BRDF_LUT_RT.GetTexture(AttachmentPoint::Color0); };
+	std::shared_ptr<Texture> GetIrradianceTexture() const { return m_IrradianceConvolutionCubemap_RT.GetTexture(AttachmentPoint::Color0); };
+	std::shared_ptr<Texture> GetPrefilterTexture() const { return m_PrefilterCubemap_RT.GetTexture(AttachmentPoint::Color0); };
+	std::shared_ptr<Texture> Get_BRDF_LUT_Texture() const { return m_BRDF_LUT_RT.GetTexture(AttachmentPoint::Color0); };
 
 private:
-	/// TODO: Convert to unique pointers if possible
 	std::shared_ptr<Texture> m_HDRPanoTexture;
 	std::shared_ptr<Texture> m_SkyCubemapTexture;
 
 	RenderTarget m_IrradianceConvolutionCubemap_RT;
 	RenderTarget m_PrefilterCubemap_RT;
 	RenderTarget m_BRDF_LUT_RT;
-
-	//std::shared_ptr<ShaderResourceView> m_SkyCubemapSRV;
-	//std::shared_ptr<ShaderResourceView> m_IrradianceCubemapSRV;
-	//std::shared_ptr<ShaderResourceView> m_PrefilterCubemapSRV;
-	//std::shared_ptr<ShaderResourceView> m_BRDF_LUT_SRV;
 };
 

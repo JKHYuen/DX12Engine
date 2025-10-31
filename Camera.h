@@ -14,27 +14,27 @@ public:
     Camera(float vFOV = 45.0f, float aspectRatio = 1.0f, float zNear = 0.1f, float zFar = 100.0f);
     ~Camera();
 
-    void XM_CALLCONV set_LookAt(DirectX::FXMVECTOR eye, DirectX::FXMVECTOR target, DirectX::FXMVECTOR up);
-    DirectX::XMMATRIX get_ViewMatrix() const;
+    void XM_CALLCONV Set_LookAt(DirectX::FXMVECTOR eye, DirectX::FXMVECTOR target, DirectX::FXMVECTOR up);
+    DirectX::XMMATRIX Get_ViewMatrix() const;
 
-    void set_Projection(float fovy, float aspect, float zNear, float zFar);
-    DirectX::XMMATRIX get_ProjectionMatrix() const;
+    void Set_Projection(float fovy, float aspect, float zNear, float zFar);
+    DirectX::XMMATRIX Get_ProjectionMatrix() const;
 
-    void set_FoV(float fovy);
-    float get_FoV() const;
+    void Set_FoV(float fovy);
+    float Get_FoV() const;
 
     /**
      * Set the camera's position in world-space.
      */
-    void XM_CALLCONV set_Translation(DirectX::FXMVECTOR translation);
-    DirectX::XMVECTOR get_Translation() const;
+    void XM_CALLCONV Set_Translation(DirectX::FXMVECTOR translation);
+    DirectX::XMVECTOR Get_Translation() const;
 
     /**
      * Set the camera's rotation in world-space.
      * @param rotation The rotation quaternion.
      */
-    void XM_CALLCONV set_Rotation(DirectX::FXMVECTOR rotation);
-    DirectX::XMVECTOR get_Rotation() const;
+    void XM_CALLCONV Set_Rotation(DirectX::FXMVECTOR rotation);
+    DirectX::XMVECTOR Get_Rotation() const;
 
     void XM_CALLCONV Translate(DirectX::FXMVECTOR translation, Space space = Space::Local);
     void Rotate(DirectX::FXMVECTOR quaternion);

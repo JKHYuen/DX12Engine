@@ -14,22 +14,19 @@
 using namespace DirectX;
 using namespace Microsoft::WRL;
 
-DirectionalLight::DirectionalLight(
-    Device& device, std::shared_ptr<RootSignature> depthRenderRootSignature, CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT depthRenderInputLayout,
-    XMFLOAT3 color, XMFLOAT3 eulerDir, int shadowMapResolution, float shadowDistance,
-    float shadowMapNearZ, float shadowMapFarZ, float shadowBias)
+DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params)
     : m_Device(device)
-    , m_DepthRenderRootSignature(depthRenderRootSignature)
-    , m_ShadowBias(shadowBias)
-    , m_Color(XMFLOAT4(color.x, color.y, color.z, 1.0f))
-    , m_ViewPort(D3D12_VIEWPORT(0.0f, 0.0f, (float)shadowMapResolution, (float)shadowMapResolution, 0.0f, 1.0f)) {
+    , m_DepthRenderRootSignature(params.depthRenderRootSignature)
+    , m_ShadowBias(params.shadowBias)
+    , m_Color(XMFLOAT4(params.color.x, params.color.y, params.color.z, 1.0f))
+    , m_ViewPort(D3D12_VIEWPORT(0.0f, 0.0f, (float)params.shadowMapResolution, (float)params.shadowMapResolution, 0.0f, 1.0f)) {
 
-    XMStoreFloat4x4(&m_OrthoMatrix, XMMatrixOrthographicLH(shadowDistance, shadowDistance, shadowMapNearZ, shadowMapFarZ));
-    SetDirection(eulerDir.x, eulerDir.y, eulerDir.z);
+    XMStoreFloat4x4(&m_OrthoMatrix, XMMatrixOrthographicLH(params.shadowDistance, params.shadowDistance, params.shadowMapNearZ, params.shadowMapFarZ));
+    SetDirection(params.eulerDir.x, params.eulerDir.y, params.eulerDir.z);
 
     // Create directional light shadow map
     auto shadowMapDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-        DXGI_FORMAT_D32_FLOAT, shadowMapResolution, shadowMapResolution, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
+        DXGI_FORMAT_D32_FLOAT, params.shadowMapResolution, params.shadowMapResolution, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
     );
 
     D3D12_CLEAR_VALUE depthClearValue;
@@ -48,7 +45,6 @@ DirectionalLight::DirectionalLight(
     srvDesc.Texture2D.MostDetailedMip = 0;
     srvDesc.Texture2D.PlaneSlice = 0;
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    //m_ShadowMapSRV = std::make_shared<ShaderResourceView>(m_Device, shadowMapDepthTexture, &srvDesc);
     shadowMapDepthTexture->CreateShaderResourceView(srvDesc);
 
     // Initialize ImGui SRV for debug
@@ -72,7 +68,7 @@ DirectionalLight::DirectionalLight(
     rasterizerDesc.CullMode = D3D12_CULL_MODE_FRONT;
 
     shadowDepthPipelineStateStream.pRootSignature = m_DepthRenderRootSignature->GetD3D12RootSignature().Get();
-    shadowDepthPipelineStateStream.InputLayout = depthRenderInputLayout;
+    shadowDepthPipelineStateStream.InputLayout = params.depthRenderInputLayout;
     shadowDepthPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
     shadowDepthPipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vs.Get());
     shadowDepthPipelineStateStream.Rasterizer = rasterizerDesc;

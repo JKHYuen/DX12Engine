@@ -18,7 +18,7 @@ Camera::~Camera() {
     _aligned_free(pData);
 }
 
-void XM_CALLCONV Camera::set_LookAt(FXMVECTOR eye, FXMVECTOR target, FXMVECTOR up) {
+void XM_CALLCONV Camera::Set_LookAt(FXMVECTOR eye, FXMVECTOR target, FXMVECTOR up) {
     pData->m_ViewMatrix = XMMatrixLookAtLH(eye, target, up);
 
     pData->m_Translation = eye;
@@ -27,14 +27,14 @@ void XM_CALLCONV Camera::set_LookAt(FXMVECTOR eye, FXMVECTOR target, FXMVECTOR u
     m_ViewDirty = false;
 }
 
-XMMATRIX Camera::get_ViewMatrix() const {
+XMMATRIX Camera::Get_ViewMatrix() const {
     if(m_ViewDirty) {
         UpdateViewMatrix();
     }
     return pData->m_ViewMatrix;
 }
 
-void Camera::set_Projection(float fovy, float aspect, float zNear, float zFar) {
+void Camera::Set_Projection(float fovy, float aspect, float zNear, float zFar) {
     m_vFOV = fovy;
     m_AspectRatio = aspect;
     m_NearZ = zNear;
@@ -43,7 +43,7 @@ void Camera::set_Projection(float fovy, float aspect, float zNear, float zFar) {
     m_ProjectionDirty = true;
 }
 
-XMMATRIX Camera::get_ProjectionMatrix() const {
+XMMATRIX Camera::Get_ProjectionMatrix() const {
     if(m_ProjectionDirty) {
         UpdateProjectionMatrix();
     }
@@ -51,32 +51,32 @@ XMMATRIX Camera::get_ProjectionMatrix() const {
     return pData->m_ProjectionMatrix;
 }
 
-void Camera::set_FoV(float fovy) {
+void Camera::Set_FoV(float fovy) {
     if(m_vFOV != fovy) {
         m_vFOV = fovy;
         m_ProjectionDirty = true;
     }
 }
 
-float Camera::get_FoV() const {
+float Camera::Get_FoV() const {
     return m_vFOV;
 }
 
 
-void XM_CALLCONV Camera::set_Translation(FXMVECTOR translation) {
+void XM_CALLCONV Camera::Set_Translation(FXMVECTOR translation) {
     pData->m_Translation = translation;
     m_ViewDirty = true;
 }
 
-XMVECTOR Camera::get_Translation() const {
+XMVECTOR Camera::Get_Translation() const {
     return pData->m_Translation;
 }
 
-void Camera::set_Rotation(FXMVECTOR rotation) {
+void Camera::Set_Rotation(FXMVECTOR rotation) {
     pData->m_Rotation = rotation;
 }
 
-XMVECTOR Camera::get_Rotation() const {
+XMVECTOR Camera::Get_Rotation() const {
     return pData->m_Rotation;
 }
 

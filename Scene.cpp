@@ -8,6 +8,7 @@ Scene::Scene(Device& device, CommandList& copyCommandList, const DirectionalLigh
 	: m_DirectionalLight(device, dirLightParams)
 	, m_Skybox(device, copyCommandList, skyboxParams)
 {
+	// arbitrary default camera position
 	XMVECTOR cameraPos    = XMVectorSet(0, 5, -20, 1);
 	XMVECTOR cameraTarget = XMVectorSet(0, 5, 0, 1);
 	XMVECTOR cameraUp     = XMVectorSet(0, 1, 0, 0);
@@ -46,6 +47,6 @@ void Scene::RenderObjectShadowDepths(CommandList& directCommandList) {
 	}
 }
 
-void Scene::SetDirectionalLightDirection(float rotX, float rotY, float rotZ) {
+void Scene::SetDirectionalLightAngle(float rotX, float rotY, float rotZ) {
 	m_DirectionalLight.SetDirection(rotX, rotY, rotZ);
 }

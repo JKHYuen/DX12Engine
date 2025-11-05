@@ -76,12 +76,6 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t width, uint32_t height, bo
 	, m_FloatRenderTarget() {
 
 	m_Window = Application::Get().CreateRenderWindow(name, width, height, *this);
-//
-//	XMVECTOR cameraPos    = XMVectorSet(0, 5, -20, 1);
-//	XMVECTOR cameraTarget = XMVectorSet(0, 5, 0, 1);
-//	XMVECTOR cameraUp     = XMVectorSet(0, 1, 0, 0);
-//
-//	m_Camera.Set_LookAt(cameraPos, cameraTarget, cameraUp);
 }
 
 uint32_t DemoGame::Run() {
@@ -457,23 +451,21 @@ void DemoGame::ShowImGuiWindow(CommandList& directCommandList) {
 		if(ImGui::DragFloat2("[x, y]", sceneDirLightAngle, 0.1f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
 			sceneDirLightAngle[0] = std::fmod(sceneDirLightAngle[0], 360.0f);
 			sceneDirLightAngle[1] = std::fmod(sceneDirLightAngle[1], 360.0f);
-			m_Scene->SetDirectionalLightDirection(sceneDirLightAngle[0], sceneDirLightAngle[1], 0.0f);
-			//s_DirectionalLight->SetDirection(sceneDirLightAngle[0], sceneDirLightAngle[1], 0.0f);
+			m_Scene->SetDirectionalLightAngle(sceneDirLightAngle[0], sceneDirLightAngle[1], 0.0f);
 		}
 
-		//{
-		//	static float imageScale = 0.25f;
-		//	ImGui::SliderFloat("Scale", &imageScale, 0.0, 1.0, "%.2fx");
-		//	ImVec2 imageSize = ImVec2(1920.0f * imageScale, 1080.0f * imageScale);
+		{
+			static float imageScale = 0.25f;
+			ImGui::SliderFloat("Scale", &imageScale, 0.0, 1.0, "%.2fx");
+			ImVec2 imageSize = ImVec2(1920.0f * imageScale, 1080.0f * imageScale);
 
-		//	ImGui::Image(
-		//		(ImTextureID)s_GuiShadowMapDebugSRV.gpuHandle.ptr, imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f)
-		//	);
-		//}
+			ImGui::Image(
+				(ImTextureID)EditorGui::GetImageSRV(EditorGui::GuiSRVIndex::DirectionalShadowMap).gpuHandle.ptr, imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f)
+			);
+		}
 
 		ImGui::End();
 	}
-
 
 	m_EditorGui->Render(directCommandList);
 }

@@ -33,7 +33,7 @@ public:
 	// One function for all shadows for now, only directional light shadows are implemented
 	void RenderObjectShadowDepths(CommandList& directCommandList);
 	
-	void SetDirectionalLightDirection(float rotX, float rotY, float rotZ);
+	void SetDirectionalLightAngle(float rotX, float rotY, float rotZ);
 
 	// keep this public out of convenience for now
 	Camera m_MainCamera;

@@ -19,8 +19,7 @@ GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, st
 	XMStoreFloat4x4(&m_RotationMat, params.rotationMat);
 	XMStoreFloat4x4(&m_ScaleMat, params.scaleMat);
 
-	// Load Resources, note that commandlist is not executed
-	m_TextureResources.reserve(PBRObjectPSO::sk_NumTextures);
+	// Load Resources, note that commandlist is not executed here
 	m_TextureResources.resize(PBRObjectPSO::sk_NumTextures);
 
 	m_TextureResources[PBRObjectPSO::AlbedoTex] =

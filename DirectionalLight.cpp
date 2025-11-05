@@ -5,6 +5,7 @@
 #include "Device.h"
 #include "PBRObjectPSO.h"
 #include "Mesh.h"
+#include "EditorGui.h"
 #include "Helpers.h"
 
 #include <wrl/client.h>
@@ -37,6 +38,7 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
     shadowMapDepthTexture->SetName(L"Directional Light Shadow Map");
     m_DirectionalShadowMap.AttachTexture(AttachmentPoint::DepthStencil, shadowMapDepthTexture);
 
+    // Initialize ImGui SRV for debug
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
     ZeroMemory(&srvDesc, sizeof(srvDesc));
     srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
@@ -48,8 +50,8 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
     shadowMapDepthTexture->CreateShaderResourceView(srvDesc);
 
     // Initialize ImGui SRV for debug
-    // Note: SRVs for ImGui render have its own allocator and descriptor heap (instead of the two stage DynamicDescriptorHeap system) to keep things simple
-    //s_GuiShadowMapDebugSRV = EditorGui::AllocateImageSRV(*m_Device, m_DirectionalShadowMap.GetTexture(AttachmentPoint::DepthStencil), &srvDesc);
+    // Note: debug Gui only supports one directional light preview
+    EditorGui::AllocateImageSRV(device, shadowMapDepthTexture, &srvDesc, EditorGui::GuiSRVIndex::DirectionalShadowMap);
 
     /// TODO: we are loading basic model VS again, shader blobs should probably be cached
     Microsoft::WRL::ComPtr<ID3DBlob> vs;

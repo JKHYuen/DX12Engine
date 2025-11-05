@@ -35,12 +35,22 @@ public:
 		D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
 	};
 
-	// Allocate to s_D3DSrvDescHeapAlloc
-	static GuiDescriptorAllocation AllocateImageSRV(Device& device, const std::shared_ptr<Resource>& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* srvDesc);
+	enum GuiSRVIndex {
+		DirectionalShadowMap,
+
+		NumGuiSRVIndex
+	};
+
+	// Allocate to s_D3DSrvDescHeapAllocator
+	static void AllocateImageSRV(Device& device, const std::shared_ptr<Resource>& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* srvDesc, GuiSRVIndex srvIndex);
 
 	static void FreeImageSRV(GuiDescriptorAllocation alloc);
 
+	static inline GuiDescriptorAllocation GetImageSRV(GuiSRVIndex index) { return s_ImageSRVs[index]; }
+
 private:
+	const int mk_SRVHeapSize = 64;
+
 	// Simple free list based allocator
 	// Source: https://github.com/ocornut/imgui/blob/master/examples/example_win32_directx12/main.cpp
 	struct DescriptorHeapAllocator {
@@ -84,5 +94,10 @@ private:
 
 	// static so it can be used in ImGui callback lambdas
 	static inline DescriptorHeapAllocator s_D3DSrvDescHeapAllocator;
+
+	// Stores all created GuiDescriptorAllocations created by "AllocateImageSRV()" 
+	// Static member for easy access; primarily for debug menu. Indices are enum "GuiSRVIndex"
+	// Freed allocations will never be removed since all allocated will always be used in current implementation
+	static inline std::vector<GuiDescriptorAllocation> s_ImageSRVs{ GuiSRVIndex::NumGuiSRVIndex };
 };
 

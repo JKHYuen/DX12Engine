@@ -84,7 +84,7 @@ public:
 		return m_D3d12PipelineState;
 	}
 		
-	void SetPipelineState(CommandList& directCommandList, const RenderTarget& renderTarget, D3D12_VIEWPORT viewPort, D3D12_RECT scissorRect) const;
+	void SetPipelineState(CommandList& directCommandList) const;
 
 	void UpdateResources(CommandList& directCommandList, const std::vector<std::shared_ptr<Texture>>& pbrTextures, VertexProps vertexProps, MaterialProps materialProps);
 

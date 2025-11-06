@@ -51,9 +51,9 @@ private:
     RenderTarget m_FloatRenderTarget;
 
     /// TODO: make these unique_ptr?
-    std::shared_ptr<RootSignature> m_PostProcessRootSignature;
     std::shared_ptr<PBRObjectPSO> m_PBR_PSO;
 
+    std::shared_ptr<RootSignature> m_PostProcessRootSignature;
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_TonemapPSO;
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_PostprocessPSO;
 

@@ -24,7 +24,7 @@ public:
 	struct GameObjectParams {
 		const Scene& scene;
 		XMMATRIX translationMat, rotationMat, scaleMat;
-		std::shared_ptr<PBRObjectPSO> pbrPSO; /// TODO: this probably shouldn't be a shared_ptr
+		PBRObjectPSO* PSO;
 		const std::wstring& pbrMatName;
 	};
 
@@ -32,7 +32,7 @@ public:
 	GameObject(CommandList& copyCommandList, GameObjectParams params, std::shared_ptr<Mesh> mesh); // initialize with preconstructed mesh
 	GameObject(CommandList& copyCommandList, GameObjectParams params, const std::wstring& meshFileName); // initialize with mesh loaded from file
 	
-	void Render(CommandList& directCommandList, UpdateEventArgs& e, const Scene& scene);
+	void Render(CommandList& directCommandList, const UpdateEventArgs & e, const Scene& scene);
 
 	void RenderToDirectionalShadowMap(CommandList& directCommandList, const Scene& scene);
 	
@@ -40,7 +40,7 @@ private:
 	std::shared_ptr<Mesh> m_Mesh;
 
 	std::vector<std::shared_ptr<Texture>> m_TextureResources;
-	std::shared_ptr<PBRObjectPSO> m_PBR_PSO;
+	PBRObjectPSO* m_PSO;
 
 	XMFLOAT4X4 m_TranslationMat;
 	XMFLOAT4X4 m_RotationMat;

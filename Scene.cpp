@@ -29,19 +29,21 @@ void Scene::ComputeSkyboxIBLMaps(CommandList& directCommandList) {
 	m_Skybox.ComputeIBLMaps(directCommandList);
 }
 
-void Scene::RenderSkybox(CommandList& directCommandList) {
+void Scene::Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, D3D12_RECT scissorRec, CommandList& directCommandList, const UpdateEventArgs& e) {
+	directCommandList.SetScissorRect(scissorRec);
+	directCommandList.SetViewport(viewPort);
+	directCommandList.SetRenderTarget(targetRT);
+
 	m_Skybox.Render(directCommandList, m_MainCamera);
-}
 
-void Scene::RenderObjects(CommandList& directCommandList, UpdateEventArgs& e) {
-	for(auto& obj : m_SceneObjects) {
-		obj.Render(directCommandList, e, *this);
+	// Render scene objects
+	// All game objects use the same PSO/root sig right now
+	for(auto& o : m_SceneObjects) {
+		o.Render(directCommandList, e, *this);
 	}
-}
 
-void Scene::RenderObjectShadowDepths(CommandList& directCommandList) {
-	m_DirectionalLight.SetShadowDepthPipelineState(directCommandList);
-
+	// Render depth from directional light for same objects above
+	m_DirectionalLight.SetShadowDepthPipelineStateAndRenderTarget(directCommandList);
 	for(auto& obj : m_SceneObjects) {
 		obj.RenderToDirectionalShadowMap(directCommandList, *this);
 	}

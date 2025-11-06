@@ -155,7 +155,7 @@ bool DemoGame::Initialize() {
 		std::wstring skyboxName = L"industrial_sunset_puresky_4k";
 
 		DirectionalLight::DirectionalLightParams dirLightParams {
-			m_PBR_PSO->GetRootSignature(),
+			m_PBR_PSO->GetRootSignature(), // only vertex shader matters here, reusing only gameobject PSO for now
 			VertexInput::GetInputLayout(),
 			XMFLOAT3(9.0f, 8.0f, 7.0f),
 			XMFLOAT3(50.0f, 230.0f, 0.0f),
@@ -179,7 +179,7 @@ bool DemoGame::Initialize() {
 			GameObject::GameObjectParams goParams{
 				*m_Scene,
 				XMMatrixTranslation(1.0f, 4.0f, 1.0f), XMMatrixIdentity(), XMMatrixScaling(1.0f, 1.0f, 1.0f),
-				m_PBR_PSO,
+				m_PBR_PSO.get(),
 				matName,
 			};
 
@@ -460,7 +460,8 @@ void DemoGame::ShowImGuiWindow(CommandList& directCommandList) {
 			ImVec2 imageSize = ImVec2(1920.0f * imageScale, 1080.0f * imageScale);
 
 			ImGui::Image(
-				(ImTextureID)EditorGui::GetImageSRV(EditorGui::GuiSRVIndex::DirectionalShadowMap).gpuHandle.ptr, imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f)
+				(ImTextureID)EditorGui::GetImageSRV(EditorGui::GuiSRVIndex::DirectionalShadowMap).gpuHandle.ptr,
+				imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f)
 			);
 		}
 
@@ -480,20 +481,8 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 	directCommandList->ClearTexture(m_HDR_MSAA_RenderTarget.GetTexture(AttachmentPoint::Color0), clearColor);
 	directCommandList->ClearDepthStencilTexture(m_HDR_MSAA_RenderTarget.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
 
-	// Setup command list for HDR rendering to intermediate render target (before multisample resolve)
-	directCommandList->SetScissorRect(m_DefaultScissorRect);
-	directCommandList->SetViewport(m_ScreenViewport);
-	directCommandList->SetRenderTarget(m_HDR_MSAA_RenderTarget);
-
-	m_Scene->RenderSkybox(*directCommandList);
-
-	// Render scene objects
-	/// TODO: move pipeline state change into Scene class?
-	m_PBR_PSO->SetPipelineState(*directCommandList, m_HDR_MSAA_RenderTarget, m_ScreenViewport, m_DefaultScissorRect);
-	m_Scene->RenderObjects(*directCommandList, e);
-
-	// Render depth from directional light for same objects above
-	m_Scene->RenderObjectShadowDepths(*directCommandList);
+	// Perform HDR rendering to intermediate render target (before multisample resolve)
+	m_Scene->Render(m_HDR_MSAA_RenderTarget, m_ScreenViewport, m_DefaultScissorRect, *directCommandList, e);
 
 	/// Post Processing
 	{

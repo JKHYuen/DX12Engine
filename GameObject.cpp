@@ -13,7 +13,7 @@
 using namespace DirectX;
 
 GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, std::shared_ptr<Mesh> mesh) 
-	: m_PBR_PSO(params.pbrPSO) {
+	: m_PSO(params.PSO) {
 
 	XMStoreFloat4x4(&m_TranslationMat, params.translationMat);
 	XMStoreFloat4x4(&m_RotationMat, params.rotationMat);
@@ -42,7 +42,10 @@ GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, co
 	/// TODO: load from file with params.meshFileName
 }
 
-void GameObject::Render(CommandList& directCommandList, UpdateEventArgs& e, const Scene& scene) {
+void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene) {
+	// Note: we are setting PSO/Root sig for every game object render, this could be slow, not an issue for current basic implementation
+	m_PSO->SetPipelineState(directCommandList);
+
 	XMFLOAT4X4 v = scene.GetDirectionalLight().GetViewMatrix();
 	XMFLOAT4X4 o = scene.GetDirectionalLight().GetOrthoMatrix();
 	XMMATRIX directionalLightViewMat = XMLoadFloat4x4(&v);
@@ -62,7 +65,7 @@ void GameObject::Render(CommandList& directCommandList, UpdateEventArgs& e, cons
 	materialCB.DirLight = scene.GetDirectionalLight().GetDirection();
 	materialCB.DirLightColor = scene.GetDirectionalLight().GetColor();
 
-	m_PBR_PSO->UpdateResources(directCommandList, m_TextureResources, vertexCB, materialCB);
+	m_PSO->UpdateResources(directCommandList, m_TextureResources, vertexCB, materialCB);
 
 	m_Mesh->Draw(directCommandList);
 }

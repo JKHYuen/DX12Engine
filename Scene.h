@@ -26,12 +26,7 @@ public:
 
 	void ComputeSkyboxIBLMaps(CommandList& directCommandList);
 
-	// Note: Render target needs to be set externally
-	void RenderSkybox(CommandList& directCommandList);
-	void RenderObjects(CommandList& directCommandList, UpdateEventArgs& e);
-
-	// One function for all shadows for now, only directional light shadows are implemented
-	void RenderObjectShadowDepths(CommandList& directCommandList);
+	void Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, D3D12_RECT scissorRec, CommandList& directCommandList, const UpdateEventArgs& e);
 	
 	void SetDirectionalLightAngle(float rotX, float rotY, float rotZ);
 

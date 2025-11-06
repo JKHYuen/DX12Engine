@@ -58,7 +58,7 @@ public:
 
     std::shared_ptr<Texture> GetShadowMapTexture() const { return m_DirectionalShadowMap.GetTexture(AttachmentPoint::DepthStencil); }
     
-    void SetShadowDepthPipelineState(CommandList& directCommandList) const;
+    void SetShadowDepthPipelineStateAndRenderTarget(CommandList& directCommandList) const;
     void RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, XMMATRIX modelMatrix) const;
 
 private:

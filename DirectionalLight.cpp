@@ -128,7 +128,7 @@ void DirectionalLight::GetEulerAngles(float& out_X, float& out_Y) const {
     out_Y = XMConvertToDegrees(t) + 90.f;
 }
 
-void DirectionalLight::SetShadowDepthPipelineState(CommandList& directCommandList) const {
+void DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget(CommandList& directCommandList) const {
     directCommandList.ClearDepthStencilTexture(m_DirectionalShadowMap.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
     directCommandList.SetRenderTarget(m_DirectionalShadowMap);
     directCommandList.SetPipelineState(m_DepthRenderPSO);

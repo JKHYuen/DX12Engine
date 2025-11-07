@@ -130,10 +130,11 @@ void DirectionalLight::GetEulerAngles(float& out_X, float& out_Y) const {
 
 void DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget(CommandList& directCommandList) const {
     directCommandList.ClearDepthStencilTexture(m_DirectionalShadowMap.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
+    directCommandList.SetViewport(m_ViewPort);
     directCommandList.SetRenderTarget(m_DirectionalShadowMap);
+
     directCommandList.SetPipelineState(m_DepthRenderPSO);
     directCommandList.SetGraphicsRootSignature(m_DepthRenderRootSignature);
-    directCommandList.SetViewport(m_ViewPort);
 }
 
 void DirectionalLight::RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, XMMATRIX modelMatrix) const {

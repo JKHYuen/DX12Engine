@@ -22,12 +22,13 @@ GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, st
 	// Load Resources, note that commandlist is not executed here
 	m_TextureResources.resize(PBRObjectPSO::sk_NumTextures);
 
+	std::wstring matPathPrefix { L"assets/materials/" + params.pbrMatName + L"/" + params.pbrMatName };
 	m_TextureResources[PBRObjectPSO::AlbedoTex] =
-		copyCommandList.LoadTextureFromFile(L"assets/materials/" + params.pbrMatName + L"_albedo.tga", true);
+		copyCommandList.LoadTextureFromFile(matPathPrefix + L"_albedo.tga", true);
 	m_TextureResources[PBRObjectPSO::NormalTex] =
-		copyCommandList.LoadTextureFromFile(L"assets/materials/" + params.pbrMatName + L"_normal.tga", false);
+		copyCommandList.LoadTextureFromFile(matPathPrefix + L"_normal.tga", false);
 	m_TextureResources[PBRObjectPSO::MaterialTex] =
-		copyCommandList.LoadTextureFromFile(L"assets/materials/" + params.pbrMatName + L"_mat.tga", false);
+		copyCommandList.LoadTextureFromFile(matPathPrefix + L"_mat.tga", false);
 
 	/// TODO: check if skybox is initialized
 	m_TextureResources[PBRObjectPSO::IrradianceCubemap] = params.scene.GetSkybox().GetIrradianceTexture();

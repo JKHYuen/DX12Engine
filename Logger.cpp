@@ -58,3 +58,12 @@ void Logger::InitializeConsole() {
 void Logger::Log(std::string_view msg) {
     std::cout << msg << std::endl;
 }
+
+void Logger::Log(std::wstring_view msg) {
+    std::wcout << msg << std::endl;
+}
+
+
+
+
+

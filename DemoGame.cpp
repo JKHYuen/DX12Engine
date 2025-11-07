@@ -8,6 +8,7 @@
 #undef max
 #endif
 #include <algorithm> // For std::min and std::max.
+#include <filesystem>
 
 #include <d3dx12.h>
 #include <DirectXMath.h>
@@ -48,11 +49,6 @@ namespace {
 	float s_ShadowMapFar        = 150.0f;
 	float s_ShadowDistance      = 100.0f;
 	float s_ShadowBias          = 0.001f;
-}
-
-/// TODO: TEMP
-namespace {
-	//EditorGui::GuiDescriptorAllocation s_GuiShadowMapDebugSRV;
 }
 
 DemoGame::DemoGame(const std::wstring& name, uint32_t width, uint32_t height, bool vSync)
@@ -306,8 +302,8 @@ void DemoGame::UnloadContent() {
 }
 
 void DemoGame::OnUpdate(UpdateEventArgs& e) {
-	// Moving average frame rate (over 128 [sk_frameTimeSamples] frames)
-	// moving average used for realtime updates tp FPS graph (rather than once a second)
+	// Calculate Moving average frame rate (over 128 [sk_frameTimeSamples] frames)
+	// moving average used for realtime updates to FPS graph (rather than once a second)
 	static uint64_t frameIndex = 0;
 	static double frameTimeSum = 0;
 	frameTimeSum -= m_frameTimeHistory[frameIndex];
@@ -319,7 +315,7 @@ void DemoGame::OnUpdate(UpdateEventArgs& e) {
 
 	//m_SwapChain->WaitForSwapChain();
 
-	/// Update the camera.
+	// Update the camera.
 	if(!m_ShowImGuiWindow) {
 		float speedMultipler = m_IsShiftPressed ? 32.0f : 16.0f;
 		
@@ -335,12 +331,11 @@ void DemoGame::OnUpdate(UpdateEventArgs& e) {
 		XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(-m_Pitch), XMConvertToRadians(-m_Yaw), 0.0f);
 		m_Scene->m_MainCamera.Set_Rotation(cameraRotation);
 	}
-	///
 
 	OnRender(e);
 }
 
-void DemoGame::ShowImGuiWindow(CommandList& directCommandList) {
+void DemoGame::ShowImGui(CommandList& directCommandList) {
 	m_EditorGui->NewFrame();
 
 	static ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
@@ -378,7 +373,6 @@ void DemoGame::ShowImGuiWindow(CommandList& directCommandList) {
 			ImGui::PopStyleColor(3);
 		}
 
-		/// TODO: move this to it's own window?
 		// Performance Graph 
 		// Graph data update rate based on s_GraphUpdateRate, default: 60hz
 		// This is to throttle the rate ScrollingBuffer records data so we don't need a huge buffer for high frame rates over a big time scale
@@ -454,6 +448,7 @@ void DemoGame::ShowImGuiWindow(CommandList& directCommandList) {
 			m_Scene->SetDirectionalLightAngle(sceneDirLightAngle[0], sceneDirLightAngle[1], 0.0f);
 		}
 
+		// Directional shadow map debug view
 		{
 			static float imageScale = 0.25f;
 			ImGui::SliderFloat("Scale", &imageScale, 0.0, 1.0, "%.2fx");
@@ -465,8 +460,14 @@ void DemoGame::ShowImGuiWindow(CommandList& directCommandList) {
 			);
 		}
 
+		/// TODO: material picker
+		for(const auto& entry : std::filesystem::directory_iterator(L"assets/materials")) {
+			ImGui::Text("%ls", entry.path().filename().native().c_str());
+		}
+
 		ImGui::End();
 	}
+
 
 	m_EditorGui->Render(directCommandList);
 }
@@ -507,7 +508,7 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 	}
 
 	/// Draw ImGui
-	ShowImGuiWindow(*directCommandList);
+	ShowImGui(*directCommandList);
 
 	/// Present
 	directCommandQueue.ExecuteCommandList(directCommandList);

@@ -39,7 +39,9 @@ public:
 
 private:
     void OnRender(UpdateEventArgs& e);
-    void ShowImGuiWindow(CommandList& directCommandList);
+    
+    // Debug window, this shouldn't be implemented in this class if it ever becomes a real editor UI
+    void ShowImGui(CommandList& directCommandList);
 
     std::shared_ptr<Device>    m_Device;
     std::shared_ptr<Window>    m_Window;

@@ -1082,7 +1082,6 @@ void CommandList::Reset() {
 	m_ComputeCommandList = nullptr;
 }
 
-// Note: DON'T use const ref to increase ref count
 void CommandList::TrackResource(Microsoft::WRL::ComPtr<ID3D12Object> object) {
 	m_TrackedObjects.push_back(object);
 }

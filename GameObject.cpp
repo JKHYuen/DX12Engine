@@ -19,24 +19,26 @@ GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, st
 	XMStoreFloat4x4(&m_RotationMat, params.rotationMat);
 	XMStoreFloat4x4(&m_ScaleMat, params.scaleMat);
 
-	// Load Resources, note that commandlist is not executed here
-	m_TextureResources.resize(PBRObjectPSO::sk_NumTextures);
+	UpdateShaderResources(copyCommandList, params.pbrMatName);
 
-	std::wstring matPathPrefix { L"assets/materials/" + params.pbrMatName + L"/" + params.pbrMatName };
+	/// TODO: check if skybox is initialized
+	m_TextureResources[PBRObjectPSO::IrradianceCubemap]    = params.scene.GetSkybox().GetIrradianceTexture();
+	m_TextureResources[PBRObjectPSO::PrefilterCubemap]     = params.scene.GetSkybox().GetPrefilterTexture();
+	m_TextureResources[PBRObjectPSO::BRDFLut]              = params.scene.GetSkybox().Get_BRDF_LUT_Texture();
+	m_TextureResources[PBRObjectPSO::DirectionalShadowMap] = params.scene.GetDirectionalLight().GetShadowMapTexture();
+
+	m_Mesh = mesh;
+}
+
+void GameObject::UpdateShaderResources(CommandList& copyCommandList, const std::wstring& pbrMatName) {
+	// Load Resources, note that commandlist is not executed here
+	std::wstring matPathPrefix { L"assets/materials/" + pbrMatName + L"/" + pbrMatName };
 	m_TextureResources[PBRObjectPSO::AlbedoTex] =
 		copyCommandList.LoadTextureFromFile(matPathPrefix + L"_albedo.tga", true);
 	m_TextureResources[PBRObjectPSO::NormalTex] =
 		copyCommandList.LoadTextureFromFile(matPathPrefix + L"_normal.tga", false);
 	m_TextureResources[PBRObjectPSO::MaterialTex] =
 		copyCommandList.LoadTextureFromFile(matPathPrefix + L"_mat.tga", false);
-
-	/// TODO: check if skybox is initialized
-	m_TextureResources[PBRObjectPSO::IrradianceCubemap] = params.scene.GetSkybox().GetIrradianceTexture();
-	m_TextureResources[PBRObjectPSO::PrefilterCubemap] = params.scene.GetSkybox().GetPrefilterTexture();
-	m_TextureResources[PBRObjectPSO::BRDFLut] = params.scene.GetSkybox().Get_BRDF_LUT_Texture();
-	m_TextureResources[PBRObjectPSO::DirectionalShadowMap] = params.scene.GetDirectionalLight().GetShadowMapTexture();
-
-	m_Mesh = mesh;
 }
 
 GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, const std::wstring& meshFileName) {
@@ -76,3 +78,5 @@ void GameObject::RenderToDirectionalShadowMap(CommandList& directCommandList, co
 	XMMATRIX SRTMat = XMLoadFloat4x4(&m_ScaleMat) * XMLoadFloat4x4(&m_RotationMat) * XMLoadFloat4x4(&m_TranslationMat);
 	scene.GetDirectionalLight().RenderObjectToDepth(directCommandList, *m_Mesh, SRTMat);
 }
+
+

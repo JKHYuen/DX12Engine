@@ -558,11 +558,11 @@ private:
     std::vector<Microsoft::WRL::ComPtr<ID3D12Object>> m_TrackedObjects;
 
     // Keep track of loaded textures to avoid loading the same texture multiple times.
-    static std::unordered_map<std::wstring, ID3D12Resource*> ms_TextureCache;
-    static std::mutex                              ms_TextureCacheMutex;
+    static std::unordered_map<std::wstring, std::shared_ptr<Texture>> ms_TextureCache;
+    static std::mutex ms_TextureCacheMutex;
 
     static std::unordered_map<std::wstring, std::shared_ptr<Mesh>> ms_MeshCache;
-    static std::mutex                                    ms_MeshCacheMutex;
+    static std::mutex ms_MeshCacheMutex;
 
     // These helper functions do not use the mesh cache, use public functions to generate reusable primitives  
     std::shared_ptr<Mesh> CreateCube(float size);

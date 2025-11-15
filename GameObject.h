@@ -8,12 +8,12 @@
 #include <vector>
 #include <string>
 #include "DirectXMath.h"
+#include "PBRObjectPSO.h"
 
 using namespace DirectX;
 
 class CommandList;
 class Mesh;
-class PBRObjectPSO;
 class Texture;
 class Camera;
 class UpdateEventArgs;
@@ -35,11 +35,16 @@ public:
 	void Render(CommandList& directCommandList, const UpdateEventArgs & e, const Scene& scene);
 
 	void RenderToDirectionalShadowMap(CommandList& directCommandList, const Scene& scene);
+
+	// Currently only compatible with PBRObjectPSO
+	void UpdateShaderResources(CommandList& copyCommandList, const std::wstring& pbrMatName);
 	
 private:
 	std::shared_ptr<Mesh> m_Mesh;
 
-	std::vector<std::shared_ptr<Texture>> m_TextureResources;
+	std::vector<std::shared_ptr<Texture>> m_TextureResources { PBRObjectPSO::sk_NumTextures };
+
+	// PSO is managed/owned by a seperate class, right now it's DemoGame
 	PBRObjectPSO* m_PSO;
 
 	XMFLOAT4X4 m_TranslationMat;

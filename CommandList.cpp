@@ -22,6 +22,7 @@
 #include "ShaderResourceView.h"
 #include "UnorderedAccessView.h"
 #include "ConstantBufferView.h"
+#include "Logger.h"
 
 namespace {
 	// Hash names for primitive meshes created by functions for ms_MeshCache
@@ -30,10 +31,13 @@ namespace {
 	const std::wstring sk_QuadPrimitiveName   = L"Quad_Primitive";
 }
 
-std::unordered_map<std::wstring, ID3D12Resource*> CommandList::ms_TextureCache;
+/// TODO: move this cache to scene class?
+// Note: these caches should use weak_ptrs, but we are using shared_ptr to cache objects indefinitely for this limited project for now
+//       to prevent extraneous loading. A more clever system is probably needed in a real engine.
+std::unordered_map<std::wstring, std::shared_ptr<Texture>> CommandList::ms_TextureCache;
 std::mutex                                        CommandList::ms_TextureCacheMutex;
 
-// Cache all loaded meshes for session. We can clear on scene load if needed in the future.
+// Note: Cache all loaded meshes for session. Entries are not managed, we can clear on scene load if needed in the future.
 std::unordered_map<std::wstring, std::shared_ptr<Mesh>> CommandList::ms_MeshCache;
 std::mutex                                              CommandList::ms_MeshCacheMutex;
 
@@ -260,7 +264,8 @@ std::shared_ptr<Texture> CommandList::LoadTextureFromFile(const std::wstring& fi
 	std::lock_guard<std::mutex> lock(ms_TextureCacheMutex);
 	auto iter = ms_TextureCache.find(fileName);
 	if(iter != ms_TextureCache.end()) {
-		texture = std::make_shared<Texture>(m_Device, iter->second);
+		//texture = std::make_shared<Texture>(m_Device, iter->second);
+		texture = iter->second;
 	}
 	else {
 		TexMetadata  metadata;
@@ -338,7 +343,7 @@ std::shared_ptr<Texture> CommandList::LoadTextureFromFile(const std::wstring& fi
 		}
 
 		// Add the texture resource to the texture cache.
-		ms_TextureCache[fileName] = textureResource.Get();
+		ms_TextureCache[fileName] = texture;
 	}
 
 	return texture;

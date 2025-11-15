@@ -19,8 +19,8 @@ public:
 
 	// Disable copy and move
 	EditorGui(const EditorGui&)       = delete;
-	EditorGui(EditorGui&&)            = delete;
 	EditorGui& operator=(EditorGui&)  = delete;
+	EditorGui(EditorGui&&)            = delete;
 	EditorGui& operator=(EditorGui&&) = delete;
 
 	// Called at start of frame

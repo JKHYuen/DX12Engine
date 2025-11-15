@@ -30,6 +30,8 @@ public:
 	
 	void SetDirectionalLightAngle(float rotX, float rotY, float rotZ);
 
+	void RenderDebugComponents();
+
 	// keep this public out of convenience for now
 	Camera m_MainCamera;
 
@@ -38,5 +40,7 @@ private:
 
 	DirectionalLight m_DirectionalLight;
 	Skybox m_Skybox;
+
+	Device& m_Device;
 };
 

@@ -338,7 +338,7 @@ void DemoGame::OnUpdate(UpdateEventArgs& e) {
 void DemoGame::ShowImGui(CommandList& directCommandList) {
 	m_EditorGui->NewFrame();
 
-	static ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
+	static const ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
 
 	struct ScrollingBuffer {
 		int MaxSize;
@@ -364,9 +364,9 @@ void DemoGame::ShowImGui(CommandList& directCommandList) {
 
 		// Exit button
 		{
-			ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(0.0f, 0.6f, 0.6f));
+			ImGui::PushStyleColor(ImGuiCol_Button,	      (ImVec4)ImColor::HSV(0.0f, 0.6f, 0.6f));
 			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor::HSV(0.0f, 0.7f, 0.7f));
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor::HSV(0.0f, 0.8f, 0.8f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive,  (ImVec4)ImColor::HSV(0.0f, 0.8f, 0.8f));
 			if(ImGui::Button("EXIT APP")) {
 				Application::Get().Quit();
 			}
@@ -460,14 +460,13 @@ void DemoGame::ShowImGui(CommandList& directCommandList) {
 			);
 		}
 
-		/// TODO: material picker
-		for(const auto& entry : std::filesystem::directory_iterator(L"assets/materials")) {
-			ImGui::Text("%ls", entry.path().filename().native().c_str());
+		// Material picker
+		{
+			m_Scene->RenderDebugComponents();
 		}
 
 		ImGui::End();
 	}
-
 
 	m_EditorGui->Render(directCommandList);
 }

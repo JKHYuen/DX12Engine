@@ -65,6 +65,8 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t width, uint32_t height, bo
 	, m_IsShiftPressed(false)
 	, m_ShowImGuiWindow(false)
 	, m_CurrentAvgFPS(0)
+	, m_MouseX(0)
+	, m_MouseY(0)
 	, m_WindowWidth(width)
 	, m_WindowHeight(height)
 	, m_IsVsync(vSync)
@@ -170,11 +172,12 @@ bool DemoGame::Initialize() {
 
 		m_Scene = std::make_unique<Scene>(*m_Device, *copyCommandList, dirLightParams, skyboxParams);
 
-		// Test objects to render
+		/// TEMP:
+		// Initialize test objects to render
 		{
 			GameObject::GameObjectParams goParams{
 				*m_Scene,
-				XMMatrixTranslation(1.0f, 4.0f, 1.0f), XMMatrixIdentity(), XMMatrixScaling(1.0f, 1.0f, 1.0f),
+				XMMatrixTranslation(0.0f, 0.0f, 0.0f), XMMatrixIdentity(), XMMatrixScaling(1.0f, 1.0f, 1.0f),
 				m_PBR_PSO.get(),
 				matName,
 			};
@@ -182,17 +185,12 @@ bool DemoGame::Initialize() {
 			// Test Sphere Object
 			m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateSpherePrimitive());
 
-			goParams.translationMat = XMMatrixTranslation(1.0f, 1.0f, 1.0f);
-			goParams.scaleMat = XMMatrixScaling(40.0f, 1.0f, 40.0f);
 
 			// Test Floor Object
-			m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateQuadPrimitive());
+			//goParams.translationMat = XMMatrixTranslation(1.0f, 1.0f, 1.0f);
+			//goParams.scaleMat = XMMatrixScaling(40.0f, 1.0f, 40.0f);
+			//m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateQuadPrimitive());
 		}
-
-		/// TODO:
-		//// Initialize ImGui SRV for debug
-		//// Note: SRVs for ImGui render have its own allocator and descriptor heap (instead of the two stage DynamicDescriptorHeap system) to keep things simple
-		//s_GuiShadowMapDebugSRV = EditorGui::AllocateImageSRV(*m_Device, m_DirectionalShadowMap.GetTexture(AttachmentPoint::DepthStencil), &srvDesc);
 
 		copyCommandQueue.ExecuteCommandList(copyCommandList);
 	}
@@ -268,7 +266,7 @@ bool DemoGame::Initialize() {
 	return true;
 }
 
-void DemoGame::OnResize(ResizeEventArgs& e) {
+void DemoGame::OnResize(const ResizeEventArgs& e) {
 	m_WindowWidth = std::max(1, e.Width);
 	m_WindowHeight = std::max(1, e.Height);
 
@@ -301,7 +299,7 @@ void DemoGame::UnloadContent() {
 	m_Device.reset();
 }
 
-void DemoGame::OnUpdate(UpdateEventArgs& e) {
+void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 	// Calculate Moving average frame rate (over 128 [sk_frameTimeSamples] frames)
 	// moving average used for realtime updates to FPS graph (rather than once a second)
 	static uint64_t frameIndex = 0;
@@ -371,6 +369,16 @@ void DemoGame::ShowImGui(CommandList& directCommandList) {
 				Application::Get().Quit();
 			}
 			ImGui::PopStyleColor(3);
+		}
+
+		/// TEMP
+		{
+			ImGui::Text("Mouse X: %f", m_MouseX);
+			ImGui::Text("Mouse Y: %f", m_MouseY);
+
+			ImGui::Text("Intersection Test: %d", TestIntersection(m_MouseX, m_MouseY));
+			ImGui::Text("DirectX Intersection Test: %d", m_TestDXIntersect);
+			ImGui::Text("DirectX Intersection Test Distance: %f", m_TestDXIntersectDistance);
 		}
 
 		// Performance Graph 
@@ -471,7 +479,7 @@ void DemoGame::ShowImGui(CommandList& directCommandList) {
 	m_EditorGui->Render(directCommandList);
 }
 
-void DemoGame::OnRender(UpdateEventArgs& e) {
+void DemoGame::OnRender(const UpdateEventArgs& e) {
 	auto& directCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 	auto directCommandList = directCommandQueue.GetCommandList();
 
@@ -514,28 +522,38 @@ void DemoGame::OnRender(UpdateEventArgs& e) {
 	m_SwapChain->Present();
 }
 
-void DemoGame::OnMouseMove(MouseMotionEventArgs& e) {
+void DemoGame::OnMouseMove(const MouseMotionEventArgs& e) {
 	if(!m_ShowImGuiWindow) {
 		constexpr float mouseSpeed = 0.1f;
 		m_Pitch -= e.DeltaY * mouseSpeed;
 		m_Pitch = std::clamp(m_Pitch, -90.0f, 90.0f);
 		m_Yaw -= e.DeltaX * mouseSpeed;
 	}
+
+	m_MouseX = e.X;
+	m_MouseY = e.Y;
+
 }
 
-void DemoGame::OnMouseButtonPressed(MouseButtonEventArgs& e) {
+void DemoGame::OnMouseButtonPressed(const MouseButtonEventArgs& e) {
 	if(e.Button == MouseButtonEventArgs::Left) {
 		m_Forward = 1.0f;
 	}
+	else if(e.Button == MouseButtonEventArgs::Right) {
+		m_Forward = -1.0f;
+	}
 }
 
-void DemoGame::OnMouseButtonReleased(MouseButtonEventArgs& e) {
+void DemoGame::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 	if(e.Button == MouseButtonEventArgs::Left) {
+		m_Forward = 0.0f;
+	}
+	else if(e.Button == MouseButtonEventArgs::Right) {
 		m_Forward = 0.0f;
 	}
 }
 
-void DemoGame::OnKeyPressed(KeyEventArgs& e) {
+void DemoGame::OnKeyPressed(const KeyEventArgs& e) {
 	switch(e.Key) {
 	case KeyCode::Up:
 	case KeyCode::W:
@@ -573,7 +591,7 @@ void DemoGame::OnKeyPressed(KeyEventArgs& e) {
 		break;
 	}
 }
-void DemoGame::OnKeyReleased(KeyEventArgs& e) {
+void DemoGame::OnKeyReleased(const KeyEventArgs& e) {
 	switch(e.Key) {
 	case KeyCode::Up:
 	case KeyCode::W:
@@ -606,7 +624,7 @@ void DemoGame::OnKeyReleased(KeyEventArgs& e) {
 	}
 }
 
-void DemoGame::OnMouseWheel(MouseWheelEventArgs& e) {
+void DemoGame::OnMouseWheel(const MouseWheelEventArgs& e) {
 	if(!m_ShowImGuiWindow) {
 		auto fov = m_Scene->m_MainCamera.Get_FoV();
 
@@ -615,4 +633,84 @@ void DemoGame::OnMouseWheel(MouseWheelEventArgs& e) {
 
 		m_Scene->m_MainCamera.Set_FoV(fov);
 	}
+}
+
+// Source: based on https://www.rastertek.com/dx11win10tut47.html
+bool DemoGame::TestIntersection(int mouseX, int mouseY) {
+	// Move the mouse cursor coordinates into the -1 to +1 range.
+	float pointX = ((2.0f * (float)mouseX) / (float)m_WindowWidth) - 1.0f;
+	float pointY = (((2.0f * (float)mouseY) / (float)m_WindowHeight) - 1.0f) * -1.0f;
+
+	// Adjust the points using the projection matrix to account for the aspect ratio of the viewport.
+	XMMATRIX projectionMatrix = m_Scene->m_MainCamera.Get_ProjectionMatrix();
+	XMFLOAT4X4 pMatrix {};
+	XMStoreFloat4x4(&pMatrix, projectionMatrix);
+	pointX = pointX / pMatrix._11;
+	pointY = pointY / pMatrix._22;
+
+	// Get the inverse of the view matrix.
+	XMMATRIX viewMatrix = m_Scene->m_MainCamera.Get_ViewMatrix();
+	XMMATRIX inverseViewMatrix = XMMatrixInverse(nullptr, viewMatrix);
+	XMFLOAT4X4 iViewMatrix {};
+	XMStoreFloat4x4(&iViewMatrix, inverseViewMatrix);
+
+	// Calculate the direction of the picking ray in view space.
+	XMFLOAT3 cameraDirection {};
+	cameraDirection.x = (pointX * iViewMatrix._11) + (pointY * iViewMatrix._21) + iViewMatrix._31;
+	cameraDirection.y = (pointX * iViewMatrix._12) + (pointY * iViewMatrix._22) + iViewMatrix._32;
+	cameraDirection.z = (pointX * iViewMatrix._13) + (pointY * iViewMatrix._23) + iViewMatrix._33;
+	XMVECTOR direction = XMLoadFloat3(&cameraDirection);
+
+	// Get the origin of the picking ray which is the position of the camera.
+	XMVECTOR origin = m_Scene->m_MainCamera.Get_Translation();
+
+
+
+	/// DirectXCollision.h TEST
+	DirectX::BoundingSphere boundingSphere { XMFLOAT3{0.0f, 0.0f, 0.0f}, 1.0f };
+	m_TestDXIntersect = boundingSphere.Intersects(origin, XMVector3Normalize(direction), m_TestDXIntersectDistance);
+	///
+
+
+	// Get the world matrix and translate to the location of the sphere.
+	XMMATRIX worldMatrix = XMMatrixTranslation(0.0f, 0.0f, 0.0f);
+
+	// Now get the inverse of the translated world matrix.
+	XMMATRIX inverseWorldMatrix = XMMatrixInverse(nullptr, worldMatrix);
+
+	// Now transform the ray origin and the ray direction from view space to world space.
+	XMVECTOR rayOrigin = XMVector3TransformCoord(origin, inverseWorldMatrix);
+	XMVECTOR rayDirection = XMVector3TransformNormal(direction, inverseWorldMatrix);
+	
+	// Normalize the ray direction.
+	rayDirection = XMVector3Normalize(rayDirection);
+
+	// Convert the ray origin and direction XMVECTOR to a XMFLOAT3 type.
+	XMFLOAT3 rayOri {}, rayDir {};
+	XMStoreFloat3(&rayOri, rayOrigin);
+	XMStoreFloat3(&rayDir, rayDirection);
+
+	// Now perform the ray-sphere intersection test.
+	bool intersect = RaySphereIntersect(rayOri, rayDir, 1.0f);
+
+	return intersect;
+}
+
+bool DemoGame::RaySphereIntersect(XMFLOAT3 rayOrigin, XMFLOAT3 rayDirection, float radius) {
+	float a, b, c, discriminant;
+
+	// Calculate the a, b, and c coefficients.
+	a = (rayDirection.x * rayDirection.x) + (rayDirection.y * rayDirection.y) + (rayDirection.z * rayDirection.z);
+	b = ((rayDirection.x * rayOrigin.x) + (rayDirection.y * rayOrigin.y) + (rayDirection.z * rayOrigin.z)) * 2.0f;
+	c = ((rayOrigin.x * rayOrigin.x) + (rayOrigin.y * rayOrigin.y) + (rayOrigin.z * rayOrigin.z)) - (radius * radius);
+
+	// Find the discriminant.
+	discriminant = (b * b) - (4 * a * c);
+
+	// if discriminant is negative the picking ray missed the sphere, otherwise it intersected the sphere.
+	if(discriminant < 0.0f) {
+		return false;
+	}
+
+	return true;
 }

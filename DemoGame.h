@@ -28,20 +28,23 @@ public:
     bool Initialize()    override;
     void UnloadContent() override;
 
-    void OnUpdate(UpdateEventArgs& e)                   override;
-    void OnResize(ResizeEventArgs& e)                   override;
-    void OnKeyPressed(KeyEventArgs& e)                  override;
-    void OnKeyReleased(KeyEventArgs& e)                 override;
-    void OnMouseWheel(MouseWheelEventArgs& e)           override;
-    void OnMouseMove(MouseMotionEventArgs& e)           override;
-    void OnMouseButtonPressed(MouseButtonEventArgs& e)  override;
-    void OnMouseButtonReleased(MouseButtonEventArgs& e) override;
+    void OnUpdate(const UpdateEventArgs & e)                  override;
+    void OnResize(const ResizeEventArgs & e)                  override;
+    void OnKeyPressed(const KeyEventArgs& e)                  override;
+    void OnKeyReleased(const KeyEventArgs& e)                 override;
+    void OnMouseWheel(const MouseWheelEventArgs& e)           override;
+    void OnMouseMove(const MouseMotionEventArgs& e)           override;
+    void OnMouseButtonPressed(const MouseButtonEventArgs& e)  override;
+    void OnMouseButtonReleased(const MouseButtonEventArgs& e) override;
 
 private:
-    void OnRender(UpdateEventArgs& e);
+    void OnRender(const UpdateEventArgs& e);
     
     // Debug window, this shouldn't be implemented in this class if it ever becomes a real editor UI
     void ShowImGui(CommandList& directCommandList);
+
+    bool RaySphereIntersect(XMFLOAT3 rayOrigin, XMFLOAT3 rayDirection, float radius);
+    bool TestIntersection(int mouseX, int mouseY);
 
     std::shared_ptr<Device>    m_Device;
     std::shared_ptr<Window>    m_Window;
@@ -76,6 +79,9 @@ private:
     float m_Pitch;
     float m_Yaw;
 
+    float m_MouseX;
+    float m_MouseY;
+
     bool m_IsShiftPressed;
 
     int  m_WindowWidth;
@@ -87,5 +93,9 @@ private:
     int m_CurrentAvgFPS;
     static const int sk_frameTimeSamples = 128;
     double m_frameTimeHistory[sk_frameTimeSamples] = {};
+
+    /// TEMP: TEST
+    bool m_TestDXIntersect = false;
+    float m_TestDXIntersectDistance = 0.0f;
 };
 

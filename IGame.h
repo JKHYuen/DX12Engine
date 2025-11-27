@@ -14,13 +14,13 @@ public:
     // Start game loop, return error code
     virtual uint32_t Run() = 0;
 
-    virtual void OnUpdate(UpdateEventArgs& e) = 0;
+    virtual void OnUpdate(const UpdateEventArgs & e) = 0;
 
-    virtual void OnKeyPressed(KeyEventArgs& e) {};
-    virtual void OnKeyReleased(KeyEventArgs& e) {};
-    virtual void OnMouseMove(MouseMotionEventArgs& e) {};
-    virtual void OnMouseButtonPressed(MouseButtonEventArgs& e) {};
-    virtual void OnMouseButtonReleased(MouseButtonEventArgs& e) {};
-    virtual void OnMouseWheel(MouseWheelEventArgs& e) {};
-    virtual void OnResize(ResizeEventArgs& e) {};
+    virtual void OnKeyPressed(const KeyEventArgs& e) {};
+    virtual void OnKeyReleased(const KeyEventArgs& e) {};
+    virtual void OnMouseMove(const MouseMotionEventArgs& e) {};
+    virtual void OnMouseButtonPressed(const MouseButtonEventArgs& e) {};
+    virtual void OnMouseButtonReleased(const MouseButtonEventArgs& e) {};
+    virtual void OnMouseWheel(const MouseWheelEventArgs& e) {};
+    virtual void OnResize(const ResizeEventArgs & e) {};
 };

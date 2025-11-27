@@ -105,6 +105,7 @@ std::shared_ptr<Window> Application::CreateRenderWindow(const std::wstring& wind
 
     RECT windowRect = {0, 0, static_cast<LONG>(clientWidth), static_cast<LONG>(clientHeight)};
 
+    // Insures client area has exact width and height given above, adjusting for window elements e.g. frame
     ::AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
 
     uint32_t width = windowRect.right - windowRect.left;
@@ -310,7 +311,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 int deltaX = raw->data.mouse.lLastX;
                 int deltaY = raw->data.mouse.lLastY;
 
-                MouseMotionEventArgs mouseMotionEventArgs(lButton, mButton, rButton, deltaX, deltaY);
+                // Calculate client mouse coords
+                POINT cursorPos;
+                GetCursorPos(&cursorPos);
+                ScreenToClient(hwnd, (LPPOINT)&cursorPos);
+
+                MouseMotionEventArgs mouseMotionEventArgs(lButton, mButton, rButton, deltaX, deltaY, cursorPos.x, cursorPos.y);
                 pWindow->OnMouseMove(mouseMotionEventArgs);
             }
 
@@ -340,20 +346,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
             }
         }
         break;
-
-        //case WM_LBUTTONUP:
-        //case WM_RBUTTONUP:
-        //case WM_MBUTTONUP:
-        //{
-        //    MouseButtonEventArgs::MouseButton mouseButton;
-        //    bool lButton, rButton, mButton, shift, control;
-        //    int x, y;
-        //    DecodeMouseData(message, wParam, lParam, mouseButton, lButton, rButton, mButton, shift, control, x, y);
-
-        //    MouseButtonEventArgs mouseButtonEventArgs(mouseButton, MouseButtonEventArgs::Released, lButton, mButton, rButton, control, shift, x, y);
-        //    pWindow->OnMouseButtonReleased(mouseButtonEventArgs);
-        //}
-        //break;
 
         case WM_MOUSEWHEEL:
         {

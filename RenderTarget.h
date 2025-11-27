@@ -111,11 +111,10 @@ public:
 
     // Reset all textures
     void Reset() {
-        m_Textures = RenderTargetList(AttachmentPoint::NumAttachmentPoints);
+        m_Textures = std::vector<std::shared_ptr<Texture>>(AttachmentPoint::NumAttachmentPoints);
     }
 
 private:
-    using RenderTargetList = std::vector<std::shared_ptr<Texture>>;
-    RenderTargetList m_Textures;
+    std::vector<std::shared_ptr<Texture>> m_Textures;
     DirectX::XMUINT2 m_Size;
 };

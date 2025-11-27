@@ -45,7 +45,9 @@ class Visitor;
 
 class Mesh {
 public:
-    using BufferMap = std::map<uint32_t, std::shared_ptr<VertexBuffer>>;
+    // No reason to use map over vector other than the fact that there is no enum for vertex buffer IDs (easier nullptr handling)
+    // -KHY
+    using BufferMap = std::unordered_map<uint32_t, std::shared_ptr<VertexBuffer>>;
 
     Mesh();
     ~Mesh() = default;

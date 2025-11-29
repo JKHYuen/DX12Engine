@@ -36,6 +36,8 @@
 // Mouse buttons and keyboard buttons are handled by windows api.
 // Mouse movement is handled by raw input (experimental).
 
+/// NOTE: Cursor visibility is currently solely controlled by ImGui, not ideal but works for now
+
 #include "DescriptorAllocation.h"
 
 #include <d3d12.h>
@@ -97,6 +99,8 @@ public:
      * @returns The error code (if an error occurred).
      */
     int32_t Run();
+
+    void LockCursorToClient(bool state);
 
     void Quit();
 

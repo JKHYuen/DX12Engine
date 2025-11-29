@@ -1228,11 +1228,13 @@ std::shared_ptr<Mesh> CommandList::CreateCube(float size) {
 	auto vertexBuffer = CopyVertexBuffer(vertices);
 	auto indexBuffer = CopyIndexBuffer(indices);
 
-	auto cubeMeshPtr = std::make_shared<Mesh>();
-	cubeMeshPtr->SetVertexBuffer(0, vertexBuffer);
-	cubeMeshPtr->SetIndexBuffer(indexBuffer);
+	auto meshPtr = std::make_shared<Mesh>();
+	meshPtr->SetVertexBuffer(0, vertexBuffer);
+	meshPtr->SetIndexBuffer(indexBuffer);
 
-	return cubeMeshPtr;
+	meshPtr->SetExtents({ s, s, s });
+
+	return meshPtr;
 }
 
 std::shared_ptr<Mesh> CommandList::CreateSphere(float radius, uint32_t tessellation) {
@@ -1298,11 +1300,13 @@ std::shared_ptr<Mesh> CommandList::CreateSphere(float radius, uint32_t tessellat
 	auto vertexBuffer = CopyVertexBuffer(vertices);
 	auto indexBuffer = CopyIndexBuffer(indices);
 
-	auto sphereMeshPtr = std::make_shared<Mesh>();
-	sphereMeshPtr->SetVertexBuffer(0, vertexBuffer);
-	sphereMeshPtr->SetIndexBuffer(indexBuffer);
+	auto meshPtr = std::make_shared<Mesh>();
+	meshPtr->SetVertexBuffer(0, vertexBuffer);
+	meshPtr->SetIndexBuffer(indexBuffer);
 
-	return sphereMeshPtr;
+	meshPtr->SetExtents({ radius, radius, radius });
+
+	return meshPtr;
 }
 
 std::shared_ptr<Mesh> CommandList::CreateQuad(float width, float height) {
@@ -1321,11 +1325,14 @@ std::shared_ptr<Mesh> CommandList::CreateQuad(float width, float height) {
 	auto vertexBuffer = CopyVertexBuffer(vertices);
 	auto indexBuffer = CopyIndexBuffer(indices);
 
-	auto planeMeshPtr = std::make_shared<Mesh>();
-	planeMeshPtr->SetVertexBuffer(0, vertexBuffer);
-	planeMeshPtr->SetIndexBuffer(indexBuffer);
+	auto meshPtr = std::make_shared<Mesh>();
+	meshPtr->SetVertexBuffer(0, vertexBuffer);
+	meshPtr->SetIndexBuffer(indexBuffer);
 
-	return planeMeshPtr;
+	/// TODO: double check if 0.0f y extent is ok
+	meshPtr->SetExtents({ 0.5f * width, 0.0f, 0.5f * height });
+
+	return meshPtr;
 }
 
 std::shared_ptr<Mesh> CommandList::CreateCubePrimitive() {
@@ -1349,7 +1356,7 @@ std::shared_ptr<Mesh> CommandList::CreateSpherePrimitive() {
 		return iter->second;
 	}
 	else {
-		ms_MeshCache[sk_SpherePrimitiveName] = CreateSphere(1.0f, 64);
+		ms_MeshCache[sk_SpherePrimitiveName] = CreateSphere(0.5f, 64);
 		return ms_MeshCache[sk_SpherePrimitiveName];
 	}
 }

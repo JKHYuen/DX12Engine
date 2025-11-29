@@ -186,6 +186,38 @@ void Application::Quit() {
     m_RequestQuit = true;
 }
 
+void Application::LockCursorToClient(bool state) {
+    if(!state) {
+        ClipCursor(nullptr);
+        return;
+    }
+
+    /// TODO TEMP: remove windows map?
+    HWND hWindow = gs_WindowMap.begin()->first;
+
+    RECT rect {};
+    GetClientRect(hWindow, &rect);
+
+    POINT ul;
+    ul.x = rect.left;
+    ul.y = rect.top;
+
+    POINT lr;
+    lr.x = rect.right;
+    lr.y = rect.bottom;
+
+    MapWindowPoints(hWindow, nullptr, &ul, 1);
+    MapWindowPoints(hWindow, nullptr, &lr, 1);
+
+    rect.left = ul.x;
+    rect.top = ul.y;
+
+    rect.right = lr.x;
+    rect.bottom = lr.y;
+
+    ClipCursor(&rect);
+};
+
 static void DecodeMouseData(UINT messageID, WPARAM wParam, LPARAM lParam, MouseButtonEventArgs::MouseButton& out_MouseButton, 
     bool& out_LButton, bool& out_RButton, bool& out_MButton, bool& out_Shift, bool& out_Control,
     int& out_X, int& out_Y) {
@@ -230,6 +262,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
     if(pWindow) {
         switch(message) {
+
+        case WM_ACTIVATE:
+        case WM_ACTIVATEAPP:
+        {
+            Application::Get().LockCursorToClient(wParam);
+        }
+        break;
+
         case WM_PAINT:
         {
             // Delta time will be filled in by the Window.
@@ -274,7 +314,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
             // to a printable character (if possible).
             // Inspired by the SDL 1.2 implementation.
             unsigned char keyboardState[256];
-            GetKeyboardState(keyboardState);
+            std::ignore = GetKeyboardState(keyboardState);
             wchar_t translatedCharacters[4];
             if(int result = ToUnicodeEx(static_cast<UINT>(wParam), scanCode, keyboardState, translatedCharacters, 4, 0, NULL) > 0) {
                 c = translatedCharacters[0];
@@ -315,6 +355,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 POINT cursorPos;
                 GetCursorPos(&cursorPos);
                 ScreenToClient(hwnd, (LPPOINT)&cursorPos);
+
+                /// TODO: implement looping boundaries when cursor is locked to client and cursor reaches client edges using SetCursorPos(x, y)
 
                 MouseMotionEventArgs mouseMotionEventArgs(lButton, mButton, rButton, deltaX, deltaY, cursorPos.x, cursorPos.y);
                 pWindow->OnMouseMove(mouseMotionEventArgs);

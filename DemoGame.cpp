@@ -38,6 +38,11 @@
 using namespace DirectX;
 using namespace Microsoft::WRL;
 
+/// TESTING
+namespace {
+	GameObject s_TestSphere;
+}
+
 // static parameters
 namespace {
 	constexpr DXGI_FORMAT sk_HDRFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -63,6 +68,8 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t width, uint32_t height, bo
 	, m_Pitch(0)
 	, m_Yaw(0)
 	, m_IsShiftPressed(false)
+	, m_IsLeftClickPressed(false)
+	, m_IsRightClickPressed(false)
 	, m_ShowImGuiWindow(false)
 	, m_CurrentAvgFPS(0)
 	, m_MouseX(0)
@@ -175,6 +182,7 @@ bool DemoGame::Initialize() {
 		/// TEMP:
 		// Initialize test objects to render
 		{
+			/// TODO: don't create matrices here
 			GameObject::GameObjectParams goParams{
 				*m_Scene,
 				XMMatrixTranslation(0.0f, 0.0f, 0.0f), XMMatrixIdentity(), XMMatrixScaling(1.0f, 1.0f, 1.0f),
@@ -183,11 +191,14 @@ bool DemoGame::Initialize() {
 			};
 
 			// Test Sphere Object
-			m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateSpherePrimitive());
+			s_TestSphere = m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateSpherePrimitive());
 
+			// Test Cube Object
+			//goParams.scaleMat = XMMatrixScaling(1.0f, 1.0f, 1.0f);
+			m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateCubePrimitive());
 
 			// Test Floor Object
-			//goParams.translationMat = XMMatrixTranslation(1.0f, 1.0f, 1.0f);
+			//goParams.translationMat = XMMatrixTranslation(0.0f, -1.0f, 0.0f);
 			//goParams.scaleMat = XMMatrixScaling(40.0f, 1.0f, 40.0f);
 			//m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateQuadPrimitive());
 		}
@@ -313,9 +324,12 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 
 	//m_SwapChain->WaitForSwapChain();
 
-	// Update the camera.
-	if(!m_ShowImGuiWindow) {
+	// Update the camera transform if ImGui is not showing, unless right click is held
+	if(!m_ShowImGuiWindow || m_IsRightClickPressed) {
 		float speedMultipler = m_IsShiftPressed ? 32.0f : 16.0f;
+		if(m_IsLeftClickPressed) {
+			speedMultipler *= 0.05f;
+		}
 		
 		XMVECTOR cameraTranslation = 
 			XMVector3Normalize(XMVectorSet(m_Right - m_Left, 0.0f, m_Forward - m_Backward, 1.0f))
@@ -333,7 +347,10 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 	OnRender(e);
 }
 
-void DemoGame::ShowImGui(CommandList& directCommandList) {
+void DemoGame::RenderImGui(CommandList& directCommandList) {
+	/// NOTE: Cursor visibility is currently solely controlled by ImGui, not ideal but works for now
+	ImGui::SetMouseCursor(m_ShowImGuiWindow ? ImGuiMouseCursor_Arrow : ImGuiMouseCursor_None);
+
 	m_EditorGui->NewFrame();
 
 	static const ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
@@ -373,11 +390,10 @@ void DemoGame::ShowImGui(CommandList& directCommandList) {
 
 		/// TEMP
 		{
-			ImGui::Text("Mouse X: %f", m_MouseX);
-			ImGui::Text("Mouse Y: %f", m_MouseY);
+			ImGui::Text("Mouse X: %d", m_MouseX);
+			ImGui::Text("Mouse Y: %d", m_MouseY);
 
-			ImGui::Text("Intersection Test: %d", TestIntersection(m_MouseX, m_MouseY));
-			ImGui::Text("DirectX Intersection Test: %d", m_TestDXIntersect);
+			ImGui::Text("DirectX Intersection Test: %d", TestIntersection(m_MouseX, m_MouseY));
 			ImGui::Text("DirectX Intersection Test Distance: %f", m_TestDXIntersectDistance);
 		}
 
@@ -515,7 +531,7 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 	}
 
 	/// Draw ImGui
-	ShowImGui(*directCommandList);
+	RenderImGui(*directCommandList);
 
 	/// Present
 	directCommandQueue.ExecuteCommandList(directCommandList);
@@ -523,7 +539,8 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 }
 
 void DemoGame::OnMouseMove(const MouseMotionEventArgs& e) {
-	if(!m_ShowImGuiWindow) {
+	// Don't record mouse rotations unless ImGui is closed or right click is held down
+	if(!m_ShowImGuiWindow || m_IsRightClickPressed) {
 		constexpr float mouseSpeed = 0.1f;
 		m_Pitch -= e.DeltaY * mouseSpeed;
 		m_Pitch = std::clamp(m_Pitch, -90.0f, 90.0f);
@@ -532,24 +549,25 @@ void DemoGame::OnMouseMove(const MouseMotionEventArgs& e) {
 
 	m_MouseX = e.X;
 	m_MouseY = e.Y;
-
 }
 
 void DemoGame::OnMouseButtonPressed(const MouseButtonEventArgs& e) {
 	if(e.Button == MouseButtonEventArgs::Left) {
+		m_IsLeftClickPressed = true;
 		m_Forward = 1.0f;
 	}
 	else if(e.Button == MouseButtonEventArgs::Right) {
-		m_Forward = -1.0f;
+		m_IsRightClickPressed = true;
 	}
 }
 
 void DemoGame::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 	if(e.Button == MouseButtonEventArgs::Left) {
+		m_IsLeftClickPressed = false;
 		m_Forward = 0.0f;
 	}
 	else if(e.Button == MouseButtonEventArgs::Right) {
-		m_Forward = 0.0f;
+		m_IsRightClickPressed = false;
 	}
 }
 
@@ -559,33 +577,42 @@ void DemoGame::OnKeyPressed(const KeyEventArgs& e) {
 	case KeyCode::W:
 		m_Forward = 1.0f;
 		break;
+
 	case KeyCode::Left:
 	case KeyCode::A:
 		m_Left = 1.0f;
 		break;
+
 	case KeyCode::Down:
 	case KeyCode::S:
 		m_Backward = 1.0f;
 		break;
+
 	case KeyCode::Right:
 	case KeyCode::D:
 		m_Right = 1.0f;
 		break;
+
 	case KeyCode::Q:
 		m_Down = 1.0f;
 		break;
+
 	case KeyCode::E:
 		m_Up = 1.0f;
 		break;
+
 	case KeyCode::Escape:
 		Application::Get().Quit();
 		break;
+
 	case KeyCode::F11:
 		m_Window->ToggleFullscreen();
 		break;
+
 	case KeyCode::V:
 		m_SwapChain->ToggleVSync();
 		break;
+
 	case KeyCode::ShiftKey:
 		m_IsShiftPressed = true;
 		break;
@@ -597,27 +624,34 @@ void DemoGame::OnKeyReleased(const KeyEventArgs& e) {
 	case KeyCode::W:
 		m_Forward = 0.0f;
 		break;
+
 	case KeyCode::Left:
 	case KeyCode::A:
 		m_Left = 0.0f;
 		break;
+
 	case KeyCode::Down:
 	case KeyCode::S:
 		m_Backward = 0.0f;
 		break;
+
 	case KeyCode::Right:
 	case KeyCode::D:
 		m_Right = 0.0f;
 		break;
+
 	case KeyCode::Q:
 		m_Down = 0.0f;
 		break;
+
 	case KeyCode::E:
 		m_Up = 0.0f;
 		break;
-	case KeyCode::Tab:
+
+	case KeyCode::F1: 
 		m_ShowImGuiWindow = !m_ShowImGuiWindow;
 		break;
+
 	case KeyCode::ShiftKey:
 		m_IsShiftPressed = false;
 		break;
@@ -664,53 +698,17 @@ bool DemoGame::TestIntersection(int mouseX, int mouseY) {
 	// Get the origin of the picking ray which is the position of the camera.
 	XMVECTOR origin = m_Scene->m_MainCamera.Get_Translation();
 
-
-
-	/// DirectXCollision.h TEST
-	DirectX::BoundingSphere boundingSphere { XMFLOAT3{0.0f, 0.0f, 0.0f}, 1.0f };
-	m_TestDXIntersect = boundingSphere.Intersects(origin, XMVector3Normalize(direction), m_TestDXIntersectDistance);
-	///
-
-
-	// Get the world matrix and translate to the location of the sphere.
+	// Get the inverse world matrix of the object.
 	XMMATRIX worldMatrix = XMMatrixTranslation(0.0f, 0.0f, 0.0f);
-
-	// Now get the inverse of the translated world matrix.
 	XMMATRIX inverseWorldMatrix = XMMatrixInverse(nullptr, worldMatrix);
 
 	// Now transform the ray origin and the ray direction from view space to world space.
 	XMVECTOR rayOrigin = XMVector3TransformCoord(origin, inverseWorldMatrix);
 	XMVECTOR rayDirection = XMVector3TransformNormal(direction, inverseWorldMatrix);
-	
+
 	// Normalize the ray direction.
 	rayDirection = XMVector3Normalize(rayDirection);
 
-	// Convert the ray origin and direction XMVECTOR to a XMFLOAT3 type.
-	XMFLOAT3 rayOri {}, rayDir {};
-	XMStoreFloat3(&rayOri, rayOrigin);
-	XMStoreFloat3(&rayDir, rayDirection);
-
-	// Now perform the ray-sphere intersection test.
-	bool intersect = RaySphereIntersect(rayOri, rayDir, 1.0f);
-
-	return intersect;
+	return s_TestSphere.GetAABB().Intersects(origin, rayDirection, m_TestDXIntersectDistance);
 }
 
-bool DemoGame::RaySphereIntersect(XMFLOAT3 rayOrigin, XMFLOAT3 rayDirection, float radius) {
-	float a, b, c, discriminant;
-
-	// Calculate the a, b, and c coefficients.
-	a = (rayDirection.x * rayDirection.x) + (rayDirection.y * rayDirection.y) + (rayDirection.z * rayDirection.z);
-	b = ((rayDirection.x * rayOrigin.x) + (rayDirection.y * rayOrigin.y) + (rayDirection.z * rayOrigin.z)) * 2.0f;
-	c = ((rayOrigin.x * rayOrigin.x) + (rayOrigin.y * rayOrigin.y) + (rayOrigin.z * rayOrigin.z)) - (radius * radius);
-
-	// Find the discriminant.
-	discriminant = (b * b) - (4 * a * c);
-
-	// if discriminant is negative the picking ray missed the sphere, otherwise it intersected the sphere.
-	if(discriminant < 0.0f) {
-		return false;
-	}
-
-	return true;
-}

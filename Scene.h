@@ -21,7 +21,7 @@ public:
 	const DirectionalLight& GetDirectionalLight() const { return m_DirectionalLight; };
 	const Skybox& GetSkybox() const { return m_Skybox; };
 
-	void CreateGameObject(CommandList& copyCommandList, const GameObject::GameObjectParams& goParams, std::shared_ptr<Mesh> mesh);
+	GameObject CreateGameObject(CommandList& copyCommandList, const GameObject::GameObjectParams& goParams, std::shared_ptr<Mesh> mesh);
 	void CreateGameObject(CommandList& copyCommandList, const GameObject::GameObjectParams& goParams, const std::wstring& meshFileName);
 
 	void ComputeSkyboxIBLMaps(CommandList& directCommandList);

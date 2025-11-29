@@ -29,11 +29,8 @@
   *  @brief A mesh class encapsulates the index and vertex buffers for a geometric primitive.
   */
 
-#include <DirectXCollision.h>  // For BoundingBox
 #include <DirectXMath.h>       // For XMFLOAT3, XMFLOAT2
-
 #include <d3d12.h>  // For D3D12_INPUT_LAYOUT_DESC, D3D12_INPUT_ELEMENT_DESC
-
 #include <map>     // For std::map
 #include <memory>  // For std::shared_ptr
 
@@ -42,6 +39,8 @@ class IndexBuffer;
 class Material;
 class VertexBuffer;
 class Visitor;
+
+using namespace DirectX;
 
 class Mesh {
 public:
@@ -79,11 +78,8 @@ public:
     void                      SetMaterial(std::shared_ptr<Material> material);
     std::shared_ptr<Material> GetMaterial() const;
 
-    /**
-        * Set the AABB bounding volume for the geometry in this mesh.
-        */
-    void                        SetAABB(const DirectX::BoundingBox& aabb);
-    const DirectX::BoundingBox& GetAABB() const;
+    void SetExtents(XMFLOAT3 extents) { m_Extents = extents; };
+    XMFLOAT3 GetExtents() const { return m_Extents; };
 
     /**
         * Draw the mesh to a CommandList.
@@ -99,5 +95,7 @@ private:
     std::shared_ptr<IndexBuffer> m_IndexBuffer;
     std::shared_ptr<Material>    m_Material;
     D3D12_PRIMITIVE_TOPOLOGY     m_PrimitiveTopology;
-    DirectX::BoundingBox         m_AABB;
+
+    // AABB extents 
+    XMFLOAT3 m_Extents {};
 };

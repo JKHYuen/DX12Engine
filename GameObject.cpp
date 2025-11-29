@@ -10,8 +10,13 @@
 #include "DirectXMath.h"
 #include "Mesh.h"
 
+#include "Logger.h"
+#include <format>
+
+
 using namespace DirectX;
 
+/// TODO: create transform matrices here and accept float values as params
 GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, std::shared_ptr<Mesh> mesh) 
 	: m_PSO(params.PSO) {
 
@@ -28,6 +33,15 @@ GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, st
 	m_TextureResources[PBRObjectPSO::DirectionalShadowMap] = params.scene.GetDirectionalLight().GetShadowMapTexture();
 
 	m_Mesh = mesh;
+
+	XMFLOAT3 meshExtents = mesh->GetExtents();
+	XMFLOAT3 scaledExtents {};
+	XMStoreFloat3(&scaledExtents, XMVector3Transform(XMLoadFloat3(&meshExtents), params.scaleMat));
+
+	XMFLOAT3 scaledAABBPosition {};
+	XMStoreFloat3(&scaledAABBPosition, XMVector3Transform(XMVectorZero(), params.translationMat));
+
+	m_AABB = BoundingBox { scaledAABBPosition , scaledExtents };
 }
 
 void GameObject::UpdateShaderResources(CommandList& copyCommandList, const std::wstring& pbrMatName) {
@@ -79,4 +93,32 @@ void GameObject::RenderToDirectionalShadowMap(CommandList& directCommandList, co
 	scene.GetDirectionalLight().RenderObjectToDepth(directCommandList, *m_Mesh, SRTMat);
 }
 
+///
+/// TODO: update AABB when transforming
+/// 
 
+void GameObject::Translate(float x, float y, float z) {
+	XMMatrixMultiply(XMLoadFloat4x4(&m_TranslationMat), XMMatrixTranslation(x, y, z));
+}
+
+void GameObject::Rotate(float x, float y, float z) {
+	/// TODO: double check "roll pitch yaw" values
+	XMMatrixMultiply(XMLoadFloat4x4(&m_RotationMat), XMMatrixRotationRollPitchYaw(x, y, z));
+}
+
+void GameObject::Scale(float x, float y, float z) {
+	XMMatrixMultiply(XMLoadFloat4x4(&m_ScaleMat), XMMatrixScaling(x, y, z));
+}
+
+void GameObject::SetTranslation(float x, float y, float z) {
+	XMStoreFloat4x4(&m_TranslationMat, XMMatrixTranslation(x, y, z));
+}
+
+void GameObject::SetRotation(float x, float y, float z) {
+	/// TODO: double check "roll pitch yaw" values
+	XMStoreFloat4x4(&m_RotationMat, XMMatrixRotationRollPitchYaw(x, y, z));
+}
+
+void GameObject::SetScale(float x, float y, float z) {
+	XMStoreFloat4x4(&m_ScaleMat, XMMatrixScaling(x, y, z));
+}

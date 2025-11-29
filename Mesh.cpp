@@ -82,11 +82,3 @@ void Mesh::Draw(CommandList& commandList, uint32_t instanceCount, uint32_t start
     }
 }
 
-void Mesh::SetAABB(const DirectX::BoundingBox& aabb) {
-    m_AABB = aabb;
-}
-
-const DirectX::BoundingBox& Mesh::GetAABB() const {
-    return m_AABB;
-}
-

@@ -22,8 +22,9 @@ Scene::Scene(Device& device, CommandList& copyCommandList, const DirectionalLigh
 }
 
 // Note: vector reallocation may be slow if memory not reserved, not too worried about it for now
-void Scene::CreateGameObject(CommandList& copyCommandList, const GameObject::GameObjectParams& goParams, std::shared_ptr<Mesh> mesh) {
+GameObject Scene::CreateGameObject(CommandList& copyCommandList, const GameObject::GameObjectParams& goParams, std::shared_ptr<Mesh> mesh) {
 	m_SceneObjects.emplace_back(copyCommandList, goParams, mesh);
+	return m_SceneObjects.back();
 }
 
 void Scene::CreateGameObject(CommandList& copyCommandList, const GameObject::GameObjectParams& goParams, const std::wstring& meshFileName) {

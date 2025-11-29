@@ -41,10 +41,7 @@ private:
     void OnRender(const UpdateEventArgs& e);
     
     // Debug window, this shouldn't be implemented in this class if it ever becomes a real editor UI
-    void ShowImGui(CommandList& directCommandList);
-
-    bool RaySphereIntersect(XMFLOAT3 rayOrigin, XMFLOAT3 rayDirection, float radius);
-    bool TestIntersection(int mouseX, int mouseY);
+    void RenderImGui(CommandList& directCommandList);
 
     std::shared_ptr<Device>    m_Device;
     std::shared_ptr<Window>    m_Window;
@@ -79,10 +76,12 @@ private:
     float m_Pitch;
     float m_Yaw;
 
-    float m_MouseX;
-    float m_MouseY;
+    int m_MouseX;
+    int m_MouseY;
 
     bool m_IsShiftPressed;
+    bool m_IsLeftClickPressed;
+    bool m_IsRightClickPressed;
 
     int  m_WindowWidth;
     int  m_WindowHeight;
@@ -95,7 +94,7 @@ private:
     double m_frameTimeHistory[sk_frameTimeSamples] = {};
 
     /// TEMP: TEST
-    bool m_TestDXIntersect = false;
+    bool TestIntersection(int mouseX, int mouseY);
     float m_TestDXIntersectDistance = 0.0f;
 };
 

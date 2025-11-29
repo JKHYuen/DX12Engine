@@ -8,6 +8,7 @@
 #include <vector>
 #include <string>
 #include "DirectXMath.h"
+#include "DirectXCollision.h"
 #include "PBRObjectPSO.h"
 
 using namespace DirectX;
@@ -21,6 +22,8 @@ class Scene;
 
 class GameObject {
 public:
+	GameObject() = default;
+
 	struct GameObjectParams {
 		const Scene& scene;
 		XMMATRIX translationMat, rotationMat, scaleMat;
@@ -38,17 +41,28 @@ public:
 
 	// Currently only compatible with PBRObjectPSO
 	void UpdateShaderResources(CommandList& copyCommandList, const std::wstring& pbrMatName);
+
+	void Translate(float x, float y, float z);
+	void Rotate(float x, float y, float z);
+	void Scale(float x, float y, float z);
+
+	void SetTranslation(float x, float y, float z);
+	void SetRotation(float x, float y, float z);
+	void SetScale(float x, float y, float z);
+
+	const BoundingBox& GetAABB() const { return m_AABB; }
 	
 private:
-	std::shared_ptr<Mesh> m_Mesh;
+	std::shared_ptr<Mesh> m_Mesh {};
+	BoundingBox m_AABB {};
 
 	std::vector<std::shared_ptr<Texture>> m_TextureResources { PBRObjectPSO::sk_NumTextures };
 
 	// PSO is managed/owned by a seperate class, right now it's DemoGame
-	PBRObjectPSO* m_PSO;
+	PBRObjectPSO* m_PSO {};
 
-	XMFLOAT4X4 m_TranslationMat;
-	XMFLOAT4X4 m_RotationMat;
-	XMFLOAT4X4 m_ScaleMat;
+	XMFLOAT4X4 m_TranslationMat {};
+	XMFLOAT4X4 m_RotationMat {};
+	XMFLOAT4X4 m_ScaleMat {};
 };
 

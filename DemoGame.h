@@ -79,6 +79,7 @@ private:
     int m_MouseX;
     int m_MouseY;
 
+    // A better input system would not need these variables
     bool m_IsShiftPressed;
     bool m_IsLeftClickPressed;
     bool m_IsRightClickPressed;

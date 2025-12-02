@@ -56,9 +56,9 @@ namespace {
 	float s_ShadowBias          = 0.001f;
 }
 
-DemoGame::DemoGame(const std::wstring& name, uint32_t width, uint32_t height, bool vSync)
+DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t windowHeight, bool vSync)
 	: m_DefaultScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX))
-	, m_ScreenViewport(CD3DX12_VIEWPORT(0.0f, 0.0f, (float)width, (float)height))
+	, m_ScreenViewport(CD3DX12_VIEWPORT(0.0f, 0.0f, (float)windowWidth, (float)windowHeight))
 	, m_Forward(0)
 	, m_Backward(0)
 	, m_Left(0)
@@ -74,13 +74,13 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t width, uint32_t height, bo
 	, m_CurrentAvgFPS(0)
 	, m_MouseX(0)
 	, m_MouseY(0)
-	, m_WindowWidth(width)
-	, m_WindowHeight(height)
+	, m_WindowWidth(windowWidth)
+	, m_WindowHeight(windowHeight)
 	, m_IsVsync(vSync)
 	, m_HDR_MSAA_RenderTarget() 
 	, m_FloatRenderTarget() {
 
-	m_Window = Application::Get().CreateRenderWindow(name, width, height, *this);
+	m_Window = Application::Get().CreateRenderWindow(name, windowWidth, windowHeight, *this);
 }
 
 uint32_t DemoGame::Run() {
@@ -348,8 +348,9 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 }
 
 void DemoGame::RenderImGui(CommandList& directCommandList) {
-	/// NOTE: Cursor visibility is currently solely controlled by ImGui, not ideal but works for now
-	ImGui::SetMouseCursor(m_ShowImGuiWindow ? ImGuiMouseCursor_Arrow : ImGuiMouseCursor_None);
+	/// NOTE: Cursor visibility is currently solely controlled by ImGui, not ideal but works for now.
+	///       Cursor is invisible anytime ImGui window is not shown.
+	ImGui::SetMouseCursor(m_ShowImGuiWindow || !Application::Get().GetCursorClientAreaLockState() ? ImGuiMouseCursor_Arrow : ImGuiMouseCursor_None);
 
 	m_EditorGui->NewFrame();
 
@@ -375,121 +376,140 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 	};
 
 	if(m_ShowImGuiWindow) {
-		ImGui::Begin("DX12 Engine", &m_ShowImGuiWindow, ImGuiWindowFlags_NoCollapse);
 
-		// Exit button
 		{
-			ImGui::PushStyleColor(ImGuiCol_Button,	      (ImVec4)ImColor::HSV(0.0f, 0.6f, 0.6f));
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor::HSV(0.0f, 0.7f, 0.7f));
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive,  (ImVec4)ImColor::HSV(0.0f, 0.8f, 0.8f));
-			if(ImGui::Button("EXIT APP")) {
-				Application::Get().Quit();
-			}
-			ImGui::PopStyleColor(3);
-		}
+			ImGui::Begin("DX12 Engine", &m_ShowImGuiWindow, ImGuiWindowFlags_NoCollapse);
 
-		/// TEMP
-		{
-			ImGui::Text("Mouse X: %d", m_MouseX);
-			ImGui::Text("Mouse Y: %d", m_MouseY);
-
-			ImGui::Text("DirectX Intersection Test: %d", TestIntersection(m_MouseX, m_MouseY));
-			ImGui::Text("DirectX Intersection Test Distance: %f", m_TestDXIntersectDistance);
-		}
-
-		// Performance Graph 
-		// Graph data update rate based on s_GraphUpdateRate, default: 60hz
-		// This is to throttle the rate ScrollingBuffer records data so we don't need a huge buffer for high frame rates over a big time scale
-		{
-			static ScrollingBuffer s_FPSGraphBuffer;
-
-			if(s_FPSGraphBuffer.Data.size() == 0) {
-				s_FPSGraphBuffer.AddPoint((float)ImGui::GetTime(), (float)m_CurrentAvgFPS);
+			// Exit button
+			{
+				ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(0.0f, 0.6f, 0.6f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor::HSV(0.0f, 0.7f, 0.7f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor::HSV(0.0f, 0.8f, 0.8f));
+				if(ImGui::Button("EXIT APP")) {
+					Application::Get().Quit();
+				}
+				ImGui::PopStyleColor(3);
 			}
 
-			// Save axis extents for update ticks faster than s_GraphUpdateRate
-			static std::pair xCurrentAxisExtents = {0.0, 1.0};
-			static std::pair yCurrentAxisExtents = {0.0, 1.0};
+			/// TEMP
+			{
+				ImGui::Text("Mouse X: %d", m_MouseX);
+				ImGui::Text("Mouse Y: %d", m_MouseY);
 
-			static const float s_GraphUpdateRate = 1.0f / 60.0f;
-			static float timer = s_GraphUpdateRate;
-			timer -= ImGui::GetIO().DeltaTime;
-			if(timer <= 0) {
-				s_FPSGraphBuffer.AddPoint((float)ImGui::GetTime(), (float)m_CurrentAvgFPS);
-				timer = s_GraphUpdateRate;
+				ImGui::Text("DirectX Intersection Test: %d", TestIntersection(m_MouseX, m_MouseY));
+				ImGui::Text("DirectX Intersection Test Distance: %f", m_TestDXIntersectDistance);
 			}
 
-			ImGui::Text("FPS: %d", m_CurrentAvgFPS);
+			// Performance Graph 
+			// Graph data update rate based on s_GraphUpdateRate, default: 60hz
+			// This is to throttle the rate ScrollingBuffer records data so we don't need a huge buffer for high frame rates over a big time scale
+			{
+				static ScrollingBuffer s_FPSGraphBuffer;
 
-			static int timeScale = 5;
-			if(ImPlot::BeginPlot("##FPS Graph", ImVec2(-1, 100), ImPlotFlags_NoFrame | ImPlotFlags_NoLegend | ImPlotFlags_NoInputs)) {
-				ImPlot::SetupAxes(
-					nullptr, nullptr,
-					// x axis flags
-					ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_Lock, 
-					// y axis flags
-					ImPlotAxisFlags_LockMin
-				);				
+				if(s_FPSGraphBuffer.Data.size() == 0) {
+					s_FPSGraphBuffer.AddPoint((float)ImGui::GetTime(), (float)m_CurrentAvgFPS);
+				}
 
-				// Update axis extents
-				if(timer == s_GraphUpdateRate) {
-					ImPlot::SetupAxisLimits(ImAxis_X1, ImGui::GetTime() - timeScale, ImGui::GetTime(), ImGuiCond_Always);
-					xCurrentAxisExtents.first = ImGui::GetTime() - timeScale;
-					xCurrentAxisExtents.second = ImGui::GetTime();
+				// Save axis extents for update ticks faster than s_GraphUpdateRate
+				static std::pair xCurrentAxisExtents = { 0.0, 1.0 };
+				static std::pair yCurrentAxisExtents = { 0.0, 1.0 };
 
-					if(m_CurrentAvgFPS >= yCurrentAxisExtents.second || m_CurrentAvgFPS * 2.0f <= yCurrentAxisExtents.second) {
-						float newYMax = std::max(144.0f, m_CurrentAvgFPS * 1.5f);
-						ImPlot::SetupAxisLimits(ImAxis_Y1, 0, newYMax, ImGuiCond_Always);
-						yCurrentAxisExtents.second = newYMax;
+				static const float s_GraphUpdateRate = 1.0f / 60.0f;
+				static float timer = s_GraphUpdateRate;
+				timer -= ImGui::GetIO().DeltaTime;
+				if(timer <= 0) {
+					s_FPSGraphBuffer.AddPoint((float)ImGui::GetTime(), (float)m_CurrentAvgFPS);
+					timer = s_GraphUpdateRate;
+				}
+
+				ImGui::Text("FPS: %d", m_CurrentAvgFPS);
+
+				static int timeScale = 5;
+				if(ImPlot::BeginPlot("##FPS Graph", ImVec2(-1, 100), ImPlotFlags_NoFrame | ImPlotFlags_NoLegend | ImPlotFlags_NoInputs)) {
+					ImPlot::SetupAxes(
+						nullptr, nullptr,
+						// x axis flags
+						ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_Lock,
+						// y axis flags
+						ImPlotAxisFlags_LockMin
+					);
+
+					// Update axis extents
+					if(timer == s_GraphUpdateRate) {
+						ImPlot::SetupAxisLimits(ImAxis_X1, ImGui::GetTime() - timeScale, ImGui::GetTime(), ImGuiCond_Always);
+						xCurrentAxisExtents.first = ImGui::GetTime() - timeScale;
+						xCurrentAxisExtents.second = ImGui::GetTime();
+
+						if(m_CurrentAvgFPS >= yCurrentAxisExtents.second || m_CurrentAvgFPS * 2.0f <= yCurrentAxisExtents.second) {
+							float newYMax = std::max(144.0f, m_CurrentAvgFPS * 1.5f);
+							ImPlot::SetupAxisLimits(ImAxis_Y1, 0, newYMax, ImGuiCond_Always);
+							yCurrentAxisExtents.second = newYMax;
+						}
 					}
+					else {
+						ImPlot::SetupAxisLimits(ImAxis_X1, xCurrentAxisExtents.first, xCurrentAxisExtents.second, ImGuiCond_Always);
+						ImPlot::SetupAxisLimits(ImAxis_Y1, 0, yCurrentAxisExtents.second, ImGuiCond_Always);
+					}
+
+					ImPlot::PlotLine("FPS", &s_FPSGraphBuffer.Data[0].x, &s_FPSGraphBuffer.Data[0].y,
+						s_FPSGraphBuffer.Data.size(), 0, s_FPSGraphBuffer.Offset, 2 * sizeof(float)
+					);
+
+					ImPlot::EndPlot();
+
+					ImGui::SliderInt("Time Scale", &timeScale, 1, 30, "%ds");
 				}
-				else {
-					ImPlot::SetupAxisLimits(ImAxis_X1, xCurrentAxisExtents.first, xCurrentAxisExtents.second, ImGuiCond_Always);
-					ImPlot::SetupAxisLimits(ImAxis_Y1, 0, yCurrentAxisExtents.second, ImGuiCond_Always);
-				}
-
-				ImPlot::PlotLine("FPS", &s_FPSGraphBuffer.Data[0].x, &s_FPSGraphBuffer.Data[0].y,
-					s_FPSGraphBuffer.Data.size(), 0, s_FPSGraphBuffer.Offset, 2 * sizeof(float)
-				);
-
-				ImPlot::EndPlot();
-
-				ImGui::SliderInt("Time Scale", &timeScale, 1, 30, "%ds");
 			}
+
+			// FOV Slider
+			{
+				static float fov = m_Scene->m_MainCamera.Get_FoV();
+				ImGui::SliderFloat("FOV", &fov, 12.0f, 90.0f);
+				m_Scene->m_MainCamera.Set_FoV(fov);
+			}
+
+			static float sceneDirLightAngle[2] { 50.0f, 230.0f };
+			if(ImGui::DragFloat2("[x, y]", sceneDirLightAngle, 0.1f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
+				sceneDirLightAngle[0] = std::fmod(sceneDirLightAngle[0], 360.0f);
+				sceneDirLightAngle[1] = std::fmod(sceneDirLightAngle[1], 360.0f);
+				m_Scene->SetDirectionalLightAngle(sceneDirLightAngle[0], sceneDirLightAngle[1], 0.0f);
+			}
+
+			// Directional shadow map debug view
+			{
+				static float imageScale = 0.25f;
+				ImGui::SliderFloat("Scale", &imageScale, 0.0, 1.0, "%.2fx");
+				ImVec2 imageSize = ImVec2(1920.0f * imageScale, 1080.0f * imageScale);
+
+				ImGui::Image(
+					(ImTextureID)EditorGui::GetImageSRV(EditorGui::GuiSRVIndex::DirectionalShadowMap).gpuHandle.ptr,
+					imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f)
+				);
+			}
+
+			/// Main Debug menu end
+			ImGui::End();
 		}
-		
-		// FOV Slider
+
 		{
-			static float fov = m_Scene->m_MainCamera.Get_FoV();
-			ImGui::SliderFloat("FOV", &fov, 12.0f, 90.0f);
-			m_Scene->m_MainCamera.Set_FoV(fov);
-		}
+			ImGui::Begin("Object Inspector", &m_ShowImGuiWindow, ImGuiWindowFlags_NoCollapse);
 
-		static float sceneDirLightAngle[2] { 50.0f, 230.0f };
-		if(ImGui::DragFloat2("[x, y]", sceneDirLightAngle, 0.1f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
-			sceneDirLightAngle[0] = std::fmod(sceneDirLightAngle[0], 360.0f);
-			sceneDirLightAngle[1] = std::fmod(sceneDirLightAngle[1], 360.0f);
-			m_Scene->SetDirectionalLightAngle(sceneDirLightAngle[0], sceneDirLightAngle[1], 0.0f);
-		}
+			static float objTranslation[3];
+			static float objEulerAngles[3];
+			static float objScale[3];
 
-		// Directional shadow map debug view
-		{
-			static float imageScale = 0.25f;
-			ImGui::SliderFloat("Scale", &imageScale, 0.0, 1.0, "%.2fx");
-			ImVec2 imageSize = ImVec2(1920.0f * imageScale, 1080.0f * imageScale);
-
-			ImGui::Image(
-				(ImTextureID)EditorGui::GetImageSRV(EditorGui::GuiSRVIndex::DirectionalShadowMap).gpuHandle.ptr,
-				imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f)
-			);
-		}
-
-		// Material picker
-		{
+			// Material picker
 			m_Scene->RenderDebugComponents();
-		}
 
-		ImGui::End();
+			if(ImGui::DragFloat3("Position", objTranslation, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
+				s_TestSphere.SetTranslation(objTranslation[0], objTranslation[1], objTranslation[2]);
+			}
+
+			if(ImGui::DragFloat3("Scale", objScale, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
+				s_TestSphere.SetScale(objScale[0], objScale[1], objScale[2]);
+			}
+			ImGui::End();
+		}
 	}
 
 	m_EditorGui->Render(directCommandList);
@@ -555,9 +575,19 @@ void DemoGame::OnMouseButtonPressed(const MouseButtonEventArgs& e) {
 	if(e.Button == MouseButtonEventArgs::Left) {
 		m_IsLeftClickPressed = true;
 		m_Forward = 1.0f;
+
+		// Users can press Esc to unlock cursor, lock cursor back to client when left click is pressed,
+		// this will be ignored if user press outside of window or cursor is already locked
+		Application::Get().LockCursorToClientArea(m_Window->GetWindowHandle(), true);
 	}
 	else if(e.Button == MouseButtonEventArgs::Right) {
 		m_IsRightClickPressed = true;
+
+		// Holding right click moves camera back,
+		// disabled for ImGui because right click is held to enable camera movement
+		if(!m_ShowImGuiWindow) {
+			m_Forward = -1.0f;
+		}
 	}
 }
 
@@ -568,6 +598,7 @@ void DemoGame::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 	}
 	else if(e.Button == MouseButtonEventArgs::Right) {
 		m_IsRightClickPressed = false;
+		m_Forward = 0.0f;
 	}
 }
 
@@ -602,7 +633,12 @@ void DemoGame::OnKeyPressed(const KeyEventArgs& e) {
 		break;
 
 	case KeyCode::Escape:
-		Application::Get().Quit();
+		if(!Application::Get().GetCursorClientAreaLockState()) {
+			Application::Get().Quit();
+			return;
+		}
+
+		Application::Get().LockCursorToClientArea(m_Window->GetWindowHandle(), false);
 		break;
 
 	case KeyCode::F11:

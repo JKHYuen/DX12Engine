@@ -100,7 +100,8 @@ public:
      */
     int32_t Run();
 
-    void LockCursorToClient(bool state);
+    void LockCursorToClientArea(HWND hwnd, bool state);
+    bool GetCursorClientAreaLockState() const { return mb_CursorClientAreaLockState; };
 
     void Quit();
 
@@ -118,4 +119,6 @@ private:
     std::atomic_bool mb_IsInitialized;
     // Quit() sets this to true, ending message loop
     std::atomic_bool m_RequestQuit;
+
+    bool mb_CursorClientAreaLockState;
 };

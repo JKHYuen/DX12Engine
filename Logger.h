@@ -8,8 +8,14 @@ public:
 	// Create WinAPI console and reroute std io to it
 	static void InitializeConsole();
 
-	static void Log(std::string_view msg);
-	static void Log(std::wstring_view msg);
+	template<class T>
+	static void Log(T msg) {
+		std::cout << msg << std::endl;
+	}
+
+	static void Log(std::wstring_view msg) {
+		std::wcout << msg << std::endl;
+	}
 
 	Logger() = delete;
 

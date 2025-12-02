@@ -409,6 +409,7 @@
     <ClInclude Include="Device.h" />
     <ClInclude Include="DirectionalLight.h" />
     <ClInclude Include="DynamicDescriptorHeap.h" />
+    <ClInclude Include="endianness.h" />
     <ClInclude Include="GameObject.h" />
     <ClInclude Include="IGame.h" />
     <ClInclude Include="GenerateMipsPSO.h" />
@@ -448,6 +449,7 @@
     <ClInclude Include="ThreadSafeQueue.h" />
     <ClInclude Include="UnorderedAccessView.h" />
     <ClInclude Include="UploadBuffer.h" />
+    <ClInclude Include="uuid_v4.h" />
     <ClInclude Include="VertexBuffer.h" />
     <ClInclude Include="VertexTypes.h" />
     <ClInclude Include="Window.h" />

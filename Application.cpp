@@ -13,19 +13,13 @@
 #include "imgui.h"
 #include "imgui_impl_win32.h"
 
-#define APP_ICON 101
-
-static Application* gs_pSingelton = nullptr;
+static Application* sp_Singelton = nullptr;
 constexpr wchar_t WINDOW_CLASS_NAME[] = L"DX12RenderWindowClass";
 
-constexpr int MAX_CONSOLE_LINES = 500;
+static std::map<HWND, std::weak_ptr<Window>>         s_WindowMap;
+static std::map<std::wstring, std::weak_ptr<Window>> s_WindowMapByName;
 
-using WindowMap       = std::map<HWND, std::weak_ptr<Window>>;
-using WindowMapByName = std::map<std::wstring, std::weak_ptr<Window>>;
-static WindowMap       gs_WindowMap;
-static WindowMapByName gs_WindowMapByName;
-
-static std::mutex gs_WindowHandlesMutex;
+static std::mutex s_WindowHandlesMutex;
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -64,11 +58,11 @@ Application::Application(HINSTANCE hInst)
     wndClass.lpfnWndProc = &WndProc;
     wndClass.hInstance = m_hInstance;
     wndClass.hCursor = LoadCursor(nullptr, IDC_ARROW);
-    wndClass.hIcon = LoadIcon(m_hInstance, MAKEINTRESOURCE(APP_ICON));
+    //wndClass.hIcon = LoadIcon(m_hInstance, MAKEINTRESOURCE(APP_ICON));
     wndClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     wndClass.lpszMenuName = nullptr;
     wndClass.lpszClassName = WINDOW_CLASS_NAME;
-    wndClass.hIconSm = LoadIcon(m_hInstance, MAKEINTRESOURCE(APP_ICON));
+    //wndClass.hIconSm = LoadIcon(m_hInstance, MAKEINTRESOURCE(APP_ICON));
 
     if(!RegisterClassExW(&wndClass)) {
         MessageBoxA(NULL, "Unable to register the window class.", "Error", MB_OK | MB_ICONERROR);
@@ -76,26 +70,26 @@ Application::Application(HINSTANCE hInst)
 }
 
 Application::~Application() {
-    gs_WindowMap.clear();
-    gs_WindowMapByName.clear();
+    s_WindowMap.clear();
+    s_WindowMapByName.clear();
 }
 
 Application& Application::Create(HINSTANCE hInst) {
-    if(!gs_pSingelton) {
-        gs_pSingelton = new Application(hInst);
+    if(!sp_Singelton) {
+        sp_Singelton = new Application(hInst);
     }
-    return *gs_pSingelton;
+    return *sp_Singelton;
 }
 
 Application& Application::Get() {
-    assert(gs_pSingelton != nullptr);
-    return *gs_pSingelton;
+    assert(sp_Singelton != nullptr);
+    return *sp_Singelton;
 }
 
 void Application::Destroy() {
-    if(gs_pSingelton) {
-        delete gs_pSingelton;
-        gs_pSingelton = nullptr;
+    if(sp_Singelton) {
+        delete sp_Singelton;
+        sp_Singelton = nullptr;
     }
 }
 
@@ -126,15 +120,15 @@ std::shared_ptr<Window> Application::CreateRenderWindow(const std::wstring& wind
 
     auto pWindow = std::make_shared<MakeWindow>(hWindow, windowName, clientWidth, clientHeight, game);
 
-    gs_WindowMap.insert(WindowMap::value_type(hWindow, pWindow));
-    gs_WindowMapByName.insert(WindowMapByName::value_type(windowName, pWindow));
+    s_WindowMap.emplace(hWindow, pWindow);
+    s_WindowMapByName.emplace(windowName, pWindow);
 
     return pWindow;
 }
 
 std::shared_ptr<Window> Application::GetWindowByName(const std::wstring& windowName) const {
-    auto iter = gs_WindowMapByName.find(windowName);
-    return (iter != gs_WindowMapByName.end()) ? iter->second.lock() : nullptr;
+    auto iter = s_WindowMapByName.find(windowName);
+    return (iter != s_WindowMapByName.end()) ? iter->second.lock() : nullptr;
 }
 
 
@@ -142,22 +136,22 @@ int32_t Application::Run() {
     assert(!mb_IsInitialized);
     mb_IsInitialized = true;
 
-    /// Initialize Raw Input (Mouse only for now)
-    RAWINPUTDEVICE Rid[1];
-    Rid[0].usUsagePage = 0x01;          // HID_USAGE_PAGE_GENERIC
-    Rid[0].usUsage = 0x02;              // HID_USAGE_GENERIC_MOUSE
+    // Initialize Raw Input (Mouse only)
+    {
+        RAWINPUTDEVICE Rid[1];
+        Rid[0].usUsagePage = 0x01;          // HID_USAGE_PAGE_GENERIC
+        Rid[0].usUsage = 0x02;              // HID_USAGE_GENERIC_MOUSE
 
-    // WARNING: Not using RIDEV_NOLEGACY will degrade performance if moving high polling mouse a lot, not worried about it for now.
-    //          Can use Buffered RawInput or DirectInput if this becomes an issue
-    //          See: https://ph3at.github.io/posts/Windows-Input/
-    Rid[0].dwFlags = 0;    
+        // WARNING: Not using RIDEV_NOLEGACY will degrade performance if moving high polling mouse a lot, not worried about it for now.
+        //          Can use Buffered RawInput or DirectInput if this becomes an issue
+        //          See: https://ph3at.github.io/posts/Windows-Input/
+        Rid[0].dwFlags = 0;
 
-    Rid[0].hwndTarget = 0;
-    if(RegisterRawInputDevices(Rid, 1, sizeof(Rid[0])) == FALSE)
-        OutputDebugString(TEXT("No device found for raw input.\n"));
-    ///
+        Rid[0].hwndTarget = 0;
+        if(RegisterRawInputDevices(Rid, 1, sizeof(Rid[0])) == FALSE)
+            OutputDebugString(TEXT("No device found for raw input.\n"));
+    }
 
-    // NOTE: WM_PAINT will be called every frame
     MSG msg = {};
     while(::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
         ::TranslateMessage(&msg);
@@ -186,17 +180,18 @@ void Application::Quit() {
     m_RequestQuit = true;
 }
 
-void Application::LockCursorToClient(bool state) {
+void Application::LockCursorToClientArea(HWND hwnd, bool state) {
+    if(state == mb_CursorClientAreaLockState) return;
+
+    mb_CursorClientAreaLockState = state;
+
     if(!state) {
         ClipCursor(nullptr);
         return;
     }
 
-    /// TODO TEMP: remove windows map?
-    HWND hWindow = gs_WindowMap.begin()->first;
-
     RECT rect {};
-    GetClientRect(hWindow, &rect);
+    GetClientRect(hwnd, &rect);
 
     POINT ul;
     ul.x = rect.left;
@@ -206,8 +201,8 @@ void Application::LockCursorToClient(bool state) {
     lr.x = rect.right;
     lr.y = rect.bottom;
 
-    MapWindowPoints(hWindow, nullptr, &ul, 1);
-    MapWindowPoints(hWindow, nullptr, &lr, 1);
+    MapWindowPoints(hwnd, nullptr, &ul, 1);
+    MapWindowPoints(hwnd, nullptr, &lr, 1);
 
     rect.left = ul.x;
     rect.top = ul.y;
@@ -254,19 +249,20 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
     std::shared_ptr<Window> pWindow;
     {
-        auto iter = gs_WindowMap.find(hwnd);
-        if(iter != gs_WindowMap.end()) {
+        auto iter = s_WindowMap.find(hwnd);
+        if(iter != s_WindowMap.end()) {
             pWindow = iter->second.lock();
         }
     }
 
+    /// NOTE: Window class Update happens in WM_PAINT
     if(pWindow) {
         switch(message) {
 
         case WM_ACTIVATE:
         case WM_ACTIVATEAPP:
         {
-            Application::Get().LockCursorToClient(wParam);
+            Application::Get().LockCursorToClientArea(hwnd, wParam);
         }
         break;
 
@@ -357,8 +353,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 ScreenToClient(hwnd, (LPPOINT)&cursorPos);
 
                 /// TODO: implement looping boundaries when cursor is locked to client and cursor reaches client edges using SetCursorPos(x, y)
-
-                MouseMotionEventArgs mouseMotionEventArgs(lButton, mButton, rButton, deltaX, deltaY, cursorPos.x, cursorPos.y);
+                MouseMotionEventArgs mouseMotionEventArgs { lButton, mButton, rButton, deltaX, deltaY, cursorPos.x, cursorPos.y };
                 pWindow->OnMouseMove(mouseMotionEventArgs);
             }
 
@@ -442,10 +437,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
         case WM_DESTROY:
         {
-            std::lock_guard<std::mutex> lock(gs_WindowHandlesMutex);
-            WindowMap::iterator         iter = gs_WindowMap.find(hwnd);
-            if(iter != gs_WindowMap.end()) {
-                gs_WindowMap.erase(iter);
+            std::lock_guard<std::mutex> lock(s_WindowHandlesMutex);
+            auto iter = s_WindowMap.find(hwnd);
+            if(iter != s_WindowMap.end()) {
+                s_WindowMap.erase(iter);
             }
             ::PostQuitMessage(0);
             return 0;

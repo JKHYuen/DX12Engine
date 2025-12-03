@@ -40,7 +40,7 @@ using namespace Microsoft::WRL;
 
 /// TESTING
 namespace {
-	GameObject s_TestSphere;
+	GameObject* s_TestSphere;
 }
 
 // static parameters
@@ -182,10 +182,9 @@ bool DemoGame::Initialize() {
 		/// TEMP:
 		// Initialize test objects to render
 		{
-			/// TODO: don't create matrices here
 			GameObject::GameObjectParams goParams{
 				*m_Scene,
-				XMMatrixTranslation(0.0f, 0.0f, 0.0f), XMMatrixIdentity(), XMMatrixScaling(1.0f, 1.0f, 1.0f),
+				XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 1.0f, 1.0f),
 				m_PBR_PSO.get(),
 				matName,
 			};
@@ -207,7 +206,7 @@ bool DemoGame::Initialize() {
 	}
 
 	/// Create Post Process/Tonemap Pipeline States 
-	/// Note: post process pipeline currently unused, will be used for bloom eventually
+	/// Note: post process pipeline currently unused, will be used for bloom eventually, it should also be in a separate class
 	{
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags_VSPS =
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
@@ -502,11 +501,11 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 			m_Scene->RenderDebugComponents();
 
 			if(ImGui::DragFloat3("Position", objTranslation, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
-				s_TestSphere.SetTranslation(objTranslation[0], objTranslation[1], objTranslation[2]);
+				s_TestSphere->SetTranslation(objTranslation[0], objTranslation[1], objTranslation[2]);
 			}
 
 			if(ImGui::DragFloat3("Scale", objScale, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
-				s_TestSphere.SetScale(objScale[0], objScale[1], objScale[2]);
+				s_TestSphere->SetScale(objScale[0], objScale[1], objScale[2]);
 			}
 			ImGui::End();
 		}
@@ -576,8 +575,8 @@ void DemoGame::OnMouseButtonPressed(const MouseButtonEventArgs& e) {
 		m_IsLeftClickPressed = true;
 		m_Forward = 1.0f;
 
-		// Users can press Esc to unlock cursor, lock cursor back to client when left click is pressed,
-		// this will be ignored if user press outside of window or cursor is already locked
+		// Lock cursor back to client when left click is pressed,
+		// this will be ignored if user presses outside of window or cursor is already locked
 		Application::Get().LockCursorToClientArea(m_Window->GetWindowHandle(), true);
 	}
 	else if(e.Button == MouseButtonEventArgs::Right) {
@@ -745,6 +744,6 @@ bool DemoGame::TestIntersection(int mouseX, int mouseY) {
 	// Normalize the ray direction.
 	rayDirection = XMVector3Normalize(rayDirection);
 
-	return s_TestSphere.GetAABB().Intersects(origin, rayDirection, m_TestDXIntersectDistance);
+	return s_TestSphere->GetAABB().Intersects(origin, rayDirection, m_TestDXIntersectDistance);
 }
 

@@ -16,13 +16,12 @@
 
 using namespace DirectX;
 
-/// TODO: create transform matrices here and accept float values as params
 GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, std::shared_ptr<Mesh> mesh) 
 	: m_PSO(params.PSO) {
 
-	XMStoreFloat4x4(&m_TranslationMat, params.translationMat);
-	XMStoreFloat4x4(&m_RotationMat, params.rotationMat);
-	XMStoreFloat4x4(&m_ScaleMat, params.scaleMat);
+	XMStoreFloat4x4(&m_TranslationMat, XMMatrixTranslation(params.translation.x, params.translation.y, params.translation.z));
+	XMStoreFloat4x4(&m_RotationMat, XMMatrixRotationRollPitchYaw(params.eulerRotation.x, params.eulerRotation.y, params.eulerRotation.z));
+	XMStoreFloat4x4(&m_ScaleMat, XMMatrixScaling(params.scale.x, params.scale.y, params.scale.z));
 
 	UpdateShaderResources(copyCommandList, params.pbrMatName);
 
@@ -36,12 +35,12 @@ GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, st
 
 	XMFLOAT3 meshExtents = mesh->GetExtents();
 	XMFLOAT3 scaledExtents {};
-	XMStoreFloat3(&scaledExtents, XMVector3Transform(XMLoadFloat3(&meshExtents), params.scaleMat));
+	XMStoreFloat3(&scaledExtents, XMVector3Transform(XMLoadFloat3(&meshExtents), XMLoadFloat4x4(&m_ScaleMat)));
 
-	XMFLOAT3 scaledAABBPosition {};
-	XMStoreFloat3(&scaledAABBPosition, XMVector3Transform(XMVectorZero(), params.translationMat));
+	XMFLOAT3 translatedAABBPosition {};
+	XMStoreFloat3(&translatedAABBPosition, XMVector3Transform(XMVectorZero(), XMLoadFloat4x4(&m_TranslationMat)));
 
-	m_AABB = BoundingBox { scaledAABBPosition , scaledExtents };
+	m_AABB = BoundingBox { translatedAABBPosition , scaledExtents };
 }
 
 void GameObject::UpdateShaderResources(CommandList& copyCommandList, const std::wstring& pbrMatName) {
@@ -96,18 +95,17 @@ void GameObject::RenderToDirectionalShadowMap(CommandList& directCommandList, co
 ///
 /// TODO: update AABB when transforming
 /// 
-
 void GameObject::Translate(float x, float y, float z) {
-	XMMatrixMultiply(XMLoadFloat4x4(&m_TranslationMat), XMMatrixTranslation(x, y, z));
+	XMStoreFloat4x4(&m_TranslationMat, XMMatrixMultiply(XMLoadFloat4x4(&m_TranslationMat), XMMatrixTranslation(x, y, z)));
 }
 
 void GameObject::Rotate(float x, float y, float z) {
 	/// TODO: double check "roll pitch yaw" values
-	XMMatrixMultiply(XMLoadFloat4x4(&m_RotationMat), XMMatrixRotationRollPitchYaw(x, y, z));
+	XMStoreFloat4x4(&m_RotationMat, XMMatrixMultiply(XMLoadFloat4x4(&m_RotationMat), XMMatrixRotationRollPitchYaw(x, y, z)));
 }
 
 void GameObject::Scale(float x, float y, float z) {
-	XMMatrixMultiply(XMLoadFloat4x4(&m_ScaleMat), XMMatrixScaling(x, y, z));
+	XMStoreFloat4x4(&m_ScaleMat, XMMatrixMultiply(XMLoadFloat4x4(&m_ScaleMat), XMMatrixScaling(x, y, z)));
 }
 
 void GameObject::SetTranslation(float x, float y, float z) {

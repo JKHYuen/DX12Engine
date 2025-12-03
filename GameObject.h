@@ -26,7 +26,7 @@ public:
 
 	struct GameObjectParams {
 		const Scene& scene;
-		XMMATRIX translationMat, rotationMat, scaleMat;
+		XMFLOAT3 translation, eulerRotation, scale;
 		PBRObjectPSO* PSO;
 		const std::wstring& pbrMatName;
 	};

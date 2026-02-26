@@ -190,16 +190,18 @@ bool DemoGame::Initialize() {
 			};
 
 			// Test Sphere Object
+			goParams.translation = XMFLOAT3(5.0f, 5.0f, 5.0f);
+			goParams.scale = XMFLOAT3(5.0f, 5.0f, 5.0f);
 			s_TestSphere = m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateSpherePrimitive());
 
 			// Test Cube Object
 			//goParams.scaleMat = XMMatrixScaling(1.0f, 1.0f, 1.0f);
-			m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateCubePrimitive());
+			//m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateCubePrimitive());
 
 			// Test Floor Object
-			//goParams.translationMat = XMMatrixTranslation(0.0f, -1.0f, 0.0f);
-			//goParams.scaleMat = XMMatrixScaling(40.0f, 1.0f, 40.0f);
-			//m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateQuadPrimitive());
+			goParams.translation = XMFLOAT3(0.0f, -3.0f, 0.0f);
+			goParams.scale = XMFLOAT3(40.0f, 1.0f, 40.0f);
+			m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateQuadPrimitive());
 		}
 
 		copyCommandQueue.ExecuteCommandList(copyCommandList);
@@ -312,21 +314,24 @@ void DemoGame::UnloadContent() {
 void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 	// Calculate Moving average frame rate (over 128 [sk_frameTimeSamples] frames)
 	// moving average used for realtime updates to FPS graph (rather than once a second)
-	static uint64_t frameIndex = 0;
+	static uint64_t frameHistoryIndex = 0;
 	static double frameTimeSum = 0;
-	frameTimeSum -= m_frameTimeHistory[frameIndex];
+	frameTimeSum -= m_frameTimeHistory[frameHistoryIndex]; // subtract oldest value
 	frameTimeSum += e.DeltaTime;
-	m_frameTimeHistory[frameIndex] = e.DeltaTime;
+	m_frameTimeHistory[frameHistoryIndex] = e.DeltaTime;
 
-	frameIndex = (frameIndex + 1) % DemoGame::sk_frameTimeSamples;
+	frameHistoryIndex = (frameHistoryIndex + 1) % DemoGame::sk_frameTimeSamples;
 	m_CurrentAvgFPS = (int)(DemoGame::sk_frameTimeSamples / frameTimeSum);
 
+	// Can reduce input latency
 	//m_SwapChain->WaitForSwapChain();
 
 	// Update the camera transform if ImGui is not showing, unless right click is held
 	if(!m_ShowImGuiWindow || m_IsRightClickPressed) {
-		float speedMultipler = m_IsShiftPressed ? 32.0f : 16.0f;
-		if(m_IsLeftClickPressed) {
+		float speedMultipler = m_IsShiftPressed ? 16.0f : 8.0f;
+		
+		// extra slow movement if using left or right click
+		if(m_IsLeftClickPressed || m_IsRightClickPressed) {
 			speedMultipler *= 0.05f;
 		}
 		
@@ -376,6 +381,7 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 
 	if(m_ShowImGuiWindow) {
 
+		/// Main Engine UI Window Start
 		{
 			ImGui::Begin("DX12 Engine", &m_ShowImGuiWindow, ImGuiWindowFlags_NoCollapse);
 
@@ -486,10 +492,12 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 				);
 			}
 
-			/// Main Debug menu end
+			/// Main Engine UI Window End
 			ImGui::End();
 		}
 
+		/// Object Inspector Window Start
+		/// TODO: try to move all this into Scene class
 		{
 			ImGui::Begin("Object Inspector", &m_ShowImGuiWindow, ImGuiWindowFlags_NoCollapse);
 
@@ -498,7 +506,7 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 			static float objScale[3];
 
 			// Material picker
-			m_Scene->RenderDebugComponents();
+			m_Scene->RenderImGui();
 
 			if(ImGui::DragFloat3("Position", objTranslation, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
 				s_TestSphere->SetTranslation(objTranslation[0], objTranslation[1], objTranslation[2]);
@@ -507,6 +515,8 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 			if(ImGui::DragFloat3("Scale", objScale, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
 				s_TestSphere->SetScale(objScale[0], objScale[1], objScale[2]);
 			}
+
+			/// Object Inspector Window End
 			ImGui::End();
 		}
 	}
@@ -560,7 +570,7 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 void DemoGame::OnMouseMove(const MouseMotionEventArgs& e) {
 	// Don't record mouse rotations unless ImGui is closed or right click is held down
 	if(!m_ShowImGuiWindow || m_IsRightClickPressed) {
-		constexpr float mouseSpeed = 0.1f;
+		constexpr float mouseSpeed = 0.05f;
 		m_Pitch -= e.DeltaY * mouseSpeed;
 		m_Pitch = std::clamp(m_Pitch, -90.0f, 90.0f);
 		m_Yaw -= e.DeltaX * mouseSpeed;

@@ -4,6 +4,7 @@
 #include "DirectionalLight.h"
 #include "Skybox.h"
 #include "GameObject.h"
+#include "DataArray.h"
 
 class Device;
 
@@ -30,13 +31,16 @@ public:
 	
 	void SetDirectionalLightAngle(float rotX, float rotY, float rotZ);
 
-	void RenderDebugComponents();
+	// Currently only renders obnject inspector window
+	void RenderImGui();
 
 	// keep this public out of convenience for now
 	Camera m_MainCamera;
 
 private:
 	std::vector<GameObject> m_SceneObjects;
+	DataArray<GameObject> m_TestSceneObjects;
+	static const int sk_MaxSceneObjects = 100;
 
 	DirectionalLight m_DirectionalLight;
 	Skybox m_Skybox;

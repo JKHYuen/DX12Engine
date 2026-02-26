@@ -33,14 +33,7 @@ GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, st
 
 	m_Mesh = mesh;
 
-	XMFLOAT3 meshExtents = mesh->GetExtents();
-	XMFLOAT3 scaledExtents {};
-	XMStoreFloat3(&scaledExtents, XMVector3Transform(XMLoadFloat3(&meshExtents), XMLoadFloat4x4(&m_ScaleMat)));
-
-	XMFLOAT3 translatedAABBPosition {};
-	XMStoreFloat3(&translatedAABBPosition, XMVector3Transform(XMVectorZero(), XMLoadFloat4x4(&m_TranslationMat)));
-
-	m_AABB = BoundingBox { translatedAABBPosition , scaledExtents };
+	UpdateAABB();
 }
 
 void GameObject::UpdateShaderResources(CommandList& copyCommandList, const std::wstring& pbrMatName) {
@@ -88,13 +81,23 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 
 void GameObject::RenderToDirectionalShadowMap(CommandList& directCommandList, const Scene& scene) {
 	// we can use a dirty flag to only update SRT when neccesary
+	// assume we are in right rendering pipeline (see DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget)
 	XMMATRIX SRTMat = XMLoadFloat4x4(&m_ScaleMat) * XMLoadFloat4x4(&m_RotationMat) * XMLoadFloat4x4(&m_TranslationMat);
 	scene.GetDirectionalLight().RenderObjectToDepth(directCommandList, *m_Mesh, SRTMat);
 }
 
-///
-/// TODO: update AABB when transforming
-/// 
+void GameObject::UpdateAABB() {
+	XMFLOAT3 meshExtents = m_Mesh->GetExtents();
+
+	XMFLOAT3 scaledExtents {};
+	XMStoreFloat3(&scaledExtents, XMVector3Transform(XMLoadFloat3(&meshExtents), XMLoadFloat4x4(&m_ScaleMat)));
+
+	XMFLOAT3 translatedAABBPosition {};
+	XMStoreFloat3(&translatedAABBPosition, XMVector3Transform(XMVectorZero(), XMLoadFloat4x4(&m_TranslationMat)));
+
+	m_AABB = BoundingBox { translatedAABBPosition , scaledExtents };
+}
+
 void GameObject::Translate(float x, float y, float z) {
 	XMStoreFloat4x4(&m_TranslationMat, XMMatrixMultiply(XMLoadFloat4x4(&m_TranslationMat), XMMatrixTranslation(x, y, z)));
 }

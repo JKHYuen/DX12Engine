@@ -94,7 +94,7 @@ private:
     static const int sk_frameTimeSamples = 128;
     double m_frameTimeHistory[sk_frameTimeSamples] = {};
 
-    /// TEMP: TEST
+    /// TEMP: TEST, move this to own class
     bool TestIntersection(int mouseX, int mouseY);
     float m_TestDXIntersectDistance = 0.0f;
 };

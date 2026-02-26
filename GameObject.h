@@ -51,6 +51,7 @@ public:
 	void SetScale(float x, float y, float z);
 
 	const BoundingBox& GetAABB() const { return m_AABB; }
+	void UpdateAABB();
 	
 private:
 	std::shared_ptr<Mesh> m_Mesh {};

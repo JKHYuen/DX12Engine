@@ -25,7 +25,6 @@ void Texture::Resize(uint32_t width, uint32_t height, uint32_t depthOrArraySize)
         // ResourceStateTracker::RemoveGlobalResourceState( m_d3d12Resource.Get() );
 
         CD3DX12_RESOURCE_DESC resDesc(m_d3d12Resource->GetDesc());
-
         resDesc.Width = std::max(width, 1u);
         resDesc.Height = std::max(height, 1u);
         resDesc.DepthOrArraySize = depthOrArraySize;
@@ -34,10 +33,10 @@ void Texture::Resize(uint32_t width, uint32_t height, uint32_t depthOrArraySize)
         auto d3d12Device = m_Device.GetD3D12Device();
 
         auto defaultHeapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-
         ThrowIfFailed(d3d12Device->CreateCommittedResource(
             &defaultHeapProp, D3D12_HEAP_FLAG_NONE, &resDesc,
-            D3D12_RESOURCE_STATE_COMMON, m_d3d12ClearValue.get(), IID_PPV_ARGS(&m_d3d12Resource)));
+            D3D12_RESOURCE_STATE_COMMON, m_d3d12ClearValue.get(), IID_PPV_ARGS(&m_d3d12Resource))
+        );
 
         // Retain the name of the resource if one was already specified.
         m_d3d12Resource->SetName(m_ResourceName.c_str());

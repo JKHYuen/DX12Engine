@@ -95,7 +95,8 @@ void GameObject::UpdateAABB() {
 	XMFLOAT3 translatedAABBPosition {};
 	XMStoreFloat3(&translatedAABBPosition, XMVector3Transform(XMVectorZero(), XMLoadFloat4x4(&m_TranslationMat)));
 
-	m_AABB = BoundingBox { translatedAABBPosition , scaledExtents };
+	m_AABB.Center = translatedAABBPosition;
+	m_AABB.Extents = scaledExtents;
 }
 
 void GameObject::Translate(float x, float y, float z) {

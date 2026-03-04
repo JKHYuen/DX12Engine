@@ -13,8 +13,6 @@ Scene::Scene(Device& device, CommandList& copyCommandList, const DirectionalLigh
 	: m_DirectionalLight(device, dirLightParams)
 	, m_Skybox(device, copyCommandList, skyboxParams)
 	, m_Device(device)
-	/// TODO: test
-	, m_TestSceneObjects(sk_MaxSceneObjects)
 {
 	// arbitrary default camera position
 	XMVECTOR cameraPos    = XMVectorSet(0, 5, -20, 1);
@@ -23,18 +21,14 @@ Scene::Scene(Device& device, CommandList& copyCommandList, const DirectionalLigh
 
 	m_MainCamera.Set_LookAt(cameraPos, cameraTarget, cameraUp);
 
-	/// TODO TEMP:
-	//m_SceneObjects.reserve(sk_MaxSceneObjects);
+	m_SceneObjects.reserve(sk_MaxSceneObjects);
 }
 
 /// TODO: figure out some proper game object storage, returned pointer here will be invalidated if vector resizes
 GameObject* Scene::CreateGameObject(CommandList& copyCommandList, const GameObject::GameObjectParams& goParams, std::shared_ptr<Mesh> mesh) {
-	//assert(m_SceneObjects.size() < sk_MaxSceneObjects);
-	//m_SceneObjects.emplace_back(copyCommandList, goParams, mesh);
-	//return &m_SceneObjects.back();
-
-	/// TODO: test
-	return &m_TestSceneObjects.Insert(copyCommandList, goParams, mesh);
+	assert(m_SceneObjects.size() < sk_MaxSceneObjects);
+	m_SceneObjects.emplace_back(copyCommandList, goParams, mesh);
+	return &m_SceneObjects.back();
 }
 
 void Scene::CreateGameObject(CommandList& copyCommandList, const GameObject::GameObjectParams& goParams, const std::wstring& meshFileName) {
@@ -52,32 +46,19 @@ void Scene::Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, D3D12_
 
 	m_Skybox.Render(directCommandList, m_MainCamera);
 
-	//// Render scene objects
-	//// All game objects use the same PSO/root sig right now
-	//for(auto& o : m_SceneObjects) {
-	//	// Render pipeline currently set (inside function below) for every object even though they are the same
-	//	o.Render(directCommandList, e, *this);
-	//}
-
-	//// Render depth from directional light for same objects above
-	//m_DirectionalLight.SetShadowDepthPipelineStateAndRenderTarget(directCommandList);
-	//for(auto& o : m_SceneObjects) {
-	//	o.RenderToDirectionalShadowMap(directCommandList, *this);
-	//}
-
-	/// TODO: test
-	for(uint32_t i = 0; i < m_TestSceneObjects.Size(); i++) {
-		if(GameObject* go = m_TestSceneObjects.TryGet(i)) {
-			go->Render(directCommandList, e, *this);	
-		}
+	// Render scene objects
+	// All game objects use the same PSO/root sig right now
+	for(auto& o : m_SceneObjects) {
+		// Render pipeline currently set (inside function below) for every object even though they are the same
+		o.Render(directCommandList, e, *this);
 	}
 
+	// Render depth from directional light for same objects above
 	m_DirectionalLight.SetShadowDepthPipelineStateAndRenderTarget(directCommandList);
-	for(uint32_t i = 0; i < m_TestSceneObjects.Size(); i++) {
-		if(GameObject* go = m_TestSceneObjects.TryGet(i)) {
-			go->RenderToDirectionalShadowMap(directCommandList, *this);
-		}
+	for(auto& o : m_SceneObjects) {
+		o.RenderToDirectionalShadowMap(directCommandList, *this);
 	}
+
 }
 
 void Scene::SetDirectionalLightAngle(float rotX, float rotY, float rotZ) {
@@ -106,15 +87,8 @@ void Scene::RenderImGui() {
 					auto& copyCommandQueue = m_Device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 					auto copyCommandList = copyCommandQueue.GetCommandList();
 
-					//for(auto& go : m_SceneObjects) {
-					//	go.UpdateShaderResources(*copyCommandList, entry.path().filename());
-					//}
-
-					/// TODO: test
-					for(uint32_t i = 0; i < m_TestSceneObjects.Size(); i++) {
-						if(GameObject* go = m_TestSceneObjects.TryGet(i)) {
-							go->UpdateShaderResources(*copyCommandList, entry.path().filename());
-						}
+					for(auto& go : m_SceneObjects) {
+						go.UpdateShaderResources(*copyCommandList, entry.path().filename());
 					}
 
 					copyCommandQueue.ExecuteCommandList(copyCommandList);

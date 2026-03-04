@@ -51,6 +51,8 @@ public:
 	void SetScale(float x, float y, float z);
 
 	const BoundingBox& GetAABB() const { return m_AABB; }
+
+	// Note: does not deal with rotations at the moment
 	void UpdateAABB();
 	
 private:

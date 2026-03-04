@@ -39,7 +39,6 @@ public:
 
 private:
 	std::vector<GameObject> m_SceneObjects;
-	DataArray<GameObject> m_TestSceneObjects;
 	static const int sk_MaxSceneObjects = 100;
 
 	DirectionalLight m_DirectionalLight;

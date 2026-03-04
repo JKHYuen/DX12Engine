@@ -396,7 +396,7 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 				ImGui::PopStyleColor(3);
 			}
 
-			/// TEMP
+			/// TEMP make intersection test on click only
 			{
 				ImGui::Text("Mouse X: %d", m_MouseX);
 				ImGui::Text("Mouse Y: %d", m_MouseY);
@@ -714,6 +714,7 @@ void DemoGame::OnMouseWheel(const MouseWheelEventArgs& e) {
 	}
 }
 
+/// TEMP
 // Source: based on https://www.rastertek.com/dx11win10tut47.html
 bool DemoGame::TestIntersection(int mouseX, int mouseY) {
 	// Move the mouse cursor coordinates into the -1 to +1 range.
@@ -754,6 +755,7 @@ bool DemoGame::TestIntersection(int mouseX, int mouseY) {
 	// Normalize the ray direction.
 	rayDirection = XMVector3Normalize(rayDirection);
 
+	s_TestSphere->UpdateAABB();
 	return s_TestSphere->GetAABB().Intersects(origin, rayDirection, m_TestDXIntersectDistance);
 }
 

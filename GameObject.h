@@ -64,6 +64,8 @@ private:
 	// PSO is managed/owned by a seperate class, right now it's DemoGame
 	PBRObjectPSO* m_PSO {};
 
+	std::string m_MaterialName;
+
 	XMFLOAT4X4 m_TranslationMat {};
 	XMFLOAT4X4 m_RotationMat {};
 	XMFLOAT4X4 m_ScaleMat {};

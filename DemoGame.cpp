@@ -29,6 +29,7 @@
 #include "ShaderResourceView.h"
 #include "GameObject.h"
 #include "PBRObjectPSO.h"
+#include "Picker.h"
 #include "Logger.h"
 
 #include "imgui.h"
@@ -178,6 +179,7 @@ bool DemoGame::Initialize() {
 		};
 
 		m_Scene = std::make_unique<Scene>(*m_Device, *copyCommandList, dirLightParams, skyboxParams);
+		m_Picker = std::make_unique<Picker>(m_Scene.get());
 
 		/// TEMP:
 		// Initialize test objects to render
@@ -401,8 +403,10 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 				ImGui::Text("Mouse X: %d", m_MouseX);
 				ImGui::Text("Mouse Y: %d", m_MouseY);
 
-				ImGui::Text("DirectX Intersection Test: %d", TestIntersection(m_MouseX, m_MouseY));
-				ImGui::Text("DirectX Intersection Test Distance: %f", m_TestDXIntersectDistance);
+				ImGui::Text("DirectX Intersection Test: %d", m_Picker->Raycast(m_MouseX, m_MouseY, m_WindowWidth, m_WindowHeight));
+				
+				//ImGui::Text("DirectX Intersection Test: %d", TestIntersection(m_MouseX, m_MouseY));
+				//ImGui::Text("DirectX Intersection Test Distance: %f", m_TestDXIntersectDistance);
 			}
 
 			// Performance Graph 
@@ -712,50 +716,5 @@ void DemoGame::OnMouseWheel(const MouseWheelEventArgs& e) {
 
 		m_Scene->m_MainCamera.Set_FoV(fov);
 	}
-}
-
-/// TEMP
-// Source: based on https://www.rastertek.com/dx11win10tut47.html
-bool DemoGame::TestIntersection(int mouseX, int mouseY) {
-	// Move the mouse cursor coordinates into the -1 to +1 range.
-	float pointX = ((2.0f * (float)mouseX) / (float)m_WindowWidth) - 1.0f;
-	float pointY = (((2.0f * (float)mouseY) / (float)m_WindowHeight) - 1.0f) * -1.0f;
-
-	// Adjust the points using the projection matrix to account for the aspect ratio of the viewport.
-	XMMATRIX projectionMatrix = m_Scene->m_MainCamera.Get_ProjectionMatrix();
-	XMFLOAT4X4 pMatrix {};
-	XMStoreFloat4x4(&pMatrix, projectionMatrix);
-	pointX = pointX / pMatrix._11;
-	pointY = pointY / pMatrix._22;
-
-	// Get the inverse of the view matrix.
-	XMMATRIX viewMatrix = m_Scene->m_MainCamera.Get_ViewMatrix();
-	XMMATRIX inverseViewMatrix = XMMatrixInverse(nullptr, viewMatrix);
-	XMFLOAT4X4 iViewMatrix {};
-	XMStoreFloat4x4(&iViewMatrix, inverseViewMatrix);
-
-	// Calculate the direction of the picking ray in view space.
-	XMFLOAT3 cameraDirection {};
-	cameraDirection.x = (pointX * iViewMatrix._11) + (pointY * iViewMatrix._21) + iViewMatrix._31;
-	cameraDirection.y = (pointX * iViewMatrix._12) + (pointY * iViewMatrix._22) + iViewMatrix._32;
-	cameraDirection.z = (pointX * iViewMatrix._13) + (pointY * iViewMatrix._23) + iViewMatrix._33;
-	XMVECTOR direction = XMLoadFloat3(&cameraDirection);
-
-	// Get the origin of the picking ray which is the position of the camera.
-	XMVECTOR origin = m_Scene->m_MainCamera.Get_Translation();
-
-	// Get the inverse world matrix of the object.
-	XMMATRIX worldMatrix = XMMatrixTranslation(0.0f, 0.0f, 0.0f);
-	XMMATRIX inverseWorldMatrix = XMMatrixInverse(nullptr, worldMatrix);
-
-	// Now transform the ray origin and the ray direction from view space to world space.
-	XMVECTOR rayOrigin = XMVector3TransformCoord(origin, inverseWorldMatrix);
-	XMVECTOR rayDirection = XMVector3TransformNormal(direction, inverseWorldMatrix);
-
-	// Normalize the ray direction.
-	rayDirection = XMVector3Normalize(rayDirection);
-
-	s_TestSphere->UpdateAABB();
-	return s_TestSphere->GetAABB().Intersects(origin, rayDirection, m_TestDXIntersectDistance);
 }
 

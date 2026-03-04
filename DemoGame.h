@@ -19,6 +19,7 @@ class EditorGui;
 class Skybox;
 class PBRObjectPSO;
 class ShaderResourceView;
+class Picker;
 
 class DemoGame : public IGame {
 public:
@@ -94,8 +95,6 @@ private:
     static const int sk_frameTimeSamples = 128;
     double m_frameTimeHistory[sk_frameTimeSamples] = {};
 
-    /// TEMP: TEST, move this to own class
-    bool TestIntersection(int mouseX, int mouseY);
-    float m_TestDXIntersectDistance = 0.0f;
+    std::unique_ptr<Picker> m_Picker {};
 };
 

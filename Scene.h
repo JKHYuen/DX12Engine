@@ -9,6 +9,8 @@
 class Device;
 
 class Scene {
+
+	friend class Picker;
 public:
 	// TODO: Add default values / instances of directional light and skybox if needed
 	// Note skybox and directional light
@@ -40,6 +42,9 @@ public:
 private:
 	std::vector<GameObject> m_SceneObjects;
 	static const int sk_MaxSceneObjects = 100;
+
+	// All materials used in this scene, currently just loads all material names in asset folder
+	std::vector<std::wstring> m_MaterialNames;
 
 	DirectionalLight m_DirectionalLight;
 	Skybox m_Skybox;

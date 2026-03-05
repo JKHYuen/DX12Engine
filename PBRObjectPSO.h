@@ -79,10 +79,6 @@ public:
 	std::shared_ptr<RootSignature> GetRootSignature() const {
 		return m_RootSignature;
 	}
-
-	ComPtr<ID3D12PipelineState> GetD3D12PipelineState() const {
-		return m_D3d12PipelineState;
-	}
 		
 	void SetPipelineState(CommandList& directCommandList) const;
 

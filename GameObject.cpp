@@ -13,7 +13,6 @@
 #include "Logger.h"
 #include <format>
 
-
 using namespace DirectX;
 
 GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, std::shared_ptr<Mesh> mesh) 
@@ -49,11 +48,12 @@ void GameObject::UpdateShaderResources(CommandList& copyCommandList, const std::
 }
 
 GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, const std::wstring& meshFileName) {
-	/// TODO: load from file with params.meshFileName
+	/// TODO: load from file with meshFileName
 }
 
 void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene) {
-	// Note: we are setting PSO/Root sig for every game object render, this could be slow, not an issue for current basic implementation
+	// Note: we are setting PSO/Root sig for every game object render rather than batching and setting the state once,
+	//       this could be slow, not an issue for current basic implementation
 	m_PSO->SetPipelineState(directCommandList);
 
 	XMFLOAT4X4 v = scene.GetDirectionalLight().GetViewMatrix();
@@ -93,7 +93,6 @@ void GameObject::Translate(float x, float y, float z) {
 }
 
 void GameObject::Rotate(float x, float y, float z) {
-	/// TODO: double check "roll pitch yaw" values
 	XMStoreFloat4x4(&m_RotationMat, XMMatrixMultiply(XMLoadFloat4x4(&m_RotationMat), XMMatrixRotationRollPitchYaw(x, y, z)));
 }
 
@@ -108,7 +107,6 @@ void GameObject::SetTranslation(float x, float y, float z) {
 }
 
 void GameObject::SetRotation(float x, float y, float z) {
-	/// TODO: double check "roll pitch yaw" values
 	XMStoreFloat4x4(&m_RotationMat, XMMatrixRotationRollPitchYaw(x, y, z));
 }
 

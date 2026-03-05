@@ -47,12 +47,12 @@ Picker::Picker(Scene* scene) : m_Scene(scene) {}
 
 // Cache all intersection hits and sort by raycast hit distance.
 // If mouse has not moved, loop through all cached raycast hits.
-bool Picker::MouseRaycast(int mouseX, int mouseY, int windowWidth, int windowHeight) {
+GameObject* Picker::MouseRaycast(int mouseX, int mouseY, int windowWidth, int windowHeight) {
 	static int currentCacheIndex = 0;
 	bool b_RayCastHit = false;
 
 	if(mouseX == m_LastMousePos.first && mouseY == m_LastMousePos.second) {
-		if(m_RaycastCache.size() == 0) return false;
+		if(m_RaycastCache.size() == 0) return nullptr;
 
 		currentCacheIndex++;
 		m_PickedObject = m_RaycastCache[currentCacheIndex % m_RaycastCache.size()].second;
@@ -79,6 +79,7 @@ bool Picker::MouseRaycast(int mouseX, int mouseY, int windowWidth, int windowHei
 		}
 
 		if(b_RayCastHit) {
+			// Sort lowest to highest distance from camera
 			std::sort(m_RaycastCache.begin(), m_RaycastCache.end(),
 				[](std::pair<float, GameObject*> a, std::pair<float, GameObject*> b) { return a.first < b.first; }
 			);
@@ -93,5 +94,5 @@ bool Picker::MouseRaycast(int mouseX, int mouseY, int windowWidth, int windowHei
 	/// TODO: TEMP
 	if(m_PickedObject != nullptr) Logger::Log(m_PickedObject->GetName());
 
-	return b_RayCastHit;
+	return m_PickedObject;
 }

@@ -11,9 +11,8 @@ public:
 	Picker(Scene* scene);
 
 	// Raycast intersection test with all objects in scene, results are cached and cleared when mouse moves.
-	bool MouseRaycast(int mouseX, int mouseY, int windowWidth, int windowHeight);
+	GameObject* MouseRaycast(int mouseX, int mouseY, int windowWidth, int windowHeight);
 
-	GameObject* GetPickedObject() const { return m_PickedObject; };
 	void ClearPickedObject() { m_PickedObject = nullptr; };
 
 private:

@@ -307,6 +307,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="OutlinePSO.cpp" />
     <ClCompile Include="PanoToCubemapPSO.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
@@ -429,6 +430,7 @@
     <ClInclude Include="IndexBuffer.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="Mesh.h" />
+    <ClInclude Include="OutlinePSO.h" />
     <ClInclude Include="PanoToCubemapPSO.h" />
     <ClInclude Include="PBRObjectPSO.h" />
     <ClInclude Include="Picker.h" />

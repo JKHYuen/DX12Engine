@@ -181,7 +181,7 @@ bool DemoGame::Initialize() {
 		m_Scene = std::make_unique<Scene>(*m_Device, *copyCommandList, dirLightParams, skyboxParams);
 		m_Picker = std::make_unique<Picker>(m_Scene.get());
 
-		/// TEMP:
+		/// TODO: TEMP TEST SCENE
 		// Initialize test objects to render
 		{
 			GameObject::GameObjectParams goParams{
@@ -195,6 +195,7 @@ bool DemoGame::Initialize() {
 			goParams.translation = XMFLOAT3(5.0f, 5.0f, 5.0f);
 			goParams.scale = XMFLOAT3(5.0f, 5.0f, 5.0f);
 			s_TestSphere = m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateSpherePrimitive());
+			s_TestSphere->SetName("Sphere");
 
 			// Test Cube Object
 			//goParams.scaleMat = XMMatrixScaling(1.0f, 1.0f, 1.0f);
@@ -203,7 +204,7 @@ bool DemoGame::Initialize() {
 			// Test Floor Object
 			goParams.translation = XMFLOAT3(0.0f, -3.0f, 0.0f);
 			goParams.scale = XMFLOAT3(40.0f, 1.0f, 40.0f);
-			m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateQuadPrimitive());
+			m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateQuadPrimitive())->SetName("Floor");
 		}
 
 		copyCommandQueue.ExecuteCommandList(copyCommandList);
@@ -398,17 +399,6 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 				ImGui::PopStyleColor(3);
 			}
 
-			/// TEMP make intersection test on click only
-			{
-				ImGui::Text("Mouse X: %d", m_MouseX);
-				ImGui::Text("Mouse Y: %d", m_MouseY);
-
-				ImGui::Text("DirectX Intersection Test: %d", m_Picker->Raycast(m_MouseX, m_MouseY, m_WindowWidth, m_WindowHeight));
-				
-				//ImGui::Text("DirectX Intersection Test: %d", TestIntersection(m_MouseX, m_MouseY));
-				//ImGui::Text("DirectX Intersection Test Distance: %f", m_TestDXIntersectDistance);
-			}
-
 			// Performance Graph 
 			// Graph data update rate based on s_GraphUpdateRate, default: 60hz
 			// This is to throttle the rate ScrollingBuffer records data so we don't need a huge buffer for high frame rates over a big time scale
@@ -501,7 +491,7 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 		}
 
 		/// Object Inspector Window Start
-		/// TODO: try to move all this into Scene class
+		/// TODO: move all this into Scene class
 		{
 			ImGui::Begin("Object Inspector", &m_ShowImGuiWindow, ImGuiWindowFlags_NoCollapse);
 
@@ -607,6 +597,9 @@ void DemoGame::OnMouseButtonPressed(const MouseButtonEventArgs& e) {
 void DemoGame::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 	if(e.Button == MouseButtonEventArgs::Left) {
 		m_IsLeftClickPressed = false;
+
+		m_Picker->Raycast(m_MouseX, m_MouseY, m_WindowWidth, m_WindowHeight);
+
 		m_Forward = 0.0f;
 	}
 	else if(e.Button == MouseButtonEventArgs::Right) {

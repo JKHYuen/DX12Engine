@@ -22,8 +22,6 @@ class Scene;
 
 class GameObject {
 public:
-	GameObject() = default;
-
 	struct GameObjectParams {
 		const Scene& scene;
 		XMFLOAT3 translation, eulerRotation, scale;
@@ -50,6 +48,9 @@ public:
 	void SetRotation(float x, float y, float z);
 	void SetScale(float x, float y, float z);
 
+	std::string_view GetName() { return m_Name; }
+	void SetName(const std::string& name) { m_Name = name; }
+
 	const BoundingBox& GetAABB() const { return m_AABB; }
 
 	// Note: does not deal with rotations at the moment
@@ -64,7 +65,8 @@ private:
 	// PSO is managed/owned by a seperate class, right now it's DemoGame
 	PBRObjectPSO* m_PSO {};
 
-	std::string m_MaterialName;
+	std::string m_Name {};
+	std::string m_MaterialName {};
 
 	XMFLOAT4X4 m_TranslationMat {};
 	XMFLOAT4X4 m_RotationMat {};

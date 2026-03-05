@@ -73,8 +73,6 @@ bool Picker::Raycast(int mouseX, int mouseY, int windowWidth, int windowHeight) 
 			if(go.GetAABB().Intersects(origin, direction, hitDistance)) {
 				b_RayCastHit = true;
 				m_RaycastCache.emplace_back(hitDistance, &go);
-				/// TODO: move this somewhere that makes sense (maybe just update in gameobject code on transform changes)
-				go.UpdateAABB();
 			}
 		}
 

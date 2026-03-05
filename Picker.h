@@ -12,6 +12,9 @@ public:
 
 	bool Raycast(int mouseX, int mouseY, int windowWidth, int windowHeight);
 
+	GameObject* GetPickedObject() const { return m_PickedObject; };
+	void ClearPickedObject() { m_PickedObject = nullptr; };
+
 private:
 	Scene* m_Scene {};
 	GameObject* m_PickedObject {};

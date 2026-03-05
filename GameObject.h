@@ -48,24 +48,25 @@ public:
 	void SetRotation(float x, float y, float z);
 	void SetScale(float x, float y, float z);
 
-	std::string_view GetName() { return m_Name; }
+	std::string_view GetName() const { return m_Name; }
 	void SetName(const std::string& name) { m_Name = name; }
 
 	const BoundingBox& GetAABB() const { return m_AABB; }
-
-	// Note: does not deal with rotations at the moment
-	void UpdateAABB();
 	
 private:
 	std::shared_ptr<Mesh> m_Mesh {};
+	std::vector<std::shared_ptr<Texture>> m_TextureResources { PBRObjectPSO::sk_NumTextures };
+	
 	BoundingBox m_AABB {};
 
-	std::vector<std::shared_ptr<Texture>> m_TextureResources { PBRObjectPSO::sk_NumTextures };
+	// AABB does not support rotation updates currently (it's non-trivial)
+	void UpdateAABBScale();
+	void UpdateAABBTranslation();
 
 	// PSO is managed/owned by a seperate class, right now it's DemoGame
 	PBRObjectPSO* m_PSO {};
 
-	std::string m_Name {};
+	std::string m_Name {"GameObject"};
 	std::string m_MaterialName {};
 
 	XMFLOAT4X4 m_TranslationMat {};

@@ -33,7 +33,8 @@ GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, st
 
 	m_Mesh = mesh;
 
-	UpdateAABB();
+	UpdateAABBScale();
+	UpdateAABBTranslation();
 }
 
 void GameObject::UpdateShaderResources(CommandList& copyCommandList, const std::wstring& pbrMatName) {
@@ -86,21 +87,9 @@ void GameObject::RenderToDirectionalShadowMap(CommandList& directCommandList, co
 	scene.GetDirectionalLight().RenderObjectToDepth(directCommandList, *m_Mesh, SRTMat);
 }
 
-void GameObject::UpdateAABB() {
-	XMFLOAT3 meshExtents = m_Mesh->GetExtents();
-
-	XMFLOAT3 scaledExtents {};
-	XMStoreFloat3(&scaledExtents, XMVector3Transform(XMLoadFloat3(&meshExtents), XMLoadFloat4x4(&m_ScaleMat)));
-
-	XMFLOAT3 translatedAABBPosition {};
-	XMStoreFloat3(&translatedAABBPosition, XMVector3Transform(XMVectorZero(), XMLoadFloat4x4(&m_TranslationMat)));
-
-	m_AABB.Center = translatedAABBPosition;
-	m_AABB.Extents = scaledExtents;
-}
-
 void GameObject::Translate(float x, float y, float z) {
 	XMStoreFloat4x4(&m_TranslationMat, XMMatrixMultiply(XMLoadFloat4x4(&m_TranslationMat), XMMatrixTranslation(x, y, z)));
+	UpdateAABBTranslation();
 }
 
 void GameObject::Rotate(float x, float y, float z) {
@@ -110,10 +99,12 @@ void GameObject::Rotate(float x, float y, float z) {
 
 void GameObject::Scale(float x, float y, float z) {
 	XMStoreFloat4x4(&m_ScaleMat, XMMatrixMultiply(XMLoadFloat4x4(&m_ScaleMat), XMMatrixScaling(x, y, z)));
+	UpdateAABBScale();
 }
 
 void GameObject::SetTranslation(float x, float y, float z) {
 	XMStoreFloat4x4(&m_TranslationMat, XMMatrixTranslation(x, y, z));
+	UpdateAABBTranslation();
 }
 
 void GameObject::SetRotation(float x, float y, float z) {
@@ -123,4 +114,18 @@ void GameObject::SetRotation(float x, float y, float z) {
 
 void GameObject::SetScale(float x, float y, float z) {
 	XMStoreFloat4x4(&m_ScaleMat, XMMatrixScaling(x, y, z));
+	UpdateAABBScale();
+}
+
+void GameObject::UpdateAABBScale() {
+	XMFLOAT3 meshExtents = m_Mesh->GetExtents();
+	XMFLOAT3 scaledExtents {};
+	XMStoreFloat3(&scaledExtents, XMVector3Transform(XMLoadFloat3(&meshExtents), XMLoadFloat4x4(&m_ScaleMat)));
+	m_AABB.Extents = scaledExtents;
+}
+
+void GameObject::UpdateAABBTranslation() {
+	XMFLOAT3 translatedAABBPosition {};
+	XMStoreFloat3(&translatedAABBPosition, XMVector3Transform(XMVectorZero(), XMLoadFloat4x4(&m_TranslationMat)));
+	m_AABB.Center = translatedAABBPosition;
 }

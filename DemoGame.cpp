@@ -598,7 +598,7 @@ void DemoGame::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 	if(e.Button == MouseButtonEventArgs::Left) {
 		m_IsLeftClickPressed = false;
 
-		m_Picker->Raycast(m_MouseX, m_MouseY, m_WindowWidth, m_WindowHeight);
+		m_Picker->MouseRaycast(m_MouseX, m_MouseY, m_WindowWidth, m_WindowHeight);
 
 		m_Forward = 0.0f;
 	}

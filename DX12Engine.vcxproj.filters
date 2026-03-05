@@ -105,9 +105,6 @@
     <ClCompile Include="Mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PipelineStateObject.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ShaderResourceView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -279,9 +276,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Mesh.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="PipelineStateObject.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ShaderResourceView.h">

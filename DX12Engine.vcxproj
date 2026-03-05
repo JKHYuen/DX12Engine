@@ -315,12 +315,6 @@
     </ClCompile>
     <ClCompile Include="PBRObjectPSO.cpp" />
     <ClCompile Include="Picker.cpp" />
-    <ClCompile Include="PipelineStateObject.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="RenderTarget.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
@@ -438,7 +432,6 @@
     <ClInclude Include="PanoToCubemapPSO.h" />
     <ClInclude Include="PBRObjectPSO.h" />
     <ClInclude Include="Picker.h" />
-    <ClInclude Include="PipelineStateObject.h" />
     <ClInclude Include="RenderTarget.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="ResourceStateTracker.h" />

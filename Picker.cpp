@@ -45,7 +45,9 @@ namespace {
 
 Picker::Picker(Scene* scene) : m_Scene(scene) {}
 
-bool Picker::Raycast(int mouseX, int mouseY, int windowWidth, int windowHeight) {
+// Cache all intersection hits and sort by raycast hit distance.
+// If mouse has not moved, loop through all cached raycast hits.
+bool Picker::MouseRaycast(int mouseX, int mouseY, int windowWidth, int windowHeight) {
 	static int currentCacheIndex = 0;
 	bool b_RayCastHit = false;
 

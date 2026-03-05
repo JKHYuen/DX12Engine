@@ -63,7 +63,7 @@ private:
 	void UpdateAABBScale();
 	void UpdateAABBTranslation();
 
-	// PSO is managed/owned by a seperate class, right now it's DemoGame
+	// PSO is owned by DemoGame
 	PBRObjectPSO* m_PSO {};
 
 	std::string m_Name {"GameObject"};

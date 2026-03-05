@@ -52,7 +52,6 @@ class DynamicDescriptorHeap;
 class GenerateMipsPSO;
 class IndexBuffer;
 class PanoToCubemapPSO;
-class PipelineStateObject;
 class RenderTarget;
 class Resource;
 class ResourceStateTracker;

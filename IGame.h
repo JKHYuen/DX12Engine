@@ -9,8 +9,6 @@ public:
 
     // Load content required for the demo.
     virtual bool Initialize() = 0;
-    // Unload demo specific content that was loaded in LoadContent.
-    virtual void UnloadContent() = 0;
     // Start game loop, return error code
     virtual uint32_t Run() = 0;
 

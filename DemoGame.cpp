@@ -29,6 +29,7 @@
 #include "ShaderResourceView.h"
 #include "GameObject.h"
 #include "PBRObjectPSO.h"
+#include "OutlinePSO.h"
 #include "Picker.h"
 #include "Logger.h"
 
@@ -93,8 +94,6 @@ uint32_t DemoGame::Run() {
 	// OnUpdate() called on WM_PAINT message
 	uint32_t retCode = Application::Get().Run();
 
-	UnloadContent();
-
 	return retCode;
 }
 
@@ -149,7 +148,7 @@ bool DemoGame::Initialize() {
 		m_FloatRenderTarget.AttachTexture(AttachmentPoint::Color0, floatRenderTexture);
 	}
 
-	/// Create PBR Pipeline State (For rendering PBR objects)
+	/// Create PBR Pipeline State 
 	m_PBR_PSO = std::make_unique<PBRObjectPSO>(*m_Device, sampleDesc, m_HDR_MSAA_RenderTarget.GetRenderTargetFormats(), sk_DepthBufferFormat);
 
 	auto& copyCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
@@ -161,7 +160,7 @@ bool DemoGame::Initialize() {
 		std::wstring skyboxName = L"industrial_sunset_puresky_4k";
 
 		DirectionalLight::DirectionalLightParams dirLightParams {
-			m_PBR_PSO->GetRootSignature(), // only vertex shader matters here, reusing only gameobject PSO for now
+			m_PBR_PSO->GetRootSignature(), // reuse PBR root signature for depth render
 			VertexInput::GetInputLayout(),
 			XMFLOAT3(9.0f, 8.0f, 7.0f),
 			XMFLOAT3(50.0f, 230.0f, 0.0f),
@@ -181,6 +180,9 @@ bool DemoGame::Initialize() {
 		m_Scene = std::make_unique<Scene>(*m_Device, *copyCommandList, dirLightParams, skyboxParams);
 		m_Picker = std::make_unique<Picker>(m_Scene.get());
 
+		m_Outline_PSO = std::make_unique<OutlinePSO>(*m_Device, sampleDesc, m_HDR_MSAA_RenderTarget.GetRenderTargetFormats(), sk_DepthBufferFormat);
+
+
 		/// TODO: TEMP TEST SCENE
 		// Initialize test objects to render
 		{
@@ -189,17 +191,19 @@ bool DemoGame::Initialize() {
 				XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 1.0f, 1.0f),
 				m_PBR_PSO.get(),
 				matName,
+				m_Outline_PSO.get(),
 			};
 
 			// Test Sphere Object
-			goParams.translation = XMFLOAT3(5.0f, 5.0f, 5.0f);
+			goParams.translation = XMFLOAT3(0.0f, 5.0f, 0.0f);
 			goParams.scale = XMFLOAT3(5.0f, 5.0f, 5.0f);
 			s_TestSphere = m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateSpherePrimitive());
 			s_TestSphere->SetName("Sphere");
 
 			// Test Cube Object
-			//goParams.scaleMat = XMMatrixScaling(1.0f, 1.0f, 1.0f);
-			//m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateCubePrimitive());
+			goParams.translation = XMFLOAT3(10.0f, 5.0f, 0.0f);
+			goParams.scale = XMFLOAT3(5.0f, 5.0f, 5.0f);
+			m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateCubePrimitive())->SetName("Cube");
 
 			// Test Floor Object
 			goParams.translation = XMFLOAT3(0.0f, -3.0f, 0.0f);
@@ -294,24 +298,6 @@ void DemoGame::OnResize(const ResizeEventArgs& e) {
 	m_ScreenViewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_WindowWidth), static_cast<float>(m_WindowHeight));
 	m_HDR_MSAA_RenderTarget.Resize(m_WindowWidth, m_WindowHeight);
 	m_FloatRenderTarget.Resize(m_WindowWidth, m_WindowHeight);
-}
-
-// NOTE: only needed if multiple IGame objects are loaded in one session
-void DemoGame::UnloadContent() {
-	m_HDR_MSAA_RenderTarget.Reset();
-	m_FloatRenderTarget.Reset();
-	//m_DirectionalShadowMap.Reset();
-
-	//m_PBR_PSO.Reset();
-	m_TonemapPSO.Reset();
-	m_PostprocessPSO.Reset();
-	//m_ShadowDepthPSO.Reset();
-
-	//m_PBRRootSignature.reset();
-	m_PostProcessRootSignature.reset();
-
-	m_SwapChain.reset();
-	m_Device.reset();
 }
 
 void DemoGame::OnUpdate(const UpdateEventArgs& e) {

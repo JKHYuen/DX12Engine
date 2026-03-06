@@ -1,4 +1,10 @@
 #pragma once
+
+/*
+	PSO for rendering PBR objects.
+	This and other "PSO" classes are ad hoc and a more generalized implementation will be needed in the future.
+*/
+
 #include <d3d12.h>
 #include <DirectXMath.h>
 #include <wrl/client.h>

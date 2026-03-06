@@ -19,14 +19,17 @@ class Texture;
 class Camera;
 class UpdateEventArgs;
 class Scene;
+class OutlinePSO;
 
 class GameObject {
 public:
+	/// TODO: PSO objects should be added dynamically to GameObjects with polymorphism
 	struct GameObjectParams {
 		const Scene& scene;
 		XMFLOAT3 translation, eulerRotation, scale;
-		PBRObjectPSO* PSO;
+		PBRObjectPSO* pbrPSO;
 		const std::wstring& pbrMatName;
+		OutlinePSO* outlinePSO;
 	};
 
 	// Warning: copy command list must still be executed after GameObject, this is to keep flexibility to batch copy commands together
@@ -63,10 +66,11 @@ private:
 	void UpdateAABBScale();
 	void UpdateAABBTranslation();
 
-	// PSO is owned by DemoGame
-	PBRObjectPSO* m_PSO {};
+	// PSOs are owned by DemoGame
+	PBRObjectPSO* m_PBR_PSO {};
+	OutlinePSO* m_Outline_PSO {};
 
-	std::string m_Name {"GameObject"};
+	std::string m_Name = "GameObject";
 	std::string m_MaterialName {};
 
 	XMFLOAT4X4 m_TranslationMat {};

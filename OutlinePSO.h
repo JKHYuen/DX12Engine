@@ -1,5 +1,10 @@
 #pragma once
 
+/*
+	PSO for outline effect (front cull hull shader).
+	This and other "PSO" classes are ad hoc and a more generalized implementation will be needed in the future.
+*/
+
 #include <d3d12.h>
 #include <DirectXMath.h>
 #include <wrl/client.h>
@@ -26,11 +31,11 @@ public:
 	struct VertexProps {
 		XMFLOAT4X4 SRT;
 		XMFLOAT4X4 MVP;
+		XMFLOAT4   screenParams;
 		XMFLOAT4X4 Pad1;
 		XMFLOAT4   Pad2;
 		XMFLOAT4   Pad3;
 		XMFLOAT4   Pad4;
-		XMFLOAT4   Pad5;
 	};
 
 	struct MaterialProps {

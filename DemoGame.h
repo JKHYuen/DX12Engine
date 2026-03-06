@@ -18,6 +18,7 @@ class Window;
 class EditorGui;
 class Skybox;
 class PBRObjectPSO;
+class OutlinePSO;
 class ShaderResourceView;
 class Picker;
 
@@ -27,7 +28,6 @@ public:
 
     uint32_t Run()       override;
     bool Initialize()    override;
-    void UnloadContent() override;
 
     void OnUpdate(const UpdateEventArgs & e)                  override;
     void OnResize(const ResizeEventArgs & e)                  override;
@@ -53,8 +53,9 @@ private:
     RenderTarget m_HDR_MSAA_RenderTarget;
     RenderTarget m_FloatRenderTarget;
 
-    /// TODO: make these unique_ptr?
-    std::shared_ptr<PBRObjectPSO> m_PBR_PSO;
+    /// TODO: figure out more generalized PSO loading system
+    std::unique_ptr<PBRObjectPSO> m_PBR_PSO;
+    std::unique_ptr<OutlinePSO> m_Outline_PSO;
 
     std::shared_ptr<RootSignature> m_PostProcessRootSignature;
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_TonemapPSO;

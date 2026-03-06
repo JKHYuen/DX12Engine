@@ -99,33 +99,6 @@ void Scene::RenderImGui() {
 				};
 			}
 
-			///// TODO: start with correct selected material index
-			//static int selectedIdx = 0;
-
-			//int idx = 0;
-			//for(const auto& entry : std::filesystem::directory_iterator(L"assets/materials")) {
-			//	// convert wide string to const char* for ImGui component
-			//	// using https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/wcstombs-s-wcstombs-s-l?view=msvc-170
-			//	char labelBuf[kBufferSize];
-			//	size_t bytesConverted;
-			//	wcstombs_s(&bytesConverted, labelBuf, kBufferSize, entry.path().filename().c_str(), kBufferSize - 1);
-
-			//	ImGui::TableNextColumn();
-			//	if(ImGui::Selectable(labelBuf, idx == selectedIdx)) {
-			//		auto& copyCommandQueue = m_Device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
-			//		auto copyCommandList = copyCommandQueue.GetCommandList();
-
-			//		for(auto& go : m_SceneObjects) {
-			//			go.UpdateShaderResources(*copyCommandList, entry.path().filename());
-			//		}
-
-			//		copyCommandQueue.ExecuteCommandList(copyCommandList);
-			//		copyCommandQueue.FlushWait();
-
-			//		selectedIdx = idx;
-			//	};
-			//	idx++;
-			//}
 			ImGui::EndTable();
 		}
 	}

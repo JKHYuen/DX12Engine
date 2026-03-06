@@ -15,9 +15,9 @@ using namespace Microsoft::WRL;
 OutlinePSO::OutlinePSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRAY rtvFormat, DXGI_FORMAT depthFormat) {
 	// Load outline shaders
 	ComPtr<ID3DBlob> vs;
-	ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/PBR_VS.cso", &vs));
+	ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/Outline_VS.cso", &vs));
 	ComPtr<ID3DBlob> ps;
-	ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/PBR_PS.cso", &ps));
+	ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/Outline_PS.cso", &ps));
 
 	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags_VSPS =
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
@@ -36,6 +36,9 @@ OutlinePSO::OutlinePSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FOR
 		m_RootSignature = std::make_shared<RootSignature>(device, rootSignatureDescription.Desc_1_1);
 	}
 
+	CD3DX12_RASTERIZER_DESC rasterDesc { CD3DX12_DEFAULT() };
+	rasterDesc.CullMode = D3D12_CULL_MODE_FRONT;
+
 	struct OutlinePipelineStateStream {
 		CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
 		CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT InputLayout;
@@ -45,19 +48,21 @@ OutlinePSO::OutlinePSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FOR
 		CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
 		CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
 		CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_DESC SampleDesc;
-	} hdrPipelineStateStream;
+		CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER RasterDesc;
+	} outlinePipelineStateStream;
 
-	hdrPipelineStateStream.pRootSignature = m_RootSignature->GetD3D12RootSignature().Get();
-	hdrPipelineStateStream.InputLayout = VertexInput::GetInputLayout();
-	hdrPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	hdrPipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vs.Get());
-	hdrPipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(ps.Get());
-	hdrPipelineStateStream.DSVFormat = depthFormat;
-	hdrPipelineStateStream.RTVFormats = rtvFormat;
-	hdrPipelineStateStream.SampleDesc = sampleDesc;
+	outlinePipelineStateStream.pRootSignature = m_RootSignature->GetD3D12RootSignature().Get();
+	outlinePipelineStateStream.InputLayout = VertexInput::GetInputLayout();
+	outlinePipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	outlinePipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vs.Get());
+	outlinePipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(ps.Get());
+	outlinePipelineStateStream.DSVFormat = depthFormat;
+	outlinePipelineStateStream.RTVFormats = rtvFormat;
+	outlinePipelineStateStream.SampleDesc = sampleDesc;
+	outlinePipelineStateStream.RasterDesc = rasterDesc;
 
-	/// TODO: move this to device class
-	D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = { sizeof(OutlinePipelineStateStream), &hdrPipelineStateStream };
+	/// TODO: move this to a device class method
+	D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = { sizeof(OutlinePipelineStateStream), &outlinePipelineStateStream };
 	ThrowIfFailed(device.GetD3D12Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_D3d12PipelineState)));
 }
 
@@ -67,6 +72,7 @@ void OutlinePSO::SetPipelineState(CommandList& directCommandList) const {
 }
 
 void OutlinePSO::UpdateResources(CommandList& directCommandList, VertexProps vertexProps, MaterialProps materialProps) {
-
+	directCommandList.SetGraphicsDynamicConstantBuffer(OutlineRootParameters::VertexCB, vertexProps);
+	directCommandList.SetGraphicsDynamicConstantBuffer(OutlineRootParameters::MaterialCB, materialProps);
 }
 

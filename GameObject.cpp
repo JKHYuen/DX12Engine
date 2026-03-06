@@ -1,6 +1,7 @@
 #include "GameObject.h"
 #include "CommandList.h"
 #include "PBRObjectPSO.h"
+#include "OutlinePSO.h"
 #include "Skybox.h"
 #include "DirectionalLight.h"
 #include "ShaderResourceView.h"
@@ -16,7 +17,9 @@
 using namespace DirectX;
 
 GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, std::shared_ptr<Mesh> mesh) 
-	: m_PSO(params.PSO) {
+	: m_PBR_PSO(params.pbrPSO)
+	, m_Outline_PSO(params.outlinePSO) 
+{
 
 	XMStoreFloat4x4(&m_TranslationMat, XMMatrixTranslation(params.translation.x, params.translation.y, params.translation.z));
 	XMStoreFloat4x4(&m_RotationMat, XMMatrixRotationRollPitchYaw(params.eulerRotation.x, params.eulerRotation.y, params.eulerRotation.z));
@@ -52,32 +55,54 @@ GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, co
 }
 
 void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene) {
+	XMFLOAT4X4 SRT {}, MVP {};
+	XMStoreFloat4x4(&SRT, XMLoadFloat4x4(&m_ScaleMat) * XMLoadFloat4x4(&m_RotationMat) * XMLoadFloat4x4(&m_TranslationMat));
+	XMStoreFloat4x4(&MVP, XMLoadFloat4x4(&SRT) * scene.m_MainCamera.Get_ViewMatrix() * scene.m_MainCamera.Get_ProjectionMatrix());
+
+	// Render object with PBR shading
 	// Note: we are setting PSO/Root sig for every game object render rather than batching and setting the state once,
 	//       this could be slow, not an issue for current basic implementation
-	m_PSO->SetPipelineState(directCommandList);
+	{
+		m_PBR_PSO->SetPipelineState(directCommandList);
 
-	XMFLOAT4X4 v = scene.GetDirectionalLight().GetViewMatrix();
-	XMFLOAT4X4 o = scene.GetDirectionalLight().GetOrthoMatrix();
-	XMMATRIX directionalLightViewMat = XMLoadFloat4x4(&v);
-	XMMATRIX directionalLightOrthoMat = XMLoadFloat4x4(&o);
+		XMFLOAT4X4 v = scene.GetDirectionalLight().GetViewMatrix();
+		XMFLOAT4X4 o = scene.GetDirectionalLight().GetOrthoMatrix();
+		XMMATRIX directionalLightViewMat = XMLoadFloat4x4(&v);
+		XMMATRIX directionalLightOrthoMat = XMLoadFloat4x4(&o);
 
-	XMMATRIX SRTMat = XMLoadFloat4x4(&m_ScaleMat) * XMLoadFloat4x4(&m_RotationMat) * XMLoadFloat4x4(&m_TranslationMat);
-	PBRObjectPSO::VertexProps vertexCB;
-	XMStoreFloat4x4(&vertexCB.SRT, SRTMat);
-	XMStoreFloat4x4(&vertexCB.MVP, SRTMat * scene.m_MainCamera.Get_ViewMatrix() * scene.m_MainCamera.Get_ProjectionMatrix());
-	XMStoreFloat4x4(&vertexCB.directionalLightMVP, SRTMat * directionalLightViewMat * directionalLightOrthoMat);
-	XMStoreFloat4(&vertexCB.CameraPosition, scene.m_MainCamera.Get_Translation());
+		PBRObjectPSO::VertexProps pbrVertexCB {};
+		pbrVertexCB.SRT = SRT;
+		pbrVertexCB.MVP = MVP;
+		XMStoreFloat4x4(&pbrVertexCB.directionalLightMVP, XMLoadFloat4x4(&SRT) * directionalLightViewMat * directionalLightOrthoMat);
+		XMStoreFloat4(&pbrVertexCB.CameraPosition, scene.m_MainCamera.Get_Translation());
 
-	PBRObjectPSO::MaterialProps materialCB;
-	XMVECTORF32 timeVec = { (float)e.Time, (float)e.DeltaTime, 0.0f, 0.0f };
-	XMStoreFloat4(&materialCB.Time, timeVec);
+		PBRObjectPSO::MaterialProps pbrMaterialCB {};
+		pbrMaterialCB.Time = { (float)e.Time, (float)e.DeltaTime, 0.0f, 0.0f };
 
-	materialCB.DirLight = scene.GetDirectionalLight().GetDirection();
-	materialCB.DirLightColor = scene.GetDirectionalLight().GetColor();
+		pbrMaterialCB.DirLight = scene.GetDirectionalLight().GetDirection();
+		pbrMaterialCB.DirLightColor = scene.GetDirectionalLight().GetColor();
 
-	m_PSO->UpdateResources(directCommandList, m_TextureResources, vertexCB, materialCB);
+		m_PBR_PSO->UpdateResources(directCommandList, m_TextureResources, pbrVertexCB, pbrMaterialCB);
+		m_Mesh->Draw(directCommandList);
+	}
 
-	m_Mesh->Draw(directCommandList);
+	// Render Outline effect by rendering slightly bigger mesh of object and front culling (this method doesn't work on quads)
+	{
+		m_Outline_PSO->SetPipelineState(directCommandList);
+
+		OutlinePSO::VertexProps outlineVertexCB {};
+
+		XMStoreFloat4x4(&SRT, XMMatrixScaling(1.1f, 1.1f, 1.1f) * XMLoadFloat4x4(&SRT));
+		outlineVertexCB.SRT = SRT;
+
+		XMStoreFloat4x4(&MVP, XMLoadFloat4x4(&SRT) * scene.m_MainCamera.Get_ViewMatrix() * scene.m_MainCamera.Get_ProjectionMatrix());
+		outlineVertexCB.MVP = MVP;
+
+		OutlinePSO::MaterialProps outlineMaterialCB {};
+		outlineMaterialCB.outlineColor = { 0.0f, 1.0f, 0.0f, 1.0f };
+		m_Outline_PSO->UpdateResources(directCommandList, outlineVertexCB, outlineMaterialCB);
+		m_Mesh->Draw(directCommandList);
+	}
 }
 
 void GameObject::RenderToDirectionalShadowMap(CommandList& directCommandList, const Scene& scene) {

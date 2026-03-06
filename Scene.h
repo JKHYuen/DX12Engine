@@ -12,8 +12,7 @@ class Scene {
 
 	friend class Picker;
 public:
-	// TODO: Add default values / instances of directional light and skybox if needed
-	// Note skybox and directional light
+	/// TODO: make directional light and skybox optional
 	Scene(Device& device, CommandList& copyCommandList, const DirectionalLight::DirectionalLightParams& dirLightParams, const Skybox::SkyboxParams& skyboxParams);
 
 	Scene(const Scene&) = delete;

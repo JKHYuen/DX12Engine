@@ -382,6 +382,8 @@
     <FxCompile Include="shaders\IntegrateBRDF_PS.hlsl" />
     <FxCompile Include="shaders\PreFilterCubeMap_PS.hlsl" />
     <FxCompile Include="shaders\ConvoluteCubeMap_PS.hlsl" />
+    <FxCompile Include="shaders\Outline_VS.hlsl" />
+    <FxCompile Include="shaders\Outline_PS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\assimp\Assimp.sln" />

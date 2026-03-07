@@ -87,7 +87,7 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 	}
 
 	// Render Outline effect by rendering slightly bigger mesh of object and front culling (this method doesn't work on quads)
-	{
+	if(b_Outline){
 		m_Outline_PSO->SetPipelineState(directCommandList);
 
 		OutlinePSO::VertexProps outlineVertexCB {};

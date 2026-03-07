@@ -11,6 +11,10 @@
 	Note: 
 		- double frees do nothing
 
+	Limitations:
+		- this implementation forces all data members to be the same size, this severely limits how robust a "GameObject" class can be 
+		  (e.g. Game objects with arbitrary amounts of "components")
+
 	TODO: 
 		- easier looping/iteration 
 		- add Clear() function

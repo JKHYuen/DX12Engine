@@ -55,7 +55,9 @@ GameObject* Picker::MouseRaycast(int mouseX, int mouseY, int windowWidth, int wi
 		if(m_RaycastCache.size() == 0) return nullptr;
 
 		currentCacheIndex++;
+
 		m_PickedObject = m_RaycastCache[currentCacheIndex % m_RaycastCache.size()].second;
+
 		b_RayCastHit = true;
 	}
 	else {
@@ -93,6 +95,7 @@ GameObject* Picker::MouseRaycast(int mouseX, int mouseY, int windowWidth, int wi
 
 	/// TODO: TEMP
 	if(m_PickedObject != nullptr) Logger::Log(m_PickedObject->GetName());
+	else Logger::Log("None");
 
 	return m_PickedObject;
 }

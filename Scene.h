@@ -39,6 +39,7 @@ public:
 	Camera m_MainCamera;
 
 private:
+	/// TODO: currently no system to validate destoyed objects
 	std::vector<GameObject> m_SceneObjects;
 	static const int sk_MaxSceneObjects = 100;
 

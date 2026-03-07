@@ -229,7 +229,7 @@ bool DemoGame::Initialize() {
 
 		CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 
-		CD3DX12_ROOT_PARAMETER1 rootParameters[1];
+		CD3DX12_ROOT_PARAMETER1 rootParameters[1] {};
 		rootParameters[0].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
 		CD3DX12_STATIC_SAMPLER_DESC pointClampSampler(
@@ -588,7 +588,14 @@ void DemoGame::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 	if(e.Button == MouseButtonEventArgs::Left) {
 		m_IsLeftClickPressed = false;
 
-		m_Picker->MouseRaycast(m_MouseX, m_MouseY, m_WindowWidth, m_WindowHeight);
+		// Gameobject raycast picking for object inspector GUI, gameobjects are outlined if picked
+		// Note: this code probably shouldn't be here
+		if(GameObject* go = m_Picker->GetPickedObject()) { 
+			go->SetOutlineState(false);
+		}
+		if(GameObject* go = m_Picker->MouseRaycast(m_MouseX, m_MouseY, m_WindowWidth, m_WindowHeight)) {
+			go->SetOutlineState(true);
+		}
 
 		m_Forward = 0.0f;
 	}

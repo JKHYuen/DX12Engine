@@ -55,6 +55,10 @@ public:
 	void SetName(const std::string& name) { m_Name = name; }
 
 	const BoundingBox& GetAABB() const { return m_AABB; }
+
+	/// Things that should be in some sort of component system:
+	void SetOutlineState(bool state) { b_Outline = state; };
+	///
 	
 private:
 	std::shared_ptr<Mesh> m_Mesh {};
@@ -76,5 +80,9 @@ private:
 	XMFLOAT4X4 m_TranslationMat {};
 	XMFLOAT4X4 m_RotationMat {};
 	XMFLOAT4X4 m_ScaleMat {};
+
+	/// Things that should be in some sort of component system:
+	bool b_Outline {};
+	///
 };
 

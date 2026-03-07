@@ -94,6 +94,10 @@ uint32_t DemoGame::Run() {
 	// OnUpdate() called on WM_PAINT message
 	uint32_t retCode = Application::Get().Run();
 
+	// Bandaid Fix: 
+	// Manually destroy DX device and adapter, ImGUI gets upset if these aren't destoyed before it calls its shutdown functions
+	m_Device.reset();
+
 	return retCode;
 }
 

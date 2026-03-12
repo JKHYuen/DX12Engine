@@ -95,33 +95,41 @@ void Scene::RenderImGui() {
 	GameObject* picked = m_Picker->GetPickedObject();
 	if(picked == nullptr) return;
 
+	static std::string s_ObjectName {}; // can't be view, needs null terminated string for ImGui::Text
 	static std::wstring_view s_SelectedMat {};
-	static float s_ObjTranslation[3];
-	static float s_ObjEulerAngles[3];
-	static float s_ObjScale[3];
+	static float s_ObjTranslation[3] {};
+	static float s_ObjEulerAngles[3] {};
+	static float s_ObjScale[3] {};
 	static GameObject* s_LastPickedObject {};
 	
-	// Newly picked object, update sliders
+	// Newly picked object, update variables
 	if(picked != s_LastPickedObject) {
+		s_ObjectName = std::string { picked->GetName() };
 		s_SelectedMat = picked->GetMaterialName();
-		/// TODO: transform values
+
+		XMFLOAT3 translation   = picked->GetTranslation();
+		XMFLOAT3 eulerRotation = picked->GetEulerRotation();
+		XMFLOAT3 scale         = picked->GetScale();
+		memcpy(s_ObjTranslation, &translation,   sizeof(float) * 3);
+		memcpy(s_ObjEulerAngles, &eulerRotation, sizeof(float) * 3);
+		memcpy(s_ObjScale,       &scale,         sizeof(float) * 3);
 	}
 	s_LastPickedObject = picked;
 
 	static const ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
 
-	ImGui::Begin("Object Inspector", nullptr, ImGuiWindowFlags_NoCollapse);
+	ImGui::Begin(s_ObjectName.c_str(), nullptr, ImGuiWindowFlags_NoCollapse);
 	{
 		if(ImGui::BeginTable("PBR Material Table", 4, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders)) {
 			for(auto& s : m_MaterialNames) {
 				ImGui::TableNextColumn();
 
-				static const size_t kBufferSize = 100;
+				static const size_t sk_BufferSize = 100;
 				// convert wide string to const char* since ImGui can't render wide chars
 				// using https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/wcstombs-s-wcstombs-s-l?view=msvc-170
-				char labelBuf[kBufferSize];
+				char labelBuf[sk_BufferSize];
 				size_t bytesConverted;
-				wcstombs_s(&bytesConverted, labelBuf, kBufferSize, s.c_str(), kBufferSize - 1);
+				wcstombs_s(&bytesConverted, labelBuf, sk_BufferSize, s.c_str(), sk_BufferSize - 1);
 
 				if(ImGui::Selectable(labelBuf, s == s_SelectedMat)) {
 					auto& copyCommandQueue = m_Device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);

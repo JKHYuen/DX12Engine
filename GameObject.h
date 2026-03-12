@@ -1,8 +1,16 @@
 #pragma once
 
-// Renderable gameobject with mesh and textures
-// Simple implementation that only support objects using PBR shaders/pipeline
-// "m_PBR_PSO" will probably need to be a polymorphic type eventually
+/*
+	Renderable gameobject with mesh and textures
+	Simple implementation that only support objects using PBR shaders/pipeline
+	
+	NOTE:
+		- AABB does not support rotation updates currently (it's non-trivial)
+		- A dynamic component system would be nice, however this makes effecient object storage hard
+		  Currently just uses vector with no object destruction support
+		- Can use dirty flag system for SRT updates
+		- "m_PBR_PSO" will probably need to be a polymorphic type eventually
+*/
 
 #include "DirectXMath.h"
 #include "DirectXCollision.h"
@@ -44,9 +52,11 @@ public:
 	// Currently only compatible with PBRObjectPSO
 	void UpdateShaderResources(CommandList& copyCommandList, const std::wstring& pbrMatName);
 
-	void Translate(float x, float y, float z);
-	void Rotate(float x, float y, float z);
-	void Scale(float x, float y, float z);
+	/// Transfom functions aren't very intuitive, good enough for now
+	void Translate(float x, float y, float z); // Adds to world position values
+	void Rotate(float x, float y, float z); // Adds to euler angles
+	void Scale(float x, float y, float z); // Multiplies current scale
+	/// 
 
 	void SetTranslation(float x, float y, float z);
 	void SetRotation(float x, float y, float z);
@@ -67,11 +77,6 @@ private:
 	std::vector<std::shared_ptr<Texture>> m_TextureResources { PBRObjectPSO::sk_NumTextures };
 	
 	BoundingBox m_AABB {};
-
-	// AABB does not support rotation updates currently (it's non-trivial)
-	// These functions are called whenever object SRT changes
-	void UpdateAABBScale();
-	void UpdateAABBTranslation();
 
 	// PSOs are owned by DemoGame
 	PBRObjectPSO* m_PBR_PSO {};

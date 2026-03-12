@@ -19,27 +19,19 @@ using namespace DirectX;
 GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, std::shared_ptr<Mesh> mesh) 
 	: m_PBR_PSO(params.pbrPSO)
 	, m_Outline_PSO(params.outlinePSO) 
+	, m_Mesh(mesh)
 {
-
-	XMStoreFloat4x4(&m_TranslationMat, XMMatrixTranslation(params.translation.x, params.translation.y, params.translation.z));
-	XMStoreFloat4x4(&m_RotationMat, XMMatrixRotationRollPitchYaw(params.eulerRotation.x, params.eulerRotation.y, params.eulerRotation.z));
-	XMStoreFloat4x4(&m_ScaleMat, XMMatrixScaling(params.scale.x, params.scale.y, params.scale.z));
-
-	m_Translation = params.scale;
-	m_EulerRotation = params.eulerRotation;
-	m_Scale = params.scale;
+	SetTranslation(params.translation.x, params.translation.y, params.translation.z);
+	SetRotation(params.eulerRotation.x, params.eulerRotation.y, params.eulerRotation.z);
+	SetScale(params.scale.x, params.scale.y, params.scale.z);
 
 	UpdateShaderResources(copyCommandList, params.pbrMatName);
 
+	// Set rest of textures not updated in UpdateShaderResources()
 	m_TextureResources[PBRObjectPSO::IrradianceCubemap]    = params.scene.GetSkybox().GetIrradianceTexture();
 	m_TextureResources[PBRObjectPSO::PrefilterCubemap]     = params.scene.GetSkybox().GetPrefilterTexture();
 	m_TextureResources[PBRObjectPSO::BRDFLut]              = params.scene.GetSkybox().Get_BRDF_LUT_Texture();
 	m_TextureResources[PBRObjectPSO::DirectionalShadowMap] = params.scene.GetDirectionalLight().GetShadowMapTexture();
-
-	m_Mesh = mesh;
-
-	UpdateAABBScale();
-	UpdateAABBTranslation();
 }
 
 void GameObject::UpdateShaderResources(CommandList& copyCommandList, const std::wstring& pbrMatName) {
@@ -91,6 +83,7 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 		m_Mesh->Draw(directCommandList);
 	}
 
+	/// TODO: fix DX error when rendering outline
 	// Render object outline by rendering slightly bigger mesh of object and front culling (this method doesn't work on quads)
 	// Note: outline effect should be it's own class, preferably as some sort of component system
 	if(b_Outline){
@@ -113,40 +106,29 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 	}
 }
 
+// we can use a dirty flag to only update SRT when neccesary
+// assume we are in right rendering pipeline (see DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget)
 void GameObject::RenderToDirectionalShadowMap(CommandList& directCommandList, const Scene& scene) {
-	// we can use a dirty flag to only update SRT when neccesary
-	// assume we are in right rendering pipeline (see DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget)
 	XMMATRIX SRTMat = XMLoadFloat4x4(&m_ScaleMat) * XMLoadFloat4x4(&m_RotationMat) * XMLoadFloat4x4(&m_TranslationMat);
 	scene.GetDirectionalLight().RenderObjectToDepth(directCommandList, *m_Mesh, SRTMat);
 }
 
 void GameObject::Translate(float x, float y, float z) {
-	m_Translation.x += x;
-	m_Translation.y += y;
-	m_Translation.z += z;
-	XMStoreFloat4x4(&m_TranslationMat, XMMatrixMultiply(XMLoadFloat4x4(&m_TranslationMat), XMMatrixTranslation(x, y, z)));
-	UpdateAABBTranslation();
+	SetTranslation(m_Translation.x + x, m_Translation.y + y, m_Translation.z + z);
 }
 
 void GameObject::Rotate(float x, float y, float z) {
-	m_EulerRotation.x += x;
-	m_EulerRotation.y += y;
-	m_EulerRotation.z += z;
-	XMStoreFloat4x4(&m_RotationMat, XMMatrixMultiply(XMLoadFloat4x4(&m_RotationMat), XMMatrixRotationRollPitchYaw(x, y, z)));
+	SetRotation(m_EulerRotation.x + x,m_EulerRotation.y + y, m_EulerRotation.z + z);
 }
 
 void GameObject::Scale(float x, float y, float z) {
-	m_Scale.x *= x;
-	m_Scale.y *= y;
-	m_Scale.z *= z;
-	XMStoreFloat4x4(&m_ScaleMat, XMMatrixMultiply(XMLoadFloat4x4(&m_ScaleMat), XMMatrixScaling(x, y, z)));
-	UpdateAABBScale();
+	SetScale(m_Scale.x * x, m_Scale.y * y, m_Scale.z * z);
 }
 
 void GameObject::SetTranslation(float x, float y, float z) {
 	m_Translation = { x, y, z };
 	XMStoreFloat4x4(&m_TranslationMat, XMMatrixTranslation(x, y, z));
-	UpdateAABBTranslation();
+	m_AABB.Center = m_Translation;
 }
 
 void GameObject::SetRotation(float x, float y, float z) {
@@ -157,18 +139,10 @@ void GameObject::SetRotation(float x, float y, float z) {
 void GameObject::SetScale(float x, float y, float z) {
 	m_Scale = {x, y, z};
 	XMStoreFloat4x4(&m_ScaleMat, XMMatrixScaling(x, y, z));
-	UpdateAABBScale();
-}
-
-void GameObject::UpdateAABBScale() {
+	
 	XMFLOAT3 meshExtents = m_Mesh->GetExtents();
-	XMFLOAT3 scaledExtents {};
-	XMStoreFloat3(&scaledExtents, XMVector3Transform(XMLoadFloat3(&meshExtents), XMLoadFloat4x4(&m_ScaleMat)));
-	m_AABB.Extents = scaledExtents;
+	m_AABB.Extents.x = meshExtents.x * m_Scale.x;
+	m_AABB.Extents.y = meshExtents.y * m_Scale.y;
+	m_AABB.Extents.z = meshExtents.z * m_Scale.z;
 }
 
-void GameObject::UpdateAABBTranslation() {
-	XMFLOAT3 translatedAABBPosition {};
-	XMStoreFloat3(&translatedAABBPosition, XMVector3Transform(XMVectorZero(), XMLoadFloat4x4(&m_TranslationMat)));
-	m_AABB.Center = translatedAABBPosition;
-}

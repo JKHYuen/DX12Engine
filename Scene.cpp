@@ -105,7 +105,7 @@ void Scene::RenderImGui() {
 	// Newly picked object, update sliders
 	if(picked != s_LastPickedObject) {
 		s_SelectedMat = picked->GetMaterialName();
-
+		/// TODO: transform values
 	}
 	s_LastPickedObject = picked;
 
@@ -145,16 +145,12 @@ void Scene::RenderImGui() {
 			picked->SetTranslation(s_ObjTranslation[0], s_ObjTranslation[1], s_ObjTranslation[2]);
 		}
 
-		if(ImGui::DragFloat3("Scale", s_ObjScale, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
-			picked->SetScale(s_ObjScale[0], s_ObjScale[1], s_ObjScale[2]);
-		}
-
 		if(ImGui::DragFloat3("Rotation", s_ObjScale, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
 			picked->SetRotation(s_ObjEulerAngles[0], s_ObjEulerAngles[1], s_ObjEulerAngles[2]);
 		}
 
-		if(ImGui::Button("TEST", {10, 10})) {
-			picked->Scale(2, 2, 2);
+		if(ImGui::DragFloat3("Scale", s_ObjScale, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
+			picked->SetScale(s_ObjScale[0], s_ObjScale[1], s_ObjScale[2]);
 		}
 	}
 

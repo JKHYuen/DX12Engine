@@ -94,6 +94,6 @@ private:
     std::shared_ptr<Material>    m_Material;
     D3D12_PRIMITIVE_TOPOLOGY     m_PrimitiveTopology;
 
-    // AABB extents 
+    // AABB extents for original mesh (*Without any transforms)
     XMFLOAT3 m_Extents {};
 };

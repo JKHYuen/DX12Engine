@@ -54,13 +54,17 @@ public:
 
 	/// Transfom functions aren't very intuitive, good enough for now
 	void Translate(float x, float y, float z); // Adds to world position values
-	void Rotate(float x, float y, float z); // Adds to euler angles
+	void EulerRotate(float x, float y, float z); // Adds to euler angles
 	void Scale(float x, float y, float z); // Multiplies current scale
 	/// 
 
 	void SetTranslation(float x, float y, float z);
-	void SetRotation(float x, float y, float z);
+	void SetEulerRotation(float x, float y, float z);
 	void SetScale(float x, float y, float z);
+
+	XMFLOAT3 GetTranslation() const { return m_Translation; };
+	XMFLOAT3 GetEulerRotation() const { return m_EulerRotation; };
+	XMFLOAT3 GetScale() const { return m_Scale; };
 
 	std::string_view GetName() const { return m_Name; }
 	void SetName(const std::string& name) { m_Name = name; }

@@ -22,7 +22,7 @@ GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, st
 	, m_Mesh(mesh)
 {
 	SetTranslation(params.translation.x, params.translation.y, params.translation.z);
-	SetRotation(params.eulerRotation.x, params.eulerRotation.y, params.eulerRotation.z);
+	SetEulerRotation(params.eulerRotation.x, params.eulerRotation.y, params.eulerRotation.z);
 	SetScale(params.scale.x, params.scale.y, params.scale.z);
 
 	UpdateShaderResources(copyCommandList, params.pbrMatName);
@@ -117,8 +117,8 @@ void GameObject::Translate(float x, float y, float z) {
 	SetTranslation(m_Translation.x + x, m_Translation.y + y, m_Translation.z + z);
 }
 
-void GameObject::Rotate(float x, float y, float z) {
-	SetRotation(m_EulerRotation.x + x,m_EulerRotation.y + y, m_EulerRotation.z + z);
+void GameObject::EulerRotate(float x, float y, float z) {
+	SetEulerRotation(m_EulerRotation.x + x,m_EulerRotation.y + y, m_EulerRotation.z + z);
 }
 
 void GameObject::Scale(float x, float y, float z) {
@@ -131,7 +131,7 @@ void GameObject::SetTranslation(float x, float y, float z) {
 	m_AABB.Center = m_Translation;
 }
 
-void GameObject::SetRotation(float x, float y, float z) {
+void GameObject::SetEulerRotation(float x, float y, float z) {
 	m_EulerRotation = { x, y, z };
 	XMStoreFloat4x4(&m_RotationMat, XMMatrixRotationRollPitchYaw(x, y, z));
 }

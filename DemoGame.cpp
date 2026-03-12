@@ -479,7 +479,6 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 
 		/// Object Inspector Window
 		{
-			// Object inspector
 			m_Scene->RenderImGui();
 		}
 	}

@@ -2,6 +2,7 @@
 #pragma once
 
 #include <iostream>
+#include <format>
 
 class Logger {
 public:
@@ -15,6 +16,11 @@ public:
 
 	static void Log(std::wstring_view msg) {
 		std::wcout << msg << std::endl;
+	}
+
+	template<class ...TArgs>
+	static void Log(std::format_string<TArgs...> fmt, TArgs&&... args) {
+		std::cout << std::format(fmt, std::forward<TArgs>(args)...) << std::endl;
 	}
 
 	Logger() = delete;

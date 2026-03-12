@@ -77,7 +77,6 @@ void Scene::SetDirectionalLightAngle(float rotX, float rotY, float rotZ) {
 	m_DirectionalLight.SetDirection(rotX, rotY, rotZ);
 }
 
-
 void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 	/// TODO: disable picking when dragging object inspector sliders
 	// Gameobject raycast picking for object inspector GUI, gameobjects are outlined if picked
@@ -145,15 +144,16 @@ void Scene::RenderImGui() {
 			picked->SetTranslation(s_ObjTranslation[0], s_ObjTranslation[1], s_ObjTranslation[2]);
 		}
 
-		if(ImGui::DragFloat3("Rotation", s_ObjScale, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
-			picked->SetRotation(s_ObjEulerAngles[0], s_ObjEulerAngles[1], s_ObjEulerAngles[2]);
+		if(ImGui::DragFloat3("Rotation", s_ObjEulerAngles, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
+			picked->SetEulerRotation(s_ObjEulerAngles[0], s_ObjEulerAngles[1], s_ObjEulerAngles[2]);
 		}
 
 		if(ImGui::DragFloat3("Scale", s_ObjScale, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
 			picked->SetScale(s_ObjScale[0], s_ObjScale[1], s_ObjScale[2]);
 		}
+
+		/// Object Inspector Window End
+		ImGui::End();
 	}
 
-	/// Object Inspector Window End
-	ImGui::End();
 }

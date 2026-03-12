@@ -25,9 +25,12 @@ GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, st
 	XMStoreFloat4x4(&m_RotationMat, XMMatrixRotationRollPitchYaw(params.eulerRotation.x, params.eulerRotation.y, params.eulerRotation.z));
 	XMStoreFloat4x4(&m_ScaleMat, XMMatrixScaling(params.scale.x, params.scale.y, params.scale.z));
 
+	m_Translation = params.scale;
+	m_EulerRotation = params.eulerRotation;
+	m_Scale = params.scale;
+
 	UpdateShaderResources(copyCommandList, params.pbrMatName);
 
-	/// TODO: check if skybox is initialized
 	m_TextureResources[PBRObjectPSO::IrradianceCubemap]    = params.scene.GetSkybox().GetIrradianceTexture();
 	m_TextureResources[PBRObjectPSO::PrefilterCubemap]     = params.scene.GetSkybox().GetPrefilterTexture();
 	m_TextureResources[PBRObjectPSO::BRDFLut]              = params.scene.GetSkybox().Get_BRDF_LUT_Texture();
@@ -40,6 +43,8 @@ GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, st
 }
 
 void GameObject::UpdateShaderResources(CommandList& copyCommandList, const std::wstring& pbrMatName) {
+	m_MaterialName = pbrMatName;
+
 	// Load Resources, note that commandlist is not executed here
 	std::wstring matPathPrefix { L"assets/materials/" + pbrMatName + L"/" + pbrMatName };
 	m_TextureResources[PBRObjectPSO::AlbedoTex] =
@@ -86,20 +91,23 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 		m_Mesh->Draw(directCommandList);
 	}
 
-	// Render Outline effect by rendering slightly bigger mesh of object and front culling (this method doesn't work on quads)
+	// Render object outline by rendering slightly bigger mesh of object and front culling (this method doesn't work on quads)
+	// Note: outline effect should be it's own class, preferably as some sort of component system
 	if(b_Outline){
 		m_Outline_PSO->SetPipelineState(directCommandList);
 
 		OutlinePSO::VertexProps outlineVertexCB {};
-
-		XMStoreFloat4x4(&SRT, XMMatrixScaling(1.1f, 1.1f, 1.1f) * XMLoadFloat4x4(&SRT));
+		
+		// Magic number
+		float outlineMeshScale = 1.05f; 
+		XMStoreFloat4x4(&SRT, XMMatrixScaling(outlineMeshScale, outlineMeshScale, outlineMeshScale) * XMLoadFloat4x4(&SRT));
 		outlineVertexCB.SRT = SRT;
 
 		XMStoreFloat4x4(&MVP, XMLoadFloat4x4(&SRT) * scene.m_MainCamera.Get_ViewMatrix() * scene.m_MainCamera.Get_ProjectionMatrix());
 		outlineVertexCB.MVP = MVP;
 
 		OutlinePSO::MaterialProps outlineMaterialCB {};
-		outlineMaterialCB.outlineColor = { 0.0f, 1.0f, 0.0f, 1.0f };
+		outlineMaterialCB.outlineColor = { 10.0f, 10.0f, 0.0f, 1.0f };
 		m_Outline_PSO->UpdateResources(directCommandList, outlineVertexCB, outlineMaterialCB);
 		m_Mesh->Draw(directCommandList);
 	}
@@ -113,29 +121,41 @@ void GameObject::RenderToDirectionalShadowMap(CommandList& directCommandList, co
 }
 
 void GameObject::Translate(float x, float y, float z) {
+	m_Translation.x += x;
+	m_Translation.y += y;
+	m_Translation.z += z;
 	XMStoreFloat4x4(&m_TranslationMat, XMMatrixMultiply(XMLoadFloat4x4(&m_TranslationMat), XMMatrixTranslation(x, y, z)));
 	UpdateAABBTranslation();
 }
 
 void GameObject::Rotate(float x, float y, float z) {
+	m_EulerRotation.x += x;
+	m_EulerRotation.y += y;
+	m_EulerRotation.z += z;
 	XMStoreFloat4x4(&m_RotationMat, XMMatrixMultiply(XMLoadFloat4x4(&m_RotationMat), XMMatrixRotationRollPitchYaw(x, y, z)));
 }
 
 void GameObject::Scale(float x, float y, float z) {
+	m_Scale.x *= x;
+	m_Scale.y *= y;
+	m_Scale.z *= z;
 	XMStoreFloat4x4(&m_ScaleMat, XMMatrixMultiply(XMLoadFloat4x4(&m_ScaleMat), XMMatrixScaling(x, y, z)));
 	UpdateAABBScale();
 }
 
 void GameObject::SetTranslation(float x, float y, float z) {
+	m_Translation = { x, y, z };
 	XMStoreFloat4x4(&m_TranslationMat, XMMatrixTranslation(x, y, z));
 	UpdateAABBTranslation();
 }
 
 void GameObject::SetRotation(float x, float y, float z) {
+	m_EulerRotation = { x, y, z };
 	XMStoreFloat4x4(&m_RotationMat, XMMatrixRotationRollPitchYaw(x, y, z));
 }
 
 void GameObject::SetScale(float x, float y, float z) {
+	m_Scale = {x, y, z};
 	XMStoreFloat4x4(&m_ScaleMat, XMMatrixScaling(x, y, z));
 	UpdateAABBScale();
 }

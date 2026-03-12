@@ -1,24 +1,29 @@
 #pragma once
-#include <vector>
 #include "Camera.h"
 #include "DirectionalLight.h"
 #include "Skybox.h"
 #include "GameObject.h"
 #include "DataArray.h"
+#include "Picker.h"
+#include <vector>
 
 class Device;
+class MouseButtonEventArgs;
 
 class Scene {
-
+	
 	friend class Picker;
+
 public:
 	/// TODO: make directional light and skybox optional
-	Scene(Device& device, CommandList& copyCommandList, const DirectionalLight::DirectionalLightParams& dirLightParams, const Skybox::SkyboxParams& skyboxParams);
+	Scene(Device& device, CommandList& copyCommandList, const DirectionalLight::DirectionalLightParams& dirLightParams, const Skybox::SkyboxParams& skyboxParams, int windowWidth, int windowHeight);
 
 	Scene(const Scene&) = delete;
 	Scene& operator=(Scene&) = delete;
 	Scene(Scene&&) = delete;
 	Scene& operator=(Scene&&) = delete;
+
+	void OnMouseButtonReleased(const MouseButtonEventArgs& e);
 
 	const DirectionalLight& GetDirectionalLight() const { return m_DirectionalLight; };
 	const Skybox& GetSkybox() const { return m_Skybox; };
@@ -32,6 +37,11 @@ public:
 	
 	void SetDirectionalLightAngle(float rotX, float rotY, float rotZ);
 
+	void SetGameWindowSize(int width, int height) { 
+		m_GameWindowWidth = width;
+		m_GameWindowHeight = height;
+	};
+
 	// Currently only renders obnject inspector window
 	void RenderImGui();
 
@@ -39,7 +49,8 @@ public:
 	Camera m_MainCamera;
 
 private:
-	/// TODO: currently no system to validate destoyed objects
+	/// TODO: Currently no system to validate destoyed objects, smarter storage needed
+	///       Same size objects should at least be grouped together in separate arrays in a real engine
 	std::vector<GameObject> m_SceneObjects;
 	static const int sk_MaxSceneObjects = 100;
 
@@ -50,5 +61,10 @@ private:
 	Skybox m_Skybox;
 
 	Device& m_Device;
+
+	int m_GameWindowWidth;
+	int m_GameWindowHeight;
+
+	std::unique_ptr<Picker> m_Picker {};
 };
 

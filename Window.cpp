@@ -41,11 +41,11 @@ void Window::Hide() {
     ::ShowWindow(m_hWnd, SW_HIDE);
 }
 
-int Window::GetClientWidth() const {
+uint32_t Window::GetClientWidth() const {
     return m_ClientWidth;
 }
 
-int Window::GetClientHeight() const {
+uint32_t Window::GetClientHeight() const {
     return m_ClientHeight;
 }
 

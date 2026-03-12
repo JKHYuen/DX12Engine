@@ -63,8 +63,8 @@ public:
     */
     HWND GetWindowHandle() const;
 
-    int GetClientWidth() const;
-    int GetClientHeight() const;
+    uint32_t GetClientWidth() const;
+    uint32_t GetClientHeight() const;
 
     void SetWindowTitle(const std::wstring& windowTitle) const;
 

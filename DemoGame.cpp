@@ -30,7 +30,6 @@
 #include "GameObject.h"
 #include "PBRObjectPSO.h"
 #include "OutlinePSO.h"
-#include "Picker.h"
 #include "Logger.h"
 
 #include "imgui.h"
@@ -74,8 +73,6 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	, m_IsRightClickPressed(false)
 	, m_ShowImGuiWindow(false)
 	, m_CurrentAvgFPS(0)
-	, m_MouseX(0)
-	, m_MouseY(0)
 	, m_WindowWidth(windowWidth)
 	, m_WindowHeight(windowHeight)
 	, m_IsVsync(vSync)
@@ -181,11 +178,9 @@ bool DemoGame::Initialize() {
 			m_HDR_MSAA_RenderTarget
 		};
 
-		m_Scene = std::make_unique<Scene>(*m_Device, *copyCommandList, dirLightParams, skyboxParams);
-		m_Picker = std::make_unique<Picker>(m_Scene.get());
+		m_Scene = std::make_unique<Scene>(*m_Device, *copyCommandList, dirLightParams, skyboxParams, m_WindowWidth, m_WindowHeight);
 
 		m_Outline_PSO = std::make_unique<OutlinePSO>(*m_Device, sampleDesc, m_HDR_MSAA_RenderTarget.GetRenderTargetFormats(), sk_DepthBufferFormat);
-
 
 		/// TODO: TEMP TEST SCENE
 		// Initialize test objects to render
@@ -296,12 +291,14 @@ void DemoGame::OnResize(const ResizeEventArgs& e) {
 	m_SwapChain->Resize(m_WindowWidth, m_WindowHeight);
 
 	float aspectRatio = m_WindowWidth / (float)m_WindowHeight;
-	/// TODO: Define default z values somewhere (maybe scene class that's not written yet)
+	/// TODO: Define default z values somewhere
 	m_Scene->m_MainCamera.Set_Projection(45.0f, aspectRatio, 0.1f, 1000.0f);
 
 	m_ScreenViewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_WindowWidth), static_cast<float>(m_WindowHeight));
 	m_HDR_MSAA_RenderTarget.Resize(m_WindowWidth, m_WindowHeight);
 	m_FloatRenderTarget.Resize(m_WindowWidth, m_WindowHeight);
+
+	m_Scene->SetGameWindowSize(m_WindowWidth, m_WindowHeight);
 }
 
 void DemoGame::OnUpdate(const UpdateEventArgs& e) {
@@ -480,28 +477,10 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 			ImGui::End();
 		}
 
-		/// Object Inspector Window Start
-		/// TODO: move all this into Scene class
+		/// Object Inspector Window
 		{
-			ImGui::Begin("Object Inspector", &m_ShowImGuiWindow, ImGuiWindowFlags_NoCollapse);
-
-			static float objTranslation[3];
-			static float objEulerAngles[3];
-			static float objScale[3];
-
-			// Material picker
+			// Object inspector
 			m_Scene->RenderImGui();
-
-			if(ImGui::DragFloat3("Position", objTranslation, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
-				s_TestSphere->SetTranslation(objTranslation[0], objTranslation[1], objTranslation[2]);
-			}
-
-			if(ImGui::DragFloat3("Scale", objScale, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
-				s_TestSphere->SetScale(objScale[0], objScale[1], objScale[2]);
-			}
-
-			/// Object Inspector Window End
-			ImGui::End();
 		}
 	}
 
@@ -559,9 +538,6 @@ void DemoGame::OnMouseMove(const MouseMotionEventArgs& e) {
 		m_Pitch = std::clamp(m_Pitch, -90.0f, 90.0f);
 		m_Yaw -= e.DeltaX * mouseSpeed;
 	}
-
-	m_MouseX = e.X;
-	m_MouseY = e.Y;
 }
 
 void DemoGame::OnMouseButtonPressed(const MouseButtonEventArgs& e) {
@@ -588,14 +564,7 @@ void DemoGame::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 	if(e.Button == MouseButtonEventArgs::Left) {
 		m_IsLeftClickPressed = false;
 
-		// Gameobject raycast picking for object inspector GUI, gameobjects are outlined if picked
-		// Note: this code probably shouldn't be here
-		if(GameObject* go = m_Picker->GetPickedObject()) { 
-			go->SetOutlineState(false);
-		}
-		if(GameObject* go = m_Picker->MouseRaycast(m_MouseX, m_MouseY, m_WindowWidth, m_WindowHeight)) {
-			go->SetOutlineState(true);
-		}
+		m_Scene->OnMouseButtonReleased(e);
 
 		m_Forward = 0.0f;
 	}

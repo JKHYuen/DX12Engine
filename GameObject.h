@@ -4,12 +4,13 @@
 // Simple implementation that only support objects using PBR shaders/pipeline
 // "m_PBR_PSO" will probably need to be a polymorphic type eventually
 
-#include <memory>
-#include <vector>
-#include <string>
 #include "DirectXMath.h"
 #include "DirectXCollision.h"
 #include "PBRObjectPSO.h"
+
+#include <memory>
+#include <vector>
+#include <string>
 
 using namespace DirectX;
 
@@ -58,6 +59,7 @@ public:
 
 	/// Things that should be in some sort of component system:
 	void SetOutlineState(bool state) { b_Outline = state; };
+	std::wstring_view GetMaterialName() const { return m_MaterialName; }
 	///
 	
 private:
@@ -67,6 +69,7 @@ private:
 	BoundingBox m_AABB {};
 
 	// AABB does not support rotation updates currently (it's non-trivial)
+	// These functions are called whenever object SRT changes
 	void UpdateAABBScale();
 	void UpdateAABBTranslation();
 
@@ -75,13 +78,16 @@ private:
 	OutlinePSO* m_Outline_PSO {};
 
 	std::string m_Name = "GameObject";
-	std::string m_MaterialName {};
 
 	XMFLOAT4X4 m_TranslationMat {};
 	XMFLOAT4X4 m_RotationMat {};
 	XMFLOAT4X4 m_ScaleMat {};
+	
+	// Keep track of these separate from matrices for convenience in UI implementation
+	XMFLOAT3 m_Translation, m_EulerRotation, m_Scale;
 
 	/// Things that should be in some sort of component system:
+	std::wstring m_MaterialName {};
 	bool b_Outline {};
 	///
 };

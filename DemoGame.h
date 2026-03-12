@@ -1,13 +1,14 @@
 #pragma once
-#include <DirectXMath.h>
-#include <memory>
-#include <wrl/client.h>
 
 #include "Events.h"
 #include "Camera.h"
 #include "Scene.h"
 #include "RenderTarget.h"
 #include "IGame.h"
+
+#include <DirectXMath.h>
+#include <memory>
+#include <wrl/client.h>
 
 class CommandList;
 class RootSignature;
@@ -20,7 +21,6 @@ class Skybox;
 class PBRObjectPSO;
 class OutlinePSO;
 class ShaderResourceView;
-class Picker;
 
 class DemoGame : public IGame {
 public:
@@ -78,9 +78,6 @@ private:
     float m_Pitch;
     float m_Yaw;
 
-    int m_MouseX;
-    int m_MouseY;
-
     // A better input system would not need these variables
     bool m_IsShiftPressed;
     bool m_IsLeftClickPressed;
@@ -96,6 +93,5 @@ private:
     static const int sk_frameTimeSamples = 128;
     double m_frameTimeHistory[sk_frameTimeSamples] = {};
 
-    std::unique_ptr<Picker> m_Picker {};
 };
 

@@ -6,6 +6,13 @@
 
 class Logger {
 public:
+	// Static class
+	Logger() = delete;
+	Logger(const Logger&) = delete;
+	Logger& operator=(Logger&) = delete;
+	Logger(Logger&&) = delete;
+	Logger& operator=(Logger&&) = delete;
+
 	// Create WinAPI console and reroute std io to it
 	static void InitializeConsole();
 
@@ -22,8 +29,6 @@ public:
 	static void Log(std::format_string<TArgs...> fmt, TArgs&&... args) {
 		std::cout << std::format(fmt, std::forward<TArgs>(args)...) << std::endl;
 	}
-
-	Logger() = delete;
 
 private:
 	static constexpr int MAX_CONSOLE_LINES = 500;

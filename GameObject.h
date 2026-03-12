@@ -23,6 +23,7 @@
 using namespace DirectX;
 
 class CommandList;
+class DirectionalLight;
 class Mesh;
 class Texture;
 class Camera;
@@ -44,10 +45,10 @@ public:
 	// Warning: copy command list must still be executed after GameObject, this is to keep flexibility to batch copy commands together
 	GameObject(CommandList& copyCommandList, GameObjectParams params, std::shared_ptr<Mesh> mesh); // initialize with preconstructed mesh
 	GameObject(CommandList& copyCommandList, GameObjectParams params, const std::wstring& meshFileName); // initialize with mesh loaded from file
-	
-	void Render(CommandList& directCommandList, const UpdateEventArgs & e, const Scene& scene);
 
-	void RenderToDirectionalShadowMap(CommandList& directCommandList, const Scene& scene);
+	void Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene);
+
+	void RenderToDirectionalShadowMap(CommandList& directCommandList, const DirectionalLight& directionalLight);
 
 	// Currently only compatible with PBRObjectPSO
 	void UpdateShaderResources(CommandList& copyCommandList, const std::wstring& pbrMatName);
@@ -70,6 +71,8 @@ public:
 	void SetName(const std::string& name) { m_Name = name; }
 
 	const BoundingBox& GetAABB() const { return m_AABB; }
+
+	std::shared_ptr<Mesh> GetMesh() const { return m_Mesh; }
 
 	/// Things that should be in some sort of component system:
 	void SetOutlineState(bool state) { b_Outline = state; };

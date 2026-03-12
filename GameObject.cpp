@@ -108,9 +108,9 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 
 // we can use a dirty flag to only update SRT when neccesary
 // assume we are in right rendering pipeline (see DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget)
-void GameObject::RenderToDirectionalShadowMap(CommandList& directCommandList, const Scene& scene) {
+void GameObject::RenderToDirectionalShadowMap(CommandList& directCommandList, const DirectionalLight& directionalLight) {
 	XMMATRIX SRTMat = XMLoadFloat4x4(&m_ScaleMat) * XMLoadFloat4x4(&m_RotationMat) * XMLoadFloat4x4(&m_TranslationMat);
-	scene.GetDirectionalLight().RenderObjectToDepth(directCommandList, *m_Mesh, SRTMat);
+	directionalLight.RenderObjectToDepth(directCommandList, *m_Mesh, SRTMat);
 }
 
 void GameObject::Translate(float x, float y, float z) {

@@ -68,7 +68,7 @@ void Scene::Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, D3D12_
 	// Render depth from directional light for same objects above
 	m_DirectionalLight.SetShadowDepthPipelineStateAndRenderTarget(directCommandList);
 	for(auto& o : m_SceneObjects) {
-		o.RenderToDirectionalShadowMap(directCommandList, *this);
+		o.RenderToDirectionalShadowMap(directCommandList, m_DirectionalLight);
 	}
 
 }

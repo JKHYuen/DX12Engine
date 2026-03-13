@@ -6,7 +6,6 @@
 #include "ImGui.h"
 #include "Device.h"
 #include "Picker.h"
-#include "Events.h"
 #include "Logger.h"
 
 #include <filesystem>
@@ -70,7 +69,6 @@ void Scene::Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, D3D12_
 	for(auto& o : m_SceneObjects) {
 		o.RenderToDirectionalShadowMap(directCommandList, m_DirectionalLight);
 	}
-
 }
 
 void Scene::SetDirectionalLightAngle(float rotX, float rotY, float rotZ) {
@@ -78,9 +76,9 @@ void Scene::SetDirectionalLightAngle(float rotX, float rotY, float rotZ) {
 }
 
 void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
-	/// TODO: disable picking when dragging object inspector sliders
 	// Gameobject raycast picking for object inspector GUI, gameobjects are outlined if picked
-	{
+	// Disabled if ImGui mouse event is occuring
+	if(e.Button == MouseButtonEventArgs::Left && !ImGui::GetIO().WantCaptureMouse) {
 		if(GameObject* go = m_Picker->GetPickedObject()) {
 			go->SetOutlineState(false);
 		}
@@ -88,8 +86,19 @@ void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 			go->SetOutlineState(true);
 		}
 	}
-
 }
+
+void Scene::OnKeyPressed(const KeyEventArgs& e) {}
+
+void Scene::OnKeyReleased(const KeyEventArgs& e) {
+	if(e.Key == KeyCode::X) {
+		if(GameObject* go = m_Picker->GetPickedObject()) {
+			go->SetOutlineState(false);
+			m_Picker->ClearPickedObject();
+		}
+	}
+}
+
 
 void Scene::RenderImGui() {
 	GameObject* picked = m_Picker->GetPickedObject();
@@ -118,9 +127,9 @@ void Scene::RenderImGui() {
 
 	static const ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
 
-	ImGui::Begin(s_ObjectName.c_str(), nullptr, ImGuiWindowFlags_NoCollapse);
+	ImGui::Begin(s_ObjectName.c_str(), nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
 	{
-		if(ImGui::BeginTable("PBR Material Table", 4, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders)) {
+		if(ImGui::BeginTable("PBR Material Table", 4, ImGuiTableFlags_Borders)) {
 			for(auto& s : m_MaterialNames) {
 				ImGui::TableNextColumn();
 

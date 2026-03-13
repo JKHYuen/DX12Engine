@@ -560,11 +560,10 @@ void DemoGame::OnMouseButtonPressed(const MouseButtonEventArgs& e) {
 }
 
 void DemoGame::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
+	m_Scene->OnMouseButtonReleased(e);
+
 	if(e.Button == MouseButtonEventArgs::Left) {
 		m_IsLeftClickPressed = false;
-
-		m_Scene->OnMouseButtonReleased(e);
-
 		m_Forward = 0.0f;
 	}
 	else if(e.Button == MouseButtonEventArgs::Right) {
@@ -574,6 +573,8 @@ void DemoGame::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 }
 
 void DemoGame::OnKeyPressed(const KeyEventArgs& e) {
+	m_Scene->OnKeyPressed(e);
+
 	switch(e.Key) {
 	case KeyCode::Up:
 	case KeyCode::W:
@@ -620,12 +621,19 @@ void DemoGame::OnKeyPressed(const KeyEventArgs& e) {
 		m_SwapChain->ToggleVSync();
 		break;
 
+	case KeyCode::X:
+		m_Scene;
+		break;
+
 	case KeyCode::ShiftKey:
 		m_IsShiftPressed = true;
 		break;
 	}
 }
+
 void DemoGame::OnKeyReleased(const KeyEventArgs& e) {
+	m_Scene->OnKeyReleased(e);
+
 	switch(e.Key) {
 	case KeyCode::Up:
 	case KeyCode::W:

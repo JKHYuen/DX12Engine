@@ -20,12 +20,12 @@ SamplerState ClampSampler     : register(s1);
 
 struct PixelInputType {
     float4 position                     : SV_POSITION;
-    float3 normal                       : NORMAL;
     float3 tangent                      : TANGENT;
     float3 bitangent                    : BITANGENT;
+    float3 normal                       : NORMAL;
     float2 uv                           : TEXCOORD0;
     float4 worldPosition                : TEXCOORD1;
-    float3 cameraPosition               : TEXCOORD2;
+    float4 cameraPosition               : TEXCOORD2;
     float4 directionalLightViewPosition : TEXCOORD3;
 };
 
@@ -96,7 +96,7 @@ float4 main(PixelInputType i) : SV_Target {
     float minRoughness = 0.00;
     roughness = max(minRoughness, roughness);
     
-    float3 viewDirection = normalize(i.cameraPosition - i.worldPosition.xyz);
+    float3 viewDirection = normalize(i.cameraPosition.xyz - i.worldPosition.xyz);
     
     // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0 
     // of 0.04 and if it's a metal, use the albedo color as F0 (metallic workflow)    
@@ -137,6 +137,7 @@ float4 main(PixelInputType i) : SV_Target {
     // add to outgoing radiance Lo
     // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
     Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+
     
 //
 //  IBL Ambient Lighting
@@ -191,7 +192,5 @@ float4 main(PixelInputType i) : SV_Target {
     if (lightDepthValue >= 1.0)
         shadowFactor = 1.0;
 
-    //return shadowFactor;
-    
     return float4(ambient + Lo * shadowFactor, 1);
 }

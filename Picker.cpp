@@ -11,6 +11,7 @@ using namespace DirectX;
 
 namespace {
 	// Source: based on https://www.rastertek.com/dx11win10tut47.html
+	// Convert ray in screen coord into view space
 	void GetPickerRayVectors(int mouseX, int mouseY, int windowWidth, int windowHeight, const Camera& camera, XMVECTOR& outOrigin, XMVECTOR& outDirection) {
 		// Move the mouse cursor coordinates into the -1 to +1 range.
 		float pointX = ((2.0f * (float)mouseX) / (float)windowWidth) - 1.0f;

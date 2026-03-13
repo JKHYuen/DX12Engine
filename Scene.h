@@ -5,10 +5,13 @@
 #include "GameObject.h"
 #include "DataArray.h"
 #include "Picker.h"
+#include "Events.h"
+
 #include <vector>
 
 class Device;
 class MouseButtonEventArgs;
+class KeyEventArgs;
 
 class Scene {
 	
@@ -24,6 +27,8 @@ public:
 	Scene& operator=(Scene&&) = delete;
 
 	void OnMouseButtonReleased(const MouseButtonEventArgs& e);
+	void OnKeyPressed(const KeyEventArgs& e);
+	void OnKeyReleased(const KeyEventArgs& e);
 
 	const DirectionalLight& GetDirectionalLight() const { return m_DirectionalLight; };
 	const Skybox& GetSkybox() const { return m_Skybox; };

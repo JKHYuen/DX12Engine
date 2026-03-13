@@ -12,7 +12,7 @@
 using namespace DirectX;
 using namespace Microsoft::WRL;
 
-OutlinePSO::OutlinePSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRAY rtvFormat, DXGI_FORMAT depthFormat) {
+OutlinePSO::OutlinePSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRAY rtvFormats, DXGI_FORMAT depthFormat) {
 	// Load outline shaders
 	ComPtr<ID3DBlob> vs;
 	ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/Outline_VS.cso", &vs));
@@ -57,7 +57,7 @@ OutlinePSO::OutlinePSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FOR
 	outlinePipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vs.Get());
 	outlinePipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(ps.Get());
 	outlinePipelineStateStream.DSVFormat = depthFormat;
-	outlinePipelineStateStream.RTVFormats = rtvFormat;
+	outlinePipelineStateStream.RTVFormats = rtvFormats;
 	outlinePipelineStateStream.SampleDesc = sampleDesc;
 	outlinePipelineStateStream.RasterDesc = rasterDesc;
 

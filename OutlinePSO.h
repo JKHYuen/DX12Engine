@@ -20,7 +20,7 @@ class CommandList;
 
 class OutlinePSO {
 public:
-	OutlinePSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRAY rtvFormat, DXGI_FORMAT depthFormat);
+	OutlinePSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRAY rtvFormats, DXGI_FORMAT depthFormat);
 
 	enum OutlineRootParameters {
 		VertexCB,         // ConstantBuffer<Mat> VertexCB		 : register(b0);

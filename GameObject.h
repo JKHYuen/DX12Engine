@@ -35,10 +35,12 @@ class GameObject {
 public:
 	/// TODO: PSO objects should be added dynamically to GameObjects with polymorphism
 	struct GameObjectParams {
+		// string passed by value for convenience e.g. when modifying instances of this struct
+		std::string name;
+		std::wstring pbrMatName;
 		const Scene& scene;
 		XMFLOAT3 translation, eulerRotation, scale;
 		PBRObjectPSO* pbrPSO;
-		const std::wstring& pbrMatName;
 		OutlinePSO* outlinePSO;
 	};
 
@@ -89,7 +91,7 @@ private:
 	PBRObjectPSO* m_PBR_PSO {};
 	OutlinePSO* m_Outline_PSO {};
 
-	std::string m_Name = "GameObject";
+	std::string m_Name;
 
 	XMFLOAT4X4 m_TranslationMat {};
 	XMFLOAT4X4 m_RotationMat {};

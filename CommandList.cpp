@@ -1120,8 +1120,7 @@ void CommandList::SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, ID3D12D
 	}
 }
 
-// Algorithm from https://rastertek.com/dx11win10tut20.html
-// Refactored and simplified by KHY
+// Algorithm from https://rastertek.com/dx11win10tut20.html, Refactored and simplified -KHY
 static void CalculateModelVectors(std::vector<VertexInput>& vertices, const std::vector<uint16_t>& indices) {
 	XMVECTOR tangent{}, bitangent{};
 	float vector1[3]{}, vector2[3]{};

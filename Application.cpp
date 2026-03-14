@@ -183,8 +183,6 @@ void Application::Quit() {
 }
 
 void Application::LockCursorToClientArea(HWND hwnd, bool state) {
-    if(state == mb_CursorClientAreaLockState) return;
-
     mb_CursorClientAreaLockState = state;
 
     if(!state) {
@@ -351,9 +349,27 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 // Calculate client mouse coords
                 POINT cursorPos;
                 GetCursorPos(&cursorPos);
-                ScreenToClient(hwnd, (LPPOINT)&cursorPos);
+                ScreenToClient(hwnd, &cursorPos);
 
-                /// TODO: implement looping boundaries when cursor is locked to client and cursor reaches client edges using SetCursorPos(x, y)
+                /// TODO: implement looping boundaries when cursor is locked to client and cursor reaches client edges
+                ///       currently not working properly with ImGui drags
+                // Note: ClipCursor() call in LockCursorToClientArea() forces cursor to be in range [0, screenbounds)
+                if(Application::Get().GetCursorClientAreaLockState()) {
+                    uint32_t xMax = pWindow->GetClientWidth() - 1;
+                    uint32_t yMax = pWindow->GetClientHeight() - 1;
+
+                    bool b_SetNewCursorPos = false;
+                    if (cursorPos.x >= xMax)  { cursorPos.x = 0;    b_SetNewCursorPos = true; }
+                    else if(cursorPos.x <= 0) { cursorPos.x = xMax; b_SetNewCursorPos = true; }
+                    if(cursorPos.y >= yMax)   { cursorPos.y = 0;    b_SetNewCursorPos = true; }
+                    else if(cursorPos.y <= 0) { cursorPos.y = yMax; b_SetNewCursorPos = true; }
+
+                    if(b_SetNewCursorPos) {
+                        ClientToScreen(hwnd, &cursorPos);
+                        SetCursorPos(cursorPos.x, cursorPos.y);
+                    }
+                }
+
                 MouseMotionEventArgs mouseMotionEventArgs { lButton, mButton, rButton, deltaX, deltaY, cursorPos.x, cursorPos.y };
                 pWindow->OnMouseMove(mouseMotionEventArgs);
             }
@@ -415,6 +431,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
         {
             int width = ((int)(short)LOWORD(lParam));
             int height = ((int)(short)HIWORD(lParam));
+
+            // Set "LockCursorToClientArea" to true again if cursor is locked to refresh bounds for ClipCursor()
+            if(Application::Get().GetCursorClientAreaLockState()) Application::Get().LockCursorToClientArea(hwnd, true);
 
             ResizeEventArgs resizeEventArgs(width, height);
             pWindow->OnResize(resizeEventArgs);

@@ -20,6 +20,7 @@ GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, st
 	: m_PBR_PSO(params.pbrPSO)
 	, m_Outline_PSO(params.outlinePSO) 
 	, m_Mesh(mesh)
+	, m_Name(params.name)
 {
 	SetTranslation(params.translation.x, params.translation.y, params.translation.z);
 	SetEulerRotation(params.eulerRotation.x, params.eulerRotation.y, params.eulerRotation.z);

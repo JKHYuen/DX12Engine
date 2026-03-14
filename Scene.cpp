@@ -114,6 +114,8 @@ void Scene::RenderImGui() {
 	// Newly picked object, update variables
 	if(picked != s_LastPickedObject) {
 		s_ObjectName = std::string { picked->GetName() };
+		s_ObjectName += "###ObjectInspector"; // appending this decouples window title and window ID
+
 		s_SelectedMat = picked->GetMaterialName();
 
 		XMFLOAT3 translation   = picked->GetTranslation();
@@ -144,13 +146,10 @@ void Scene::RenderImGui() {
 					auto& copyCommandQueue = m_Device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 					auto copyCommandList = copyCommandQueue.GetCommandList();
 
-					for(auto& go : m_SceneObjects) {
-						go.UpdateShaderResources(*copyCommandList, s);
-					}
+					picked->UpdateShaderResources(*copyCommandList, s);
 
 					copyCommandQueue.ExecuteCommandList(copyCommandList);
 					copyCommandQueue.FlushWait();
-
 					s_SelectedMat = s;
 				};
 			}

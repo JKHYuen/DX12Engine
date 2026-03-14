@@ -46,6 +46,8 @@ namespace {
 
 // static parameters
 namespace {
+	constexpr float sk_MouseSpeed = 0.05f;
+
 	constexpr DXGI_FORMAT sk_HDRFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
 	constexpr DXGI_FORMAT sk_DepthBufferFormat = DXGI_FORMAT_D32_FLOAT;
 
@@ -55,6 +57,14 @@ namespace {
 	float s_ShadowMapFar        = 150.0f;
 	float s_ShadowDistance      = 100.0f;
 	float s_ShadowBias          = 0.001f;
+
+	float s_DefaultFOV = 45.0f;
+	float s_MinFOV = 12.0f;
+	float s_MaxFOV = 90.0f;
+
+	// Projection Matrix
+	float s_ZNear = 0.1f;
+	float s_ZFar = 1000.0f;
 }
 
 DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t windowHeight, bool vSync)
@@ -157,7 +167,7 @@ bool DemoGame::Initialize() {
 	{
 		auto copyCommandList = copyCommandQueue.GetCommandList();
 
-		std::wstring matName = L"stonewall";
+		/// TODO: Skybox switching in runtime
 		std::wstring skyboxName = L"industrial_sunset_puresky_4k";
 
 		DirectionalLight::DirectionalLightParams dirLightParams {
@@ -186,10 +196,11 @@ bool DemoGame::Initialize() {
 		// Initialize test objects to render
 		{
 			GameObject::GameObjectParams goParams{
+				"Sphere",
+				L"stonewall",
 				*m_Scene,
 				XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 1.0f, 1.0f),
 				m_PBR_PSO.get(),
-				matName,
 				m_Outline_PSO.get(),
 			};
 
@@ -197,17 +208,20 @@ bool DemoGame::Initialize() {
 			goParams.translation = XMFLOAT3(0.0f, 5.0f, 0.0f);
 			goParams.scale = XMFLOAT3(5.0f, 5.0f, 5.0f);
 			s_TestSphere = m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateSpherePrimitive());
-			s_TestSphere->SetName("Sphere");
 
 			// Test Cube Object
+			goParams.name = "Cube";
+			goParams.pbrMatName = L"metal_grid";
 			goParams.translation = XMFLOAT3(10.0f, 5.0f, 0.0f);
 			goParams.scale = XMFLOAT3(5.0f, 5.0f, 5.0f);
-			m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateCubePrimitive())->SetName("Cube");
+			m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateCubePrimitive());
 
 			// Test Floor Object
+			goParams.name = "Floor";
+			goParams.pbrMatName = L"stonewall";
 			goParams.translation = XMFLOAT3(0.0f, -3.0f, 0.0f);
 			goParams.scale = XMFLOAT3(40.0f, 1.0f, 40.0f);
-			m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateQuadPrimitive())->SetName("Floor");
+			m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateQuadPrimitive());
 		}
 
 		copyCommandQueue.ExecuteCommandList(copyCommandList);
@@ -292,7 +306,7 @@ void DemoGame::OnResize(const ResizeEventArgs& e) {
 
 	float aspectRatio = m_WindowWidth / (float)m_WindowHeight;
 	/// TODO: Define default z values somewhere
-	m_Scene->m_MainCamera.Set_Projection(45.0f, aspectRatio, 0.1f, 1000.0f);
+	m_Scene->m_MainCamera.Set_Projection(s_DefaultFOV, aspectRatio, s_ZNear, s_ZFar);
 
 	m_ScreenViewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_WindowWidth), static_cast<float>(m_WindowHeight));
 	m_HDR_MSAA_RenderTarget.Resize(m_WindowWidth, m_WindowHeight);
@@ -318,7 +332,7 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 
 	// Update the camera transform if ImGui is not showing, unless right click is held
 	if(!m_ShowImGuiWindow || m_IsRightClickPressed) {
-		float speedMultipler = m_IsShiftPressed ? 16.0f : 8.0f;
+		float speedMultipler = m_IsShiftPressed ? 32.0f : 8.0f;
 		
 		// extra slow movement if using left or right click
 		if(m_IsLeftClickPressed || m_IsRightClickPressed) {
@@ -530,12 +544,11 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 }
 
 void DemoGame::OnMouseMove(const MouseMotionEventArgs& e) {
-	// Don't record mouse rotations unless ImGui is closed or right click is held down
+	// Record mouse rotations only if ImGui is closed or right click is held down
 	if(!m_ShowImGuiWindow || m_IsRightClickPressed) {
-		constexpr float mouseSpeed = 0.05f;
-		m_Pitch -= e.DeltaY * mouseSpeed;
+		m_Pitch -= e.DeltaY * sk_MouseSpeed;
 		m_Pitch = std::clamp(m_Pitch, -90.0f, 90.0f);
-		m_Yaw -= e.DeltaX * mouseSpeed;
+		m_Yaw -= e.DeltaX * sk_MouseSpeed;
 	}
 }
 
@@ -607,7 +620,6 @@ void DemoGame::OnKeyPressed(const KeyEventArgs& e) {
 	case KeyCode::Escape:
 		if(!Application::Get().GetCursorClientAreaLockState()) {
 			Application::Get().Quit();
-			return;
 		}
 
 		Application::Get().LockCursorToClientArea(m_Window->GetWindowHandle(), false);
@@ -678,7 +690,7 @@ void DemoGame::OnMouseWheel(const MouseWheelEventArgs& e) {
 		auto fov = m_Scene->m_MainCamera.Get_FoV();
 
 		fov -= e.WheelDelta;
-		fov = std::clamp(fov, 12.0f, 90.0f);
+		fov = std::clamp(fov, s_MinFOV, s_MaxFOV);
 
 		m_Scene->m_MainCamera.Set_FoV(fov);
 	}

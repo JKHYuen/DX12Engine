@@ -32,9 +32,10 @@
 
 // Additional Notes - KHY
 // 
-// Handles windows message loop.
-// Mouse buttons and keyboard buttons are handled by windows api.
-// Mouse movement is handled by raw input (experimental).
+// - Only advantage of singleton is control over intialization and destruction time
+// - Handles windows message loop.
+// - Mouse buttons and keyboard buttons are handled by windows api.
+// - Mouse movement is handled by raw input (experimental).
 
 /// NOTE: Cursor visibility is currently solely controlled by ImGui, not ideal but works for now
 

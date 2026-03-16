@@ -385,9 +385,19 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 
 	if(m_ShowImGuiWindow) {
 
+		if(Application::Get().GetCursorClientAreaLockState()) {
+
+		}
+
 		/// Main Engine UI Window Start
 		{
 			ImGui::Begin("DX12 Engine", &m_ShowImGuiWindow, ImGuiWindowFlags_NoCollapse);
+
+			/// TEMP:
+			
+			auto delta = ImGui::GetMouseDragDelta(0);
+			ImGui::Text("%f, %f", delta.x, delta.y);
+			ImGui::Text("%f, %f", ImGui::GetCursorPosX(), ImGui::GetCursorPosY());
 
 			// Exit button
 			{

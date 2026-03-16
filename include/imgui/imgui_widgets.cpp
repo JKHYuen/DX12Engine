@@ -2663,6 +2663,47 @@ bool ImGui::DragBehavior(ImGuiID id, ImGuiDataType data_type, void* p_v, float v
     return false;
 }
 
+/// PATCH for mouse periodic boundaries 
+/// source: https://github.com/ocornut/imgui/issues/228#issuecomment-1723778093
+// When multi-viewports are disabled: wrap in main viewport.
+// When multi-viewports are enabled: wrap in monitor.
+// FIXME: Experimental: not sure how this behaves with multi-monitor and monitor coordinates gaps.
+
+void WrapMousePosEx(int axises_mask, const ImRect& wrap_rect) {
+    ImGuiContext& g = *GImGui;
+    IM_ASSERT(axises_mask == 1 || axises_mask == 2 || axises_mask == (1 | 2));
+    ImVec2 p_mouse = g.IO.MousePos;
+    for(int axis = 0; axis < 2; axis++)
+    {
+        if((axises_mask & (1 << axis)) == 0)
+            continue;
+        float size = wrap_rect.Max[axis] - wrap_rect.Min[axis];
+        if(p_mouse[axis] >= wrap_rect.Max[axis])
+            p_mouse[axis] = wrap_rect.Min[axis] + 1.0f;
+        else if(p_mouse[axis] <= wrap_rect.Min[axis])
+            p_mouse[axis] = wrap_rect.Max[axis] - 1.0f;
+    }
+    if(p_mouse.x != g.IO.MousePos.x || p_mouse.y != g.IO.MousePos.y)
+        ImGui::TeleportMousePos(p_mouse);
+}
+
+void WrapMousePos(int axises_mask) {
+    ImGuiContext& g = *GImGui;
+#ifdef IMGUI_HAS_DOCK
+    if(g.IO.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        const ImGuiPlatformMonitor* monitor = GetViewportPlatformMonitor(g.MouseViewport);
+        WrapMousePosEx(axises_mask, ImRect(monitor->MainPos, monitor->MainPos + monitor->MainSize - ImVec2(1.0f, 1.0f)));
+    }
+    else
+#endif
+    {
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
+        WrapMousePosEx(axises_mask, ImRect(viewport->Pos, viewport->Pos + viewport->Size - ImVec2(1.0f, 1.0f)));
+    }
+}
+/// PATCH END
+
 // Note: p_data, p_min and p_max are _pointers_ to a memory address holding the data. For a Drag widget, p_min and p_max are optional.
 // Read code of e.g. DragFloat(), DragInt() etc. or examples in 'Demo->Widgets->Data Types' to understand how to use this function directly.
 bool ImGui::DragScalar(const char* label, ImGuiDataType data_type, void* p_data, float v_speed, const void* p_min, const void* p_max, const char* format, ImGuiSliderFlags flags)
@@ -2675,6 +2716,10 @@ bool ImGui::DragScalar(const char* label, ImGuiDataType data_type, void* p_data,
     const ImGuiStyle& style = g.Style;
     const ImGuiID id = window->GetID(label);
     const float w = CalcItemWidth();
+
+    // https://github.com/ocornut/imgui/issues/228#issuecomment-1723778093
+    if(g.ActiveId == id)
+        WrapMousePos(1 << ImGuiAxis_X);
 
     const ImVec2 label_size = CalcTextSize(label, NULL, true);
     const ImRect frame_bb(window->DC.CursorPos, window->DC.CursorPos + ImVec2(w, label_size.y + style.FramePadding.y * 2.0f));

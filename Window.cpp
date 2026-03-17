@@ -13,8 +13,6 @@
 Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight, IGame& game)
     : m_hWnd(hWnd)
     , m_WindowTitle(windowName)
-    , m_ClientWidth(clientWidth)
-    , m_ClientHeight(clientHeight)
     , m_IsFullscreen(false)
     , m_IsMinimized(false)
     , m_IsMaximized(false)
@@ -39,14 +37,6 @@ void Window::Show() {
 
 void Window::Hide() {
     ::ShowWindow(m_hWnd, SW_HIDE);
-}
-
-uint32_t Window::GetClientWidth() const {
-    return m_ClientWidth;
-}
-
-uint32_t Window::GetClientHeight() const {
-    return m_ClientHeight;
 }
 
 bool Window::IsFullScreen() const {
@@ -119,10 +109,9 @@ void Window::OnUpdate(UpdateEventArgs& e) {
     m_Game.OnUpdate(e);
 }
 
-// TODO: WindowCloseEventArgs is unused
+// Note: This callback is unused, can't confirm close
 void Window::OnClose(WindowCloseEventArgs& e) {
-    UpdateEventArgs updateEventArgs(m_Timer.GetDeltaSeconds(), m_Timer.GetTotalSeconds());
-    m_Game.OnUpdate(updateEventArgs);
+
 };
 
 void Window::OnKeyPressed(KeyEventArgs& e) {
@@ -150,10 +139,5 @@ void Window::OnMouseWheel(MouseWheelEventArgs& e) {
 }
 
 void Window::OnResize(ResizeEventArgs& e) {
-    if(m_ClientWidth != e.Width || m_ClientHeight != e.Height) {
-        m_ClientWidth = std::max(1, e.Width);
-        m_ClientHeight = std::max(1, e.Height);
-    }
-
     m_Game.OnResize(e);
 }

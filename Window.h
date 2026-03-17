@@ -30,6 +30,7 @@
   *  @brief A window for our application.
   */
 
+
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <memory>
@@ -55,16 +56,13 @@ public:
     Window& operator=(Window&&) = delete;
 
     // Number of swapchain back buffers.
-    static const UINT BufferCount = 2;
+    static const UINT sk_BufferCount = 2;
 
     /**
     * Get a handle to this window's instance.
     * @returns The handle to the window instance or nullptr if this is not a valid window.
     */
     HWND GetWindowHandle() const;
-
-    uint32_t GetClientWidth() const;
-    uint32_t GetClientHeight() const;
 
     void SetWindowTitle(const std::wstring& windowTitle) const;
 
@@ -100,9 +98,6 @@ private:
     IGame& m_Game;
 
     HWND m_hWnd;
-
-    uint32_t m_ClientWidth;
-    uint32_t m_ClientHeight;
 
     float m_DPIScaling;
 

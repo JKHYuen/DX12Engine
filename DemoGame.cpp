@@ -384,26 +384,15 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 	};
 
 	if(m_ShowImGuiWindow) {
-
-		if(Application::Get().GetCursorClientAreaLockState()) {
-
-		}
-
 		/// Main Engine UI Window Start
 		{
 			ImGui::Begin("DX12 Engine", &m_ShowImGuiWindow, ImGuiWindowFlags_NoCollapse);
 
-			/// TEMP:
-			
-			auto delta = ImGui::GetMouseDragDelta(0);
-			ImGui::Text("%f, %f", delta.x, delta.y);
-			ImGui::Text("%f, %f", ImGui::GetCursorPosX(), ImGui::GetCursorPosY());
-
 			// Exit button
 			{
-				ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(0.0f, 0.6f, 0.6f));
+				ImGui::PushStyleColor(ImGuiCol_Button,        (ImVec4)ImColor::HSV(0.0f, 0.6f, 0.6f));
 				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor::HSV(0.0f, 0.7f, 0.7f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor::HSV(0.0f, 0.8f, 0.8f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive,  (ImVec4)ImColor::HSV(0.0f, 0.8f, 0.8f));
 				if(ImGui::Button("EXIT APP")) {
 					Application::Get().Quit();
 				}

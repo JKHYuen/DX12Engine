@@ -94,9 +94,5 @@ GameObject* Picker::MouseRaycast(int mouseX, int mouseY, int windowWidth, int wi
 		}
 	}
 
-	/// TODO: TEMP
-	if(m_PickedObject != nullptr) Logger::Log(m_PickedObject->GetName());
-	else Logger::Log("None");
-
 	return m_PickedObject;
 }

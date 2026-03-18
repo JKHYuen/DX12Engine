@@ -49,7 +49,7 @@ namespace {
 	constexpr float sk_MouseSpeed = 0.05f;
 
 	constexpr DXGI_FORMAT sk_HDRFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
-	constexpr DXGI_FORMAT sk_DepthBufferFormat = DXGI_FORMAT_D32_FLOAT;
+	constexpr DXGI_FORMAT sk_DepthBufferFormat = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 
 	// Directional Light Shadow params
 	int   s_ShadowMapResolution = 2048;
@@ -505,7 +505,7 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 	// Clear the render targets.
 	float clearColor[] = {0.6f, 0.6f, 0.7f, 1.0f};
 	directCommandList->ClearTexture(m_HDR_MSAA_RenderTarget.GetTexture(AttachmentPoint::Color0), clearColor);
-	directCommandList->ClearDepthStencilTexture(m_HDR_MSAA_RenderTarget.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
+	directCommandList->ClearDepthStencilTexture(m_HDR_MSAA_RenderTarget.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL);
 
 	// Perform HDR rendering to intermediate render target (before multisample resolve)
 	m_Scene->Render(m_HDR_MSAA_RenderTarget, m_ScreenViewport, m_DefaultScissorRect, *directCommandList, e);

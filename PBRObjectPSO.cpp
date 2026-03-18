@@ -60,6 +60,7 @@ PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT
 		CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
 		CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
 		CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_DESC SampleDesc;
+		CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL DSDesc;
 	} hdrPipelineStateStream;
 
 	hdrPipelineStateStream.pRootSignature = m_RootSignature->GetD3D12RootSignature().Get();
@@ -70,12 +71,31 @@ PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT
 	hdrPipelineStateStream.DSVFormat = depthFormat;
 	hdrPipelineStateStream.RTVFormats = rtvFormat;
 	hdrPipelineStateStream.SampleDesc = sampleDesc;
+	auto dscDesc = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	hdrPipelineStateStream.DSDesc = dscDesc;
 
 	device.CreatePipelineState(hdrPipelineStateStream, m_D3d12PipelineState);
+	
+	// Create stencil write PSO (currently just for outline effect, only used for PBR objects to be outlined)
+	dscDesc.StencilEnable = TRUE;
+
+	dscDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+	dscDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_REPLACE;
+	dscDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
+	dscDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+
+	hdrPipelineStateStream.DSDesc = dscDesc;
+
+	device.CreatePipelineState(hdrPipelineStateStream, m_StencilWrite_D3d12PipelineState);
 }
 
 void PBRObjectPSO::SetPipelineState(CommandList& directCommandList) const {
 	directCommandList.SetPipelineState(m_D3d12PipelineState);
+	directCommandList.SetGraphicsRootSignature(m_RootSignature);
+}
+
+void PBRObjectPSO::SetStencilWritePipelineState(CommandList& directCommandList) const {
+	directCommandList.SetPipelineState(m_StencilWrite_D3d12PipelineState);
 	directCommandList.SetGraphicsRootSignature(m_RootSignature);
 }
 

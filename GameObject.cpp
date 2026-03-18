@@ -53,15 +53,17 @@ GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, co
 }
 
 void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene) {
-	XMFLOAT4X4 SRT {}, MVP {};
-	XMStoreFloat4x4(&SRT, XMLoadFloat4x4(&m_ScaleMat) * XMLoadFloat4x4(&m_RotationMat) * XMLoadFloat4x4(&m_TranslationMat));
-	XMStoreFloat4x4(&MVP, XMLoadFloat4x4(&SRT) * scene.m_MainCamera.Get_ViewMatrix() * scene.m_MainCamera.Get_ProjectionMatrix());
-
 	// Render object with PBR shading
 	// Note: we are setting PSO/Root sig for every game object render rather than batching and setting the state once,
 	//       this could be slow, not an issue for current basic implementation
 	{
-		m_PBR_PSO->SetPipelineState(directCommandList);
+		if(b_Outline) {
+			m_PBR_PSO->SetStencilWritePipelineState(directCommandList);
+			directCommandList.GetD3D12CommandList()->OMSetStencilRef(1);
+		}
+		else {
+			m_PBR_PSO->SetPipelineState(directCommandList);
+		}
 
 		XMFLOAT4X4 v = scene.GetDirectionalLight().GetViewMatrix();
 		XMFLOAT4X4 o = scene.GetDirectionalLight().GetOrthoMatrix();
@@ -69,9 +71,10 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 		XMMATRIX directionalLightOrthoMat = XMLoadFloat4x4(&o);
 
 		PBRObjectPSO::VertexProps pbrVertexCB {};
-		pbrVertexCB.SRT = SRT;
-		pbrVertexCB.MVP = MVP;
-		XMStoreFloat4x4(&pbrVertexCB.directionalLightMVP, XMLoadFloat4x4(&SRT) * directionalLightViewMat * directionalLightOrthoMat);
+		XMStoreFloat4x4(&pbrVertexCB.SRT, XMLoadFloat4x4(&m_ScaleMat) * XMLoadFloat4x4(&m_RotationMat) * XMLoadFloat4x4(&m_TranslationMat));
+		XMStoreFloat4x4(&pbrVertexCB.MVP, XMLoadFloat4x4(&pbrVertexCB.SRT) * scene.m_MainCamera.Get_ViewMatrix() * scene.m_MainCamera.Get_ProjectionMatrix());
+
+		XMStoreFloat4x4(&pbrVertexCB.directionalLightMVP, XMLoadFloat4x4(&pbrVertexCB.SRT) * directionalLightViewMat * directionalLightOrthoMat);
 		XMStoreFloat4(&pbrVertexCB.CameraPosition, scene.m_MainCamera.Get_Translation());
 
 		PBRObjectPSO::MaterialProps pbrMaterialCB {};
@@ -84,27 +87,52 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 		m_Mesh->Draw(directCommandList);
 	}
 
-	/// TODO: fix DX error when rendering outline
 	// Render object outline by rendering slightly bigger mesh of object and front culling (this method doesn't work on quads)
 	// Note: outline effect should be it's own class, preferably as some sort of component system
-	if(b_Outline){
+	//if(b_Outline){
+	//	m_Outline_PSO->SetPipelineState(directCommandList);
+	//	directCommandList.GetD3D12CommandList()->OMSetStencilRef(1);
+
+	//	OutlinePSO::VertexProps outlineVertexCB {};
+	//	
+	//	// Magic number
+	//	float outlineMeshScale = 1.05f; 
+	//	XMStoreFloat4x4(&SRT, XMMatrixScaling(outlineMeshScale, outlineMeshScale, outlineMeshScale) * XMLoadFloat4x4(&SRT));
+	//	outlineVertexCB.SRT = SRT;
+
+	//	XMStoreFloat4x4(&MVP, XMLoadFloat4x4(&SRT) * scene.m_MainCamera.Get_ViewMatrix() * scene.m_MainCamera.Get_ProjectionMatrix());
+	//	outlineVertexCB.MVP = MVP;
+
+	//	OutlinePSO::MaterialProps outlineMaterialCB {};
+	//	outlineMaterialCB.outlineColor = { 10.0f, 10.0f, 0.0f, 1.0f };
+	//	m_Outline_PSO->UpdateResources(directCommandList, outlineVertexCB, outlineMaterialCB);
+	//	m_Mesh->Draw(directCommandList);
+	//}
+}
+
+/// TODO: fix DX error when rendering outline
+void GameObject::RenderOutline(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene) {
+	if(b_Outline) {
 		m_Outline_PSO->SetPipelineState(directCommandList);
+		directCommandList.GetD3D12CommandList()->OMSetStencilRef(1);
 
 		OutlinePSO::VertexProps outlineVertexCB {};
-		
-		// Magic number
-		float outlineMeshScale = 1.05f; 
-		XMStoreFloat4x4(&SRT, XMMatrixScaling(outlineMeshScale, outlineMeshScale, outlineMeshScale) * XMLoadFloat4x4(&SRT));
-		outlineVertexCB.SRT = SRT;
 
-		XMStoreFloat4x4(&MVP, XMLoadFloat4x4(&SRT) * scene.m_MainCamera.Get_ViewMatrix() * scene.m_MainCamera.Get_ProjectionMatrix());
-		outlineVertexCB.MVP = MVP;
+		// Magic number
+		float outlineMeshScale = 1.05f;
+		XMStoreFloat4x4(
+			&outlineVertexCB.SRT, XMLoadFloat4x4(&m_ScaleMat) * XMMatrixScaling(outlineMeshScale, outlineMeshScale, outlineMeshScale)
+			* XMLoadFloat4x4(&m_RotationMat) 
+			* XMLoadFloat4x4(&m_TranslationMat)
+		);
+		XMStoreFloat4x4(&outlineVertexCB.MVP, XMLoadFloat4x4(&outlineVertexCB.SRT) * scene.m_MainCamera.Get_ViewMatrix() * scene.m_MainCamera.Get_ProjectionMatrix());
 
 		OutlinePSO::MaterialProps outlineMaterialCB {};
 		outlineMaterialCB.outlineColor = { 10.0f, 10.0f, 0.0f, 1.0f };
 		m_Outline_PSO->UpdateResources(directCommandList, outlineVertexCB, outlineMaterialCB);
 		m_Mesh->Draw(directCommandList);
 	}
+
 }
 
 // we can use a dirty flag to only update SRT when neccesary

@@ -36,8 +36,18 @@ OutlinePSO::OutlinePSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FOR
 		m_RootSignature = std::make_shared<RootSignature>(device, rootSignatureDescription.Desc_1_1);
 	}
 
+
 	CD3DX12_RASTERIZER_DESC rasterDesc { CD3DX12_DEFAULT() };
-	rasterDesc.CullMode = D3D12_CULL_MODE_FRONT;
+	rasterDesc.CullMode = D3D12_CULL_MODE_BACK;
+
+	CD3DX12_DEPTH_STENCIL_DESC dsDesc { D3D12_DEFAULT };
+	dsDesc.DepthEnable = FALSE;
+	dsDesc.StencilEnable = TRUE;
+
+	dsDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+	dsDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+	dsDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+	dsDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_NOT_EQUAL;
 
 	struct OutlinePipelineStateStream {
 		CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
@@ -57,6 +67,7 @@ OutlinePSO::OutlinePSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FOR
 	outlinePipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	outlinePipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vs.Get());
 	outlinePipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(ps.Get());
+	outlinePipelineStateStream.DSDesc = dsDesc;
 	outlinePipelineStateStream.DSVFormat = depthFormat;
 	outlinePipelineStateStream.RTVFormats = rtvFormats;
 	outlinePipelineStateStream.SampleDesc = sampleDesc;

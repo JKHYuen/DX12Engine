@@ -49,6 +49,7 @@ public:
 	GameObject(CommandList& copyCommandList, GameObjectParams params, const std::wstring& meshFileName); // initialize with mesh loaded from file
 
 	void Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene);
+	void RenderOutline(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene);
 
 	void RenderToDirectionalShadowMap(CommandList& directCommandList, const DirectionalLight& directionalLight);
 

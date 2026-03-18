@@ -88,10 +88,13 @@ public:
 		
 	void SetPipelineState(CommandList& directCommandList) const;
 
+	void SetStencilWritePipelineState(CommandList& directCommandList) const;
+
 	void UpdateResources(CommandList& directCommandList, const std::vector<std::shared_ptr<Texture>>& pbrTextures, VertexProps vertexProps, MaterialProps materialProps);
 
 private:
 	std::shared_ptr<RootSignature> m_RootSignature;
 	ComPtr<ID3D12PipelineState> m_D3d12PipelineState;
+	ComPtr<ID3D12PipelineState> m_StencilWrite_D3d12PipelineState;
 };
 

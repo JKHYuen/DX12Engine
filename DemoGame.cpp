@@ -275,14 +275,12 @@ bool DemoGame::Initialize() {
 		postProcessPipelineStateStream.Rasterizer = rasterizerDesc;
 		postProcessPipelineStateStream.RTVFormats = m_SwapChain->GetRenderTarget().GetRenderTargetFormats();
 
-		D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {sizeof(PostProcessPipelineStateStream), &postProcessPipelineStateStream};
-		ThrowIfFailed(m_Device->GetD3D12Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_PostprocessPSO)));
+		m_Device->CreatePipelineState(postProcessPipelineStateStream, m_PostprocessPSO);
 
 		// Tonemap PSO
 		ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/Tonemap_PS.cso", &ps));
 		postProcessPipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(ps.Get());
-		pipelineStateStreamDesc = {sizeof(PostProcessPipelineStateStream), &postProcessPipelineStateStream};
-		ThrowIfFailed(m_Device->GetD3D12Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_TonemapPSO)));
+		m_Device->CreatePipelineState(postProcessPipelineStateStream, m_TonemapPSO);
 	}
 
 	// Wait for loading operations to complete before rendering the first frame

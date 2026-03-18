@@ -140,8 +140,7 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, SkyboxParams params
 		skyboxPipelineStateStream.SampleDesc = params.hdrRenderTarget.GetSampleDesc();
 		skyboxPipelineStateStream.RasterizerDesc = rasterizerDesc;
 
-		D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {sizeof(SkyboxPipelineState), &skyboxPipelineStateStream};
-		ThrowIfFailed(device.GetD3D12Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&s_SkyboxPSO)));
+		device.CreatePipelineState(skyboxPipelineStateStream, s_SkyboxPSO);
 
 		///
 		/// Irradiance Convolution (cubemap)
@@ -154,8 +153,7 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, SkyboxParams params
 		skyboxPipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(convoluteCubemap_ps.Get());
 		skyboxPipelineStateStream.SampleDesc = {1, 0};
 
-		pipelineStateStreamDesc = {sizeof(SkyboxPipelineState), &skyboxPipelineStateStream};
-		ThrowIfFailed(device.GetD3D12Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&s_ConvolutionPSO)));
+		device.CreatePipelineState(skyboxPipelineStateStream, s_ConvolutionPSO);
 
 		// Create cubemap render texture for irradiance convolution
 		// TODO: check if format should be DXGI_FORMAT_R32G32B32A32_FLOAT
@@ -193,8 +191,7 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, SkyboxParams params
 		skyboxPipelineStateStream.pRootSignature = s_PrefilterRootSignature->GetD3D12RootSignature().Get();
 		skyboxPipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(prefilterCubemap_ps.Get());
 
-		pipelineStateStreamDesc = {sizeof(SkyboxPipelineState), &skyboxPipelineStateStream};
-		ThrowIfFailed(device.GetD3D12Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&s_PrefilterPSO)));
+		device.CreatePipelineState(skyboxPipelineStateStream, s_PrefilterPSO);
 
 		// Create cubemap render texture for irradiance convolution
 		auto prefilterCubemapDesc = CD3DX12_RESOURCE_DESC::Tex2D(
@@ -244,8 +241,8 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, SkyboxParams params
 		skyboxPipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(screenRender_vs.Get());
 		skyboxPipelineStateStream.RTVFormats = m_BRDF_LUT_RT.GetRenderTargetFormats();
 		skyboxPipelineStateStream.SampleDesc = m_BRDF_LUT_RT.GetSampleDesc();
-		pipelineStateStreamDesc = {sizeof(SkyboxPipelineState), &skyboxPipelineStateStream};
-		ThrowIfFailed(device.GetD3D12Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&s_BRDF_LUT_PSO)));
+
+		device.CreatePipelineState(skyboxPipelineStateStream, s_BRDF_LUT_PSO);
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC lutSRVDesc = {};
 		lutSRVDesc.Format = lutTextureDesc.Format;

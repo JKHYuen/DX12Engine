@@ -10,8 +10,6 @@
 
 
 PanoToCubemapPSO::PanoToCubemapPSO(Device& device) {
-    auto d3d12Device = device.GetD3D12Device();
-
     CD3DX12_DESCRIPTOR_RANGE1 srcMip(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE);
     CD3DX12_DESCRIPTOR_RANGE1 outMip(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 5, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE);
 
@@ -41,8 +39,7 @@ PanoToCubemapPSO::PanoToCubemapPSO(Device& device) {
     pipelineStateStream.pRootSignature = m_RootSignature->GetD3D12RootSignature().Get();
     pipelineStateStream.CS = {g_PanoToCubemap_CS, sizeof(g_PanoToCubemap_CS)};
 
-    D3D12_PIPELINE_STATE_STREAM_DESC desc = {sizeof(PipelineStateStream), &pipelineStateStream};
-    ThrowIfFailed(d3d12Device->CreatePipelineState(&desc, IID_PPV_ARGS(&m_PipelineState)));
+    device.CreatePipelineState(pipelineStateStream, m_PipelineState);
 
     // Create some default texture UAV's to pad any unused UAV's during mip map generation.
     m_DefaultUAV = device.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 5);
@@ -57,6 +54,6 @@ PanoToCubemapPSO::PanoToCubemapPSO(Device& device) {
         uavDesc.Texture2DArray.MipSlice = i;
         uavDesc.Texture2DArray.PlaneSlice = 0;
 
-        d3d12Device->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, m_DefaultUAV.GetDescriptorHandle(i));
+        device.GetD3D12Device()->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, m_DefaultUAV.GetDescriptorHandle(i));
     }
 }

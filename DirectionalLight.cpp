@@ -76,8 +76,7 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
     shadowDepthPipelineStateStream.Rasterizer = rasterizerDesc;
     shadowDepthPipelineStateStream.DSVFormat = m_DirectionalShadowMap.GetDepthStencilFormat();
 
-    D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = { sizeof(ShadowDepthPipelineStateStream), &shadowDepthPipelineStateStream };
-    ThrowIfFailed(m_Device.GetD3D12Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_DepthRenderPSO)));
+    m_Device.CreatePipelineState(shadowDepthPipelineStateStream, m_DepthRenderPSO);
 }
 
 void DirectionalLight::SetColor(float red, float green, float blue) {

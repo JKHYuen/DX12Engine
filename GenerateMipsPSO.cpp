@@ -12,8 +12,6 @@
 #include "GenerateMips_CS.h"
 
 GenerateMipsPSO::GenerateMipsPSO(Device& device) {
-    auto d3d12Device = device.GetD3D12Device();
-
     CD3DX12_DESCRIPTOR_RANGE1 srcMip(
         D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0,
         D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE
@@ -47,8 +45,7 @@ GenerateMipsPSO::GenerateMipsPSO(Device& device) {
     pipelineStateStream.pRootSignature = m_RootSignature->GetD3D12RootSignature().Get();
     pipelineStateStream.CS = {g_GenerateMips_CS, sizeof(g_GenerateMips_CS)};
 
-    D3D12_PIPELINE_STATE_STREAM_DESC desc {sizeof(PipelineStateStream), &pipelineStateStream};
-    ThrowIfFailed(d3d12Device->CreatePipelineState(&desc, IID_PPV_ARGS(&m_D3d12PipelineState)));
+    device.CreatePipelineState(pipelineStateStream, m_D3d12PipelineState);
 
     // Create some default texture UAV's to pad any unused UAV's during mip map generation.
     m_DefaultUAV = device.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 4);

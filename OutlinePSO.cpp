@@ -62,9 +62,7 @@ OutlinePSO::OutlinePSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FOR
 	outlinePipelineStateStream.SampleDesc = sampleDesc;
 	outlinePipelineStateStream.RasterDesc = rasterDesc;
 
-	/// TODO: move this to a device class method
-	D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = { sizeof(OutlinePipelineStateStream), &outlinePipelineStateStream };
-	ThrowIfFailed(device.GetD3D12Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_D3d12PipelineState)));
+	device.CreatePipelineState(outlinePipelineStateStream, m_D3d12PipelineState);
 }
 
 void OutlinePSO::SetPipelineState(CommandList& directCommandList) const {

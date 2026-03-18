@@ -34,6 +34,8 @@
 
 #include <dxgi1_6.h>
 #include <wrl/client.h>
+
+#include "Helpers.h"
 #include "DescriptorAllocator.h"
 
 class CommandQueue;
@@ -101,6 +103,12 @@ public:
         UINT numSamples = D3D12_MAX_MULTISAMPLE_SAMPLE_COUNT, 
         D3D12_MULTISAMPLE_QUALITY_LEVEL_FLAGS flags = D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG_NONE
     ) const;
+
+    template<class T>
+    void CreatePipelineState( T& pipelineStateStream, Microsoft::WRL::ComPtr<ID3D12PipelineState>& pipelineState) {
+        D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = { sizeof(T), &pipelineStateStream};
+        ThrowIfFailed(m_D3d12Device->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&pipelineState)));
+    }
 
 private:
     Microsoft::WRL::ComPtr<ID3D12Device2> m_D3d12Device;

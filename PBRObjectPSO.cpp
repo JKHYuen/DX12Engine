@@ -71,9 +71,7 @@ PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT
 	hdrPipelineStateStream.RTVFormats = rtvFormat;
 	hdrPipelineStateStream.SampleDesc = sampleDesc;
 
-	/// TODO: move this to device class
-	D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = { sizeof(HDRPipelineStateStream), &hdrPipelineStateStream };
-	ThrowIfFailed(device.GetD3D12Device()->CreatePipelineState(&pipelineStateStreamDesc, IID_PPV_ARGS(&m_D3d12PipelineState)));
+	device.CreatePipelineState(hdrPipelineStateStream, m_D3d12PipelineState);
 }
 
 void PBRObjectPSO::SetPipelineState(CommandList& directCommandList) const {

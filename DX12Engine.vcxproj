@@ -441,6 +441,7 @@
     <ClInclude Include="Scene.h" />
     <ClInclude Include="ShaderResourceView.h" />
     <ClInclude Include="Skybox.h" />
+    <ClInclude Include="StringHelpers.h" />
     <ClInclude Include="StructuredBuffer.h" />
     <ClInclude Include="SwapChain.h" />
     <ClInclude Include="Texture.h" />

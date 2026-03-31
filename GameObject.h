@@ -40,6 +40,7 @@ public:
 		std::wstring pbrMatName;
 		const Scene& scene;
 		XMFLOAT3 translation, eulerRotation, scale;
+
 		PBRObjectPSO* pbrPSO;
 		OutlinePSO* outlinePSO;
 	};

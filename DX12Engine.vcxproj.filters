@@ -368,6 +368,9 @@
     <ClInclude Include="OutlinePSO.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="StringHelpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shaders\PBR_VS.hlsl" />

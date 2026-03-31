@@ -264,7 +264,6 @@ std::shared_ptr<Texture> CommandList::LoadTextureFromFile(const std::wstring& fi
 	std::lock_guard<std::mutex> lock(ms_TextureCacheMutex);
 	auto iter = ms_TextureCache.find(fileName);
 	if(iter != ms_TextureCache.end()) {
-		//texture = std::make_shared<Texture>(m_Device, iter->second);
 		texture = iter->second;
 	}
 	else {

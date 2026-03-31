@@ -7,6 +7,8 @@
 #include "Device.h"
 #include "Picker.h"
 #include "Logger.h"
+#include "Helpers.h"
+#include "StringHelpers.h"
 
 #include <filesystem>
 
@@ -139,14 +141,7 @@ void Scene::RenderImGui() {
 			for(auto& s : m_MaterialNames) {
 				ImGui::TableNextColumn();
 
-				static const size_t sk_BufferSize = 100;
-				// convert wide string to const char* since ImGui can't render wide chars
-				// using https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/wcstombs-s-wcstombs-s-l?view=msvc-170
-				char labelBuf[sk_BufferSize];
-				size_t bytesConverted;
-				wcstombs_s(&bytesConverted, labelBuf, sk_BufferSize, s.c_str(), sk_BufferSize - 1);
-
-				if(ImGui::Selectable(labelBuf, s == s_SelectedMat)) {
+				if(ImGui::Selectable(StringConvert::wide_string_to_string(s).c_str(), s == s_SelectedMat)) {
 					auto& copyCommandQueue = m_Device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 					auto copyCommandList = copyCommandQueue.GetCommandList();
 

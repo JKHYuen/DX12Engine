@@ -22,7 +22,7 @@ struct PixelInputType {
     float4 position                     : SV_POSITION;
     float3 tangent                      : TANGENT;
     float3 bitangent                    : BITANGENT;
-    float3 normal                       : NORMAL;
+    float3 normal                       : NORMAL0;
     float2 uv                           : TEXCOORD0;
     float4 worldPosition                : TEXCOORD1;
     float4 cameraPosition               : TEXCOORD2;
@@ -77,9 +77,10 @@ float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness) {
 
 
 float4 main(PixelInputType i) : SV_Target {
-    // TODO: add uv scaling in CB
+    /// TODO: add uv scaling in CB
     i.uv *= 2;
     
+    /// TODO: try just trilinear filtering for non albedo channels (looks fine according to Valve)
     float3 albedo   = AlbedoTex.Sample(AnisoWrapSampler, i.uv).rgb;
     float ao        = MaterialTex.Sample(AnisoWrapSampler, i.uv).r;
     float metallic  = MaterialTex.Sample(AnisoWrapSampler, i.uv).g;

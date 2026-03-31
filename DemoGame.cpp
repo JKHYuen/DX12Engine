@@ -39,11 +39,6 @@
 using namespace DirectX;
 using namespace Microsoft::WRL;
 
-/// TESTING
-namespace {
-	GameObject* s_TestSphere;
-}
-
 // static parameters
 namespace {
 	constexpr float sk_MouseSpeed = 0.05f;
@@ -197,7 +192,7 @@ bool DemoGame::Initialize() {
 		{
 			GameObject::GameObjectParams goParams{
 				"Sphere",
-				L"stonewall",
+				L"metal_grid",
 				*m_Scene,
 				XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 1.0f, 1.0f),
 				m_PBR_PSO.get(),
@@ -207,7 +202,7 @@ bool DemoGame::Initialize() {
 			// Test Sphere Object
 			goParams.translation = XMFLOAT3(0.0f, 5.0f, 0.0f);
 			goParams.scale = XMFLOAT3(5.0f, 5.0f, 5.0f);
-			s_TestSphere = m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateSpherePrimitive());
+			m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateSpherePrimitive());
 
 			// Test Cube Object
 			goParams.name = "Cube";
@@ -218,7 +213,7 @@ bool DemoGame::Initialize() {
 
 			// Test Floor Object
 			goParams.name = "Floor";
-			goParams.pbrMatName = L"stonewall";
+			goParams.pbrMatName = L"metal_grid";
 			goParams.translation = XMFLOAT3(0.0f, -3.0f, 0.0f);
 			goParams.scale = XMFLOAT3(40.0f, 1.0f, 40.0f);
 			m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateQuadPrimitive());

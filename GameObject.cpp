@@ -12,7 +12,12 @@
 #include "Mesh.h"
 
 #include "Logger.h"
+
 #include <format>
+
+#include <assimp/Importer.hpp>      // C++ importer interface
+#include <assimp/scene.h>           // Output data structure
+#include <assimp/postprocess.h>     // Post processing flags
 
 using namespace DirectX;
 
@@ -49,65 +54,61 @@ void GameObject::UpdateShaderResources(CommandList& copyCommandList, const std::
 }
 
 GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, const std::wstring& meshFileName) {
+
 	/// TODO: load from file with meshFileName
+	//// Create an instance of the Importer class
+	//Assimp::Importer importer;
+
+	//// And have it read the given file with some example postprocessing
+	//// Usually - if speed is not the most important aspect for you - you'll
+	//// probably to request more postprocessing than we do in this example.
+	//const aiScene* scene = importer.ReadFile(pFile,
+	//	aiProcess_CalcTangentSpace |
+	//	aiProcess_Triangulate |
+	//	aiProcess_JoinIdenticalVertices |
+	//	aiProcess_SortByPType);
+
+	//// If the import failed, report it
+	//if(nullptr == scene) {
+	//	DoTheErrorLogging(importer.GetErrorString());
+	//	return false;
+	//}
+
+	//// Now we can access the file's contents.
+	//DoTheSceneProcessing(scene);
+
 }
 
 void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene) {
-	// Render object with PBR shading
-	// Note: we are setting PSO/Root sig for every game object render rather than batching and setting the state once,
-	//       this could be slow, not an issue for current basic implementation
-	{
-		if(b_Outline) {
-			m_PBR_PSO->SetStencilWritePipelineState(directCommandList);
-			directCommandList.GetD3D12CommandList()->OMSetStencilRef(1);
-		}
-		else {
-			m_PBR_PSO->SetPipelineState(directCommandList);
-		}
-
-		XMFLOAT4X4 v = scene.GetDirectionalLight().GetViewMatrix();
-		XMFLOAT4X4 o = scene.GetDirectionalLight().GetOrthoMatrix();
-		XMMATRIX directionalLightViewMat = XMLoadFloat4x4(&v);
-		XMMATRIX directionalLightOrthoMat = XMLoadFloat4x4(&o);
-
-		PBRObjectPSO::VertexProps pbrVertexCB {};
-		XMStoreFloat4x4(&pbrVertexCB.SRT, XMLoadFloat4x4(&m_ScaleMat) * XMLoadFloat4x4(&m_RotationMat) * XMLoadFloat4x4(&m_TranslationMat));
-		XMStoreFloat4x4(&pbrVertexCB.MVP, XMLoadFloat4x4(&pbrVertexCB.SRT) * scene.m_MainCamera.Get_ViewMatrix() * scene.m_MainCamera.Get_ProjectionMatrix());
-
-		XMStoreFloat4x4(&pbrVertexCB.directionalLightMVP, XMLoadFloat4x4(&pbrVertexCB.SRT) * directionalLightViewMat * directionalLightOrthoMat);
-		XMStoreFloat4(&pbrVertexCB.CameraPosition, scene.m_MainCamera.Get_Translation());
-
-		PBRObjectPSO::MaterialProps pbrMaterialCB {};
-		pbrMaterialCB.Time = { (float)e.Time, (float)e.DeltaTime, 0.0f, 0.0f };
-
-		pbrMaterialCB.DirLight = scene.GetDirectionalLight().GetDirection();
-		pbrMaterialCB.DirLightColor = scene.GetDirectionalLight().GetColor();
-
-		m_PBR_PSO->UpdateResources(directCommandList, m_TextureResources, pbrVertexCB, pbrMaterialCB);
-		m_Mesh->Draw(directCommandList);
+	// Render object with PBR shading, use stencil write version of PSO for outline effect to work
+	if(b_Outline) {
+		m_PBR_PSO->SetStencilWritePipelineState(directCommandList);
+		directCommandList.GetD3D12CommandList()->OMSetStencilRef(1);
+	}
+	else {
+		m_PBR_PSO->SetPipelineState(directCommandList);
 	}
 
-	// Render object outline by rendering slightly bigger mesh of object and front culling (this method doesn't work on quads)
-	// Note: outline effect should be it's own class, preferably as some sort of component system
-	//if(b_Outline){
-	//	m_Outline_PSO->SetPipelineState(directCommandList);
-	//	directCommandList.GetD3D12CommandList()->OMSetStencilRef(1);
+	XMFLOAT4X4 v = scene.GetDirectionalLight().GetViewMatrix();
+	XMFLOAT4X4 o = scene.GetDirectionalLight().GetOrthoMatrix();
+	XMMATRIX directionalLightViewMat = XMLoadFloat4x4(&v);
+	XMMATRIX directionalLightOrthoMat = XMLoadFloat4x4(&o);
 
-	//	OutlinePSO::VertexProps outlineVertexCB {};
-	//	
-	//	// Magic number
-	//	float outlineMeshScale = 1.05f; 
-	//	XMStoreFloat4x4(&SRT, XMMatrixScaling(outlineMeshScale, outlineMeshScale, outlineMeshScale) * XMLoadFloat4x4(&SRT));
-	//	outlineVertexCB.SRT = SRT;
+	PBRObjectPSO::VertexProps pbrVertexCB {};
+	XMStoreFloat4x4(&pbrVertexCB.SRT, XMLoadFloat4x4(&m_ScaleMat) * XMLoadFloat4x4(&m_RotationMat) * XMLoadFloat4x4(&m_TranslationMat));
+	XMStoreFloat4x4(&pbrVertexCB.MVP, XMLoadFloat4x4(&pbrVertexCB.SRT) * scene.m_MainCamera.Get_ViewMatrix() * scene.m_MainCamera.Get_ProjectionMatrix());
 
-	//	XMStoreFloat4x4(&MVP, XMLoadFloat4x4(&SRT) * scene.m_MainCamera.Get_ViewMatrix() * scene.m_MainCamera.Get_ProjectionMatrix());
-	//	outlineVertexCB.MVP = MVP;
+	XMStoreFloat4x4(&pbrVertexCB.directionalLightMVP, XMLoadFloat4x4(&pbrVertexCB.SRT) * directionalLightViewMat * directionalLightOrthoMat);
+	XMStoreFloat4(&pbrVertexCB.CameraPosition, scene.m_MainCamera.Get_Translation());
 
-	//	OutlinePSO::MaterialProps outlineMaterialCB {};
-	//	outlineMaterialCB.outlineColor = { 10.0f, 10.0f, 0.0f, 1.0f };
-	//	m_Outline_PSO->UpdateResources(directCommandList, outlineVertexCB, outlineMaterialCB);
-	//	m_Mesh->Draw(directCommandList);
-	//}
+	PBRObjectPSO::MaterialProps pbrMaterialCB {};
+	pbrMaterialCB.Time = { (float)e.Time, (float)e.DeltaTime, 0.0f, 0.0f };
+
+	pbrMaterialCB.DirLight = scene.GetDirectionalLight().GetDirection();
+	pbrMaterialCB.DirLightColor = scene.GetDirectionalLight().GetColor();
+
+	m_PBR_PSO->UpdateResources(directCommandList, m_TextureResources, pbrVertexCB, pbrMaterialCB);
+	m_Mesh->Draw(directCommandList);
 }
 
 /// TODO: fix DX error when rendering outline
@@ -125,6 +126,7 @@ void GameObject::RenderOutline(CommandList& directCommandList, const UpdateEvent
 			* XMLoadFloat4x4(&m_RotationMat) 
 			* XMLoadFloat4x4(&m_TranslationMat)
 		);
+
 		XMStoreFloat4x4(&outlineVertexCB.MVP, XMLoadFloat4x4(&outlineVertexCB.SRT) * scene.m_MainCamera.Get_ViewMatrix() * scene.m_MainCamera.Get_ProjectionMatrix());
 
 		OutlinePSO::MaterialProps outlineMaterialCB {};
@@ -132,7 +134,6 @@ void GameObject::RenderOutline(CommandList& directCommandList, const UpdateEvent
 		m_Outline_PSO->UpdateResources(directCommandList, outlineVertexCB, outlineMaterialCB);
 		m_Mesh->Draw(directCommandList);
 	}
-
 }
 
 // we can use a dirty flag to only update SRT when neccesary

@@ -15,10 +15,6 @@
 
 #include <format>
 
-#include <assimp/Importer.hpp>      // C++ importer interface
-#include <assimp/scene.h>           // Output data structure
-#include <assimp/postprocess.h>     // Post processing flags
-
 using namespace DirectX;
 
 GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, std::shared_ptr<Mesh> mesh) 
@@ -40,11 +36,14 @@ GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, st
 	m_TextureResources[PBRObjectPSO::DirectionalShadowMap] = params.scene.GetDirectionalLight().GetShadowMapTexture();
 }
 
+/// TODO: somehow make this compatible with assimp loading
 void GameObject::UpdateShaderResources(CommandList& copyCommandList, const std::wstring& pbrMatName) {
 	m_MaterialName = pbrMatName;
 
-	// Load Resources, note that commandlist is not executed here
+	/// TODO: set root asset folder somewhere, maybe in IGame
 	std::wstring matPathPrefix { L"assets/materials/" + pbrMatName + L"/" + pbrMatName };
+
+	// Load Resources, note that commandlist is not executed here
 	m_TextureResources[PBRObjectPSO::AlbedoTex] =
 		copyCommandList.LoadTextureFromFile(matPathPrefix + L"_albedo.tga", true);
 	m_TextureResources[PBRObjectPSO::NormalTex] =
@@ -53,30 +52,8 @@ void GameObject::UpdateShaderResources(CommandList& copyCommandList, const std::
 		copyCommandList.LoadTextureFromFile(matPathPrefix + L"_mat.tga", false);
 }
 
-GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, const std::wstring& meshFileName) {
-
-	/// TODO: load from file with meshFileName
-	//// Create an instance of the Importer class
-	//Assimp::Importer importer;
-
-	//// And have it read the given file with some example postprocessing
-	//// Usually - if speed is not the most important aspect for you - you'll
-	//// probably to request more postprocessing than we do in this example.
-	//const aiScene* scene = importer.ReadFile(pFile,
-	//	aiProcess_CalcTangentSpace |
-	//	aiProcess_Triangulate |
-	//	aiProcess_JoinIdenticalVertices |
-	//	aiProcess_SortByPType);
-
-	//// If the import failed, report it
-	//if(nullptr == scene) {
-	//	DoTheErrorLogging(importer.GetErrorString());
-	//	return false;
-	//}
-
-	//// Now we can access the file's contents.
-	//DoTheSceneProcessing(scene);
-
+/// TODO: INCOMPLETE load from file with meshFileName
+GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, const std::wstring& meshFilePath) {
 }
 
 void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene) {

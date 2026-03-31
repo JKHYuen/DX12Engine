@@ -141,7 +141,7 @@ void Scene::RenderImGui() {
 			for(auto& s : m_MaterialNames) {
 				ImGui::TableNextColumn();
 
-				if(ImGui::Selectable(StringConvert::wide_string_to_string(s).c_str(), s == s_SelectedMat)) {
+				if(ImGui::Selectable(StringConvert::WideString_to_String(s).c_str(), s == s_SelectedMat)) {
 					auto& copyCommandQueue = m_Device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 					auto copyCommandList = copyCommandQueue.GetCommandList();
 

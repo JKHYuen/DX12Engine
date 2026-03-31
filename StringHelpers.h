@@ -3,12 +3,9 @@
 #include <stdexcept>
 #include <string>
 
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-
 namespace StringConvert {
     // Source: https://stackoverflow.com/a/69410299
-    std::wstring string_to_wide_string(const std::string& string) {
+    inline std::wstring String_to_WideString(const std::string& string) {
         if(string.empty()) {
             return L"";
         }
@@ -23,7 +20,7 @@ namespace StringConvert {
         return result;
     }
 
-    std::string wide_string_to_string(const std::wstring& wide_string) {
+    inline std::string WideString_to_String(const std::wstring& wide_string) {
         if(wide_string.empty()) {
             return "";
         }

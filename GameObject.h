@@ -47,7 +47,9 @@ public:
 
 	// Warning: copy command list must still be executed after GameObject, this is to keep flexibility to batch copy commands together
 	GameObject(CommandList& copyCommandList, GameObjectParams params, std::shared_ptr<Mesh> mesh); // initialize with preconstructed mesh
-	GameObject(CommandList& copyCommandList, GameObjectParams params, const std::wstring& meshFileName); // initialize with mesh loaded from file
+
+	/// TODO: 
+	GameObject(CommandList& copyCommandList, GameObjectParams params, const std::wstring& meshFilePath); // initialize with mesh loaded from file
 
 	void Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene);
 	void RenderOutline(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene);

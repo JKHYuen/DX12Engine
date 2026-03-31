@@ -390,6 +390,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
+    <ClInclude Include="AssetImporter.h" />
     <ClInclude Include="Buffer.h" />
     <ClInclude Include="ByteAddressBuffer.h" />
     <ClInclude Include="Camera.h" />

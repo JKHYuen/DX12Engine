@@ -30,6 +30,7 @@
 #include "GameObject.h"
 #include "PBRObjectPSO.h"
 #include "OutlinePSO.h"
+#include "AssetImporter.h"
 #include "Logger.h"
 
 #include "imgui.h"
@@ -199,24 +200,27 @@ bool DemoGame::Initialize() {
 				m_Outline_PSO.get(),
 			};
 
-			// Test Sphere Object
 			goParams.translation = XMFLOAT3(0.0f, 5.0f, 0.0f);
 			goParams.scale = XMFLOAT3(5.0f, 5.0f, 5.0f);
 			m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateSpherePrimitive());
 
-			// Test Cube Object
 			goParams.name = "Cube";
 			goParams.pbrMatName = L"metal_grid";
 			goParams.translation = XMFLOAT3(10.0f, 5.0f, 0.0f);
 			goParams.scale = XMFLOAT3(5.0f, 5.0f, 5.0f);
 			m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateCubePrimitive());
 
-			// Test Floor Object
 			goParams.name = "Floor";
 			goParams.pbrMatName = L"metal_grid";
 			goParams.translation = XMFLOAT3(0.0f, -3.0f, 0.0f);
 			goParams.scale = XMFLOAT3(40.0f, 1.0f, 40.0f);
 			m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateQuadPrimitive());
+
+			/// Test model import
+			//const aiScene* vikingSwordModel = AssetImporter::ImportModel(L"assets/models/Viking_Sword.obj");
+
+			//m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateQuadPrimitive());
+
 		}
 
 		copyCommandQueue.ExecuteCommandList(copyCommandList);

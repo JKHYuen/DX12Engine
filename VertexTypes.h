@@ -30,6 +30,8 @@
   *  @brief Vertex type definitions.
   */
 
+// KHY Edit: made this class header only
+
 #include <DirectXMath.h>
 #include <d3d12.h>
 
@@ -68,7 +70,15 @@ struct VertexInput {
     DirectX::XMFLOAT3 Bitangent;
     DirectX::XMFLOAT3 TexCoord;
 
-    static D3D12_INPUT_LAYOUT_DESC GetInputLayout();
+    static inline D3D12_INPUT_LAYOUT_DESC GetInputLayout() {
+        return { InputElements, _countof(InputElements) };
+    }
 private:
-    static const D3D12_INPUT_ELEMENT_DESC InputElements[];
+    static inline const D3D12_INPUT_ELEMENT_DESC InputElements[] = {
+    { "POSITION",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    { "NORMAL",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    { "TANGENT",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    { "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    { "TEXCOORD",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    };
 };

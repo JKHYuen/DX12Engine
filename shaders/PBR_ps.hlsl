@@ -80,7 +80,7 @@ float4 main(PixelInputType i) : SV_Target {
     /// TODO: add uv scaling in CB
     i.uv *= 2;
     
-    /// TODO: try just trilinear filtering for non albedo channels (looks fine according to Valve)
+    /// TODO: try just trilinear filtering for non albedo channels (suggested by Valve)
     float3 albedo   = AlbedoTex.Sample(AnisoWrapSampler, i.uv).rgb;
     float ao        = MaterialTex.Sample(AnisoWrapSampler, i.uv).r;
     float metallic  = MaterialTex.Sample(AnisoWrapSampler, i.uv).g;

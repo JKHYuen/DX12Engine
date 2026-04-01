@@ -193,7 +193,7 @@ bool DemoGame::Initialize() {
 		{
 			GameObject::GameObjectParams goParams{
 				"Sphere",
-				L"metal_grid",
+				L"stonewall",
 				*m_Scene,
 				XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 1.0f, 1.0f),
 				m_PBR_PSO.get(),
@@ -211,15 +211,16 @@ bool DemoGame::Initialize() {
 			m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateCubePrimitive());
 
 			goParams.name = "Floor";
-			goParams.pbrMatName = L"metal_grid";
+			goParams.pbrMatName = L"marble";
 			goParams.translation = XMFLOAT3(0.0f, -3.0f, 0.0f);
 			goParams.scale = XMFLOAT3(40.0f, 1.0f, 40.0f);
 			m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateQuadPrimitive());
 
 			/// Test model import
-			//const aiScene* vikingSwordModel = AssetImporter::ImportModel(L"assets/models/Viking_Sword.obj");
-
-			//m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateQuadPrimitive());
+			goParams.translation = XMFLOAT3(0.0f, 5.0f, 10.0f);
+			goParams.scale = XMFLOAT3(5.0f, 5.0f, 5.0f);
+			auto vikingSwordMesh = AssetImporter::ImportModel(*copyCommandList, L"assets/models/viking_sword/viking_sword.obj");
+			m_Scene->CreateGameObject(*copyCommandList, goParams, vikingSwordMesh);
 
 		}
 

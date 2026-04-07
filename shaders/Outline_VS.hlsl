@@ -18,7 +18,7 @@ struct PixelInputType {
 
 PixelInputType main(VertexInput i) {
     PixelInputType o;
-    
+
     o.position = mul(MVP, float4(i.vertexPosition, 1.0f));
     
     return o;

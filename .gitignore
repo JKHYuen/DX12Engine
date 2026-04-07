@@ -394,5 +394,9 @@ FodyWeavers.xsd
 *.msm
 *.msp
 
+# Asset files for dx12 Renderer, will need to add alternate way to upload big files, or just include with release
+assets/
+
+
 # JetBrains Rider
 *.sln.iml

@@ -6,6 +6,7 @@
 #include "VertexTypes.h"
 #include "RenderTarget.h"
 #include "ShaderResourceView.h"
+#include "Logger.h"
 #include <d3dx12.h>
 #include <d3dcompiler.h>
 #include <wrl/client.h>
@@ -111,7 +112,7 @@ void PBRObjectPSO::UpdateResources(CommandList& directCommandList, const std::ve
 	}
 
 	// Volatile Textures
-	for(int i = PBRTextureIndex::NumPBRTextures - 1, j = 0; i < sk_NumTextures; i++, j++) {
+	for(int i = PBRTextureIndex::NumPBRTextures, j = 0; i < sk_NumTextures; i++, j++) {
 		directCommandList.SetShaderResourceView(PBRRootParameters::VolatileTextures, j, pbrTextures[i], D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	}
 }

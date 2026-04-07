@@ -30,6 +30,7 @@
 #include "GameObject.h"
 #include "PBRObjectPSO.h"
 #include "OutlinePSO.h"
+#include "ImageBasedLightingPSO.h"
 #include "AssetImporter.h"
 #include "Logger.h"
 
@@ -46,6 +47,8 @@ namespace {
 
 	constexpr DXGI_FORMAT sk_HDRFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
 	constexpr DXGI_FORMAT sk_DepthBufferFormat = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+
+	const std::wstring s_defaultSkyboxName = L"industrial_sunset_puresky_4k.hdr";
 
 	// Directional Light Shadow params
 	int   s_ShadowMapResolution = 2048;
@@ -86,6 +89,13 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	, m_FloatRenderTarget() {
 
 	m_Window = Application::Get().CreateRenderWindow(name, windowWidth, windowHeight, *this);
+
+	/// TODO: dont hardcode asset path
+	// Get skybox names from asset folder
+	// Note: wide strings from file system is supported, but it can not be properly displayed with ImGui
+	for(const auto& entry : std::filesystem::directory_iterator(L"assets/cubemaps")) {
+		m_SkyboxNames.emplace_back(entry.path().filename().c_str());
+	}
 }
 
 uint32_t DemoGame::Run() {
@@ -108,15 +118,15 @@ bool DemoGame::Initialize() {
 	m_Device = std::make_shared<Device>();
 	m_EditorGui = std::make_unique<EditorGui>(*m_Device, sk_HDRFormat, SwapChain::sk_BufferCount, m_Window->GetWindowHandle());
 	// TODO: Tweakable MSAA
-	DXGI_SAMPLE_DESC sampleDesc = m_Device->GetMultisampleQualityLevels(sk_HDRFormat);
+	DXGI_SAMPLE_DESC multiSampleDesc = m_Device->GetMultisampleQualityLevels(sk_HDRFormat);
 
 	m_SwapChain = std::make_shared<SwapChain>(*m_Device, m_Window->GetWindowHandle(), m_IsVsync, sk_HDRFormat);
 
-	/// Create render targets
+	// Create render targets
 	{
 		// color buffer
 		auto colorDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-			sk_HDRFormat, m_WindowWidth, m_WindowHeight, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
+			sk_HDRFormat, m_WindowWidth, m_WindowHeight, 1, 1, multiSampleDesc.Count, multiSampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
 		);
 
 		D3D12_CLEAR_VALUE colorClearValue;
@@ -131,7 +141,7 @@ bool DemoGame::Initialize() {
 
 		// depth buffer
 		auto depthDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-			sk_DepthBufferFormat, m_WindowWidth, m_WindowHeight, 1, 1, sampleDesc.Count, sampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
+			sk_DepthBufferFormat, m_WindowWidth, m_WindowHeight, 1, 1, multiSampleDesc.Count, multiSampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
 		);
 
 		D3D12_CLEAR_VALUE depthClearValue;
@@ -155,16 +165,16 @@ bool DemoGame::Initialize() {
 		m_FloatRenderTarget.AttachTexture(AttachmentPoint::Color0, floatRenderTexture);
 	}
 
-	/// Create PBR Pipeline State 
-	m_PBR_PSO = std::make_unique<PBRObjectPSO>(*m_Device, sampleDesc, m_HDR_MSAA_RenderTarget.GetRenderTargetFormats(), sk_DepthBufferFormat);
+	// Create PBR Pipeline State s
+	m_PBR_PSO = std::make_unique<PBRObjectPSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RenderTarget.GetRenderTargetFormats(), sk_DepthBufferFormat);
+	m_Outline_PSO = std::make_unique<OutlinePSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RenderTarget.GetRenderTargetFormats(), sk_DepthBufferFormat);
+
+	m_IBL_PSO = std::make_unique<ImageBasedLightingPSO>(*m_Device, m_HDR_MSAA_RenderTarget);
 
 	auto& copyCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
-	/// Load Assets (COPY operations)
+	// Load Assets (COPY operations)
 	{
 		auto copyCommandList = copyCommandQueue.GetCommandList();
-
-		/// TODO: Skybox switching in runtime
-		std::wstring skyboxName = L"industrial_sunset_puresky_4k";
 
 		DirectionalLight::DirectionalLightParams dirLightParams {
 			m_PBR_PSO->GetRootSignature(), // reuse PBR root signature for depth render
@@ -178,53 +188,61 @@ bool DemoGame::Initialize() {
 			s_ShadowBias
 		};
 
+		/// TODO: Skybox switching in runtime
 		Skybox::SkyboxParams skyboxParams {
-			skyboxName,
-			copyCommandList->CreateCubePrimitive(),
-			m_HDR_MSAA_RenderTarget
+			s_defaultSkyboxName,
+			m_IBL_PSO.get()
 		};
 
-		m_Scene = std::make_unique<Scene>(*m_Device, *copyCommandList, dirLightParams, skyboxParams, m_WindowWidth, m_WindowHeight);
+		m_TestScene = std::make_unique<Scene>(*m_Device, *copyCommandList, dirLightParams, skyboxParams, m_WindowWidth, m_WindowHeight);
 
-		m_Outline_PSO = std::make_unique<OutlinePSO>(*m_Device, sampleDesc, m_HDR_MSAA_RenderTarget.GetRenderTargetFormats(), sk_DepthBufferFormat);
+		// Wait for IBL resource creation to finish (panotocubemap in Skybox class)
+		copyCommandQueue.WaitForFenceValue(copyCommandQueue.ExecuteCommandList(copyCommandList));
 
-		/// TODO: TEMP TEST SCENE
-		// Initialize test objects to render
+		// Precompute skybox IBL textures
+		auto& directCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
+		auto directCommandList = directCommandQueue.GetCommandList();
+		m_TestScene->ComputeSkyboxIBLMaps(*directCommandList);
+		directCommandQueue.ExecuteCommandList(directCommandList);
+
+		/// TEMP TEST SCENE
 		{
 			GameObject::GameObjectParams goParams{
 				"Sphere",
 				L"stonewall",
-				*m_Scene,
+				*m_TestScene,
 				XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 1.0f, 1.0f),
 				m_PBR_PSO.get(),
 				m_Outline_PSO.get(),
 			};
 
-			goParams.translation = XMFLOAT3(0.0f, 5.0f, 0.0f);
-			goParams.scale = XMFLOAT3(5.0f, 5.0f, 5.0f);
-			m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateSpherePrimitive());
+			goParams.translation = XMFLOAT3(0.0f, 3.0f, 0.0f);
+			goParams.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
+			m_TestScene->CreateGameObject(*copyCommandList, goParams, copyCommandList->GetSpherePrimitive());
 
 			goParams.name = "Cube";
 			goParams.pbrMatName = L"metal_grid";
-			goParams.translation = XMFLOAT3(10.0f, 5.0f, 0.0f);
-			goParams.scale = XMFLOAT3(5.0f, 5.0f, 5.0f);
-			m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateCubePrimitive());
+			goParams.translation = XMFLOAT3(4.0f, 3.0f, 0.0f);
+			goParams.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
+			m_TestScene->CreateGameObject(*copyCommandList, goParams, copyCommandList->GetCubePrimitive());
 
 			goParams.name = "Floor";
 			goParams.pbrMatName = L"marble";
-			goParams.translation = XMFLOAT3(0.0f, -3.0f, 0.0f);
-			goParams.scale = XMFLOAT3(40.0f, 1.0f, 40.0f);
-			m_Scene->CreateGameObject(*copyCommandList, goParams, copyCommandList->CreateQuadPrimitive());
+			goParams.translation = XMFLOAT3(0.0f, 0.0f, 0.0f);
+			goParams.scale = XMFLOAT3(20.0f, 1.0f, 20.0f);
+			m_TestScene->CreateGameObject(*copyCommandList, goParams, copyCommandList->GetQuadPrimitive());
 
 			/// Test model import
-			goParams.translation = XMFLOAT3(0.0f, 5.0f, 10.0f);
-			goParams.scale = XMFLOAT3(5.0f, 5.0f, 5.0f);
-			auto vikingSwordMesh = AssetImporter::ImportModel(*copyCommandList, L"assets/models/viking_sword/viking_sword.obj");
-			m_Scene->CreateGameObject(*copyCommandList, goParams, vikingSwordMesh);
+			goParams.translation = XMFLOAT3(0.0f, 3.0f, 4.0f);
+			goParams.scale = XMFLOAT3(1.0f, 1.0f, 1.0f);
+			goParams.pbrMatName = L"viking_sword";
+			auto importedMesh = AssetImporter::ImportModel(*copyCommandList, L"assets/models/" + goParams.pbrMatName + L"/" + goParams.pbrMatName +L".obj");
 
+			//auto importedMesh = AssetImporter::ImportModel(*copyCommandList, L"assets/models/sponza/NewSponza_Main_glTF_003.gltf");
+			m_TestScene->CreateGameObject(*copyCommandList, goParams, importedMesh);
+
+			copyCommandQueue.ExecuteCommandList(copyCommandList);
 		}
-
-		copyCommandQueue.ExecuteCommandList(copyCommandList);
 	}
 
 	/// Create Post Process/Tonemap Pipeline States 
@@ -286,13 +304,6 @@ bool DemoGame::Initialize() {
 	// Wait for loading operations to complete before rendering the first frame
 	copyCommandQueue.FlushWait();  
 
-	// Precompute skybox IBL textures
-	auto& directCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
-	auto directCommandList = directCommandQueue.GetCommandList();
-
-	m_Scene->ComputeSkyboxIBLMaps(*directCommandList);
-	directCommandQueue.ExecuteCommandList(directCommandList);
-
 	return true;
 }
 
@@ -304,13 +315,13 @@ void DemoGame::OnResize(const ResizeEventArgs& e) {
 
 	float aspectRatio = m_WindowWidth / (float)m_WindowHeight;
 	/// TODO: Define default z values somewhere
-	m_Scene->m_MainCamera.Set_Projection(s_DefaultFOV, aspectRatio, s_ZNear, s_ZFar);
+	m_TestScene->m_MainCamera.Set_Projection(s_DefaultFOV, aspectRatio, s_ZNear, s_ZFar);
 
 	m_ScreenViewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_WindowWidth), static_cast<float>(m_WindowHeight));
 	m_HDR_MSAA_RenderTarget.Resize(m_WindowWidth, m_WindowHeight);
 	m_FloatRenderTarget.Resize(m_WindowWidth, m_WindowHeight);
 
-	m_Scene->SetGameWindowSize(m_WindowWidth, m_WindowHeight);
+	m_TestScene->SetGameWindowSize(m_WindowWidth, m_WindowHeight);
 }
 
 void DemoGame::OnUpdate(const UpdateEventArgs& e) {
@@ -343,11 +354,11 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 		XMVECTOR cameraPan = XMVectorSet(0.0f, m_Up - m_Down, 0.0f, 1.0f) 
 			* speedMultipler * (float)e.DeltaTime;
 
-		m_Scene->m_MainCamera.Translate(cameraTranslation, Space::Local);
-		m_Scene->m_MainCamera.Translate(cameraPan, Space::Local);
+		m_TestScene->m_MainCamera.Translate(cameraTranslation, Space::Local);
+		m_TestScene->m_MainCamera.Translate(cameraPan, Space::Local);
 
 		XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(-m_Pitch), XMConvertToRadians(-m_Yaw), 0.0f);
-		m_Scene->m_MainCamera.Set_Rotation(cameraRotation);
+		m_TestScene->m_MainCamera.Set_Rotation(cameraRotation);
 	}
 
 	OnRender(e);
@@ -459,17 +470,56 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 			}
 
 			// FOV Slider
-			{
-				static float fov = m_Scene->m_MainCamera.Get_FoV();
-				ImGui::SliderFloat("FOV", &fov, 12.0f, 90.0f);
-				m_Scene->m_MainCamera.Set_FoV(fov);
-			}
+			static float fov = m_TestScene->m_MainCamera.Get_FoV();
+			ImGui::SliderFloat("FOV", &fov, 12.0f, 90.0f);
+			m_TestScene->m_MainCamera.Set_FoV(fov);
 
+			// Directional Light
 			static float sceneDirLightAngle[2] { 50.0f, 230.0f };
 			if(ImGui::DragFloat2("[x, y]", sceneDirLightAngle, 0.1f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
 				sceneDirLightAngle[0] = std::fmod(sceneDirLightAngle[0], 360.0f);
 				sceneDirLightAngle[1] = std::fmod(sceneDirLightAngle[1], 360.0f);
-				m_Scene->SetDirectionalLightAngle(sceneDirLightAngle[0], sceneDirLightAngle[1], 0.0f);
+				m_TestScene->SetDirectionalLightAngle(sceneDirLightAngle[0], sceneDirLightAngle[1], 0.0f);
+			}
+			
+			// Skybox Selector
+			{
+				static std::wstring s_SelectedSkybox = s_defaultSkyboxName;
+				if(ImGui::BeginTable("Skybox Table", 3, ImGuiTableFlags_Borders)) {
+					for(auto& s : m_SkyboxNames) {
+						ImGui::TableNextColumn();
+
+						/// TODO: make this work
+						if(ImGui::Selectable(StringConvert::WideString_to_String(s).c_str(), s == s_SelectedSkybox)) {
+							auto& copyCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
+							auto copyCommandList = copyCommandQueue.GetCommandList();
+
+							/// Do something smarter
+							Skybox::SkyboxParams skyboxParams {
+								s,
+								m_IBL_PSO.get()
+							};
+
+							m_TestScene->SetSkybox(*copyCommandList, skyboxParams);
+							///
+
+							copyCommandQueue.ExecuteCommandList(copyCommandList);
+							copyCommandQueue.FlushWait();
+
+							/// Doesn't work, IBL render targets not being updated
+							auto& directCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
+							auto directCommandList = directCommandQueue.GetCommandList();
+
+							m_TestScene->ComputeSkyboxIBLMaps(*directCommandList);
+							directCommandQueue.ExecuteCommandList(directCommandList);
+							directCommandQueue.FlushWait();
+
+							s_SelectedSkybox = s;
+						};
+
+					}
+					ImGui::EndTable();
+				}
 			}
 
 			// Directional shadow map debug view
@@ -488,9 +538,9 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 			ImGui::End();
 		}
 
-		/// Object Inspector Window
+		/// Object Inspector Window / Scene specific UI
 		{
-			m_Scene->RenderImGui();
+			m_TestScene->RenderImGui();
 		}
 	}
 
@@ -508,7 +558,7 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 	directCommandList->ClearDepthStencilTexture(m_HDR_MSAA_RenderTarget.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL);
 
 	// Perform HDR rendering to intermediate render target (before multisample resolve)
-	m_Scene->Render(m_HDR_MSAA_RenderTarget, m_ScreenViewport, m_DefaultScissorRect, *directCommandList, e);
+	m_TestScene->Render(m_HDR_MSAA_RenderTarget, m_ScreenViewport, m_DefaultScissorRect, *directCommandList, e);
 
 	/// Post Processing
 	{
@@ -570,7 +620,7 @@ void DemoGame::OnMouseButtonPressed(const MouseButtonEventArgs& e) {
 }
 
 void DemoGame::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
-	m_Scene->OnMouseButtonReleased(e);
+	m_TestScene->OnMouseButtonReleased(e);
 
 	if(e.Button == MouseButtonEventArgs::Left) {
 		m_IsLeftClickPressed = false;
@@ -583,7 +633,7 @@ void DemoGame::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 }
 
 void DemoGame::OnKeyPressed(const KeyEventArgs& e) {
-	m_Scene->OnKeyPressed(e);
+	m_TestScene->OnKeyPressed(e);
 
 	switch(e.Key) {
 	case KeyCode::Up:
@@ -631,7 +681,7 @@ void DemoGame::OnKeyPressed(const KeyEventArgs& e) {
 		break;
 
 	case KeyCode::X:
-		m_Scene;
+		m_TestScene;
 		break;
 
 	case KeyCode::ShiftKey:
@@ -641,7 +691,7 @@ void DemoGame::OnKeyPressed(const KeyEventArgs& e) {
 }
 
 void DemoGame::OnKeyReleased(const KeyEventArgs& e) {
-	m_Scene->OnKeyReleased(e);
+	m_TestScene->OnKeyReleased(e);
 
 	switch(e.Key) {
 	case KeyCode::Up:
@@ -684,12 +734,12 @@ void DemoGame::OnKeyReleased(const KeyEventArgs& e) {
 
 void DemoGame::OnMouseWheel(const MouseWheelEventArgs& e) {
 	if(!m_ShowImGuiWindow) {
-		auto fov = m_Scene->m_MainCamera.Get_FoV();
+		auto fov = m_TestScene->m_MainCamera.Get_FoV();
 
 		fov -= e.WheelDelta;
 		fov = std::clamp(fov, s_MinFOV, s_MaxFOV);
 
-		m_Scene->m_MainCamera.Set_FoV(fov);
+		m_TestScene->m_MainCamera.Set_FoV(fov);
 	}
 }
 

@@ -31,16 +31,6 @@ namespace {
 	const std::wstring sk_QuadPrimitiveName   = L"Quad_Primitive";
 }
 
-/// TODO: move this cache to scene class?
-// Note: these caches should use weak_ptrs, but we are using shared_ptr to cache objects indefinitely for this limited project for now
-//       to prevent extraneous loading. A more clever system is probably needed in a real engine.
-std::unordered_map<std::wstring, std::shared_ptr<Texture>> CommandList::ms_TextureCache;
-std::mutex                                        CommandList::ms_TextureCacheMutex;
-
-// Note: Cache all loaded meshes for session. Entries are not managed, we can clear on scene load if needed in the future.
-std::unordered_map<std::wstring, std::shared_ptr<Mesh>> CommandList::ms_MeshCache;
-std::mutex                                              CommandList::ms_MeshCacheMutex;
-
 CommandList::CommandList(Device& device, D3D12_COMMAND_LIST_TYPE type)
 	: m_Device(device)
 	, m_d3d12CommandListType(type)
@@ -1333,7 +1323,7 @@ std::shared_ptr<Mesh> CommandList::CreateQuad(float width, float height) {
 	return meshPtr;
 }
 
-std::shared_ptr<Mesh> CommandList::CreateCubePrimitive() {
+std::shared_ptr<Mesh> CommandList::GetCubePrimitive() {
 	std::lock_guard<std::mutex> lock(ms_MeshCacheMutex);
 	
 	auto iter = ms_MeshCache.find(sk_CubePrimitiveName);
@@ -1346,7 +1336,7 @@ std::shared_ptr<Mesh> CommandList::CreateCubePrimitive() {
 	}
 }
 
-std::shared_ptr<Mesh> CommandList::CreateSpherePrimitive() {
+std::shared_ptr<Mesh> CommandList::GetSpherePrimitive() {
 	std::lock_guard<std::mutex> lock(ms_MeshCacheMutex);
 
 	auto iter = ms_MeshCache.find(sk_SpherePrimitiveName);
@@ -1359,7 +1349,7 @@ std::shared_ptr<Mesh> CommandList::CreateSpherePrimitive() {
 	}
 }
 
-std::shared_ptr<Mesh> CommandList::CreateQuadPrimitive() {
+std::shared_ptr<Mesh> CommandList::GetQuadPrimitive() {
 	std::lock_guard<std::mutex> lock(ms_MeshCacheMutex);
 
 	auto iter = ms_MeshCache.find(sk_QuadPrimitiveName);

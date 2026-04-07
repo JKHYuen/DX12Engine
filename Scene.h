@@ -37,6 +37,10 @@ public:
 	void CreateGameObject(CommandList& copyCommandList, const GameObject::GameObjectParams& goParams, const std::wstring& meshFileName);
 
 	void ComputeSkyboxIBLMaps(CommandList& directCommandList);
+	void SetCubemap(CommandList& copyCommandList, const std::wstring& hdrTextureName);
+
+	/// TODO: test
+	void SetSkybox(CommandList& copyCommandList, const Skybox::SkyboxParams& skyboxParams);
 
 	void Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, D3D12_RECT scissorRec, CommandList& directCommandList, const UpdateEventArgs& e);
 	

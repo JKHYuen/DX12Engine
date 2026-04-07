@@ -275,6 +275,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="EditorGui.cpp" />
+    <ClCompile Include="ImageBasedLightingPSO.cpp" />
     <ClCompile Include="include\DX12LibPCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -411,6 +412,7 @@
     <ClInclude Include="IGame.h" />
     <ClInclude Include="GenerateMipsPSO.h" />
     <ClInclude Include="EditorGui.h" />
+    <ClInclude Include="ImageBasedLightingPSO.h" />
     <ClInclude Include="include\HighResolutionClock.h" />
     <ClInclude Include="include\DX12LibPCH.h" />
     <ClInclude Include="include\Helpers.h" />

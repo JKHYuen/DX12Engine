@@ -55,9 +55,9 @@ public:
 
 	// Index of volatile textures come after static textures
 	enum VolatilePBRTextureIndex {
-		DirectionalShadowMap = PBRTextureIndex::NumPBRTextures - 1,
+		DirectionalShadowMap = PBRTextureIndex::NumPBRTextures,
 
-		NumVolatilePBRTextures = 1
+		NumVolatilePBRTextures = 1 // Make sure to update this manually since this enum doesn't start at 0
 	};
 
 	struct VertexProps {

@@ -60,9 +60,9 @@ public:
 	void UpdateShaderResources(CommandList& copyCommandList, const std::wstring& pbrMatName);
 
 	/// Transfom functions aren't very intuitive, good enough for now
-	void Translate(float x, float y, float z); // Adds to world position values
+	void Translate(float x, float y, float z);   // Adds to world position values
 	void EulerRotate(float x, float y, float z); // Adds to euler angles
-	void Scale(float x, float y, float z); // Multiplies current scale
+	void Scale(float x, float y, float z);       // Adds to current scale (even though one might expect a multiply)
 	/// 
 
 	void SetTranslation(float x, float y, float z);

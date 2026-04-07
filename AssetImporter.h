@@ -1,5 +1,7 @@
 #pragma once
 
+// Based on: https://github.com/jpvanoosten/LearningDirectX12/blob/v1.1.0/DX12Lib/src/Scene.cpp
+
 #include "Logger.h"
 #include "StringHelpers.h"
 #include "VertexTypes.h"
@@ -9,7 +11,6 @@
 #include <assimp/postprocess.h>  
 
 namespace {
-	/// TODO: figure out some material system for this project
 	std::shared_ptr<Mesh> ProcessMesh(CommandList& commandList, const aiMesh& aiMesh) {
 		auto mesh = std::make_shared<Mesh>();
 
@@ -37,8 +38,7 @@ namespace {
 
 		if(aiMesh.HasTextureCoords(0)) {
 			for(i = 0; i < aiMesh.mNumVertices; ++i) {
-				vertexData[i].TexCoord = { aiMesh.mTextureCoords[0][i].x, aiMesh.mTextureCoords[0][i].y,
-										   aiMesh.mTextureCoords[0][i].z };
+				vertexData[i].TexCoord = { aiMesh.mTextureCoords[0][i].x, aiMesh.mTextureCoords[0][i].y, aiMesh.mTextureCoords[0][i].z };
 			}
 		}
 
@@ -75,6 +75,7 @@ namespace {
 
 namespace AssetImporter {
 	/// TODO: INCOMPLETE
+	/// TODO: figure out some material system for this project
 	inline std::shared_ptr<Mesh> ImportModel(CommandList& commandList, const std::wstring& modelFilePath) {
 		Assimp::Importer importer;
 
@@ -82,7 +83,7 @@ namespace AssetImporter {
 			importer.ReadFile(StringConvert::WideString_to_String(modelFilePath),
 				aiProcessPreset_TargetRealtime_MaxQuality |
 				aiProcess_OptimizeGraph |
-				//aiProcess_ConvertToLeftHanded | 
+				aiProcess_ConvertToLeftHanded | 
 				aiProcess_GenBoundingBoxes
 			);
 

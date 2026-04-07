@@ -37,6 +37,7 @@ GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, st
 }
 
 /// TODO: somehow make this compatible with assimp loading
+///        Rename this function to indicate it's loading textures from file
 void GameObject::UpdateShaderResources(CommandList& copyCommandList, const std::wstring& pbrMatName) {
 	m_MaterialName = pbrMatName;
 
@@ -52,7 +53,7 @@ void GameObject::UpdateShaderResources(CommandList& copyCommandList, const std::
 		copyCommandList.LoadTextureFromFile(matPathPrefix + L"_mat.tga", false);
 }
 
-/// TODO: INCOMPLETE load from file with meshFileName
+/// TODO: load from file with meshFileName
 GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, const std::wstring& meshFilePath) {
 }
 
@@ -85,10 +86,10 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 	pbrMaterialCB.DirLightColor = scene.GetDirectionalLight().GetColor();
 
 	m_PBR_PSO->UpdateResources(directCommandList, m_TextureResources, pbrVertexCB, pbrMaterialCB);
+
 	m_Mesh->Draw(directCommandList);
 }
 
-/// TODO: fix DX error when rendering outline
 void GameObject::RenderOutline(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene) {
 	if(b_Outline) {
 		m_Outline_PSO->SetPipelineState(directCommandList);

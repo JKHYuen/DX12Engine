@@ -20,6 +20,7 @@ class EditorGui;
 class Skybox;
 class PBRObjectPSO;
 class OutlinePSO;
+class ImageBasedLightingPSO;
 class ShaderResourceView;
 
 class DemoGame : public IGame {
@@ -56,6 +57,7 @@ private:
     /// TODO: figure out more generalized PSO loading system
     std::unique_ptr<PBRObjectPSO> m_PBR_PSO;
     std::unique_ptr<OutlinePSO> m_Outline_PSO;
+    std::unique_ptr<ImageBasedLightingPSO> m_IBL_PSO;
 
     std::shared_ptr<RootSignature> m_PostProcessRootSignature;
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_TonemapPSO;
@@ -64,8 +66,11 @@ private:
     D3D12_VIEWPORT m_ScreenViewport;
     D3D12_RECT     m_DefaultScissorRect;
 
+    // Selectable skyboxes loaded from assets/cubemaps
+    std::vector<std::wstring> m_SkyboxNames;
+
     // Pointer because this can not be initialized on DemoGame construction
-    std::unique_ptr<Scene> m_Scene;
+    std::unique_ptr<Scene> m_TestScene;
 
     // Camera Controller
     float m_Forward;

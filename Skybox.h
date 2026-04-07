@@ -10,18 +10,20 @@ class CommandList;
 class ShaderResourceView;
 class Camera;
 class Mesh;
+class ImageBasedLightingPSO;
 
 class Skybox {
 public:
 	struct SkyboxParams {
 		std::wstring hdrTextureName;
-		std::shared_ptr<Mesh> cubeMesh;
-		RenderTarget& hdrRenderTarget;
+		ImageBasedLightingPSO* iblPSO;
 	};
 
-	// cubemesh should be fully initialized using CommandList functions for mesh caching
+	// Loads "hdrTextureName" from file as skybox
 	Skybox(Device& device, CommandList& copyCommandList, SkyboxParams params);
 	
+	void SetCubemap(CommandList& copyCommandList, const std::wstring& hdrTextureName);
+
 	// Draw skybox
 	// Note: Render target needs to be set externally
 	void Render(CommandList& directCommandList, const Camera& camera);
@@ -34,6 +36,11 @@ public:
 	std::shared_ptr<Texture> Get_BRDF_LUT_Texture() const { return m_BRDF_LUT_RT.GetTexture(AttachmentPoint::Color0); };
 
 private:
+	// PSO owned by DemoGame currently
+	ImageBasedLightingPSO* m_IBL_PSO;
+
+	std::shared_ptr<Mesh> m_SkyboxCubeMesh;
+
 	std::shared_ptr<Texture> m_HDRPanoTexture;
 	std::shared_ptr<Texture> m_SkyCubemapTexture;
 

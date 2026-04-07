@@ -45,7 +45,8 @@ float DistributionGGX(float3 N, float3 H, float roughness) {
     float denom = (NdotH2 * (a2 - 1.0) + 1.0);
     denom = PI * denom * denom;
 
-    return nom / denom;
+    //return nom / denom;
+    return nom / max(denom, 0.00000001);
 }
 
 float GeometrySchlickGGX(float NdotV, float roughness) {
@@ -78,7 +79,7 @@ float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness) {
 
 float4 main(PixelInputType i) : SV_Target {
     /// TODO: add uv scaling in CB
-    i.uv *= 2;
+    //i.uv *= 2;
     
     /// TODO: try just trilinear filtering for non albedo channels (suggested by Valve)
     float3 albedo   = AlbedoTex.Sample(AnisoWrapSampler, i.uv).rgb;

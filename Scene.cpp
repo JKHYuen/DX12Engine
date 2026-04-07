@@ -30,7 +30,8 @@ Scene::Scene(Device& device, CommandList& copyCommandList, const DirectionalLigh
 
 	m_Picker = std::make_unique<Picker>(this);
 
-	// Preload material asset folders, this will need to be extracted to a function for hotloading
+	/// TODO: dont hardcode asset path
+	// Get all material names from asset folder (mostly for testing, scene instance should only hold used materials)
 	// Note: wide strings from file system is supported, but it can not be properly displayed with ImGui
 	for(const auto& entry : std::filesystem::directory_iterator(L"assets/materials")) {
 		m_MaterialNames.emplace_back(entry.path().filename().c_str());
@@ -48,9 +49,19 @@ void Scene::CreateGameObject(CommandList& copyCommandList, const GameObject::Gam
 	/// TODO
 }
 
+/// TEST
 void Scene::ComputeSkyboxIBLMaps(CommandList& directCommandList) {
 	m_Skybox.ComputeIBLMaps(directCommandList);
 }
+
+void Scene::SetCubemap(CommandList& copyCommandList, const std::wstring& hdrTextureName) {
+	m_Skybox.SetCubemap(copyCommandList, hdrTextureName);
+}
+
+void Scene::SetSkybox(CommandList& copyCommandList, const Skybox::SkyboxParams& skyboxParams) {
+	m_Skybox = Skybox {m_Device, copyCommandList, skyboxParams};
+}
+/// END TEST
 
 void Scene::Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, D3D12_RECT scissorRec, CommandList& directCommandList, const UpdateEventArgs& e) {
 	directCommandList.SetScissorRect(scissorRec);
@@ -166,6 +177,15 @@ void Scene::RenderImGui() {
 		if(ImGui::DragFloat3("Scale", s_ObjScale, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
 			picked->SetScale(s_ObjScale[0], s_ObjScale[1], s_ObjScale[2]);
 		}
+		ImGui::SameLine();
+		if(ImGui::Button("-")) {
+			picked->Scale(0.9f, 0.9f, 0.9f);
+		}
+		ImGui::SameLine();
+		if(ImGui::Button("+")) {
+			picked->Scale(1.1f, 1.1f, 1.1f);
+		}
+
 
 		/// Object Inspector Window End
 		ImGui::End();

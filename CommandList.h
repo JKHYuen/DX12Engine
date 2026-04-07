@@ -450,9 +450,9 @@ public:
     inline DirectX::XMVECTOR GetCircleTangent(size_t i, size_t tessellation) noexcept;
 
     // Use these functions to create cached primitive meshes with predefined parameters
-    std::shared_ptr<Mesh> CreateCubePrimitive();
-    std::shared_ptr<Mesh> CreateSpherePrimitive();
-    std::shared_ptr<Mesh> CreateQuadPrimitive();
+    std::shared_ptr<Mesh> GetCubePrimitive();
+    std::shared_ptr<Mesh> GetSpherePrimitive();
+    std::shared_ptr<Mesh> GetQuadPrimitive();
 
 protected:
     // Constructor should only be called in CommandQueue::GetCommandList()
@@ -495,6 +495,17 @@ protected:
     }
 
 private:
+    /// TODO: Move asset cache somewhere else
+    // Keep track of loaded textures to avoid loading the same texture multiple times.
+    // Note: these caches should use weak_ptrs, but we are using shared_ptr to cache objects indefinitely for this limited project for now
+    //       to prevent extraneous loading. A more clever system is probably needed in a real engine.
+    static inline std::unordered_map<std::wstring, std::shared_ptr<Texture>> ms_TextureCache;
+    static inline std::mutex ms_TextureCacheMutex;
+
+    // Note: Cache all loaded meshes for session. Entries are not managed, we can clear on scene load if needed in the future.
+    static inline std::unordered_map<std::wstring, std::shared_ptr<Mesh>> ms_MeshCache;
+    static inline std::mutex ms_MeshCacheMutex;
+
     // Add a resource to a list of tracked resources (ensures lifetime while command list is in-flight on a command queue.
     void TrackResource(Microsoft::WRL::ComPtr<ID3D12Object> object);
     void TrackResource(const std::shared_ptr<Resource>& res);
@@ -555,13 +566,6 @@ private:
     // is stored. The referenced objects are released when the command list is
     // reset.
     std::vector<Microsoft::WRL::ComPtr<ID3D12Object>> m_TrackedObjects;
-
-    // Keep track of loaded textures to avoid loading the same texture multiple times.
-    static std::unordered_map<std::wstring, std::shared_ptr<Texture>> ms_TextureCache;
-    static std::mutex ms_TextureCacheMutex;
-
-    static std::unordered_map<std::wstring, std::shared_ptr<Mesh>> ms_MeshCache;
-    static std::mutex ms_MeshCacheMutex;
 
     // These helper functions do not use the mesh cache, use public functions to generate reusable primitives  
     std::shared_ptr<Mesh> CreateCube(float size);

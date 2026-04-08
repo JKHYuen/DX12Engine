@@ -29,36 +29,6 @@ public:
 
 	ImageBasedLightingPSO(Device& device, const RenderTarget& renderTarget);
 
-	//enum OutlineRootParameters {
-	//	VertexCB,         // ConstantBuffer<Mat> VertexCB		 : register(b0);
-	//	MaterialCB,       // ConstantBuffer<Material> MaterialCB : register(b0, space1);
-	//	NumOutlineRootParameters
-	//};
-
-	//struct VertexProps {
-	//	XMFLOAT4X4 SRT;
-	//	XMFLOAT4X4 MVP;
-	//	XMFLOAT4   screenParams;
-	//	XMFLOAT4X4 Pad1;
-	//	XMFLOAT4   Pad2;
-	//	XMFLOAT4   Pad3;
-	//	XMFLOAT4   Pad4;
-	//};
-
-	//struct MaterialProps {
-	//	XMFLOAT4   outlineColor;
-	//	XMFLOAT4   Pad1;
-	//	XMFLOAT4   Pad2;
-	//	XMFLOAT4   Pad3;
-	//	XMFLOAT4X4 Pad4;
-	//	XMFLOAT4X4 Pad5;
-	//	XMFLOAT4X4 Pad6;
-	//};
-
-	//void UpdateResources(CommandList& directCommandList, VertexProps vertexProps, MaterialProps materialProps);
-
-	std::shared_ptr<RootSignature> GetRootSignature() const { return m_RootSignature; }
-
 	void SetPipelineState(CommandList& directCommandList) const;
 
 	ComPtr<ID3D12PipelineState> GetPSO(IBLRenderType renderType) const {
@@ -92,12 +62,7 @@ public:
 		}
 	}
 
-
-
 private:
-	std::shared_ptr<RootSignature> m_RootSignature;
-	ComPtr<ID3D12PipelineState> m_D3d12PipelineState;
-
 	ComPtr<ID3D12PipelineState> m_SkyboxPSO;
 	ComPtr<ID3D12PipelineState> m_ConvolutionPSO;
 	ComPtr<ID3D12PipelineState> m_PrefilterPSO;

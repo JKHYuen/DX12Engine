@@ -78,7 +78,7 @@ ImageBasedLightingPSO::ImageBasedLightingPSO(Device& device, const RenderTarget&
 	skyboxPipelineStateStream.SampleDesc = {1, 0};
 
 	device.CreatePipelineState(skyboxPipelineStateStream, m_ConvolutionPSO);
-
+	
 	///
 	/// Prefilter (Specular IBL)
 	///
@@ -112,7 +112,7 @@ ImageBasedLightingPSO::ImageBasedLightingPSO(Device& device, const RenderTarget&
 
 	// BRDF Root Signature
 	CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC BRDF_LUT_RootSignatureDescription {};
-	BRDF_LUT_RootSignatureDescription.Init_1_1(0, nullptr, 0, nullptr, rootSignatureFlags_VSPS);
+	BRDF_LUT_RootSignatureDescription.Init_1_1(0, nullptr, 0, &linearClampSampler, rootSignatureFlags_VSPS);
 	m_BRDF_LUT_RootSignature = std::make_shared<RootSignature>(device, BRDF_LUT_RootSignatureDescription.Desc_1_1);
 
 	// BRDF Precompute Pipeline State
@@ -121,6 +121,7 @@ ImageBasedLightingPSO::ImageBasedLightingPSO(Device& device, const RenderTarget&
 	skyboxPipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(integrateBRDF_ps.Get());
 	skyboxPipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(screenRender_vs.Get());
 	skyboxPipelineStateStream.SampleDesc = { 1, 0 };
+	// Don't know a simpler way to write this..
 	DXGI_FORMAT format[] = { DXGI_FORMAT_R16G16_FLOAT, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN };
 	skyboxPipelineStateStream.RTVFormats = CD3DX12_RT_FORMAT_ARRAY(format, 1);
 

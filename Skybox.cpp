@@ -74,7 +74,7 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, SkyboxParams params
 
 	m_SkyCubemapTexture->CreateShaderResourceView(cubeMapSRVDesc);
 
-	/// Create Textures
+	/// Create Render Textures
 	// Create cubemap render texture for irradiance convolution
 	{
 		/// TODO: check if format should be DXGI_FORMAT_R32G32B32A32_FLOAT
@@ -88,7 +88,6 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, SkyboxParams params
 
 		m_IrradianceConvolutionCubemap_RT.AttachTexture(AttachmentPoint::Color0, irradianceConvolutionCubemap);
 
-		// Create SRV for shader usage
 		cubeMapSRVDesc.Format = m_IrradianceConvolutionCubemap_RT.GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0];
 		irradianceConvolutionCubemap->CreateShaderResourceView(cubeMapSRVDesc);
 	}
@@ -105,7 +104,6 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, SkyboxParams params
 
 		m_PrefilterCubemap_RT.AttachTexture(AttachmentPoint::Color0, prefilterCubemap);
 
-		// Create SRV for shader usage
 		cubeMapSRVDesc.Format = m_PrefilterCubemap_RT.GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0];
 		prefilterCubemap->CreateShaderResourceView(cubeMapSRVDesc);
 	}
@@ -118,8 +116,8 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, SkyboxParams params
 		);
 		// NOTE: b_CreatedefaultView is true to make render target view
 		auto BRDF_LUT_Texture = std::make_shared<Texture>(device, lutTextureDesc);
-
 		BRDF_LUT_Texture->SetName(L"Integrated BRDF Texture");
+
 		m_BRDF_LUT_RT.AttachTexture(AttachmentPoint::Color0, BRDF_LUT_Texture);
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC lutSRVDesc = {};
@@ -175,6 +173,7 @@ void Skybox::ComputeIBLMaps(CommandList& directCommandList) {
 	}
 
 	/// BRDF Integration Map
+	// This could be only calculated once per runtime, or saved to disk
 	static bool s_IsBRDFIntegrated = false;
 	if(!s_IsBRDFIntegrated) {
 		s_IsBRDFIntegrated = true;

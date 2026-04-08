@@ -1344,7 +1344,7 @@ std::shared_ptr<Mesh> CommandList::GetSpherePrimitive() {
 		return iter->second;
 	}
 	else {
-		ms_MeshCache[sk_SpherePrimitiveName] = CreateSphere(0.5f, 64);
+		ms_MeshCache[sk_SpherePrimitiveName] = CreateSphere(0.5f, 32);
 		return ms_MeshCache[sk_SpherePrimitiveName];
 	}
 }

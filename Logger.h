@@ -25,6 +25,10 @@ public:
 		std::wcout << msg << std::endl;
 	}
 
+	static void Log(std::wstring msg) {
+		std::wcout << msg << std::endl;
+	}
+
 	template<class ...TArgs>
 	static void Log(std::format_string<TArgs...> fmt, TArgs&&... args) {
 		std::cout << std::format(fmt, std::forward<TArgs>(args)...) << std::endl;

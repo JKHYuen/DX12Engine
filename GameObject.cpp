@@ -27,7 +27,7 @@ GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, st
 	SetEulerRotation(params.eulerRotation.x, params.eulerRotation.y, params.eulerRotation.z);
 	SetScale(params.scale.x, params.scale.y, params.scale.z);
 
-	UpdateShaderResources(copyCommandList, params.pbrMatName);
+	UpdatePBRShaderResources(copyCommandList, params.pbrMatName);
 
 	// Set rest of textures not updated in UpdateShaderResources()
 	m_TextureResources[PBRObjectPSO::IrradianceCubemap]    = params.scene.GetSkybox().GetIrradianceTexture();
@@ -38,7 +38,7 @@ GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, st
 
 /// TODO: somehow make this compatible with assimp loading
 ///        Rename this function to indicate it's loading textures from file
-void GameObject::UpdateShaderResources(CommandList& copyCommandList, const std::wstring& pbrMatName) {
+void GameObject::UpdatePBRShaderResources(CommandList& copyCommandList, const std::wstring& pbrMatName) {
 	m_MaterialName = pbrMatName;
 
 	/// TODO: set root asset folder somewhere, maybe in IGame
@@ -51,6 +51,12 @@ void GameObject::UpdateShaderResources(CommandList& copyCommandList, const std::
 		copyCommandList.LoadTextureFromFile(matPathPrefix + L"_normal.tga", false);
 	m_TextureResources[PBRObjectPSO::MaterialTex] =
 		copyCommandList.LoadTextureFromFile(matPathPrefix + L"_mat.tga", false);
+}
+
+void GameObject::UpdateIBLShaderResources(const Scene& scene) {
+	m_TextureResources[PBRObjectPSO::IrradianceCubemap] = scene.GetSkybox().GetIrradianceTexture();
+	m_TextureResources[PBRObjectPSO::PrefilterCubemap]  = scene.GetSkybox().GetPrefilterTexture();
+	m_TextureResources[PBRObjectPSO::BRDFLut]           = scene.GetSkybox().Get_BRDF_LUT_Texture();
 }
 
 /// TODO: load from file with meshFileName

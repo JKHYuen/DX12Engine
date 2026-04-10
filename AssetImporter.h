@@ -80,7 +80,7 @@ namespace AssetImporter {
 		Assimp::Importer importer;
 
 		const aiScene* pScene =
-			importer.ReadFile(StringConvert::WideString_to_String(modelFilePath),
+			importer.ReadFile(StringConvert::WideString_To_String(modelFilePath),
 				aiProcessPreset_TargetRealtime_MaxQuality |
 				aiProcess_OptimizeGraph |
 				aiProcess_ConvertToLeftHanded | 

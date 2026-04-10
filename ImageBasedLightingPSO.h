@@ -50,6 +50,7 @@ public:
 	std::shared_ptr<RootSignature> GetRootSignature(IBLRenderType renderType) const {
 		switch(renderType) {
 		case Skybox:
+			return m_SkyboxRootSignature;
 		case Convolution:
 			return m_SkyboxRootSignature;
 		case Prefilter:

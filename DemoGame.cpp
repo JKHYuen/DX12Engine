@@ -490,7 +490,7 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 						ImGui::TableNextColumn();
 
 						/// TODO: make this work
-						if(ImGui::Selectable(StringConvert::WideString_to_String(s).c_str(), s == s_SelectedSkybox)) {
+						if(ImGui::Selectable(StringConvert::WideString_To_String(s).c_str(), s == s_SelectedSkybox)) {
 							auto& copyCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 							auto copyCommandList = copyCommandQueue.GetCommandList();
 
@@ -503,7 +503,6 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 							m_TestScene->SetSkybox(*copyCommandList, skyboxParams);
 							///
 
-							//copyCommandQueue.ExecuteCommandList(copyCommandList);
 							copyCommandQueue.WaitForFenceValue(copyCommandQueue.ExecuteCommandList(copyCommandList));
 
 							/// Doesn't work, IBL render targets not being updated
@@ -511,10 +510,7 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 							auto directCommandList = directCommandQueue.GetCommandList();
 							
 							m_TestScene->ComputeSkyboxIBLMaps(*directCommandList);
-
-							//directCommandQueue.ExecuteCommandList(directCommandList);
 							directCommandQueue.WaitForFenceValue(directCommandQueue.ExecuteCommandList(directCommandList));
-
 
 							s_SelectedSkybox = s;
 						};

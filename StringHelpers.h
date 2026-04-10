@@ -5,7 +5,7 @@
 
 namespace StringConvert {
     // Source: https://stackoverflow.com/a/69410299
-    inline std::wstring String_to_WideString(const std::string& string) {
+    inline std::wstring String_To_WideString(const std::string& string) {
         if(string.empty()) {
             return L"";
         }
@@ -20,7 +20,7 @@ namespace StringConvert {
         return result;
     }
 
-    inline std::string WideString_to_String(const std::wstring& wide_string) {
+    inline std::string WideString_To_String(const std::wstring& wide_string) {
         if(wide_string.empty()) {
             return "";
         }

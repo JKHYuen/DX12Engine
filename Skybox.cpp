@@ -14,6 +14,7 @@
 #include "Camera.h"
 #include "ImageBasedLightingPSO.h"
 #include "Helpers.h"
+#include "Logger.h"
 
 using namespace DirectX;
 
@@ -80,12 +81,12 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, SkyboxParams params
 	{
 		/// TODO: check if format should be DXGI_FORMAT_R32G32B32A32_FLOAT
 		auto irradianceCubemapDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-			DXGI_FORMAT_R16G16B16A16_FLOAT, sk_IrradianceMapResolution, sk_IrradianceMapResolution,
+			DXGI_FORMAT_R32G32B32A32_FLOAT, sk_IrradianceMapResolution, sk_IrradianceMapResolution,
 			6, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
 		);
 
 		auto irradianceConvolutionCubemap = std::make_shared<Texture>(device, irradianceCubemapDesc, nullptr, false);
-		irradianceConvolutionCubemap->SetName(L"Skybox Irradiance Convolution Cubemap");
+		irradianceConvolutionCubemap->SetName(L"Skybox Irradiance Convolution Cubemap - " + params.hdrTextureName);
 
 		m_IrradianceConvolutionCubemap_RT.AttachTexture(AttachmentPoint::Color0, irradianceConvolutionCubemap);
 
@@ -93,15 +94,15 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, SkyboxParams params
 		irradianceConvolutionCubemap->CreateShaderResourceView(cubeMapSRVDesc);
 	}
 
-	// Create cubemap render texture for irradiance convolution
+	// Create cubemap render texture for Prefilter map (specular)
 	{
 		auto prefilterCubemapDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-			DXGI_FORMAT_R16G16B16A16_FLOAT, sk_FullPrefilterMapResolution, sk_FullPrefilterMapResolution,
+			DXGI_FORMAT_R32G32B32A32_FLOAT, sk_FullPrefilterMapResolution, sk_FullPrefilterMapResolution,
 			6, sk_CubemapMipLevels, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
 		);
 
 		auto prefilterCubemap = std::make_shared<Texture>(device, prefilterCubemapDesc, nullptr, false);
-		prefilterCubemap->SetName(L"Skybox Prefilter Cubemap");
+		prefilterCubemap->SetName(L"Skybox Prefilter Cubemap - " + params.hdrTextureName);
 
 		m_PrefilterCubemap_RT.AttachTexture(AttachmentPoint::Color0, prefilterCubemap);
 
@@ -148,9 +149,22 @@ void Skybox::ComputeIBLMaps(CommandList& directCommandList) {
 	XMMATRIX cubemapProjectionMat = XMMatrixPerspectiveFovLH(XMConvertToRadians(90.0f), 1.0f, 0.1f, 10.0f);
 	directCommandList.SetScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX));
 
+	float clearColor[] = { 1.0f, 0.0f, 1.0f, 1.0f };
+
+	/// BRDF Integration Map
+	/// TODO: This could be only calculated once per runtime, or saved to disk
+	directCommandList.SetPipelineState(m_IBL_PSO->GetPSO(ImageBasedLightingPSO::BRDF_LUT));
+	directCommandList.SetGraphicsRootSignature(m_IBL_PSO->GetRootSignature(ImageBasedLightingPSO::BRDF_LUT));
+
+	directCommandList.ClearTexture(m_BRDF_LUT_RT.GetTexture(AttachmentPoint::Color0), clearColor);
+	directCommandList.SetRenderTarget(m_BRDF_LUT_RT);
+	directCommandList.SetViewport(m_BRDF_LUT_RT.GetViewport());
+	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	directCommandList.Draw(3);
+
 	/// Irradiance Convolution Map
 	{
-		directCommandList.SetViewport(m_IrradianceConvolutionCubemap_RT.GetViewport());
 		directCommandList.SetPipelineState(m_IBL_PSO->GetPSO(ImageBasedLightingPSO::Convolution));
 		directCommandList.SetGraphicsRootSignature(m_IBL_PSO->GetRootSignature(ImageBasedLightingPSO::Convolution));
 		directCommandList.SetShaderResourceView(1, 0, m_SkyCubemapTexture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -166,24 +180,14 @@ void Skybox::ComputeIBLMaps(CommandList& directCommandList) {
 			rtvDesc.Texture2DArray.FirstArraySlice = i;
 			rtvDesc.Texture2DArray.ArraySize = 1;
 			m_IrradianceConvolutionCubemap_RT.GetTexture(AttachmentPoint::Color0)->CreateRenderTargetView(rtvDesc);
+
+			directCommandList.ClearTexture(m_IrradianceConvolutionCubemap_RT.GetTexture(AttachmentPoint::Color0), clearColor);
+			directCommandList.SetViewport(m_IrradianceConvolutionCubemap_RT.GetViewport());
 			directCommandList.SetRenderTarget(m_IrradianceConvolutionCubemap_RT);
 
 			directCommandList.SetGraphics32BitConstants(0, viewProjMatrix);
 			m_SkyboxCubeMesh->Draw(directCommandList);
 		}
-	}
-
-	/// BRDF Integration Map
-	// This could be only calculated once per runtime, or saved to disk
-	static bool s_IsBRDFIntegrated = false;
-	if(!s_IsBRDFIntegrated) {
-		s_IsBRDFIntegrated = true;
-		directCommandList.SetRenderTarget(m_BRDF_LUT_RT);
-		directCommandList.SetViewport(m_BRDF_LUT_RT.GetViewport());
-		directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		directCommandList.SetPipelineState(m_IBL_PSO->GetPSO(ImageBasedLightingPSO::BRDF_LUT));
-		directCommandList.SetGraphicsRootSignature(m_IBL_PSO->GetRootSignature(ImageBasedLightingPSO::BRDF_LUT));
-		directCommandList.Draw(3);
 	}
 
 	/// Prefiltered Convolution Map
@@ -206,9 +210,10 @@ void Skybox::ComputeIBLMaps(CommandList& directCommandList) {
 				rtvDesc.Texture2DArray.FirstArraySlice = i;
 				rtvDesc.Texture2DArray.ArraySize = 1;
 				m_PrefilterCubemap_RT.GetTexture(AttachmentPoint::Color0)->CreateRenderTargetView(rtvDesc);
-				directCommandList.SetRenderTarget(m_PrefilterCubemap_RT);
 
+				directCommandList.ClearTexture(m_PrefilterCubemap_RT.GetTexture(AttachmentPoint::Color0), clearColor);
 				directCommandList.SetViewport(m_PrefilterCubemap_RT.GetViewport({ (float)currMipScale, (float)currMipScale }));
+				directCommandList.SetRenderTarget(m_PrefilterCubemap_RT);
 
 				directCommandList.SetGraphics32BitConstants(0, viewProjMatrix);
 				float roughness = (float)mipSlice / (float)(sk_CubemapMipLevels - 1);

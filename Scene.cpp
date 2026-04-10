@@ -12,6 +12,11 @@
 
 #include <filesystem>
 
+/// TODO: TEMP
+namespace {
+	bool sb_ChangeSkybox = false;
+}
+
 Scene::Scene(Device& device, CommandList& copyCommandList, const DirectionalLight::DirectionalLightParams& dirLightParams, const Skybox::SkyboxParams& skyboxParams, int windowWidth, int windowHeight)
 	: m_DirectionalLight(device, dirLightParams)
 	, m_Skybox(device, copyCommandList, skyboxParams)
@@ -59,7 +64,8 @@ void Scene::SetCubemap(CommandList& copyCommandList, const std::wstring& hdrText
 }
 
 void Scene::SetSkybox(CommandList& copyCommandList, const Skybox::SkyboxParams& skyboxParams) {
-	m_Skybox = Skybox {m_Device, copyCommandList, skyboxParams};
+	m_Skybox = Skybox(m_Device, copyCommandList, skyboxParams);
+	sb_ChangeSkybox = true;
 }
 /// END TEST
 
@@ -84,9 +90,18 @@ void Scene::Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, D3D12_
 	// Render scene objects
 	// All game objects use the same PSO/root sig right now
 	for(auto& o : m_SceneObjects) {
+
+		/// TODO: TEMP
+		if(sb_ChangeSkybox) {
+			o.UpdateIBLShaderResources(*this);
+		}
+
 		// Render pipeline currently set (inside function below) for every object even though they are the same
 		o.Render(directCommandList, e, *this);
 	}
+
+	/// TODO: TEMP
+	sb_ChangeSkybox = false;
 
 	for(auto& o : m_SceneObjects) {
 		o.RenderOutline(directCommandList, e, *this);
@@ -158,11 +173,11 @@ void Scene::RenderImGui() {
 			for(auto& s : m_MaterialNames) {
 				ImGui::TableNextColumn();
 
-				if(ImGui::Selectable(StringConvert::WideString_to_String(s).c_str(), s == s_SelectedMat)) {
+				if(ImGui::Selectable(StringConvert::WideString_To_String(s).c_str(), s == s_SelectedMat)) {
 					auto& copyCommandQueue = m_Device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 					auto copyCommandList = copyCommandQueue.GetCommandList();
 
-					picked->UpdateShaderResources(*copyCommandList, s);
+					picked->UpdatePBRShaderResources(*copyCommandList, s);
 
 					copyCommandQueue.ExecuteCommandList(copyCommandList);
 					copyCommandQueue.FlushWait();

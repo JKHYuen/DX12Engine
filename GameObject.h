@@ -57,7 +57,9 @@ public:
 	void RenderToDirectionalShadowMap(CommandList& directCommandList, const DirectionalLight& directionalLight);
 
 	// Currently only compatible with PBRObjectPSO
-	void UpdateShaderResources(CommandList& copyCommandList, const std::wstring& pbrMatName);
+	void UpdatePBRShaderResources(CommandList& copyCommandList, const std::wstring& pbrMatName);
+
+	void UpdateIBLShaderResources(const Scene& scene);
 
 	/// Transfom functions aren't very intuitive, good enough for now
 	void Translate(float x, float y, float z);   // Adds to world position values

@@ -124,7 +124,7 @@ float4 main(PixelInputType i) : SV_Target {
     // Currently only from directional light
     float3 specular = numerator / denominator;
     
-    // Prevent artifacts from extremely bright pixels on perfectly smooth materials (bandaid fix)
+    // (Bandaid Fix) Prevent artifacts from extremely bright pixels on perfectly smooth materials
     // This may cause some specular highilghts to be omitted (e.g. marble sphere from demo scene)
     //specular = clamp(specular, 0, 10000);
     
@@ -164,11 +164,10 @@ float4 main(PixelInputType i) : SV_Target {
 // Calculate Shadow
 //
     // Calculate the projected texture coordinates.
-    float2 projectTexCoord = float2(i.directionalLightViewPosition.x, -i.directionalLightViewPosition.y);
-    projectTexCoord = projectTexCoord / i.directionalLightViewPosition.w * 0.5 + 0.5;
-
-    // Calculate the depth of the light.
-    float lightDepthValue = i.directionalLightViewPosition.z / i.directionalLightViewPosition.w;
+    // use screen coord of vertex position with directional light's view/projection, rescaled tp [0,1]
+    float3 normalizedDirectionalLightViewPos = (i.directionalLightViewPosition.xyz / i.directionalLightViewPosition.w);
+    float2 projectTexCoord = float2(normalizedDirectionalLightViewPos.x, -normalizedDirectionalLightViewPos.y) * 0.5 + 0.5;
+    float lightDepthValue = normalizedDirectionalLightViewPos.z;
         
     // Adaptive shadow bias
     //float shadowBias = max(0.05 * (1.0 - dot(normal, -lightDirection)), 0.005);
@@ -177,21 +176,23 @@ float4 main(PixelInputType i) : SV_Target {
     //lightDepthValue = lightDepthValue - shadowBias;
     lightDepthValue = lightDepthValue - 0.001;
         
-    // Shadowmap with basic 5x5 PCF multisampling
+    // Shadowmap with basic PCF multisampling
     float shadowFactor = 0.0; // 0: in shadow, 1: not in shadow
+    
     float width, height, numOfLevels;
     DirectionalShadowMap.GetDimensions(0, width, height, numOfLevels);
     float2 texelSize = 1.0 / width;
-    for (int x = -2; x <= 2; ++x) {
-        for (int y = -2; y <= 2; ++y) {
+    
+    for (int x = -1; x <= 1; x++) {
+        for (int y = -1; y <= 1; y++) {
             // TODO: use border sampler
             float pcfDepth = DirectionalShadowMap.Sample(ClampSampler, projectTexCoord + float2(x, y) * texelSize).r;
             shadowFactor += lightDepthValue > pcfDepth ? 0.0 : 1.0;
         }
     }
-    shadowFactor /= 25.0;
+    shadowFactor /= 9.0;
     
-    if (lightDepthValue >= 1.0)
+    if (lightDepthValue > 1.0)
         shadowFactor = 1.0;
 
     return float4(ambient + Lo * shadowFactor, 1);

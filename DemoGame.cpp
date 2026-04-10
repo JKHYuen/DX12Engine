@@ -58,12 +58,12 @@ namespace {
 	float s_ShadowBias          = 0.001f;
 
 	float s_DefaultFOV = 45.0f;
-	float s_MinFOV = 12.0f;
-	float s_MaxFOV = 90.0f;
+	float s_MinFOV     = 12.0f;
+	float s_MaxFOV     = 90.0f;
 
 	// Projection Matrix
 	float s_ZNear = 0.1f;
-	float s_ZFar = 1000.0f;
+	float s_ZFar  = 1000.0f;
 }
 
 DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t windowHeight, bool vSync)
@@ -165,7 +165,7 @@ bool DemoGame::Initialize() {
 		m_FloatRenderTarget.AttachTexture(AttachmentPoint::Color0, floatRenderTexture);
 	}
 
-	// Create PBR Pipeline State s
+	// Create PBR Pipeline States
 	m_PBR_PSO = std::make_unique<PBRObjectPSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RenderTarget.GetRenderTargetFormats(), sk_DepthBufferFormat);
 	m_Outline_PSO = std::make_unique<OutlinePSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RenderTarget.GetRenderTargetFormats(), sk_DepthBufferFormat);
 
@@ -180,7 +180,7 @@ bool DemoGame::Initialize() {
 			m_PBR_PSO->GetRootSignature(), // reuse PBR root signature for depth render
 			VertexInput::GetInputLayout(),
 			XMFLOAT3(9.0f, 8.0f, 7.0f),
-			XMFLOAT3(50.0f, 230.0f, 0.0f),
+			XMFLOAT3(140.0f, 230.0f, 0.0f),
 			s_ShadowMapResolution,
 			s_ShadowDistance,
 			s_ShadowMapNear,
@@ -475,7 +475,7 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 			m_TestScene->m_MainCamera.Set_FoV(fov);
 
 			// Directional Light
-			static float sceneDirLightAngle[2] { 50.0f, 230.0f };
+			static float sceneDirLightAngle[2] { 140.0f, 230.0f };
 			if(ImGui::DragFloat2("[x, y]", sceneDirLightAngle, 0.1f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
 				sceneDirLightAngle[0] = std::fmod(sceneDirLightAngle[0], 360.0f);
 				sceneDirLightAngle[1] = std::fmod(sceneDirLightAngle[1], 360.0f);
@@ -494,7 +494,7 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 							auto& copyCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 							auto copyCommandList = copyCommandQueue.GetCommandList();
 
-							/// Do something smarter
+							/// Creates new skybox object, do something smarter
 							Skybox::SkyboxParams skyboxParams {
 								s,
 								m_IBL_PSO.get()
@@ -503,16 +503,18 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 							m_TestScene->SetSkybox(*copyCommandList, skyboxParams);
 							///
 
-							copyCommandQueue.ExecuteCommandList(copyCommandList);
-							copyCommandQueue.FlushWait();
+							//copyCommandQueue.ExecuteCommandList(copyCommandList);
+							copyCommandQueue.WaitForFenceValue(copyCommandQueue.ExecuteCommandList(copyCommandList));
 
 							/// Doesn't work, IBL render targets not being updated
 							auto& directCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 							auto directCommandList = directCommandQueue.GetCommandList();
-
+							
 							m_TestScene->ComputeSkyboxIBLMaps(*directCommandList);
-							directCommandQueue.ExecuteCommandList(directCommandList);
-							directCommandQueue.FlushWait();
+
+							//directCommandQueue.ExecuteCommandList(directCommandList);
+							directCommandQueue.WaitForFenceValue(directCommandQueue.ExecuteCommandList(directCommandList));
+
 
 							s_SelectedSkybox = s;
 						};
@@ -552,11 +554,6 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 	auto directCommandList = directCommandQueue.GetCommandList();
 
 	/// Render Test Scene
-	// Clear the render targets.
-	float clearColor[] = {0.6f, 0.6f, 0.7f, 1.0f};
-	directCommandList->ClearTexture(m_HDR_MSAA_RenderTarget.GetTexture(AttachmentPoint::Color0), clearColor);
-	directCommandList->ClearDepthStencilTexture(m_HDR_MSAA_RenderTarget.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL);
-
 	// Perform HDR rendering to intermediate render target (before multisample resolve)
 	m_TestScene->Render(m_HDR_MSAA_RenderTarget, m_ScreenViewport, m_DefaultScissorRect, *directCommandList, e);
 

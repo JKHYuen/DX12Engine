@@ -65,6 +65,17 @@ void Scene::SetSkybox(CommandList& copyCommandList, const Skybox::SkyboxParams& 
 
 void Scene::Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, D3D12_RECT scissorRec, CommandList& directCommandList, const UpdateEventArgs& e) {
 	directCommandList.SetScissorRect(scissorRec);
+
+	// Render depth from directional light for same objects above
+	m_DirectionalLight.SetShadowDepthPipelineStateAndRenderTarget(directCommandList);
+	for(auto& o : m_SceneObjects) {
+		o.RenderToDirectionalShadowMap(directCommandList, m_DirectionalLight);
+	}
+
+	// Render skybox and objects with same render target
+	float clearColor[] = { 0.6f, 0.6f, 0.7f, 1.0f };
+	directCommandList.ClearTexture(targetRT.GetTexture(AttachmentPoint::Color0), clearColor);
+	directCommandList.ClearDepthStencilTexture(targetRT.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL);
 	directCommandList.SetViewport(viewPort);
 	directCommandList.SetRenderTarget(targetRT);
 
@@ -81,11 +92,6 @@ void Scene::Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, D3D12_
 		o.RenderOutline(directCommandList, e, *this);
 	}
 
-	// Render depth from directional light for same objects above
-	m_DirectionalLight.SetShadowDepthPipelineStateAndRenderTarget(directCommandList);
-	for(auto& o : m_SceneObjects) {
-		o.RenderToDirectionalShadowMap(directCommandList, m_DirectionalLight);
-	}
 }
 
 void Scene::SetDirectionalLightAngle(float rotX, float rotY, float rotZ) {

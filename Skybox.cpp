@@ -42,6 +42,7 @@ namespace {
 	};
 }
 
+/// TODO: TEST FUNCTION, UNUSED
 void Skybox::SetCubemap(CommandList& copyCommandList, const std::wstring& hdrTextureName) {
 	m_HDRPanoTexture = copyCommandList.LoadTextureFromFile(L"assets/cubemaps/" + hdrTextureName, true);
 	copyCommandList.PanoToCubemapCompute(m_SkyCubemapTexture, m_HDRPanoTexture);

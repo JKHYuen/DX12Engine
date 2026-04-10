@@ -21,7 +21,7 @@ struct PixelInputType {
     float2 uv                           : TEXCOORD0;
     float4 worldPosition                : TEXCOORD1;
     float4 cameraPosition               : TEXCOORD2;
-    float4 directionalLightViewPosition : TEXCOORD3;
+    float4 directionalLightViewPosition : TEXCOORD3; // vertex position with directional light's view/projection
 };
 
 PixelInputType main(VertexInput i) {

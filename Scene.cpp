@@ -9,6 +9,7 @@
 #include "Logger.h"
 #include "Helpers.h"
 #include "StringHelpers.h"
+#include "EditorGui.h"
 
 #include <filesystem>
 
@@ -115,13 +116,25 @@ void Scene::SetDirectionalLightAngle(float rotX, float rotY, float rotZ) {
 
 void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 	// Gameobject raycast picking for object inspector GUI, gameobjects are outlined if picked
-	// Disabled if ImGui mouse event is occuring
-	if(e.Button == MouseButtonEventArgs::Left && !ImGui::GetIO().WantCaptureMouse) {
-		if(GameObject* go = m_Picker->GetPickedObject()) {
-			go->SetOutlineState(false);
+	// Disabled if:
+	//   - ImGui mouse event is occuring i.e. mouse is hovered on top of a ImGui element
+	//	 - or ImGui UI is not open
+	if(e.Button == MouseButtonEventArgs::Left) {
+		if(EditorGui::sb_ShowImGuiWindow && !ImGui::GetIO().WantCaptureMouse) {
+			if(GameObject* go = m_Picker->GetPickedObject()) {
+				go->SetOutlineState(false);
+			}
+			if(GameObject* go = m_Picker->MouseRaycast(e.X, e.Y, m_GameWindowWidth, m_GameWindowHeight)) {
+				go->SetOutlineState(true);
+			}
 		}
-		if(GameObject* go = m_Picker->MouseRaycast(e.X, e.Y, m_GameWindowWidth, m_GameWindowHeight)) {
-			go->SetOutlineState(true);
+
+		// Unpick object if mouse clicked and editor UI is not open
+		if(!EditorGui::sb_ShowImGuiWindow) {
+			if(GameObject* go = m_Picker->GetPickedObject()) {
+				go->SetOutlineState(false);
+				m_Picker->ClearPickedObject();
+			}
 		}
 	}
 }

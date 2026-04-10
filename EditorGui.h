@@ -48,6 +48,9 @@ public:
 
 	static inline GuiDescriptorAllocation GetImageSRV(GuiSRVIndex index) { return s_ImageSRVs[index]; }
 
+	static inline bool sb_ShowImGuiWindow = false;
+	static inline void ToggleImGuiVisibilityState() { sb_ShowImGuiWindow = !sb_ShowImGuiWindow; }
+
 private:
 	const int mk_SRVHeapSize = 64;
 
@@ -92,8 +95,9 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_D3DSrvDescHeap;
 
+
 	// static so it can be used in ImGui callback lambdas
-	static inline DescriptorHeapAllocator s_D3DSrvDescHeapAllocator;
+	static inline DescriptorHeapAllocator s_D3DSrvDescHeapAllocator {};
 
 	// Stores all created GuiDescriptorAllocations created by "AllocateImageSRV()" 
 	// Static member for easy access; primarily for debug menu. Indices are enum "GuiSRVIndex"

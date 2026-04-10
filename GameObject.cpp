@@ -56,6 +56,8 @@ void GameObject::UpdatePBRShaderResources(CommandList& copyCommandList, const st
 void GameObject::UpdateIBLShaderResources(const Scene& scene) {
 	m_TextureResources[PBRObjectPSO::IrradianceCubemap] = scene.GetSkybox().GetIrradianceTexture();
 	m_TextureResources[PBRObjectPSO::PrefilterCubemap]  = scene.GetSkybox().GetPrefilterTexture();
+
+	/// TODO: this should be cached, it never changes
 	m_TextureResources[PBRObjectPSO::BRDFLut]           = scene.GetSkybox().Get_BRDF_LUT_Texture();
 }
 

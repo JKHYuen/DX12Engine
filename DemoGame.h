@@ -92,8 +92,6 @@ private:
     int  m_WindowHeight;
     bool m_IsVsync;
 
-    bool m_ShowImGuiWindow;
-
     int m_CurrentAvgFPS;
     static const int sk_frameTimeSamples = 128;
     double m_frameTimeHistory[sk_frameTimeSamples] = {};

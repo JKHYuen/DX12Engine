@@ -80,7 +80,6 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	, m_IsShiftPressed(false)
 	, m_IsLeftClickPressed(false)
 	, m_IsRightClickPressed(false)
-	, m_ShowImGuiWindow(false)
 	, m_CurrentAvgFPS(0)
 	, m_WindowWidth(windowWidth)
 	, m_WindowHeight(windowHeight)
@@ -340,7 +339,7 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 	//m_SwapChain->WaitForSwapChain();
 
 	// Update the camera transform if ImGui is not showing, unless right click is held
-	if(!m_ShowImGuiWindow || m_IsRightClickPressed) {
+	if(!EditorGui::sb_ShowImGuiWindow || m_IsRightClickPressed) {
 		float speedMultipler = m_IsShiftPressed ? 32.0f : 8.0f;
 		
 		// extra slow movement if using left or right click
@@ -367,7 +366,7 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 void DemoGame::RenderImGui(CommandList& directCommandList) {
 	/// NOTE: Cursor visibility is currently solely controlled by ImGui, not ideal but works for now.
 	///       Cursor is invisible anytime ImGui window is not shown.
-	ImGui::SetMouseCursor(m_ShowImGuiWindow || !Application::Get().GetCursorClientAreaLockState() ? ImGuiMouseCursor_Arrow : ImGuiMouseCursor_None);
+	ImGui::SetMouseCursor(EditorGui::sb_ShowImGuiWindow || !Application::Get().GetCursorClientAreaLockState() ? ImGuiMouseCursor_Arrow : ImGuiMouseCursor_None);
 
 	m_EditorGui->NewFrame();
 
@@ -392,10 +391,10 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 		}
 	};
 
-	if(m_ShowImGuiWindow) {
+	if(EditorGui::sb_ShowImGuiWindow) {
 		/// Main Engine UI Window Start
 		{
-			ImGui::Begin("DX12 Engine", &m_ShowImGuiWindow, ImGuiWindowFlags_NoCollapse);
+			ImGui::Begin("DX12 Engine", &EditorGui::sb_ShowImGuiWindow, ImGuiWindowFlags_NoCollapse);
 
 			// Exit button
 			{
@@ -476,9 +475,7 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 
 			// Directional Light
 			static float sceneDirLightAngle[2] { 140.0f, 230.0f };
-			if(ImGui::DragFloat2("[x, y]", sceneDirLightAngle, 0.1f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
-				sceneDirLightAngle[0] = std::fmod(sceneDirLightAngle[0], 360.0f);
-				sceneDirLightAngle[1] = std::fmod(sceneDirLightAngle[1], 360.0f);
+			if(ImGui::DragFloat2("[x, y]", sceneDirLightAngle, 0.1f, 0.0f, 360.0f, "%.2f", kSliderFlags | ImGuiSliderFlags_WrapAround)) {
 				m_TestScene->SetDirectionalLightAngle(sceneDirLightAngle[0], sceneDirLightAngle[1], 0.0f);
 			}
 			
@@ -585,7 +582,7 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 
 void DemoGame::OnMouseMove(const MouseMotionEventArgs& e) {
 	// Record mouse rotations only if ImGui is closed or right click is held down
-	if(!m_ShowImGuiWindow || m_IsRightClickPressed) {
+	if(!EditorGui::sb_ShowImGuiWindow || m_IsRightClickPressed) {
 		m_Pitch -= e.DeltaY * sk_MouseSpeed;
 		m_Pitch = std::clamp(m_Pitch, -90.0f, 90.0f);
 		m_Yaw -= e.DeltaX * sk_MouseSpeed;
@@ -606,7 +603,7 @@ void DemoGame::OnMouseButtonPressed(const MouseButtonEventArgs& e) {
 
 		// Holding right click moves camera back,
 		// disabled for ImGui because right click is held to enable camera movement
-		if(!m_ShowImGuiWindow) {
+		if(!EditorGui::sb_ShowImGuiWindow) {
 			m_Forward = -1.0f;
 		}
 	}
@@ -716,7 +713,7 @@ void DemoGame::OnKeyReleased(const KeyEventArgs& e) {
 		break;
 
 	case KeyCode::F1: 
-		m_ShowImGuiWindow = !m_ShowImGuiWindow;
+		EditorGui::ToggleImGuiVisibilityState();
 		break;
 
 	case KeyCode::ShiftKey:
@@ -726,7 +723,7 @@ void DemoGame::OnKeyReleased(const KeyEventArgs& e) {
 }
 
 void DemoGame::OnMouseWheel(const MouseWheelEventArgs& e) {
-	if(!m_ShowImGuiWindow) {
+	if(!EditorGui::sb_ShowImGuiWindow) {
 		auto fov = m_TestScene->m_MainCamera.Get_FoV();
 
 		fov -= e.WheelDelta;

@@ -92,7 +92,7 @@ void DirectionalLight::SetDirection(float rotX, float rotY, float rotZ) {
 }
 
 void DirectionalLight::SetQuaternionDirection(XMVECTOR rotationQuaternion) {
-    XMVECTOR dirVec = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+    XMVECTOR dirVec = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f); // starting direction chosen arbitrarily
     dirVec = XMVector3Rotate(dirVec, rotationQuaternion);
 
     XMStoreFloat4(&m_Direction, dirVec);

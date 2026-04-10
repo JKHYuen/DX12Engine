@@ -5,6 +5,12 @@
 // Interface for game/render loop functionality
 class IGame {
 public:
+    IGame() = default;
+    IGame(const IGame&)            = delete;
+    IGame& operator=(IGame&)       = delete;
+    IGame(IGame&&)                 = delete;
+    IGame& operator=(IGame&&)      = delete;
+
     virtual ~IGame() = default;
 
     // Load content required for the demo.

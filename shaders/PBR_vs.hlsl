@@ -27,6 +27,8 @@ struct PixelInputType {
 PixelInputType main(VertexInput i) {
     PixelInputType o;
     
+    /// TODO: height map will be MaterialTex.a
+    
      // TBN
     o.tangent =   normalize(mul((float3x3) SRT, i.tangent));
     o.bitangent = normalize(mul((float3x3) SRT, i.bitangent));

@@ -77,7 +77,7 @@ float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness) {
 }
 
 
-float4 main(PixelInputType i) : SV_Target {
+float4 main(PixelInputType i) : SV_TARGET {
     /// TODO: add uv scaling in CB
     //i.uv *= 2;
     
@@ -86,6 +86,7 @@ float4 main(PixelInputType i) : SV_Target {
     float ao        = MaterialTex.Sample(AnisoWrapSampler, i.uv).r;
     float metallic  = MaterialTex.Sample(AnisoWrapSampler, i.uv).g;
     float roughness = MaterialTex.Sample(AnisoWrapSampler, i.uv).b;
+    
     // Normal preprocess
     float3 normalMap = NormalTex.Sample(AnisoWrapSampler, i.uv).xyz * 2.0 - 1.0;
     float3 normal = normalize((normalMap.x * i.tangent) + (normalMap.y * i.bitangent) + (normalMap.z * i.normal));

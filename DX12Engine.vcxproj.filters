@@ -180,6 +180,9 @@
     <ClCompile Include="ImageBasedLightingPSO.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="BloomPass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Helpers.h">
@@ -377,6 +380,9 @@
     <ClInclude Include="ImageBasedLightingPSO.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="BloomPass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shaders\PBR_VS.hlsl" />
@@ -393,6 +399,7 @@
     <FxCompile Include="shaders\ConvoluteCubeMap_PS.hlsl" />
     <FxCompile Include="shaders\Outline_VS.hlsl" />
     <FxCompile Include="shaders\Outline_PS.hlsl" />
+    <FxCompile Include="shaders\Bloom_PS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\assimp\Assimp.sln" />

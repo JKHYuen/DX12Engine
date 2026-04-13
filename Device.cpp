@@ -88,7 +88,6 @@ Device::Device(DXGI_GPU_PREFERENCE gpuPreference, bool useWarp) {
     }
 }
 
-// NOTE: sketchy return of ref from unique pointer
 CommandQueue& Device::GetCommandQueue(D3D12_COMMAND_LIST_TYPE type) {
     CommandQueue* commandQueue {};
     switch(type) {
@@ -137,7 +136,7 @@ DXGI_SAMPLE_DESC Device::GetMultisampleQualityLevels(DXGI_FORMAT format, UINT nu
     return sampleDesc;
 }
 
-void Device::Flush() {
+void Device::FlushWait() {
     m_DirectCommandQueue->FlushWait();
     m_ComputeCommandQueue->FlushWait();
     m_CopyCommandQueue->FlushWait();

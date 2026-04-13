@@ -20,7 +20,7 @@ public:
 	};
 
 	// Loads "hdrTextureName" from file as skybox
-	Skybox(Device& device, CommandList& copyCommandList, SkyboxParams params);
+	Skybox(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, SkyboxParams params);
 	
 	void SetCubemap(CommandList& copyCommandList, const std::wstring& hdrTextureName);
 
@@ -32,7 +32,7 @@ public:
 	void ComputeIBLMaps(CommandList& directCommandList);
 
 	std::shared_ptr<Texture> GetIrradianceTexture() const { return m_IrradianceConvolutionCubemap_RT.GetTexture(AttachmentPoint::Color0); };
-	std::shared_ptr<Texture> GetPrefilterTexture() const { return m_PrefilterCubemap_RT.GetTexture(AttachmentPoint::Color0); };
+	std::shared_ptr<Texture> GetPrefilterTexture()  const { return m_PrefilterCubemap_RT.GetTexture(AttachmentPoint::Color0); };
 	std::shared_ptr<Texture> Get_BRDF_LUT_Texture() const { return m_BRDF_LUT_RT.GetTexture(AttachmentPoint::Color0); };
 
 private:

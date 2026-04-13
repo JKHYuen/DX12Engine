@@ -18,9 +18,9 @@ namespace {
 	bool sb_ChangeSkybox = false;
 }
 
-Scene::Scene(Device& device, CommandList& copyCommandList, const DirectionalLight::DirectionalLightParams& dirLightParams, const Skybox::SkyboxParams& skyboxParams, int windowWidth, int windowHeight)
+Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const DirectionalLight::DirectionalLightParams& dirLightParams, const Skybox::SkyboxParams& skyboxParams, int windowWidth, int windowHeight)
 	: m_DirectionalLight(device, dirLightParams)
-	, m_Skybox(device, copyCommandList, skyboxParams)
+	, m_Skybox(device, copyCommandList, computeCommandList, skyboxParams)
 	, m_Device(device)
 	, m_GameWindowWidth(windowWidth)
 	, m_GameWindowHeight(windowHeight)
@@ -60,12 +60,13 @@ void Scene::ComputeSkyboxIBLMaps(CommandList& directCommandList) {
 	m_Skybox.ComputeIBLMaps(directCommandList);
 }
 
+/// UNUSED
 void Scene::SetCubemap(CommandList& copyCommandList, const std::wstring& hdrTextureName) {
 	m_Skybox.SetCubemap(copyCommandList, hdrTextureName);
 }
 
-void Scene::SetSkybox(CommandList& copyCommandList, const Skybox::SkyboxParams& skyboxParams) {
-	m_Skybox = Skybox(m_Device, copyCommandList, skyboxParams);
+void Scene::SetSkybox(CommandList& copyCommandList, CommandList& computeCommandList, const Skybox::SkyboxParams& skyboxParams) {
+	m_Skybox = Skybox(m_Device, copyCommandList, computeCommandList, skyboxParams);
 	sb_ChangeSkybox = true;
 }
 /// END TEST

@@ -107,7 +107,7 @@ void SwapChain::Resize(uint32_t width, uint32_t height) {
         m_Width = std::max(1u, width);
         m_Height = std::max(1u, height);
 
-        m_Device.Flush();
+        m_Device.FlushWait();
 
         // Release all references to back buffer textures.
         m_RenderTarget.Reset();

@@ -187,16 +187,20 @@ bool DemoGame::Initialize() {
 			s_ShadowBias
 		};
 
+		auto& computeCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE);
+		auto computeCommandList = computeCommandQueue.GetCommandList();
+
 		/// TODO: Skybox switching in runtime
 		Skybox::SkyboxParams skyboxParams {
 			s_defaultSkyboxName,
 			m_IBL_PSO.get()
 		};
 
-		m_TestScene = std::make_unique<Scene>(*m_Device, *copyCommandList, dirLightParams, skyboxParams, m_WindowWidth, m_WindowHeight);
+		m_TestScene = std::make_unique<Scene>(*m_Device, *copyCommandList, *computeCommandList, dirLightParams, skyboxParams, m_WindowWidth, m_WindowHeight);
 
 		// Wait for IBL resource creation to finish (panotocubemap in Skybox class)
 		copyCommandQueue.WaitForFenceValue(copyCommandQueue.ExecuteCommandList(copyCommandList));
+		computeCommandQueue.WaitForFenceValue(computeCommandQueue.ExecuteCommandList(computeCommandList));
 
 		// Precompute skybox IBL textures
 		auto& directCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
@@ -486,23 +490,27 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 					for(auto& s : m_SkyboxNames) {
 						ImGui::TableNextColumn();
 
-						/// TODO: make this work
 						if(ImGui::Selectable(StringConvert::WideString_To_String(s).c_str(), s == s_SelectedSkybox)) {
 							auto& copyCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 							auto copyCommandList = copyCommandQueue.GetCommandList();
+							auto& computeCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE);
+							auto computeCommandList = computeCommandQueue.GetCommandList();
 
-							/// Creates new skybox object, do something smarter
+							// Load new skybox cubemap
+							/// TODO: Creates new skybox object every time, do something smarter
 							Skybox::SkyboxParams skyboxParams {
 								s,
 								m_IBL_PSO.get()
 							};
 
-							m_TestScene->SetSkybox(*copyCommandList, skyboxParams);
-							///
+							m_TestScene->SetSkybox(*copyCommandList, *computeCommandList, skyboxParams);
 
 							copyCommandQueue.WaitForFenceValue(copyCommandQueue.ExecuteCommandList(copyCommandList));
+							computeCommandQueue.WaitForFenceValue(computeCommandQueue.ExecuteCommandList(computeCommandList));
+							///
 
-							/// Doesn't work, IBL render targets not being updated
+
+							// Render new IBLs
 							auto& directCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 							auto directCommandList = directCommandQueue.GetCommandList();
 							

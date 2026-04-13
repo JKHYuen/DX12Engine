@@ -543,14 +543,15 @@ void CommandList::GenerateMips_UAV(const std::shared_ptr<Texture>& texture, bool
 
 void CommandList::PanoToCubemapCompute(const std::shared_ptr<Texture>& cubemapTexture, const std::shared_ptr<Texture>& panoTexture) {
 	assert(cubemapTexture && panoTexture);
+	assert(m_d3d12CommandListType == D3D12_COMMAND_LIST_TYPE_COMPUTE);
 
-	if(m_d3d12CommandListType == D3D12_COMMAND_LIST_TYPE_COPY) {
-		if(!m_ComputeCommandList) {
-			m_ComputeCommandList = m_Device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE).GetCommandList();
-		}
-		m_ComputeCommandList->PanoToCubemapCompute(cubemapTexture, panoTexture);
-		return;
-	}
+	//if(m_d3d12CommandListType == D3D12_COMMAND_LIST_TYPE_COPY) {
+	//	if(!m_ComputeCommandList) {
+	//		m_ComputeCommandList = m_Device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE).GetCommandList();
+	//	}
+	//	m_ComputeCommandList->PanoToCubemapCompute(cubemapTexture, panoTexture);
+	//	return;
+	//}
 
 	if(!m_PanoToCubemapPSO) {
 		m_PanoToCubemapPSO = std::make_unique<PanoToCubemapPSO>(m_Device);

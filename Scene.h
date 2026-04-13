@@ -19,7 +19,7 @@ class Scene {
 
 public:
 	/// TODO: make directional light and skybox optional
-	Scene(Device& device, CommandList& copyCommandList, const DirectionalLight::DirectionalLightParams& dirLightParams, const Skybox::SkyboxParams& skyboxParams, int windowWidth, int windowHeight);
+	Scene(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const DirectionalLight::DirectionalLightParams& dirLightParams, const Skybox::SkyboxParams& skyboxParams, int windowWidth, int windowHeight);
 
 	Scene(const Scene&) = delete;
 	Scene& operator=(Scene&) = delete;
@@ -37,10 +37,11 @@ public:
 	void CreateGameObject(CommandList& copyCommandList, const GameObject::GameObjectParams& goParams, const std::wstring& meshFileName);
 
 	void ComputeSkyboxIBLMaps(CommandList& directCommandList);
-	void SetCubemap(CommandList& copyCommandList, const std::wstring& hdrTextureName);
 
 	/// TODO: test
-	void SetSkybox(CommandList& copyCommandList, const Skybox::SkyboxParams& skyboxParams);
+	void SetCubemap(CommandList& copyCommandList, const std::wstring& hdrTextureName);
+	void SetSkybox(CommandList& copyCommandList, CommandList& computeCommandList, const Skybox::SkyboxParams& skyboxParams);
+	/// 
 
 	void Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, D3D12_RECT scissorRec, CommandList& directCommandList, const UpdateEventArgs& e);
 	

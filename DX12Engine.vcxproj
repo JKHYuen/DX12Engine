@@ -204,6 +204,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="BloomPass.cpp" />
+    <ClCompile Include="BloomPSO.cpp" />
     <ClCompile Include="Buffer.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
@@ -393,6 +394,7 @@
     <ClInclude Include="Application.h" />
     <ClInclude Include="AssetImporter.h" />
     <ClInclude Include="BloomPass.h" />
+    <ClInclude Include="BloomPSO.h" />
     <ClInclude Include="Buffer.h" />
     <ClInclude Include="ByteAddressBuffer.h" />
     <ClInclude Include="Camera.h" />

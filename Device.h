@@ -67,7 +67,7 @@ public:
     /**
      * Flush all command queues.
      */
-    void Flush();
+    void FlushWait();
 
     /**
      * Release stale descriptors. This should only be called with a completed frame counter.

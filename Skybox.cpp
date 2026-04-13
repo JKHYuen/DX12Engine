@@ -49,7 +49,7 @@ void Skybox::SetCubemap(CommandList& copyCommandList, const std::wstring& hdrTex
 	copyCommandList.PanoToCubemapCompute(m_SkyCubemapTexture, m_HDRPanoTexture);
 }
 
-Skybox::Skybox(Device& device, CommandList& copyCommandList, SkyboxParams params)
+Skybox::Skybox(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, SkyboxParams params)
 	: m_IBL_PSO(params.iblPSO) {
 
 	m_SkyboxCubeMesh = copyCommandList.GetCubePrimitive();
@@ -65,7 +65,7 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, SkyboxParams params
 	m_SkyCubemapTexture->SetName(params.hdrTextureName + L" Skybox Cubemap");
 
 	// PanoToCubemapCompute function will switch to compute queue when called by a COPY command list
-	copyCommandList.PanoToCubemapCompute(m_SkyCubemapTexture, m_HDRPanoTexture);
+	computeCommandList.PanoToCubemapCompute(m_SkyCubemapTexture, m_HDRPanoTexture);
 
 	// Create cubemap SRV 
 	D3D12_SHADER_RESOURCE_VIEW_DESC cubeMapSRVDesc = {};

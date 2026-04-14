@@ -1,5 +1,6 @@
 #include <DX12LibPCH.h>
 
+#include "Texture.h"
 #include "RenderTarget.h"
 
 RenderTarget::RenderTarget()

@@ -38,9 +38,11 @@
 
 #include <cstdint>
 #include <vector>
+#include <memory>
 #include "DirectXMath.h"
+#include "d3d12.h"
 
-#include "Texture.h"
+class Texture;
 
 // Don't use scoped enums to avoid the explicit cast required to use these as array indices.
 enum AttachmentPoint {

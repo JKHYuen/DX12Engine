@@ -1,16 +1,26 @@
 #pragma once
 
-// Based on: https://github.com/jpvanoosten/LearningDirectX12/blob/v1.1.0/DX12Lib/src/Scene.cpp
-
 #include "Logger.h"
 #include "StringHelpers.h"
+#include "Helpers.h"
 #include "VertexTypes.h"
+#include "CommandList.h"
+#include "Mesh.h"
+
+#include <d3dcompiler.h>
+#include <unordered_map>    
+#include <string>    
 
 #include <assimp/Importer.hpp>    
 #include <assimp/scene.h>           
 #include <assimp/postprocess.h>  
 
+/// TODO: double check this
+inline std::unordered_map<std::wstring, Microsoft::WRL::ComPtr<ID3DBlob>> g_LoadedCompiledShaders {};
+
 namespace {
+
+	// Based on: https://github.com/jpvanoosten/LearningDirectX12/blob/v1.1.0/DX12Lib/src/Scene.cpp
 	std::shared_ptr<Mesh> ProcessMesh(CommandList& commandList, const aiMesh& aiMesh) {
 		auto mesh = std::make_shared<Mesh>();
 
@@ -99,6 +109,20 @@ namespace AssetImporter {
 
 		return ProcessMesh(commandList, *(pScene->mMeshes[0]));
 	}
+
+	inline CD3DX12_SHADER_BYTECODE GetCompiledShaderFromFile(const std::wstring& filePath) {
+		if(auto kvp = g_LoadedCompiledShaders.find(filePath); kvp != g_LoadedCompiledShaders.end()) {
+			return CD3DX12_SHADER_BYTECODE(kvp->second.Get());
+		}
+		else {
+			Microsoft::WRL::ComPtr<ID3DBlob> blob;
+			ThrowIfFailed(D3DReadFileToBlob(filePath.data(), &blob));
+			g_LoadedCompiledShaders.emplace(filePath, blob);
+			return CD3DX12_SHADER_BYTECODE(blob.Get());
+		}
+
+	}
+
 }
 
 

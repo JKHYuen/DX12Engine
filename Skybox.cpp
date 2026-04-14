@@ -5,15 +5,14 @@
 #include <memory>
 
 #include "Device.h"
-#include "RootSignature.h"
 #include "RenderTarget.h"
+#include "Texture.h"
 #include "CommandQueue.h"
 #include "CommandList.h"
 #include "ShaderResourceView.h"
 #include "Mesh.h"
 #include "Camera.h"
 #include "ImageBasedLightingPSO.h"
-#include "Helpers.h"
 #include "Logger.h"
 
 using namespace DirectX;
@@ -52,6 +51,8 @@ void Skybox::SetCubemap(CommandList& copyCommandList, const std::wstring& hdrTex
 Skybox::Skybox(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, SkyboxParams params)
 	: m_IBL_PSO(params.iblPSO) {
 
+	DXGI_FORMAT cubemapFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
+
 	m_SkyboxCubeMesh = copyCommandList.GetCubePrimitive();
 	m_HDRPanoTexture = copyCommandList.LoadTextureFromFile(L"assets/cubemaps/" + params.hdrTextureName, true);
 
@@ -79,9 +80,8 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, CommandList& comput
 	/// Create Render Textures
 	// Create cubemap render texture for irradiance convolution
 	{
-		/// TODO: check if format should be DXGI_FORMAT_R32G32B32A32_FLOAT
 		auto irradianceCubemapDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-			DXGI_FORMAT_R32G32B32A32_FLOAT, sk_IrradianceMapResolution, sk_IrradianceMapResolution,
+			cubemapFormat, sk_IrradianceMapResolution, sk_IrradianceMapResolution,
 			6, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
 		);
 
@@ -97,7 +97,7 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, CommandList& comput
 	// Create cubemap render texture for Prefilter map (specular)
 	{
 		auto prefilterCubemapDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-			DXGI_FORMAT_R32G32B32A32_FLOAT, sk_FullPrefilterMapResolution, sk_FullPrefilterMapResolution,
+			cubemapFormat, sk_FullPrefilterMapResolution, sk_FullPrefilterMapResolution,
 			6, sk_CubemapMipLevels, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
 		);
 

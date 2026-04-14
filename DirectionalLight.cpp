@@ -1,6 +1,7 @@
 #include "DirectionalLight.h"
 #include "ShaderResourceView.h"
 #include "RootSignature.h"
+#include "Texture.h"
 #include "CommandList.h"
 #include "Device.h"
 #include "PBRObjectPSO.h"

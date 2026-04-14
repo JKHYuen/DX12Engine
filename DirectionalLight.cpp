@@ -7,10 +7,10 @@
 #include "PBRObjectPSO.h"
 #include "Mesh.h"
 #include "EditorGui.h"
+#include "AssetImporter.h"
 #include "Helpers.h"
 
 #include <wrl/client.h>
-#include <d3dcompiler.h>
 #include <cmath>
 
 using namespace DirectX;
@@ -54,10 +54,6 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
     // Note: debug Gui only supports one directional light preview
     EditorGui::AllocateImageSRV(device, shadowMapDepthTexture, &srvDesc, EditorGui::GuiSRVIndex::DirectionalShadowMap);
 
-    /// TODO: we are loading basic model VS again, shader blobs should probably be cached
-    Microsoft::WRL::ComPtr<ID3DBlob> vs;
-    ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/PBR_VS.cso", &vs));
-
     struct ShadowDepthPipelineStateStream {
         CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE        pRootSignature;
         CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT          InputLayout;
@@ -73,7 +69,7 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
     shadowDepthPipelineStateStream.pRootSignature = m_DepthRenderRootSignature->GetD3D12RootSignature().Get();
     shadowDepthPipelineStateStream.InputLayout = params.depthRenderInputLayout;
     shadowDepthPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    shadowDepthPipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vs.Get());
+    shadowDepthPipelineStateStream.VS = AssetImporter::GetCompiledShaderFromFile(L"PBR_VS.cso");
     shadowDepthPipelineStateStream.Rasterizer = rasterizerDesc;
     shadowDepthPipelineStateStream.DSVFormat = m_DirectionalShadowMap.GetDepthStencilFormat();
 

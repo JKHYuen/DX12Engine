@@ -6,21 +6,16 @@
 #include "VertexTypes.h"
 #include "RenderTarget.h"
 #include "ShaderResourceView.h"
+#include "AssetImporter.h"
 #include "Logger.h"
+
 #include <d3dx12.h>
-#include <d3dcompiler.h>
 #include <wrl/client.h>
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
 
 PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRAY rtvFormat, DXGI_FORMAT depthFormat) {
-	// Load PBR shaders
-	ComPtr<ID3DBlob> vs;
-	ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/PBR_VS.cso", &vs));
-	ComPtr<ID3DBlob> ps;
-	ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/PBR_PS.cso", &ps));
-
 	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags_VSPS =
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
@@ -68,8 +63,8 @@ PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT
 	hdrPipelineStateStream.pRootSignature = m_RootSignature->GetD3D12RootSignature().Get();
 	hdrPipelineStateStream.InputLayout = VertexInput::GetInputLayout();
 	hdrPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	hdrPipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vs.Get());
-	hdrPipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(ps.Get());
+	hdrPipelineStateStream.VS = AssetImporter::GetCompiledShaderFromFile(L"PBR_VS.cso");
+	hdrPipelineStateStream.PS = AssetImporter::GetCompiledShaderFromFile(L"PBR_PS.cso");
 	hdrPipelineStateStream.DSVFormat = depthFormat;
 	hdrPipelineStateStream.RTVFormats = rtvFormat;
 	hdrPipelineStateStream.SampleDesc = sampleDesc;

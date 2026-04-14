@@ -12,7 +12,6 @@
 
 #include <d3dx12.h>
 #include <DirectXMath.h>
-#include <d3dcompiler.h>
 
 #include "Application.h"
 #include "Device.h"
@@ -275,11 +274,6 @@ bool DemoGame::Initialize() {
 		rootSignatureDescription.Init_1_1(_countof(rootParameters), rootParameters, 1, &pointClampSampler, rootSignatureFlags_VSPS);
 		m_PostProcessRootSignature = std::make_shared<RootSignature>(*m_Device, rootSignatureDescription.Desc_1_1);
 
-		//ComPtr<ID3DBlob> vs;
-		//ComPtr<ID3DBlob> ps;
-		//ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/ScreenRender_VS.cso", &vs));
-		//ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/Postprocess_PS.cso", &ps));
-
 		// Note: not sure why this is needed, ignores post processing shader without D3D12_CULL_MODE_NONE
 		CD3DX12_RASTERIZER_DESC rasterizerDesc(D3D12_DEFAULT);
 		rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
@@ -296,18 +290,15 @@ bool DemoGame::Initialize() {
 
 		postProcessPipelineStateStream.pRootSignature = m_PostProcessRootSignature->GetD3D12RootSignature().Get();
 		postProcessPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		//postProcessPipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vs.Get());
-		//postProcessPipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(ps.Get());
-		postProcessPipelineStateStream.VS = AssetImporter::GetCompiledShaderFromFile(L"compiled_shaders/ScreenRender_VS.cso");
-		postProcessPipelineStateStream.PS = AssetImporter::GetCompiledShaderFromFile(L"compiled_shaders/Postprocess_PS.cso");
+		postProcessPipelineStateStream.VS = AssetImporter::GetCompiledShaderFromFile(L"ScreenRender_VS.cso");
+		postProcessPipelineStateStream.PS = AssetImporter::GetCompiledShaderFromFile(L"Postprocess_PS.cso");
 		postProcessPipelineStateStream.Rasterizer = rasterizerDesc;
 		postProcessPipelineStateStream.RTVFormats = m_SwapChain->GetRenderTarget().GetRenderTargetFormats();
 
 		m_Device->CreatePipelineState(postProcessPipelineStateStream, m_PostprocessPSO);
 
 		// Tonemap PSO
-		//ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/Tonemap_PS.cso", &ps));
-		postProcessPipelineStateStream.PS = AssetImporter::GetCompiledShaderFromFile(L"compiled_shaders/Tonemap_PS.cso");
+		postProcessPipelineStateStream.PS = AssetImporter::GetCompiledShaderFromFile(L"Tonemap_PS.cso");
 		m_Device->CreatePipelineState(postProcessPipelineStateStream, m_TonemapPSO);
 	}
 

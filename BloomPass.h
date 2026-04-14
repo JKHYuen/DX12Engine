@@ -15,7 +15,7 @@ private:
 	std::vector<RenderTarget> m_SamplingRenderTargets;
 	RenderTarget m_BloomOutputRT;
 
-	// Actual down/up iterations used, can be different from maxIterations
+	// Actual down/up iterations used, can be different from maxIterations (minimum texture height must be > 2)
 	int m_IterationCount;
 };
 

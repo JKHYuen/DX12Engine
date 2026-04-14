@@ -54,20 +54,9 @@ BloomPass::BloomPass(Device& device, const RenderTarget& screenRenderTarget, int
 
 			// Assume height is less than width
 			if(textureHeight < 2) {
-				m_IterationCount = i + 1;
+				m_IterationCount = (int)i + 1;
 				break;
 			}
 		}
-
-
-
-		//D3D12_RENDER_TARGET_VIEW_DESC rtvDesc {};
-		//rtvDesc.Format = screenTextureFormat;
-		//rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-		//rtvDesc.Texture2D.MipSlice = 0;
-		//m_SamplingRenderTargets[i - 1].GetTexture(AttachmentPoint::Color0)->CreateRenderTargetView(rtvDesc);
-		
-
-
 	}
 }

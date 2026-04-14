@@ -18,9 +18,10 @@
 
 namespace AssetImporter {
 	// Still accessible globally, this unnamed namespace just indicates data/members that should only be used in this file
-	// Everything can be moved to a class if we really care about encapsulation
 	namespace {
+		/// TODO: Shader/PSO loading/caching will probably be it's own class soon
 		std::unordered_map<std::wstring, Microsoft::WRL::ComPtr<ID3DBlob>> g_LoadedCompiledShaders {};
+		std::mutex ms_LoadedCompiledShadersMutex;
 
 		// Based on: https://github.com/jpvanoosten/LearningDirectX12/blob/v1.1.0/DX12Lib/src/Scene.cpp
 		std::shared_ptr<Mesh> ProcessMesh(CommandList& commandList, const aiMesh& aiMesh) {
@@ -85,8 +86,8 @@ namespace AssetImporter {
 		}
 	}
 
-	/// TODO: INCOMPLETE
-	/// TODO: figure out some material system for this project
+	/// TODO: INCOMPLETE - function only checks for first mesh in file
+	/// TODO: figure out a way to make Assimp materials compatible with this renderer
 	inline std::shared_ptr<Mesh> ImportModel(CommandList& commandList, const std::wstring& modelFilePath) {
 		Assimp::Importer importer;
 
@@ -103,7 +104,6 @@ namespace AssetImporter {
 			return nullptr;
 		}
 
-		/// TEST
 		if(!pScene->HasMeshes()) {
 			return nullptr;
 		}
@@ -111,18 +111,21 @@ namespace AssetImporter {
 		return ProcessMesh(commandList, *(pScene->mMeshes[0]));
 	}
 
-	// Note: compiled_shaders location is hardcoded, will need more robust system if this engine gets more complicated (ability to load different IGames during runtime)
+	/// NOTE: NOT THREAD SAFE
+	// compiled_shaders location is hardcoded, will need more robust system if this engine gets more complicated (ability to load different IGames during runtime)
 	inline CD3DX12_SHADER_BYTECODE GetCompiledShaderFromFile(const std::wstring& csoFileName) {
+		std::lock_guard<std::mutex> lock(ms_LoadedCompiledShadersMutex);
+
 		std::wstring filePath = L"compiled_shaders/" + csoFileName;
 
 		if(auto kvp = g_LoadedCompiledShaders.find(filePath); kvp != g_LoadedCompiledShaders.end()) {
 			return CD3DX12_SHADER_BYTECODE(kvp->second.Get());
 		}
 		else {
-			Microsoft::WRL::ComPtr<ID3DBlob> blob;
-			ThrowIfFailed(D3DReadFileToBlob(filePath.data(), &blob));
-			g_LoadedCompiledShaders.emplace(filePath, blob);
-			return CD3DX12_SHADER_BYTECODE(blob.Get());
+			Microsoft::WRL::ComPtr<ID3DBlob> blobptr;
+			ThrowIfFailed(D3DReadFileToBlob(filePath.data(), &blobptr));
+			g_LoadedCompiledShaders.emplace(filePath, blobptr);
+			return CD3DX12_SHADER_BYTECODE(blobptr.Get());
 		}
 	}
 

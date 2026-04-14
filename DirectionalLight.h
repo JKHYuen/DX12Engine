@@ -4,6 +4,7 @@
 
 #include <directxmath.h>
 #include <d3d12.h>
+#include <d3dx12.h>
 #include <wrl/client.h>
 
 #include "RenderTarget.h"
@@ -15,6 +16,7 @@ class ShaderResourceView;
 class CommandList;
 class RootSignature;
 class Mesh;
+class Device;
 
 class DirectionalLight {
 public:

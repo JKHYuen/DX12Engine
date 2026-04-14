@@ -34,11 +34,6 @@
 #include "Resource.h"
 #include "DescriptorAllocation.h"
 
-#include "d3dx12.h"
-
-#include <mutex>
-#include <unordered_map>
-
 class Device;
 class ShaderResourceView;
 
@@ -114,6 +109,9 @@ public:
      */
     size_t BitsPerPixel() const;
 
+    uint32_t GetWidth() const { return m_Width; }
+    uint32_t GetHeight() const { return m_Height; }
+
     static bool IsUAVCompatibleFormat(DXGI_FORMAT format);
     static bool IsSRGBFormat(DXGI_FORMAT format);
     static bool IsBGRFormat(DXGI_FORMAT format);
@@ -127,6 +125,9 @@ public:
 
 private:
     void CreateDefaultViews();
+
+    uint32_t m_Width;
+    uint32_t m_Height;
 
     DescriptorAllocation m_RenderTargetView;
     DescriptorAllocation m_DepthStencilView;

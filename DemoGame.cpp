@@ -23,6 +23,7 @@
 #include "Helpers.h"
 #include "Window.h"
 #include "Mesh.h"
+#include "Texture.h"
 #include "Skybox.h"
 #include "EditorGui.h"
 #include "DirectionalLight.h"
@@ -223,6 +224,10 @@ bool DemoGame::Initialize() {
 			goParams.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
 			m_TestScene->CreateGameObject(*copyCommandList, goParams, copyCommandList->GetSpherePrimitive());
 
+			goParams.pbrMatName = L"marble";
+			goParams.translation = XMFLOAT3(-4.0f, 3.0f, 0.0f);
+			m_TestScene->CreateGameObject(*copyCommandList, goParams, copyCommandList->GetSpherePrimitive());
+
 			goParams.name = "Cube";
 			goParams.pbrMatName = L"metal_grid";
 			goParams.translation = XMFLOAT3(4.0f, 3.0f, 0.0f);
@@ -230,9 +235,9 @@ bool DemoGame::Initialize() {
 			m_TestScene->CreateGameObject(*copyCommandList, goParams, copyCommandList->GetCubePrimitive());
 
 			goParams.name = "Floor";
-			goParams.pbrMatName = L"marble";
+			goParams.pbrMatName = L"bog";
 			goParams.translation = XMFLOAT3(0.0f, 0.0f, 0.0f);
-			goParams.scale = XMFLOAT3(20.0f, 1.0f, 20.0f);
+			goParams.scale = XMFLOAT3(40.0f, 40.0f, 40.0f);
 			m_TestScene->CreateGameObject(*copyCommandList, goParams, copyCommandList->GetQuadPrimitive());
 
 			/// Test model import
@@ -270,10 +275,10 @@ bool DemoGame::Initialize() {
 		rootSignatureDescription.Init_1_1(_countof(rootParameters), rootParameters, 1, &pointClampSampler, rootSignatureFlags_VSPS);
 		m_PostProcessRootSignature = std::make_shared<RootSignature>(*m_Device, rootSignatureDescription.Desc_1_1);
 
-		ComPtr<ID3DBlob> vs;
-		ComPtr<ID3DBlob> ps;
-		ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/ScreenRender_VS.cso", &vs));
-		ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/Postprocess_PS.cso", &ps));
+		//ComPtr<ID3DBlob> vs;
+		//ComPtr<ID3DBlob> ps;
+		//ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/ScreenRender_VS.cso", &vs));
+		//ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/Postprocess_PS.cso", &ps));
 
 		// Note: not sure why this is needed, ignores post processing shader without D3D12_CULL_MODE_NONE
 		CD3DX12_RASTERIZER_DESC rasterizerDesc(D3D12_DEFAULT);
@@ -291,16 +296,18 @@ bool DemoGame::Initialize() {
 
 		postProcessPipelineStateStream.pRootSignature = m_PostProcessRootSignature->GetD3D12RootSignature().Get();
 		postProcessPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		postProcessPipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vs.Get());
-		postProcessPipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(ps.Get());
+		//postProcessPipelineStateStream.VS = CD3DX12_SHADER_BYTECODE(vs.Get());
+		//postProcessPipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(ps.Get());
+		postProcessPipelineStateStream.VS = AssetImporter::GetCompiledShaderFromFile(L"compiled_shaders/ScreenRender_VS.cso");
+		postProcessPipelineStateStream.PS = AssetImporter::GetCompiledShaderFromFile(L"compiled_shaders/Postprocess_PS.cso");
 		postProcessPipelineStateStream.Rasterizer = rasterizerDesc;
 		postProcessPipelineStateStream.RTVFormats = m_SwapChain->GetRenderTarget().GetRenderTargetFormats();
 
 		m_Device->CreatePipelineState(postProcessPipelineStateStream, m_PostprocessPSO);
 
 		// Tonemap PSO
-		ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/Tonemap_PS.cso", &ps));
-		postProcessPipelineStateStream.PS = CD3DX12_SHADER_BYTECODE(ps.Get());
+		//ThrowIfFailed(D3DReadFileToBlob(L"compiled_shaders/Tonemap_PS.cso", &ps));
+		postProcessPipelineStateStream.PS = AssetImporter::GetCompiledShaderFromFile(L"compiled_shaders/Tonemap_PS.cso");
 		m_Device->CreatePipelineState(postProcessPipelineStateStream, m_TonemapPSO);
 	}
 

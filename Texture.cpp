@@ -11,18 +11,25 @@
 using namespace Microsoft::WRL;
 
 Texture::Texture(Device& device, const D3D12_RESOURCE_DESC& resourceDesc, const D3D12_CLEAR_VALUE* clearValue, bool b_CreateDefaultView)
-    : Resource(device, resourceDesc, clearValue) {
+    : Resource(device, resourceDesc, clearValue)
+    , m_Width { static_cast<uint32_t>(resourceDesc.Width)  }
+    , m_Height{ static_cast<uint32_t>(resourceDesc.Height) } {
     if(b_CreateDefaultView) CreateDefaultViews();
 }
 
 Texture::Texture(Device& device, ComPtr<ID3D12Resource> resource, const D3D12_CLEAR_VALUE* clearValue, bool b_CreateDefaultView)
-    : Resource(device, resource, clearValue) {
+    : Resource(device, resource, clearValue)
+    , m_Width { static_cast<uint32_t>( resource->GetDesc().Width) }
+    , m_Height { static_cast<uint32_t>(resource->GetDesc().Height) } {
     if(b_CreateDefaultView) CreateDefaultViews();
 }
 
 void Texture::Resize(uint32_t width, uint32_t height, uint32_t depthOrArraySize) {
     if(m_d3d12Resource) {
         // ResourceStateTracker::RemoveGlobalResourceState( m_d3d12Resource.Get() );
+
+        m_Width  = width;
+        m_Height = height;
 
         CD3DX12_RESOURCE_DESC resDesc(m_d3d12Resource->GetDesc());
         resDesc.Width = std::max(width, 1u);

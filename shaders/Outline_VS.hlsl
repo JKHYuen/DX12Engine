@@ -6,10 +6,6 @@ cbuffer VertexCB : register(b0, space0) {
 
 struct VertexInput {
     float3 vertexPosition : POSITION;
-    float3 normal         : NORMAL;
-    float3 tangent        : TANGENT;
-    float3 bitangent      : BITANGENT;
-    float2 uv             : TEXCOORD0;
 };
 
 struct PixelInputType {

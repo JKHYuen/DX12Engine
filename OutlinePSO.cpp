@@ -21,7 +21,7 @@ OutlinePSO::OutlinePSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FOR
 
 	// Create outline effect root signature
 	{
-		CD3DX12_ROOT_PARAMETER1 rootParameters[OutlineRootParameters::NumOutlineRootParameters];
+		CD3DX12_ROOT_PARAMETER1 rootParameters[OutlineRootParameters::NumOutlineRootParameters] {};
 		rootParameters[OutlineRootParameters::VertexCB].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_VERTEX);
 		rootParameters[OutlineRootParameters::MaterialCB].InitAsConstantBufferView(0, 1, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
 
@@ -29,7 +29,6 @@ OutlinePSO::OutlinePSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FOR
 		rootSignatureDescription.Init_1_1(OutlineRootParameters::NumOutlineRootParameters, rootParameters, 0, nullptr, rootSignatureFlags_VSPS);
 		m_RootSignature = std::make_shared<RootSignature>(device, rootSignatureDescription.Desc_1_1);
 	}
-
 
 	CD3DX12_RASTERIZER_DESC rasterDesc { CD3DX12_DEFAULT() };
 	rasterDesc.CullMode = D3D12_CULL_MODE_BACK;
@@ -57,7 +56,7 @@ OutlinePSO::OutlinePSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FOR
 	} outlinePipelineStateStream;
 
 	outlinePipelineStateStream.pRootSignature = m_RootSignature->GetD3D12RootSignature().Get();
-	outlinePipelineStateStream.InputLayout = VertexInput::GetInputLayout();
+	outlinePipelineStateStream.InputLayout = VertexInput::Get_POS_InputLayout();
 	outlinePipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	outlinePipelineStateStream.VS = AssetImporter::GetCompiledShaderFromFile(L"Outline_VS.cso");
 	outlinePipelineStateStream.PS = AssetImporter::GetCompiledShaderFromFile(L"Outline_PS.cso");

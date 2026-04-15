@@ -177,7 +177,7 @@ bool DemoGame::Initialize() {
 
 		DirectionalLight::DirectionalLightParams dirLightParams {
 			m_PBR_PSO->GetRootSignature(), // reuse PBR root signature for depth render
-			VertexInput::GetInputLayout(),
+			VertexInput::Get_POS_NORM_TAN_BIT_UV_InputLayout(),
 			XMFLOAT3(9.0f, 8.0f, 7.0f),
 			XMFLOAT3(140.0f, 230.0f, 0.0f),
 			s_ShadowMapResolution,

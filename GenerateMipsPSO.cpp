@@ -21,7 +21,7 @@ GenerateMipsPSO::GenerateMipsPSO(Device& device) {
         D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE
     );
 
-    CD3DX12_ROOT_PARAMETER1 rootParameters[GenerateMips::NumRootParameters];
+    CD3DX12_ROOT_PARAMETER1 rootParameters[GenerateMips::NumRootParameters] {};
     rootParameters[GenerateMips::GenerateMipsCB].InitAsConstants(sizeof(GenerateMipsCB) / 4, 0);
     rootParameters[GenerateMips::SrcMip].InitAsDescriptorTable(1, &srcMip);
     rootParameters[GenerateMips::OutMip].InitAsDescriptorTable(1, &outMip);

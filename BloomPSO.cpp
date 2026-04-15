@@ -4,7 +4,7 @@
 
 
 BloomPSO::BloomPSO(Device& device, const RenderTarget& renderTarget) {
-	// BLoom pipeline state
+	// Bloom pipeline state
 	struct BloomPipelineState {
 		CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE        pRootSignature;
 		CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT          InputLayout;
@@ -25,6 +25,10 @@ BloomPSO::BloomPSO(Device& device, const RenderTarget& renderTarget) {
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
+
+
+
+
 
 
 }

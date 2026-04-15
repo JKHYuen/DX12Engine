@@ -35,7 +35,8 @@ public:
 		D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
 	};
 
-	// This must be manually added to for every type of texture that is shown on editor Gui 
+	// This must be manually added to for every type of texture that is shown on debug GUI.
+	// Do this instead of using hardcoded strings, so I don't have to memorize them in the future
 	// (Good enough for now)
 	enum GuiSRVIndex {
 		DirectionalShadowMap,

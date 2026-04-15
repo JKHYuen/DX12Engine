@@ -111,7 +111,6 @@ namespace AssetImporter {
 		return ProcessMesh(commandList, *(pScene->mMeshes[0]));
 	}
 
-	/// NOTE: NOT THREAD SAFE
 	// compiled_shaders location is hardcoded, will need more robust system if this engine gets more complicated (ability to load different IGames during runtime)
 	inline CD3DX12_SHADER_BYTECODE GetCompiledShaderFromFile(const std::wstring& csoFileName) {
 		std::lock_guard<std::mutex> lock(ms_LoadedCompiledShadersMutex);

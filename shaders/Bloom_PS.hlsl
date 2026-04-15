@@ -1,13 +1,10 @@
-Texture2D screenTexture : register(t0);
-Texture2D sourceTexture : register(t1);
+Texture2D screenTexture  : register(t0);
+Texture2D sourceTexture  : register(t1);
 SamplerState wrapSampler : register(s0);
 
-cbuffer MaterialParamBuffer : register(b0) {
+cbuffer MaterialParamBuffer : register(b0, space0) {
     float4 filter;
-    float boxSampleDelta;
-    float intensity;
-    float usePrefilter;
-    float useFinalPass;
+    float4 bloomParams; // x: boxSampleDelta, y: intensity, z: usePrefilter [0, 1], w: useFinalPass [0, 1]
 };
 
 struct PixelInputType {
@@ -40,20 +37,20 @@ float3 SampleBox(float2 uv, float delta) {
 float4 main(PixelInputType i) : SV_TARGET {
     float3 color;
 
-    if (useFinalPass == 0) {
+    if (bloomParams.w == 0) {
         // Prefilter + first downsample pass
-        if (usePrefilter != 0) {
+        if (bloomParams.z != 0) {
             color = Prefilter(SampleBox(i.uv, 1));
         }
         // Upsample/downsample pass
         else {
-            color = SampleBox(i.uv, boxSampleDelta);
+            color = SampleBox(i.uv, bloomParams.x);
         }
     }
     // Use final upsample + bloom addition pass
     else {
         color = sourceTexture.Sample(wrapSampler, i.uv).rgb;
-        color.rgb += intensity * SampleBox(i.uv, 0.5);
+        color.rgb += bloomParams.y * SampleBox(i.uv, 0.5);
     }
     
     return float4(color, 1.0);

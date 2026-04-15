@@ -42,7 +42,7 @@ public:
 
 	/// Expected indices for "pbrTextures" param in UpdateResources() function
 	// Static textures only
-	enum PBRTextureIndex {
+	enum TextureIndex {
         AlbedoTex,
 		NormalTex,
 		MaterialTex, // r: AO, g: metallic, b: roughness, a: height 
@@ -50,37 +50,30 @@ public:
 		PrefilterCubemap,
 		BRDFLut,
 
-		NumPBRTextures
+		NumTextures
 	};
 
 	// Index of volatile textures come after static textures
-	enum VolatilePBRTextureIndex {
-		DirectionalShadowMap = PBRTextureIndex::NumPBRTextures,
+	enum VolatileTextureIndex {
+		DirectionalShadowMap = TextureIndex::NumTextures,
 
 		NumVolatilePBRTextures = 1 // Make sure to update this manually since this enum doesn't start at 0
 	};
 
-	struct VertexProps {
+	struct alignas(16) VertexProps {
 		XMFLOAT4X4 SRT;
 		XMFLOAT4X4 MVP;
 		XMFLOAT4X4 directionalLightMVP;
 		XMFLOAT4   CameraPosition;
-		XMFLOAT4   Pad1;
-		XMFLOAT4   Pad2;
-		XMFLOAT4   Pad3;
 	};
 
-	struct MaterialProps {
+	struct alignas(16) MaterialProps {
 		XMFLOAT4   Time;
 		XMFLOAT4   DirLight;
 		XMFLOAT4   DirLightColor;
-		XMFLOAT4   Pad2;
-		XMFLOAT4X4 Pad3;
-		XMFLOAT4X4 Pad4;
-		XMFLOAT4X4 Pad5;
 	};
 
-	static constexpr int sk_NumTextures = PBRTextureIndex::NumPBRTextures + VolatilePBRTextureIndex::NumVolatilePBRTextures;
+	static constexpr int sk_NumTextures = TextureIndex::NumTextures + VolatileTextureIndex::NumVolatilePBRTextures;
 
 	std::shared_ptr<RootSignature> GetRootSignature() const {
 		return m_RootSignature;

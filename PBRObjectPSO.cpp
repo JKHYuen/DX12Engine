@@ -103,12 +103,12 @@ void PBRObjectPSO::UpdateResources(CommandList& directCommandList, const std::ve
 	directCommandList.SetGraphicsDynamicConstantBuffer(PBRRootParameters::MaterialCB, materialProps);
 
 	// Static Textures
-	for(int i = 0; i < PBRTextureIndex::NumPBRTextures; i++) {
+	for(int i = 0; i < TextureIndex::NumTextures; i++) {
 		directCommandList.SetShaderResourceView(PBRRootParameters::Textures, i, pbrTextures[i], D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	}
 
 	// Volatile Textures
-	for(int i = PBRTextureIndex::NumPBRTextures, j = 0; i < sk_NumTextures; i++, j++) {
+	for(int i = TextureIndex::NumTextures, j = 0; i < sk_NumTextures; i++, j++) {
 		directCommandList.SetShaderResourceView(PBRRootParameters::VolatileTextures, j, pbrTextures[i], D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	}
 }

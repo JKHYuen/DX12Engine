@@ -28,24 +28,14 @@ public:
 		NumOutlineRootParameters
 	};
 
-	struct VertexProps {
+	struct alignas(16) VertexProps {
 		XMFLOAT4X4 SRT;
 		XMFLOAT4X4 MVP;
 		XMFLOAT4   screenParams;
-		XMFLOAT4X4 Pad1;
-		XMFLOAT4   Pad2;
-		XMFLOAT4   Pad3;
-		XMFLOAT4   Pad4;
 	};
 
-	struct MaterialProps {
+	struct alignas(16) MaterialProps {
 		XMFLOAT4   outlineColor;
-		XMFLOAT4   Pad1;
-		XMFLOAT4   Pad2;
-		XMFLOAT4   Pad3;
-		XMFLOAT4X4 Pad4;
-		XMFLOAT4X4 Pad5;
-		XMFLOAT4X4 Pad6;
 	};
 
 	std::shared_ptr<RootSignature> GetRootSignature() const { return m_RootSignature; }

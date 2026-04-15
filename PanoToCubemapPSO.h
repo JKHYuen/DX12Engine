@@ -40,13 +40,14 @@ class Device;
 class RootSignature;
 
   // Struct used in the PanoToCubemap_CS compute shader.
-struct PanoToCubemapCB {
+struct alignas(16) PanoToCubemapCB {
     // Size of the cubemap face in pixels at the current mipmap level.
     uint32_t CubemapSize;
     // The first mip level to generate.
     uint32_t FirstMip;
     // The number of mips to generate.
     uint32_t NumMips;
+    uint32_t Pad1;
 };
 
 // I don't use scoped enums to avoid the explicit cast that is required to 

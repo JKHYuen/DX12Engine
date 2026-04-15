@@ -3,10 +3,12 @@
 // This class manages/creates all pipeline states related to Bloom effect
 
 #include <d3d12.h>
+#include <DirectXMath.h>
 #include <wrl/client.h>
 #include <memory>
 
 using namespace Microsoft::WRL;
+using namespace DirectX;
 
 class Device;
 class RenderTarget;
@@ -14,6 +16,8 @@ class RootSignature;
 
 class BloomPSO {
 public:
+	BloomPSO(Device& device, const RenderTarget& renderTarget);
+
 	enum BloomRenderType {
 		Prefilter,
 		Downsample,
@@ -23,7 +27,18 @@ public:
 		NumBloomRenderType
 	};
 
-	BloomPSO(Device& device, const RenderTarget& renderTarget);
+	// Static textures only
+	enum TextureIndex {
+		ScreenTex,
+		SourceTex,
+
+		NumTextures
+	};
+
+	struct alignas(16) MaterialProps {
+		XMFLOAT4 filter;
+		XMFLOAT4 bloomParams; // x: boxSampleDelta, y: intensity, z: usePrefilter [0, 1], w: useFinalPass [0, 1]
+	};
 
 private:
 

@@ -57,7 +57,6 @@ ImageBasedLightingPSO::ImageBasedLightingPSO(Device& device, const RenderTarget&
 
 	device.CreatePipelineState(skyboxPipelineStateStream, m_SkyboxPSO);
 	
-
 	// Irradiance Convolution (cubemap) PSO
 	{
 		// Skybox_VS.cso vertex shader is used

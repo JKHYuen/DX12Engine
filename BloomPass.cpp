@@ -7,7 +7,6 @@
 
 #include <format>
 
-
 BloomPass::BloomPass(Device& device, const RenderTarget& screenRenderTarget, BloomPSO* pso, int maxIterations) :
 	m_IterationCount{maxIterations},
 	m_PSO{pso}
@@ -64,10 +63,30 @@ BloomPass::BloomPass(Device& device, const RenderTarget& screenRenderTarget, Blo
 	}
 }
 
-void BloomPass::Render(CommandList& directCommandList) {
-	directCommandList.SetPipelineState(m_PSO->GetPSO());
-	directCommandList.SetGraphicsRootSignature(m_PSO->GetRootSignature());
+void BloomPass::Render(CommandList& directCommandList, const RenderTarget& screenRenderTarget) {
+	m_PSO->SetPipelineState(directCommandList);
 
+	float clearColor[] = { 1.0f, 0.0f, 1.0f, 1.0f };
+
+	// First downsample + prefilter
+	// Note: bloomParams - x: boxSampleDelta, y: intensity, z: usePrefilter [0, 1], w: useFinalPass [0, 1]
+	BloomPSO::BloomProps bloomProps {};
+	float knee = m_Threshold * m_SoftThreshold;
+	bloomProps.filter = { m_Threshold, m_Threshold - knee, 2.0f * knee, 0.25f / (knee + 0.00001f) };
+	bloomProps.boxSampleDelta = 1.0f;
+	bloomProps.intensity      = m_Intensity;
+	bloomProps.usePrefilter   = 1.0f;
+	bloomProps.useFinalPass   = 0.0f;
+
+	directCommandList.SetGraphicsDynamicConstantBuffer(BloomPSO::BloomRootParameters::BloomCB, bloomProps);
+	directCommandList.SetShaderResourceView(BloomPSO::BloomRootParameters::Textures, 0, screenRenderTarget.GetTexture(AttachmentPoint::Color0));
+
+	directCommandList.ClearTexture(m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0), clearColor);
+	directCommandList.SetRenderTarget(m_SamplingRenderTargets[0]);
+	directCommandList.SetViewport(m_SamplingRenderTargets[0].GetViewport());
+	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	directCommandList.Draw(3);
 
 
 }

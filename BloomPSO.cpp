@@ -31,7 +31,7 @@ BloomPSO::BloomPSO(Device& device, const RenderTarget& renderTarget) {
 
 	CD3DX12_ROOT_PARAMETER1 rootParameters[BloomRootParameters::NumBloomRootParameters] {};
 	{
-		rootParameters[BloomRootParameters::BloomProps].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
+		rootParameters[BloomRootParameters::BloomCB].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
 
 		CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0);
 		rootParameters[BloomRootParameters::Textures].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
@@ -42,7 +42,6 @@ BloomPSO::BloomPSO(Device& device, const RenderTarget& renderTarget) {
 	CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription {};
 	rootSignatureDescription.Init_1_1(BloomRootParameters::NumBloomRootParameters, rootParameters, 1, samplers, rootSignatureFlags_VSPS);
 	m_RootSignature = std::make_shared<RootSignature>(device, rootSignatureDescription.Desc_1_1);
-
 
 	// PSO for Prefilter, Downsample and combine rendering 
 	// (Disable blending)
@@ -59,12 +58,22 @@ BloomPSO::BloomPSO(Device& device, const RenderTarget& renderTarget) {
 
 	// PSO for upsampling
 	// (Additive blend)
-	blendDesc.RenderTarget[AttachmentPoint::Color0].BlendEnable = TRUE;
-	blendDesc.RenderTarget[AttachmentPoint::Color0].DestBlend   = D3D12_BLEND_ONE;
-	blendDesc.RenderTarget[AttachmentPoint::Color0].BlendOp     = D3D12_BLEND_OP_ADD;
+	blendDesc.RenderTarget[AttachmentPoint::Color0].BlendEnable    = TRUE;
+	blendDesc.RenderTarget[AttachmentPoint::Color0].DestBlend      = D3D12_BLEND_ONE;
+	blendDesc.RenderTarget[AttachmentPoint::Color0].BlendOp        = D3D12_BLEND_OP_ADD;
 	blendDesc.RenderTarget[AttachmentPoint::Color0].DestBlendAlpha = D3D12_BLEND_ONE;
-	blendDesc.RenderTarget[AttachmentPoint::Color0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+	blendDesc.RenderTarget[AttachmentPoint::Color0].BlendOpAlpha   = D3D12_BLEND_OP_ADD;
 	bloomPipelineStateStream.BlendDesc = blendDesc;
 	
 	device.CreatePipelineState(bloomPipelineStateStream, m_BloomAdditivePSO);
+}
+
+void BloomPSO::SetPipelineState(CommandList& directCommandList) const {
+	directCommandList.SetPipelineState(m_BloomPSO);
+	directCommandList.SetGraphicsRootSignature(m_RootSignature);
+}
+
+void BloomPSO::SetAdditivePipelineState(CommandList& directCommandList) const {
+	directCommandList.SetPipelineState(m_BloomAdditivePSO);
+	directCommandList.SetGraphicsRootSignature(m_RootSignature);
 }

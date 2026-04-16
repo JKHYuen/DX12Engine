@@ -55,11 +55,11 @@ void Scene::CreateGameObject(CommandList& copyCommandList, const GameObject::Gam
 	/// TODO
 }
 
-/// TEST
 void Scene::ComputeSkyboxIBLMaps(CommandList& directCommandList) {
 	m_Skybox.ComputeIBLMaps(directCommandList);
 }
 
+/// TEST
 /// UNUSED
 void Scene::SetCubemap(CommandList& copyCommandList, const std::wstring& hdrTextureName) {
 	m_Skybox.SetCubemap(copyCommandList, hdrTextureName);
@@ -71,9 +71,7 @@ void Scene::SetSkybox(CommandList& copyCommandList, CommandList& computeCommandL
 }
 /// END TEST
 
-void Scene::Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, D3D12_RECT scissorRec, CommandList& directCommandList, const UpdateEventArgs& e) {
-	directCommandList.SetScissorRect(scissorRec);
-
+void Scene::Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, CommandList& directCommandList, const UpdateEventArgs& e) {
 	// Render depth from directional light for same objects above
 	m_DirectionalLight.SetShadowDepthPipelineStateAndRenderTarget(directCommandList);
 	for(auto& o : m_SceneObjects) {

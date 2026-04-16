@@ -20,7 +20,7 @@ public:
 	BloomPSO(Device& device, const RenderTarget& renderTarget);
 
 	enum BloomRootParameters {
-		BloomProps,
+		BloomCB,
 		Textures,
 
 		NumBloomRootParameters
@@ -36,15 +36,14 @@ public:
 
 	struct alignas(16) BloomProps {
 		XMFLOAT4 filter;
-		XMFLOAT4 bloomParams; // x: boxSampleDelta, y: intensity, z: usePrefilter [0, 1], w: useFinalPass [0, 1]
+		float boxSampleDelta;
+		float intensity;
+		float usePrefilter; // 0.0f or 1.0f
+		float useFinalPass; // 0.0f or 1.0f
 	};
 
-	std::shared_ptr<RootSignature> GetRootSignature() const { return m_RootSignature; }
 	void SetPipelineState(CommandList& directCommandList) const;
-
-	ComPtr<ID3D12PipelineState> GetPSO() const { return m_BloomPSO; }
-	ComPtr<ID3D12PipelineState> GetAdditivePSO() const { return m_BloomAdditivePSO; }
-
+	void SetAdditivePipelineState(CommandList& directCommandList) const;
 
 private:
 	ComPtr<ID3D12PipelineState> m_BloomPSO;

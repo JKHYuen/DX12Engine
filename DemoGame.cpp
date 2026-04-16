@@ -207,6 +207,9 @@ bool DemoGame::Initialize() {
 		// Precompute skybox IBL textures
 		auto& directCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 		auto directCommandList = directCommandQueue.GetCommandList();
+
+		directCommandList->SetScissorRect(m_DefaultScissorRect);
+
 		m_TestScene->ComputeSkyboxIBLMaps(*directCommandList);
 		directCommandQueue.ExecuteCommandList(directCommandList);
 
@@ -509,7 +512,6 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 							computeCommandQueue.WaitForFenceValue(computeCommandQueue.ExecuteCommandList(computeCommandList));
 							///
 
-
 							// Render new IBLs
 							auto& directCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 							auto directCommandList = directCommandQueue.GetCommandList();
@@ -554,9 +556,11 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 	auto& directCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 	auto directCommandList = directCommandQueue.GetCommandList();
 
+	directCommandList->SetScissorRect(m_DefaultScissorRect);
+
 	/// Render Test Scene
 	// Perform HDR rendering to intermediate render target (before multisample resolve)
-	m_TestScene->Render(m_HDR_MSAA_RenderTarget, m_ScreenViewport, m_DefaultScissorRect, *directCommandList, e);
+	m_TestScene->Render(m_HDR_MSAA_RenderTarget, m_ScreenViewport, *directCommandList, e);
 
 	/// Post Processing
 	{

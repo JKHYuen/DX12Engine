@@ -145,7 +145,6 @@ void Skybox::Render(CommandList& directCommandList, const Camera& camera) {
 
 void Skybox::ComputeIBLMaps(CommandList& directCommandList) {
 	XMMATRIX cubemapProjectionMat = XMMatrixPerspectiveFovLH(XMConvertToRadians(90.0f), 1.0f, 0.1f, 10.0f);
-	directCommandList.SetScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX));
 
 	float clearColor[] = { 1.0f, 0.0f, 1.0f, 1.0f };
 

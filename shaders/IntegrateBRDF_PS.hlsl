@@ -3,8 +3,8 @@
 SamplerState ClampSampleType : register(s0);
 
 struct PixelInputType {
-    float2 uv       : TEXCOORD0;
     float4 position : SV_POSITION;
+    float2 uv       : TEXCOORD0;
 };
 
 static const float PI = 3.14159265359;

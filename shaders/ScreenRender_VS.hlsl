@@ -20,8 +20,8 @@
 // source: https://github.com/microsoft/DirectX-Graphics-Samples/blob/master/MiniEngine/Core/Shaders/ScreenQuadPresentVS.hlsl
 
 struct PixelInputType {
-    float2 TexCoord : TEXCOORD0;
     float4 Position : SV_POSITION;
+    float2 TexCoord : TEXCOORD0;
 };
 
 PixelInputType main(uint VertexID : SV_VertexID) {

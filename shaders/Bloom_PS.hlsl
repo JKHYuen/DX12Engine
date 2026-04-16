@@ -9,8 +9,8 @@ Texture2D sourceTexture  : register(t1);
 SamplerState clampSampler : register(s0);
 
 struct PixelInputType {
-    float2 uv       : TEXCOORD0;
     float4 position : SV_POSITION;
+    float2 uv       : TEXCOORD0;
 };
 
 float3 Prefilter(float3 c) {

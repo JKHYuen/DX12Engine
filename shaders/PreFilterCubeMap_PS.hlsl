@@ -9,7 +9,7 @@ cbuffer PrefilterParamBuffer : register(b0) {
 
 struct PixelInputType {
     float4 position : SV_POSITION;
-    float3 uvw : TEXCOORD0;
+    float3 uvw      : TEXCOORD0;
 };
 
 static const float PI = 3.14159265359;

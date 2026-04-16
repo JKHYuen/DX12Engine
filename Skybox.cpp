@@ -135,8 +135,7 @@ void Skybox::Render(CommandList& directCommandList, const Camera& camera) {
 	auto projMatrix = camera.Get_ProjectionMatrix();
 	auto viewProjMatrix = viewMatrix * projMatrix;
 
-	directCommandList.SetPipelineState(m_IBL_PSO->GetPSO(ImageBasedLightingPSO::Skybox));
-	directCommandList.SetGraphicsRootSignature(m_IBL_PSO->GetRootSignature(ImageBasedLightingPSO::Skybox));
+	m_IBL_PSO->SetPipelineState(directCommandList, ImageBasedLightingPSO::Skybox);
 					 
 	directCommandList.SetGraphics32BitConstants(0, viewProjMatrix);
 	directCommandList.SetShaderResourceView(1, 0, m_SkyCubemapTexture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -150,10 +149,9 @@ void Skybox::ComputeIBLMaps(CommandList& directCommandList) {
 
 	float clearColor[] = { 1.0f, 0.0f, 1.0f, 1.0f };
 
-	/// BRDF Integration Map
+	// BRDF Integration Map
 	/// TODO: This could be only calculated once per runtime, or saved to disk
-	directCommandList.SetPipelineState(m_IBL_PSO->GetPSO(ImageBasedLightingPSO::BRDF_LUT));
-	directCommandList.SetGraphicsRootSignature(m_IBL_PSO->GetRootSignature(ImageBasedLightingPSO::BRDF_LUT));
+	m_IBL_PSO->SetPipelineState(directCommandList, ImageBasedLightingPSO::BRDF_LUT);
 
 	directCommandList.ClearTexture(m_BRDF_LUT_RT.GetTexture(AttachmentPoint::Color0), clearColor);
 	directCommandList.SetRenderTarget(m_BRDF_LUT_RT);
@@ -162,10 +160,10 @@ void Skybox::ComputeIBLMaps(CommandList& directCommandList) {
 
 	directCommandList.Draw(3);
 
-	/// Irradiance Convolution Map
+	// Irradiance Convolution Map
 	{
-		directCommandList.SetPipelineState(m_IBL_PSO->GetPSO(ImageBasedLightingPSO::Convolution));
-		directCommandList.SetGraphicsRootSignature(m_IBL_PSO->GetRootSignature(ImageBasedLightingPSO::Convolution));
+		m_IBL_PSO->SetPipelineState(directCommandList, ImageBasedLightingPSO::Convolution);
+
 		directCommandList.SetShaderResourceView(1, 0, m_SkyCubemapTexture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 		for(int i = 0; i < 6; i++) {
@@ -189,10 +187,9 @@ void Skybox::ComputeIBLMaps(CommandList& directCommandList) {
 		}
 	}
 
-	/// Prefiltered Convolution Map
+	// Prefiltered Convolution Map
 	{
-		directCommandList.SetPipelineState(m_IBL_PSO->GetPSO(ImageBasedLightingPSO::Prefilter));
-		directCommandList.SetGraphicsRootSignature(m_IBL_PSO->GetRootSignature(ImageBasedLightingPSO::Prefilter));
+		m_IBL_PSO->SetPipelineState(directCommandList, ImageBasedLightingPSO::Prefilter);
 		directCommandList.SetShaderResourceView(1, 0, m_SkyCubemapTexture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 		// Capture 6 cubemap directions with mips for prefiltered map

@@ -20,6 +20,7 @@ class EditorGui;
 class Skybox;
 class PBRObjectPSO;
 class OutlinePSO;
+class BloomPSO;
 class ImageBasedLightingPSO;
 class ShaderResourceView;
 
@@ -58,6 +59,8 @@ private:
     std::unique_ptr<PBRObjectPSO> m_PBR_PSO;
     std::unique_ptr<OutlinePSO> m_Outline_PSO;
     std::unique_ptr<ImageBasedLightingPSO> m_IBL_PSO;
+    std::unique_ptr<BloomPSO> m_Bloom_PSO;
+    ///
 
     std::shared_ptr<RootSignature> m_PostProcessRootSignature;
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_TonemapPSO;

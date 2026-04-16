@@ -278,7 +278,7 @@
     <ClInclude Include="ThreadSafeQueue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="VertexTypes.h">
+    <ClInclude Include="VertexInput.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Device.h">

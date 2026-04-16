@@ -5,6 +5,7 @@
 #include <d3dx12.h>
 #include "Application.h"
 #include "RootSignature.h"
+#include "CommandList.h"
 #include "Helpers.h"
 #include "Device.h"
 
@@ -59,4 +60,9 @@ GenerateMipsPSO::GenerateMipsPSO(Device& device) {
 
         device.GetD3D12Device()->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, m_DefaultUAV.GetDescriptorHandle(i));
     }
+}
+
+void GenerateMipsPSO::SetPipelineState(CommandList& computeCommandList) const {
+    computeCommandList.SetPipelineState(m_D3d12PipelineState);
+    computeCommandList.SetComputeRootSignature(m_RootSignature);
 }

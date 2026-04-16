@@ -108,3 +108,27 @@ ImageBasedLightingPSO::ImageBasedLightingPSO(Device& device, const RenderTarget&
 		device.CreatePipelineState(skyboxPipelineStateStream, m_BRDF_LUT_PSO);
 	}
 }
+
+void ImageBasedLightingPSO::SetPipelineState(CommandList& directCommandList, IBLRenderType renderType) const {
+	switch(renderType) {
+	case Skybox:
+		directCommandList.SetPipelineState(m_SkyboxPSO);
+		directCommandList.SetGraphicsRootSignature(m_SkyboxRootSignature);
+		break;
+	case Convolution:
+		directCommandList.SetPipelineState(m_ConvolutionPSO);
+		directCommandList.SetGraphicsRootSignature(m_SkyboxRootSignature);
+		break;
+	case Prefilter:
+		directCommandList.SetPipelineState(m_PrefilterPSO);
+		directCommandList.SetGraphicsRootSignature(m_PrefilterRootSignature);
+		break;
+	case BRDF_LUT:
+		directCommandList.SetPipelineState(m_BRDF_LUT_PSO);
+		directCommandList.SetGraphicsRootSignature(m_BRDF_LUT_RootSignature);
+		break;
+	default:
+		throw std::exception("Invalid IBLRenderType.");
+		break;
+	}
+}

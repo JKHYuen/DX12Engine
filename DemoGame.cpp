@@ -31,6 +31,7 @@
 #include "PBRObjectPSO.h"
 #include "OutlinePSO.h"
 #include "ImageBasedLightingPSO.h"
+#include "BloomPSO.h"
 #include "AssetImporter.h"
 #include "Logger.h"
 
@@ -169,6 +170,7 @@ bool DemoGame::Initialize() {
 	m_Outline_PSO = std::make_unique<OutlinePSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RenderTarget.GetRenderTargetFormats(), sk_DepthBufferFormat);
 
 	m_IBL_PSO = std::make_unique<ImageBasedLightingPSO>(*m_Device, m_HDR_MSAA_RenderTarget);
+	m_Bloom_PSO = std::make_unique<BloomPSO>(*m_Device, m_HDR_MSAA_RenderTarget);
 
 	auto& copyCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 	// Load Assets (COPY operations)

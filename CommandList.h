@@ -31,7 +31,7 @@
   *  The CommandList class provides additional functionality that makes working with
   *  DirectX 12 applications easier.
   */
-#include "VertexTypes.h"
+#include "VertexInput.h"
 
 #include <DirectXMath.h>
 #include <d3d12.h>

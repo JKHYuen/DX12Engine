@@ -37,6 +37,7 @@
 #include <cstdint>
 
 class Device;
+class CommandList;
 class RootSignature;
 
   // Struct used in the PanoToCubemap_CS compute shader.
@@ -65,17 +66,9 @@ class PanoToCubemapPSO {
 public:
     PanoToCubemapPSO(Device& device);
 
-    std::shared_ptr<RootSignature> GetRootSignature() const {
-        return m_RootSignature;
-    }
+    void SetPipelineState(CommandList& directCommandList) const;
 
-    Microsoft::WRL::ComPtr<ID3D12PipelineState> GetD3D12PipelineState() const {
-        return m_PipelineState;
-    }
-
-    D3D12_CPU_DESCRIPTOR_HANDLE GetDefaultUAV() const {
-        return m_DefaultUAV.GetDescriptorHandle();
-    }
+    D3D12_CPU_DESCRIPTOR_HANDLE GetDefaultUAV() const { return m_DefaultUAV.GetDescriptorHandle(); }
 
 private:
     std::shared_ptr<RootSignature>  m_RootSignature;

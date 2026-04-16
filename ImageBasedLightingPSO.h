@@ -27,39 +27,7 @@ public:
 
 	ImageBasedLightingPSO(Device& device, const RenderTarget& renderTarget);
 
-	void SetPipelineState(CommandList& directCommandList) const;
-
-	ComPtr<ID3D12PipelineState> GetPSO(IBLRenderType renderType) const {
-		switch(renderType) {
-		case Skybox:
-			return m_SkyboxPSO;
-		case Convolution:
-			return m_ConvolutionPSO;
-		case Prefilter:
-			return m_PrefilterPSO;
-		case BRDF_LUT:
-			return m_BRDF_LUT_PSO;
-		default:
-			throw std::exception("Invalid IBLRenderType.");
-			break;
-		}
-	}
-
-	std::shared_ptr<RootSignature> GetRootSignature(IBLRenderType renderType) const {
-		switch(renderType) {
-		case Skybox:
-			return m_SkyboxRootSignature;
-		case Convolution:
-			return m_SkyboxRootSignature;
-		case Prefilter:
-			return m_PrefilterRootSignature;
-		case BRDF_LUT:
-			return m_BRDF_LUT_RootSignature;
-		default:
-			throw std::exception("Invalid IBLRenderType.");
-			break;
-		}
-	}
+	void SetPipelineState(CommandList& directCommandList, IBLRenderType renderType) const;
 
 private:
 	ComPtr<ID3D12PipelineState> m_SkyboxPSO;

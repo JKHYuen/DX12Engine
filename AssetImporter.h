@@ -3,7 +3,7 @@
 #include "Logger.h"
 #include "StringHelpers.h"
 #include "Helpers.h"
-#include "VertexTypes.h"
+#include "VertexInput.h"
 #include "CommandList.h"
 #include "Mesh.h"
 #include "Logger.h"

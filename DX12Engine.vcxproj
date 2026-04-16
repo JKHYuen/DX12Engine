@@ -456,7 +456,7 @@
     <ClInclude Include="UploadBuffer.h" />
     <ClInclude Include="uuid_v4.h" />
     <ClInclude Include="VertexBuffer.h" />
-    <ClInclude Include="VertexTypes.h" />
+    <ClInclude Include="VertexInput.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>
   <ItemGroup>

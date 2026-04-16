@@ -1,6 +1,7 @@
 #include <DX12LibPCH.h>
 
 #include "PanoToCubemapPSO.h"
+#include "CommandList.h"
 #include "RootSignature.h"
 
 #include "Device.h"
@@ -56,4 +57,9 @@ PanoToCubemapPSO::PanoToCubemapPSO(Device& device) {
 
         device.GetD3D12Device()->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, m_DefaultUAV.GetDescriptorHandle(i));
     }
+}
+
+void PanoToCubemapPSO::SetPipelineState(CommandList& computeCommandList) const {
+    computeCommandList.SetPipelineState(m_PipelineState);
+    computeCommandList.SetComputeRootSignature(m_RootSignature);
 }

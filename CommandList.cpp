@@ -244,6 +244,8 @@ void CommandList::SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY primitiveTopology)
 }
 
 std::shared_ptr<Texture> CommandList::LoadTextureFromFile(const std::wstring& fileName, bool sRGB) {
+	assert(m_d3d12CommandListType == D3D12_COMMAND_LIST_TYPE_COPY);
+
 	std::shared_ptr<Texture> texture;
 	fs::path                 filePath(fileName);
 
@@ -328,7 +330,10 @@ std::shared_ptr<Texture> CommandList::LoadTextureFromFile(const std::wstring& fi
 		CopyTextureSubresource(texture, 0, static_cast<uint32_t>(subresources.size()), subresources.data());
 
 		if(subresources.size() < textureResource->GetDesc().MipLevels) {
-			GenerateMipsCompute(texture);
+			if(!m_ComputeCommandList) {
+				m_ComputeCommandList = m_Device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE).GetCommandList();
+			}
+			m_ComputeCommandList->GenerateMipsCompute(texture);
 		}
 
 		// Add the texture resource to the texture cache.
@@ -339,19 +344,12 @@ std::shared_ptr<Texture> CommandList::LoadTextureFromFile(const std::wstring& fi
 }
 
 void CommandList::GenerateMipsCompute(const std::shared_ptr<Texture>& texture) {
+	assert(m_d3d12CommandListType == D3D12_COMMAND_LIST_TYPE_COMPUTE);
+
 	if(!texture)
 		return;
 
 	auto d3d12Device = m_Device.GetD3D12Device();
-
-	if(m_d3d12CommandListType == D3D12_COMMAND_LIST_TYPE_COPY) {
-		if(!m_ComputeCommandList) {
-			m_ComputeCommandList = m_Device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE).GetCommandList();
-		}
-		m_ComputeCommandList->GenerateMipsCompute(texture);
-		return;
-	}
-
 	auto d3d12Resource = texture->GetD3D12Resource();
 
 	// If the texture doesn't have a valid resource? Do nothing...
@@ -457,8 +455,7 @@ void CommandList::GenerateMips_UAV(const std::shared_ptr<Texture>& texture, bool
 		m_GenerateMipsPSO = std::make_unique<GenerateMipsPSO>(m_Device);
 	}
 
-	SetPipelineState(m_GenerateMipsPSO->GetD3D12PipelineState());
-	SetComputeRootSignature(m_GenerateMipsPSO->GetRootSignature());
+	m_GenerateMipsPSO->SetPipelineState(*this);
 
 	GenerateMipsCB generateMipsCB;
 	generateMipsCB.IsSRGB = isSRGB;
@@ -588,8 +585,7 @@ void CommandList::PanoToCubemapCompute(const std::shared_ptr<Texture>& cubemapTe
 
 	TransitionBarrier(stagingTexture, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
-	SetPipelineState(m_PanoToCubemapPSO->GetD3D12PipelineState());
-	SetComputeRootSignature(m_PanoToCubemapPSO->GetRootSignature());
+	m_PanoToCubemapPSO->SetPipelineState(*this);
 
 	PanoToCubemapCB panoToCubemapCB;
 

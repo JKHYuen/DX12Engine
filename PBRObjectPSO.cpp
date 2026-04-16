@@ -3,7 +3,7 @@
 #include "Device.h"
 #include "RootSignature.h"
 #include "CommandList.h"
-#include "VertexTypes.h"
+#include "VertexInput.h"
 #include "RenderTarget.h"
 #include "ShaderResourceView.h"
 #include "AssetImporter.h"

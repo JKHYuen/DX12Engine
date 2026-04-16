@@ -38,6 +38,7 @@
 #include <wrl/client.h>
 
 class Device;
+class CommandList;
 class RootSignature;
 
 struct alignas(16) GenerateMipsCB {
@@ -63,13 +64,7 @@ class GenerateMipsPSO {
 public:
     GenerateMipsPSO(Device& device);
 
-    std::shared_ptr<RootSignature> GetRootSignature() const {
-        return m_RootSignature;
-    }
-
-    Microsoft::WRL::ComPtr<ID3D12PipelineState> GetD3D12PipelineState() const {
-        return m_D3d12PipelineState;
-    }
+    void SetPipelineState(CommandList& directCommandList) const;
 
     D3D12_CPU_DESCRIPTOR_HANDLE GetDefaultUAV() const {
         return m_DefaultUAV.GetDescriptorHandle();

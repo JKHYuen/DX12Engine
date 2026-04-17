@@ -702,15 +702,12 @@ void DemoGame::OnKeyPressed(const KeyEventArgs& e) {
 		break;
 
 	case KeyCode::F11:
+		/// TODO: actually resize render targets
 		m_Window->ToggleFullscreen();
 		break;
 
 	case KeyCode::V:
 		m_SwapChain->ToggleVSync();
-		break;
-
-	case KeyCode::X:
-		m_TestScene;
 		break;
 
 	case KeyCode::ShiftKey:

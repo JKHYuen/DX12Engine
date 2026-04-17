@@ -60,7 +60,7 @@ BloomPass::BloomPass(Device& device, const RenderTarget& screenRenderTarget, Blo
 	}
 
 	/// Create Debug SRV
-	EditorGui::AllocateImageSRV(device, m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0), &srvDesc, EditorGui::GuiSRVIndex::BloomPrefilter);
+	EditorGui::Get().RegisterImageSRV(device, m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0), &srvDesc, EditorGui::GuiSRVIndex::BloomPrefilter);
 
 }
 
@@ -124,7 +124,7 @@ void BloomPass::Render(CommandList& directCommandList, const RenderTarget& input
 	directCommandList.SetRenderTarget(outputRenderTarget);
 	directCommandList.SetViewport(outputRenderTarget.GetViewport());
 	directCommandList.SetShaderResourceView(BloomPSO::BloomRootParameters::Textures, 0, m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0));
-	directCommandList.SetShaderResourceView(BloomPSO::BloomRootParameters::Textures, 1, inputRenderTarget.GetTexture(AttachmentPoint::Color0));
+	directCommandList.SetShaderResourceView(BloomPSO::BloomRootParameters::Textures, 1, inputRenderTarget.GetTexture(AttachmentPoint::Color0), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 	directCommandList.Draw(3);
 }

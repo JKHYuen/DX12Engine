@@ -51,7 +51,7 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
         srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
         shadowMapDepthTexture->CreateShaderResourceView(srvDesc);
 
-        EditorGui::AllocateImageSRV(device, shadowMapDepthTexture, &srvDesc, EditorGui::GuiSRVIndex::DirectionalShadowMap);
+        EditorGui::Get().RegisterImageSRV(device, shadowMapDepthTexture, &srvDesc, EditorGui::GuiSRVIndex::DirectionalShadowMap);
     }
 
     struct ShadowDepthPipelineStateStream {

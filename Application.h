@@ -55,8 +55,11 @@ class Application {
     friend LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 public:
-    // Hard coded until something more complicated needed (e.g. game switching in editor app)
-    static const inline std::wstring assetFolderPath = L"assets";
+    // Singleton
+    Application(const Application&) = delete;
+    Application(Application&&) = delete;
+    Application& operator=(Application&) = delete;
+    Application& operator=(Application&&) = delete;
 
     // Create an application instance.
     Application(HINSTANCE hInst);
@@ -107,12 +110,6 @@ public:
     void Quit();
 
 private:
-    // Singleton
-    Application(const Application&)       = delete;
-    Application(Application&&)            = delete;
-    Application& operator=(Application&)  = delete;
-    Application& operator=(Application&&) = delete;
-
     HINSTANCE m_hInstance;
 
     // Set to true while the application is running. 

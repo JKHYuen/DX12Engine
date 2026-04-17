@@ -119,7 +119,7 @@ void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 	//   - ImGui mouse event is occuring i.e. mouse is hovered on top of a ImGui element
 	//	 - or ImGui UI is not open
 	if(e.Button == MouseButtonEventArgs::Left) {
-		if(EditorGui::sb_ShowImGuiWindow && !ImGui::GetIO().WantCaptureMouse) {
+		if(EditorGui::Get().sb_ShowImGuiWindow && !ImGui::GetIO().WantCaptureMouse) {
 			if(GameObject* go = m_Picker->GetPickedObject()) {
 				go->SetOutlineState(false);
 			}
@@ -129,7 +129,7 @@ void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 		}
 
 		// Unpick object if mouse clicked and editor UI is not open
-		if(!EditorGui::sb_ShowImGuiWindow) {
+		if(!EditorGui::Get().sb_ShowImGuiWindow) {
 			if(GameObject* go = m_Picker->GetPickedObject()) {
 				go->SetOutlineState(false);
 				m_Picker->ClearPickedObject();

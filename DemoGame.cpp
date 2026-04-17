@@ -22,12 +22,10 @@
 #include "Helpers.h"
 #include "Window.h"
 #include "Colors.h"
-#include "Mesh.h"
 #include "Texture.h"
 #include "Skybox.h"
 #include "EditorGui.h"
 #include "DirectionalLight.h"
-#include "ShaderResourceView.h"
 #include "GameObject.h"
 #include "PBRObjectPSO.h"
 #include "OutlinePSO.h"
@@ -88,7 +86,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	, m_WindowHeight(windowHeight)
 	, m_IsVsync(vSync)
 	, m_HDR_MSAA_RT() 
-	, m_PrePostProcessRT() 
+	, m_MSAAResolveDstRT() 
 	, m_PostProcessOutputRT() {
 
 	m_Window = Application::Get().CreateRenderWindow(name, windowWidth, windowHeight, *this);
@@ -119,7 +117,10 @@ uint32_t DemoGame::Run() {
 
 bool DemoGame::Initialize() {
 	m_Device = std::make_shared<Device>();
-	m_EditorGui = std::make_unique<EditorGui>(*m_Device, sk_HDRFormat, SwapChain::sk_BufferCount, m_Window->GetWindowHandle());
+
+	// Create EditorGui singleton
+	EditorGui::Create(*m_Device, sk_HDRFormat, SwapChain::sk_BufferCount, m_Window->GetWindowHandle());
+
 	// TODO: Tweakable MSAA
 	DXGI_SAMPLE_DESC multiSampleDesc = m_Device->GetMultisampleQualityLevels(sk_HDRFormat);
 
@@ -164,21 +165,22 @@ bool DemoGame::Initialize() {
 
 		// multisampled HDR rendertarget will be resolved into this texture before postprocessing/tonemapping
 		auto prePostProcessRenderTexture = std::make_shared<Texture>(*m_Device, floatTextureDesc, &colorClearValue, true);
-		prePostProcessRenderTexture->SetName(L"Pre Post Process Render Target");
-		m_PrePostProcessRT.AttachTexture(AttachmentPoint::Color0, prePostProcessRenderTexture);
+		prePostProcessRenderTexture->SetName(L"MSAA Resolve Destination Render Target");
+		m_MSAAResolveDstRT.AttachTexture(AttachmentPoint::Color0, prePostProcessRenderTexture);
 
 		auto postProcessOutputTexture = std::make_shared<Texture>(*m_Device, floatTextureDesc, &colorClearValue, true);
 		postProcessOutputTexture->SetName(L"Post Process Output Render Target");
 		m_PostProcessOutputRT.AttachTexture(AttachmentPoint::Color0, postProcessOutputTexture);
 	}
 
-	// Create PBR Pipeline States
+	/// TODO: Create PSOs (this should be managed somewhere else)
 	m_PBR_PSO = std::make_unique<PBRObjectPSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RT.GetRenderTargetFormats(), sk_DepthBufferFormat);
 	m_Outline_PSO = std::make_unique<OutlinePSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RT.GetRenderTargetFormats(), sk_DepthBufferFormat);
-
 	m_IBL_PSO = std::make_unique<ImageBasedLightingPSO>(*m_Device, m_HDR_MSAA_RT);
+
 	m_Bloom_PSO = std::make_unique<BloomPSO>(*m_Device, m_HDR_MSAA_RT);
-	m_BloomPass = std::make_unique<BloomPass>(*m_Device, m_HDR_MSAA_RT, m_Bloom_PSO.get(), 16);
+	m_BloomPass = std::make_unique<BloomPass>(*m_Device, m_HDR_MSAA_RT, m_Bloom_PSO.get());
+	///
 
 	auto& copyCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 	// Load Assets (COPY operations)
@@ -333,7 +335,8 @@ void DemoGame::OnResize(const ResizeEventArgs& e) {
 
 	m_ScreenViewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_WindowWidth), static_cast<float>(m_WindowHeight));
 	m_HDR_MSAA_RT.Resize(m_WindowWidth, m_WindowHeight);
-	m_PrePostProcessRT.Resize(m_WindowWidth, m_WindowHeight);
+	m_MSAAResolveDstRT.Resize(m_WindowWidth, m_WindowHeight);
+	m_PostProcessOutputRT.Resize(m_WindowWidth, m_WindowHeight);
 
 	m_TestScene->SetGameWindowSize(m_WindowWidth, m_WindowHeight);
 }
@@ -354,7 +357,7 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 	// m_SwapChain->WaitForSwapChain();
 
 	// Update the camera transform if ImGui is not showing, unless right click is held
-	if(!EditorGui::sb_ShowImGuiWindow || m_IsRightClickPressed) {
+	if(!EditorGui::Get().sb_ShowImGuiWindow || m_IsRightClickPressed) {
 		float speedMultipler = m_IsShiftPressed ? 32.0f : 8.0f;
 		
 		// extra slow movement if using left or right click
@@ -381,7 +384,7 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 void DemoGame::RenderImGui(CommandList& directCommandList) {
 	/// NOTE: Cursor visibility is currently solely controlled by ImGui, not ideal but works for now.
 	///       Cursor is invisible anytime ImGui window is not shown.
-	ImGui::SetMouseCursor(EditorGui::sb_ShowImGuiWindow || !Application::Get().GetCursorClientAreaLockState() ? ImGuiMouseCursor_Arrow : ImGuiMouseCursor_None);
+	ImGui::SetMouseCursor(EditorGui::Get().sb_ShowImGuiWindow || !Application::Get().GetCursorClientAreaLockState() ? ImGuiMouseCursor_Arrow : ImGuiMouseCursor_None);
 
 	m_EditorGui->NewFrame();
 
@@ -406,10 +409,10 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 		}
 	};
 
-	if(EditorGui::sb_ShowImGuiWindow) {
+	if(EditorGui::Get().sb_ShowImGuiWindow) {
 		/// Main Engine UI Window Start
 		{
-			ImGui::Begin("DX12 Engine", &EditorGui::sb_ShowImGuiWindow, ImGuiWindowFlags_NoCollapse);
+			ImGui::Begin("DX12 Engine", &EditorGui::Get().sb_ShowImGuiWindow, ImGuiWindowFlags_NoCollapse);
 
 			// Exit button
 			{
@@ -545,13 +548,13 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 
 				// Bloom debug view
 				ImGui::ImageWithBg(
-					(ImTextureID)EditorGui::GetImageSRV(EditorGui::GuiSRVIndex::BloomPrefilter).gpuHandle.ptr,
+					(ImTextureID)EditorGui::Get().GetImageSRV(EditorGui::GuiSRVIndex::BloomPrefilter).gpuHandle.ptr,
 					imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
 				);
 
 				// Directional shadow map debug view
 				ImGui::ImageWithBg(
-					(ImTextureID)EditorGui::GetImageSRV(EditorGui::GuiSRVIndex::DirectionalShadowMap).gpuHandle.ptr,
+					(ImTextureID)EditorGui::Get().GetImageSRV(EditorGui::GuiSRVIndex::DirectionalShadowMap).gpuHandle.ptr,
 					imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
 				);
 			}
@@ -582,7 +585,7 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 	/// MSAA resolve
 	auto& swapChainRT = m_SwapChain->GetRenderTarget();
 	{
-		auto  msaaResolveDstTexture = m_PrePostProcessRT.GetTexture(AttachmentPoint::Color0);
+		auto  msaaResolveDstTexture = m_MSAAResolveDstRT.GetTexture(AttachmentPoint::Color0);
 		auto  msaaHDRRenderTexture = m_HDR_MSAA_RT.GetTexture(AttachmentPoint::Color0);
 
 		// Resolve the MSAA render target to the swapchain's backbuffer
@@ -595,7 +598,7 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 		directCommandList->ClearTexture(intermediatePostProcessTexture, Colors::DebugMagenta);
 
 		/// TODO: Bloom
-		m_BloomPass->Render(*directCommandList, m_PrePostProcessRT, m_PostProcessOutputRT);
+		m_BloomPass->Render(*directCommandList, m_MSAAResolveDstRT, m_PostProcessOutputRT);
 
 		// Tonemapping
 		directCommandList->SetPipelineState(m_TonemapPSO);
@@ -618,7 +621,7 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 
 void DemoGame::OnMouseMove(const MouseMotionEventArgs& e) {
 	// Record mouse rotations only if ImGui is closed or right click is held down
-	if(!EditorGui::sb_ShowImGuiWindow || m_IsRightClickPressed) {
+	if(!EditorGui::Get().sb_ShowImGuiWindow || m_IsRightClickPressed) {
 		m_Pitch -= e.DeltaY * sk_MouseSpeed;
 		m_Pitch = std::clamp(m_Pitch, -90.0f, 90.0f);
 		m_Yaw -= e.DeltaX * sk_MouseSpeed;
@@ -639,7 +642,7 @@ void DemoGame::OnMouseButtonPressed(const MouseButtonEventArgs& e) {
 
 		// Holding right click moves camera back,
 		// disabled for ImGui because right click is held to enable camera movement
-		if(!EditorGui::sb_ShowImGuiWindow) {
+		if(!EditorGui::Get().sb_ShowImGuiWindow) {
 			m_Forward = -1.0f;
 		}
 	}
@@ -749,7 +752,7 @@ void DemoGame::OnKeyReleased(const KeyEventArgs& e) {
 		break;
 
 	case KeyCode::F1: 
-		EditorGui::ToggleImGuiVisibilityState();
+		EditorGui::Get().ToggleImGuiVisibilityState();
 		break;
 
 	case KeyCode::ShiftKey:
@@ -759,7 +762,7 @@ void DemoGame::OnKeyReleased(const KeyEventArgs& e) {
 }
 
 void DemoGame::OnMouseWheel(const MouseWheelEventArgs& e) {
-	if(!EditorGui::sb_ShowImGuiWindow) {
+	if(!EditorGui::Get().sb_ShowImGuiWindow) {
 		auto fov = m_TestScene->m_MainCamera.Get_FoV();
 
 		fov -= e.WheelDelta;

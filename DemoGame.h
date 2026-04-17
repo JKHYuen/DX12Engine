@@ -29,6 +29,7 @@ class DemoGame : public IGame {
 public:
     DemoGame(const std::wstring& name, uint32_t width, uint32_t height, bool vSync = false);
 
+    // Called by main
     uint32_t Run()       override;
     bool Initialize()    override;
 
@@ -54,7 +55,7 @@ private:
     std::unique_ptr<EditorGui> m_EditorGui;
 
     RenderTarget m_HDR_MSAA_RT;
-    RenderTarget m_PrePostProcessRT; // destination of MSAA resolve
+    RenderTarget m_MSAAResolveDstRT;    // destination of MSAA resolve
     RenderTarget m_PostProcessOutputRT; // Intermediate render target between post process passes
 
     /// TODO: figure out more generalized PSO loading system
@@ -62,8 +63,8 @@ private:
     std::unique_ptr<OutlinePSO> m_Outline_PSO;
     std::unique_ptr<ImageBasedLightingPSO> m_IBL_PSO;
     std::unique_ptr<BloomPSO> m_Bloom_PSO;
-    std::unique_ptr<BloomPass> m_BloomPass;
     ///
+    std::unique_ptr<BloomPass> m_BloomPass;
 
     std::shared_ptr<RootSignature> m_PostProcessRootSignature;
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_TonemapPSO;

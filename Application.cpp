@@ -13,13 +13,16 @@
 #include "imgui.h"
 #include "imgui_impl_win32.h"
 
-static Application* sp_Singelton = nullptr;
-constexpr wchar_t WINDOW_CLASS_NAME[] = L"DX12RenderWindowClass";
+namespace {
+    Application* sp_Singleton = nullptr;
 
-static std::map<HWND, std::weak_ptr<Window>>         s_WindowMap;
-static std::map<std::wstring, std::weak_ptr<Window>> s_WindowMapByName;
+    constexpr wchar_t WINDOW_CLASS_NAME[] = L"DX12RenderWindowClass";
 
-static std::mutex s_WindowHandlesMutex;
+    std::map<HWND,         std::weak_ptr<Window>> s_WindowMap;
+    std::map<std::wstring, std::weak_ptr<Window>> s_WindowMapByName;
+
+    std::mutex s_WindowHandlesMutex;
+}
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -77,21 +80,21 @@ Application::~Application() {
 }
 
 Application& Application::Create(HINSTANCE hInst) {
-    if(!sp_Singelton) {
-        sp_Singelton = new Application(hInst);
+    if(!sp_Singleton) {
+        sp_Singleton = new Application(hInst);
     }
-    return *sp_Singelton;
+    return *sp_Singleton;
 }
 
 Application& Application::Get() {
-    assert(sp_Singelton != nullptr);
-    return *sp_Singelton;
+    assert(sp_Singleton != nullptr);
+    return *sp_Singleton;
 }
 
 void Application::Destroy() {
-    if(sp_Singelton) {
-        delete sp_Singelton;
-        sp_Singelton = nullptr;
+    if(sp_Singleton) {
+        delete sp_Singleton;
+        sp_Singleton = nullptr;
     }
 }
 

@@ -57,9 +57,9 @@ BloomPSO::BloomPSO(Device& device, const RenderTarget& renderTarget) {
 	// PSO for Prefilter, Downsample and combine rendering 
 	// (Disable blending)
 	CD3DX12_RASTERIZER_DESC rasterizerDesc(D3D12_DEFAULT);
-
 	// !!! Must front cull for ScreenRender_VS to work
 	rasterizerDesc.CullMode = D3D12_CULL_MODE_FRONT;
+
 	auto blendDesc = CD3DX12_BLEND_DESC(CD3DX12_DEFAULT());
 
 	bloomPipelineStateStream.pRootSignature = m_RootSignature->GetD3D12RootSignature().Get();

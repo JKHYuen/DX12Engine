@@ -3,6 +3,8 @@
 // Wrapper for Dear ImGui
 // Note: Seperate free list allocator and static SRV descriptor heap used instead of DynamicDescriptorHeap in main engine for simplicity
 
+/// TODO: this class is effectively a singleton with static calls (oh no), constructor should only be called once, will clean this up later
+
 #include "imgui.h"
 
 #include <d3dx12.h>
@@ -40,6 +42,7 @@ public:
 	// (Good enough for now)
 	enum GuiSRVIndex {
 		DirectionalShadowMap,
+		BloomPrefilter,
 
 		NumGuiSRVIndex
 	};
@@ -97,7 +100,6 @@ private:
 	};
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_D3DSrvDescHeap;
-
 
 	// static so it can be used in ImGui callback lambdas
 	static inline DescriptorHeapAllocator s_D3DSrvDescHeapAllocator {};

@@ -11,9 +11,9 @@ class CommandList;
 
 class BloomPass {
 public:
-	BloomPass(Device& device, const RenderTarget& screenRenderTarget, BloomPSO* pso, int maxIterations);
+	BloomPass(Device& device, const RenderTarget& screenRenderTarget, BloomPSO* pso, int maxIterations = 16);
 
-	void Render(CommandList& directCommandList, const RenderTarget& screenRenderTarget);
+	void Render(CommandList& directCommandList, const RenderTarget& inputRenderTarget, const RenderTarget& outputRenderTarget);
 
 private:
 	float m_Intensity     = 1.0f;
@@ -21,11 +21,9 @@ private:
 	float m_SoftThreshold = 0.9f;
 
 	std::vector<RenderTarget> m_SamplingRenderTargets;
-	RenderTarget m_BloomOutputRT;
 
 	// Owned by DemoGame class
 	BloomPSO* m_PSO;
-
 
 	// Actual down/up iterations used, can be different from maxIterations (minimum texture height must be > 2)
 	int m_IterationCount;

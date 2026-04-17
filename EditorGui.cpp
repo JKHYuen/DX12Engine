@@ -10,6 +10,7 @@
 #include "imgui_impl_dx12.h"
 
 #include <wrl/client.h>
+#include "Logger.h"
 
 EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWND hwnd) {
 	// Create ImGui SRV Heap and initialize free list allocator
@@ -67,7 +68,6 @@ void EditorGui::AllocateImageSRV(Device& device, const std::shared_ptr<Resource>
 	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle {};
 	s_D3DSrvDescHeapAllocator.Alloc(&cpuHandle, &gpuHandle);
 	device.GetD3D12Device()->CreateShaderResourceView(resource->GetD3D12Resource().Get(), srvDesc, cpuHandle);
-
 	s_ImageSRVs[srvIndex] = { cpuHandle, gpuHandle };
 }
 

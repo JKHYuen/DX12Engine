@@ -21,6 +21,7 @@
 #include "RootSignature.h"
 #include "Helpers.h"
 #include "Window.h"
+#include "Colors.h"
 #include "Mesh.h"
 #include "Texture.h"
 #include "Skybox.h"
@@ -32,6 +33,7 @@
 #include "OutlinePSO.h"
 #include "ImageBasedLightingPSO.h"
 #include "BloomPSO.h"
+#include "BloomPass.h"
 #include "AssetImporter.h"
 #include "Logger.h"
 
@@ -85,8 +87,9 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	, m_WindowWidth(windowWidth)
 	, m_WindowHeight(windowHeight)
 	, m_IsVsync(vSync)
-	, m_HDR_MSAA_RenderTarget() 
-	, m_FloatRenderTarget() {
+	, m_HDR_MSAA_RT() 
+	, m_PrePostProcessRT() 
+	, m_PostProcessOutputRT() {
 
 	m_Window = Application::Get().CreateRenderWindow(name, windowWidth, windowHeight, *this);
 
@@ -151,26 +154,31 @@ bool DemoGame::Initialize() {
 		auto depthTexture = std::make_shared<Texture>(*m_Device, depthDesc, &depthClearValue);
 		depthTexture->SetName(L"Depth Render Target");
 
-		m_HDR_MSAA_RenderTarget.AttachTexture(AttachmentPoint::Color0, colorTexture);
-		m_HDR_MSAA_RenderTarget.AttachTexture(AttachmentPoint::DepthStencil, depthTexture);
+		m_HDR_MSAA_RT.AttachTexture(AttachmentPoint::Color0, colorTexture);
+		m_HDR_MSAA_RT.AttachTexture(AttachmentPoint::DepthStencil, depthTexture);
 
-		// Non multisampled floating point render texture,
-		// multisampled HDR rendertarget will be resolved into this texture before postprocessing/tonemapping
+		// Non multisampled floating point render texture
 		auto floatTextureDesc = CD3DX12_RESOURCE_DESC::Tex2D(
 			sk_HDRFormat, m_WindowWidth, m_WindowHeight, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
 		);
 
-		auto floatRenderTexture = std::make_shared<Texture>(*m_Device, floatTextureDesc, &colorClearValue);
-		floatRenderTexture->SetName(L"Screen Floating Point Render Target");
-		m_FloatRenderTarget.AttachTexture(AttachmentPoint::Color0, floatRenderTexture);
+		// multisampled HDR rendertarget will be resolved into this texture before postprocessing/tonemapping
+		auto prePostProcessRenderTexture = std::make_shared<Texture>(*m_Device, floatTextureDesc, &colorClearValue, true);
+		prePostProcessRenderTexture->SetName(L"Pre Post Process Render Target");
+		m_PrePostProcessRT.AttachTexture(AttachmentPoint::Color0, prePostProcessRenderTexture);
+
+		auto postProcessOutputTexture = std::make_shared<Texture>(*m_Device, floatTextureDesc, &colorClearValue, true);
+		postProcessOutputTexture->SetName(L"Post Process Output Render Target");
+		m_PostProcessOutputRT.AttachTexture(AttachmentPoint::Color0, postProcessOutputTexture);
 	}
 
 	// Create PBR Pipeline States
-	m_PBR_PSO = std::make_unique<PBRObjectPSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RenderTarget.GetRenderTargetFormats(), sk_DepthBufferFormat);
-	m_Outline_PSO = std::make_unique<OutlinePSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RenderTarget.GetRenderTargetFormats(), sk_DepthBufferFormat);
+	m_PBR_PSO = std::make_unique<PBRObjectPSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RT.GetRenderTargetFormats(), sk_DepthBufferFormat);
+	m_Outline_PSO = std::make_unique<OutlinePSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RT.GetRenderTargetFormats(), sk_DepthBufferFormat);
 
-	m_IBL_PSO = std::make_unique<ImageBasedLightingPSO>(*m_Device, m_HDR_MSAA_RenderTarget);
-	m_Bloom_PSO = std::make_unique<BloomPSO>(*m_Device, m_HDR_MSAA_RenderTarget);
+	m_IBL_PSO = std::make_unique<ImageBasedLightingPSO>(*m_Device, m_HDR_MSAA_RT);
+	m_Bloom_PSO = std::make_unique<BloomPSO>(*m_Device, m_HDR_MSAA_RT);
+	m_BloomPass = std::make_unique<BloomPass>(*m_Device, m_HDR_MSAA_RT, m_Bloom_PSO.get(), 16);
 
 	auto& copyCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 	// Load Assets (COPY operations)
@@ -279,9 +287,9 @@ bool DemoGame::Initialize() {
 		rootSignatureDescription.Init_1_1(_countof(rootParameters), rootParameters, 1, &pointClampSampler, rootSignatureFlags_VSPS);
 		m_PostProcessRootSignature = std::make_shared<RootSignature>(*m_Device, rootSignatureDescription.Desc_1_1);
 
-		// Note: not sure why this is needed, ignores post processing shader without D3D12_CULL_MODE_NONE
+		// Note: cull front, triangle created in ScreenRender_VS faces away from camera
 		CD3DX12_RASTERIZER_DESC rasterizerDesc(D3D12_DEFAULT);
-		rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
+		rasterizerDesc.CullMode = D3D12_CULL_MODE_FRONT;
 
 		/// TODO: disable depth?
 		struct PostProcessPipelineStateStream {
@@ -324,8 +332,8 @@ void DemoGame::OnResize(const ResizeEventArgs& e) {
 	m_TestScene->m_MainCamera.Set_Projection(s_DefaultFOV, aspectRatio, s_ZNear, s_ZFar);
 
 	m_ScreenViewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_WindowWidth), static_cast<float>(m_WindowHeight));
-	m_HDR_MSAA_RenderTarget.Resize(m_WindowWidth, m_WindowHeight);
-	m_FloatRenderTarget.Resize(m_WindowWidth, m_WindowHeight);
+	m_HDR_MSAA_RT.Resize(m_WindowWidth, m_WindowHeight);
+	m_PrePostProcessRT.Resize(m_WindowWidth, m_WindowHeight);
 
 	m_TestScene->SetGameWindowSize(m_WindowWidth, m_WindowHeight);
 }
@@ -343,7 +351,7 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 	m_CurrentAvgFPS = (int)(DemoGame::sk_frameTimeSamples / frameTimeSum);
 
 	// Can reduce input latency
-	//m_SwapChain->WaitForSwapChain();
+	// m_SwapChain->WaitForSwapChain();
 
 	// Update the camera transform if ImGui is not showing, unless right click is held
 	if(!EditorGui::sb_ShowImGuiWindow || m_IsRightClickPressed) {
@@ -515,7 +523,7 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 							// Render new IBLs
 							auto& directCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 							auto directCommandList = directCommandQueue.GetCommandList();
-							
+							directCommandList->SetScissorRect(m_DefaultScissorRect);
 							m_TestScene->ComputeSkyboxIBLMaps(*directCommandList);
 							directCommandQueue.WaitForFenceValue(directCommandQueue.ExecuteCommandList(directCommandList));
 
@@ -527,15 +535,24 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 				}
 			}
 
-			// Directional shadow map debug view
+			// Debug Texture views
+			// Need ImVec4(0.0f, 0.0f, 0.0f, 1.0f) background color, else some textures are see through for some reason
+			// Might have something to do with alpha blending when ImGui theme has transparency
 			{
 				static float imageScale = 0.25f;
 				ImGui::SliderFloat("Scale", &imageScale, 0.0, 1.0, "%.2fx");
 				ImVec2 imageSize = ImVec2(1920.0f * imageScale, 1080.0f * imageScale);
 
-				ImGui::Image(
+				// Bloom debug view
+				ImGui::ImageWithBg(
+					(ImTextureID)EditorGui::GetImageSRV(EditorGui::GuiSRVIndex::BloomPrefilter).gpuHandle.ptr,
+					imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
+				);
+
+				// Directional shadow map debug view
+				ImGui::ImageWithBg(
 					(ImTextureID)EditorGui::GetImageSRV(EditorGui::GuiSRVIndex::DirectionalShadowMap).gpuHandle.ptr,
-					imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f)
+					imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
 				);
 			}
 
@@ -559,27 +576,34 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 	directCommandList->SetScissorRect(m_DefaultScissorRect);
 
 	/// Render Test Scene
-	// Perform HDR rendering to intermediate render target (before multisample resolve)
-	m_TestScene->Render(m_HDR_MSAA_RenderTarget, m_ScreenViewport, *directCommandList, e);
+	// Perform HDR rendering to multisampled render target
+	m_TestScene->Render(m_HDR_MSAA_RT, m_ScreenViewport, *directCommandList, e);
 
-	/// Post Processing
+	/// MSAA resolve
+	auto& swapChainRT = m_SwapChain->GetRenderTarget();
 	{
-		auto& swapChainRT = m_SwapChain->GetRenderTarget();
-		auto  msaaResolveDstTexture = m_FloatRenderTarget.GetTexture(AttachmentPoint::Color0);
-		auto  msaaHDRRenderTexture = m_HDR_MSAA_RenderTarget.GetTexture(AttachmentPoint::Color0);
+		auto  msaaResolveDstTexture = m_PrePostProcessRT.GetTexture(AttachmentPoint::Color0);
+		auto  msaaHDRRenderTexture = m_HDR_MSAA_RT.GetTexture(AttachmentPoint::Color0);
 
 		// Resolve the MSAA render target to the swapchain's backbuffer
 		directCommandList->ResolveSubresource(msaaResolveDstTexture, msaaHDRRenderTexture);
+	}
 
-		// TODO: Bloom
+	/// Post Processing
+	{
+		auto intermediatePostProcessTexture = m_PostProcessOutputRT.GetTexture(AttachmentPoint::Color0);
+		directCommandList->ClearTexture(intermediatePostProcessTexture, Colors::DebugMagenta);
+
+		/// TODO: Bloom
+		m_BloomPass->Render(*directCommandList, m_PrePostProcessRT, m_PostProcessOutputRT);
 
 		// Tonemapping
-		directCommandList->SetRenderTarget(swapChainRT);
-		directCommandList->SetViewport(swapChainRT.GetViewport());
 		directCommandList->SetPipelineState(m_TonemapPSO);
-		directCommandList->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		directCommandList->SetGraphicsRootSignature(m_PostProcessRootSignature);
-		directCommandList->SetShaderResourceView(0, 0, msaaResolveDstTexture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		directCommandList->SetViewport(swapChainRT.GetViewport());
+		directCommandList->SetRenderTarget(swapChainRT);
+		directCommandList->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		directCommandList->SetShaderResourceView(0, 0, intermediatePostProcessTexture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		// non indexed full screen render (see ScreenRender vertex shader)
 		directCommandList->Draw(3);
 	}

@@ -10,6 +10,7 @@
 #include "Helpers.h"
 #include "StringHelpers.h"
 #include "EditorGui.h"
+#include "Colors.h"
 
 #include <filesystem>
 
@@ -79,8 +80,7 @@ void Scene::Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, Comman
 	}
 
 	// Render skybox and objects with same render target
-	float clearColor[] = { 0.6f, 0.6f, 0.7f, 1.0f };
-	directCommandList.ClearTexture(targetRT.GetTexture(AttachmentPoint::Color0), clearColor);
+	directCommandList.ClearTexture(targetRT.GetTexture(AttachmentPoint::Color0), Colors::DefaultBackground);
 	directCommandList.ClearDepthStencilTexture(targetRT.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL);
 	directCommandList.SetViewport(viewPort);
 	directCommandList.SetRenderTarget(targetRT);

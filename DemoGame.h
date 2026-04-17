@@ -21,6 +21,7 @@ class Skybox;
 class PBRObjectPSO;
 class OutlinePSO;
 class BloomPSO;
+class BloomPass;
 class ImageBasedLightingPSO;
 class ShaderResourceView;
 
@@ -52,14 +53,16 @@ private:
 
     std::unique_ptr<EditorGui> m_EditorGui;
 
-    RenderTarget m_HDR_MSAA_RenderTarget;
-    RenderTarget m_FloatRenderTarget;
+    RenderTarget m_HDR_MSAA_RT;
+    RenderTarget m_PrePostProcessRT; // destination of MSAA resolve
+    RenderTarget m_PostProcessOutputRT; // Intermediate render target between post process passes
 
     /// TODO: figure out more generalized PSO loading system
     std::unique_ptr<PBRObjectPSO> m_PBR_PSO;
     std::unique_ptr<OutlinePSO> m_Outline_PSO;
     std::unique_ptr<ImageBasedLightingPSO> m_IBL_PSO;
     std::unique_ptr<BloomPSO> m_Bloom_PSO;
+    std::unique_ptr<BloomPass> m_BloomPass;
     ///
 
     std::shared_ptr<RootSignature> m_PostProcessRootSignature;

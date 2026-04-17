@@ -12,6 +12,7 @@
 #include "Mesh.h"
 #include "Camera.h"
 #include "ImageBasedLightingPSO.h"
+#include "Colors.h"
 #include "Logger.h"
 
 using namespace DirectX;
@@ -146,18 +147,18 @@ void Skybox::Render(CommandList& directCommandList, const Camera& camera) {
 void Skybox::ComputeIBLMaps(CommandList& directCommandList) {
 	XMMATRIX cubemapProjectionMat = XMMatrixPerspectiveFovLH(XMConvertToRadians(90.0f), 1.0f, 0.1f, 10.0f);
 
-	float clearColor[] = { 1.0f, 0.0f, 1.0f, 1.0f };
-
 	// BRDF Integration Map
-	/// TODO: This could be only calculated once per runtime, or saved to disk
-	m_IBL_PSO->SetPipelineState(directCommandList, ImageBasedLightingPSO::BRDF_LUT);
+	{
+		/// TODO: This could be only calculated once per runtime, or saved to disk
+		m_IBL_PSO->SetPipelineState(directCommandList, ImageBasedLightingPSO::BRDF_LUT);
 
-	directCommandList.ClearTexture(m_BRDF_LUT_RT.GetTexture(AttachmentPoint::Color0), clearColor);
-	directCommandList.SetRenderTarget(m_BRDF_LUT_RT);
-	directCommandList.SetViewport(m_BRDF_LUT_RT.GetViewport());
-	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		directCommandList.ClearTexture(m_BRDF_LUT_RT.GetTexture(AttachmentPoint::Color0), Colors::DebugMagenta);
+		directCommandList.SetRenderTarget(m_BRDF_LUT_RT);
+		directCommandList.SetViewport(m_BRDF_LUT_RT.GetViewport());
+		directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	directCommandList.Draw(3);
+		directCommandList.Draw(3);
+	}
 
 	// Irradiance Convolution Map
 	{
@@ -177,7 +178,7 @@ void Skybox::ComputeIBLMaps(CommandList& directCommandList) {
 			rtvDesc.Texture2DArray.ArraySize = 1;
 			m_IrradianceConvolutionCubemap_RT.GetTexture(AttachmentPoint::Color0)->CreateRenderTargetView(rtvDesc);
 
-			directCommandList.ClearTexture(m_IrradianceConvolutionCubemap_RT.GetTexture(AttachmentPoint::Color0), clearColor);
+			directCommandList.ClearTexture(m_IrradianceConvolutionCubemap_RT.GetTexture(AttachmentPoint::Color0), Colors::DebugMagenta);
 			directCommandList.SetViewport(m_IrradianceConvolutionCubemap_RT.GetViewport());
 			directCommandList.SetRenderTarget(m_IrradianceConvolutionCubemap_RT);
 
@@ -206,7 +207,7 @@ void Skybox::ComputeIBLMaps(CommandList& directCommandList) {
 				rtvDesc.Texture2DArray.ArraySize = 1;
 				m_PrefilterCubemap_RT.GetTexture(AttachmentPoint::Color0)->CreateRenderTargetView(rtvDesc);
 
-				directCommandList.ClearTexture(m_PrefilterCubemap_RT.GetTexture(AttachmentPoint::Color0), clearColor);
+				directCommandList.ClearTexture(m_PrefilterCubemap_RT.GetTexture(AttachmentPoint::Color0), Colors::DebugMagenta);
 				directCommandList.SetViewport(m_PrefilterCubemap_RT.GetViewport({ (float)currMipScale, (float)currMipScale }));
 				directCommandList.SetRenderTarget(m_PrefilterCubemap_RT);
 

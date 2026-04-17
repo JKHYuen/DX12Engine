@@ -28,8 +28,8 @@ public:
 
 	// Static textures only
 	enum TextureIndex {
-		ScreenTex,
 		SourceTex,
+		ScreenTex,
 
 		NumTextures
 	};

@@ -1,15 +1,18 @@
 cbuffer MaterialParamBuffer : register(b0, space0) {
     float4 filter;
-    float4 bloomParams; // x: boxSampleDelta, y: intensity, z: usePrefilter [0, 1], w: useFinalPass [0, 1]
+    float boxSampleDelta;
+    float intensity;
+    float usePrefilter; // 0.0 or 1.0
+    float useFinalPass; // 0.0 or 1.0
 };
 
-Texture2D screenTexture  : register(t0);
-Texture2D sourceTexture  : register(t1);
+Texture2D sourceTexture  : register(t0);
+Texture2D screenTexture  : register(t1);
 
 SamplerState clampSampler : register(s0);
 
 struct PixelInputType {
-    float4 position : SV_POSITION;
+    float4 Position : SV_POSITION;
     float2 uv       : TEXCOORD0;
 };
 
@@ -26,11 +29,11 @@ float3 Prefilter(float3 c) {
 
 float3 SampleBox(float2 uv, float delta) {
     float width, height, numOfLevels;
-    screenTexture.GetDimensions(0, width, height, numOfLevels);
+    sourceTexture.GetDimensions(0, width, height, numOfLevels);
     
     float4 o = float2(1.0 / width, 1.0 / height).xyxy * float2(-delta, delta).xxyy;
-    float3 s = screenTexture.Sample(clampSampler, uv + o.xy).rgb + screenTexture.Sample(clampSampler, uv + o.zy).rgb +
-			   screenTexture.Sample(clampSampler, uv + o.xw).rgb + screenTexture.Sample(clampSampler, uv + o.zw).rgb;
+    float3 s = sourceTexture.Sample(clampSampler, uv + o.xy).rgb + sourceTexture.Sample(clampSampler, uv + o.zy).rgb +
+			   sourceTexture.Sample(clampSampler, uv + o.xw).rgb + sourceTexture.Sample(clampSampler, uv + o.zw).rgb;
     return s * 0.25f;
 }
 
@@ -38,20 +41,20 @@ float3 SampleBox(float2 uv, float delta) {
 float4 main(PixelInputType i) : SV_TARGET {
     float3 color;
 
-    if (bloomParams.w == 0) {
+    if (useFinalPass == 0) {
         // Prefilter + first downsample pass
-        if (bloomParams.z != 0) {
+        if (usePrefilter != 0) {
             color = Prefilter(SampleBox(i.uv, 1));
         }
         // Upsample/downsample pass
         else {
-            color = SampleBox(i.uv, bloomParams.x);
+            color = SampleBox(i.uv, boxSampleDelta);
         }
     }
     // Use final upsample + bloom addition pass
     else {
-        color = sourceTexture.Sample(clampSampler, i.uv).rgb;
-        color.rgb += bloomParams.y * SampleBox(i.uv, 0.5);
+        color = screenTexture.Sample(clampSampler, i.uv).rgb;
+        color.rgb += intensity * SampleBox(i.uv, 0.5);
     }
     
     return float4(color, 1.0);

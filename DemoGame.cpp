@@ -52,7 +52,7 @@ namespace {
 	const std::wstring s_defaultSkyboxName = L"industrial_sunset_puresky_4k.hdr";
 
 	// Directional Light Shadow params
-	int   s_ShadowMapResolution = 2048;
+	int   s_ShadowMapResolution = 4096;
 	float s_ShadowMapNear       = 0.1f;
 	float s_ShadowMapFar        = 150.0f;
 	float s_ShadowDistance      = 100.0f;
@@ -110,7 +110,7 @@ uint32_t DemoGame::Run() {
 
 	// Bandaid Fix: 
 	// Manually destroy DX device and adapter, ImGUI gets upset if these aren't destoyed before it calls its shutdown functions
-	m_Device.reset();
+	//m_Device.reset();
 
 	return retCode;
 }
@@ -202,7 +202,6 @@ bool DemoGame::Initialize() {
 		auto& computeCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE);
 		auto computeCommandList = computeCommandQueue.GetCommandList();
 
-		/// TODO: Skybox switching in runtime
 		Skybox::SkyboxParams skyboxParams {
 			s_defaultSkyboxName,
 			m_IBL_PSO.get()
@@ -293,7 +292,6 @@ bool DemoGame::Initialize() {
 		CD3DX12_RASTERIZER_DESC rasterizerDesc(D3D12_DEFAULT);
 		rasterizerDesc.CullMode = D3D12_CULL_MODE_FRONT;
 
-		/// TODO: disable depth?
 		struct PostProcessPipelineStateStream {
 			CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE        pRootSignature;
 			CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY    PrimitiveTopologyType;
@@ -337,6 +335,8 @@ void DemoGame::OnResize(const ResizeEventArgs& e) {
 	m_HDR_MSAA_RT.Resize(m_WindowWidth, m_WindowHeight);
 	m_MSAAResolveDstRT.Resize(m_WindowWidth, m_WindowHeight);
 	m_PostProcessOutputRT.Resize(m_WindowWidth, m_WindowHeight);
+
+	m_BloomPass->ResizeRenderTargets(m_WindowWidth, m_WindowHeight);
 
 	m_TestScene->SetGameWindowSize(m_WindowWidth, m_WindowHeight);
 }
@@ -386,7 +386,7 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 	///       Cursor is invisible anytime ImGui window is not shown.
 	ImGui::SetMouseCursor(EditorGui::Get().sb_ShowImGuiWindow || !Application::Get().GetCursorClientAreaLockState() ? ImGuiMouseCursor_Arrow : ImGuiMouseCursor_None);
 
-	m_EditorGui->NewFrame();
+	EditorGui::Get().NewFrame();
 
 	static const ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
 
@@ -548,13 +548,13 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 
 				// Bloom debug view
 				ImGui::ImageWithBg(
-					(ImTextureID)EditorGui::Get().GetImageSRV(EditorGui::GuiSRVIndex::BloomPrefilter).gpuHandle.ptr,
+					(ImTextureID)EditorGui::Get().GetImageSRVAllocation(EditorGui::GuiSRVIndex::BloomPrefilter).gpuHandle.ptr,
 					imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
 				);
 
 				// Directional shadow map debug view
 				ImGui::ImageWithBg(
-					(ImTextureID)EditorGui::Get().GetImageSRV(EditorGui::GuiSRVIndex::DirectionalShadowMap).gpuHandle.ptr,
+					(ImTextureID)EditorGui::Get().GetImageSRVAllocation(EditorGui::GuiSRVIndex::DirectionalShadowMap).gpuHandle.ptr,
 					imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
 				);
 			}
@@ -569,7 +569,7 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 		}
 	}
 
-	m_EditorGui->Render(directCommandList);
+	EditorGui::Get().Render(directCommandList);
 }
 
 void DemoGame::OnRender(const UpdateEventArgs& e) {
@@ -686,11 +686,11 @@ void DemoGame::OnKeyPressed(const KeyEventArgs& e) {
 		break;
 
 	case KeyCode::Q:
-		m_Down = 1.0f;
+		m_Up = 1.0f;
 		break;
 
 	case KeyCode::E:
-		m_Up = 1.0f;
+		m_Down = 1.0f;
 		break;
 
 	case KeyCode::Escape:
@@ -701,11 +701,10 @@ void DemoGame::OnKeyPressed(const KeyEventArgs& e) {
 		Application::Get().LockCursorToClientArea(m_Window->GetWindowHandle(), false);
 		break;
 
-	case KeyCode::F11:
-		/// TODO: actually resize render targets
+	case KeyCode::F11: {
 		m_Window->ToggleFullscreen();
 		break;
-
+	}
 	case KeyCode::V:
 		m_SwapChain->ToggleVSync();
 		break;

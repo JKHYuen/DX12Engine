@@ -139,6 +139,11 @@ void EditorGui::RegisterImageSRV(Device& device, const std::shared_ptr<Resource>
 	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle {};
 	s_D3DSrvDescHeapAllocator.Alloc(&cpuHandle, &gpuHandle);
 	device.GetD3D12Device()->CreateShaderResourceView(resource->GetD3D12Resource().Get(), srvDesc, cpuHandle);
+
+	if(!(s_ImageSRVs[srvIndex].gpuHandle.ptr == NULL && s_ImageSRVs[srvIndex].cpuHandle.ptr == NULL)) {
+		FreeImageSRV(s_ImageSRVs[srvIndex]);
+	}
+
 	s_ImageSRVs[srvIndex] = { cpuHandle, gpuHandle };
 }
 
@@ -146,7 +151,7 @@ void EditorGui::FreeImageSRV(EditorGui::GuiDescriptorAllocation alloc) {
 	s_D3DSrvDescHeapAllocator.Free(alloc.cpuHandle, alloc.gpuHandle);
 }
 
-EditorGui::GuiDescriptorAllocation EditorGui::GetImageSRV(GuiSRVIndex index) const {
+EditorGui::GuiDescriptorAllocation EditorGui::GetImageSRVAllocation(GuiSRVIndex index) const {
 	return s_ImageSRVs[index];
 }
 

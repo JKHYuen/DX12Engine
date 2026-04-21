@@ -70,6 +70,8 @@ public:
     void SetFullscreen(bool fullscreen);
     void ToggleFullscreen();
 
+    std::pair<uint32_t, uint32_t> GetCurrentMonitorDimensions() const;
+
     void Show();
     void Hide();
 
@@ -106,6 +108,8 @@ private:
     bool m_IsMaximized;
 
     bool m_bInClientRect;
+
+    // Window RECT when not full screen
     RECT m_WindowRect;
 
     HighResolutionClock m_Timer;

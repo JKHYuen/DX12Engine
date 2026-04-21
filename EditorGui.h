@@ -58,7 +58,7 @@ public:
 
 	void FreeImageSRV(GuiDescriptorAllocation alloc);
 
-	GuiDescriptorAllocation GetImageSRV(GuiSRVIndex index) const;
+	GuiDescriptorAllocation GetImageSRVAllocation(GuiSRVIndex index) const;
 
 	bool sb_ShowImGuiWindow = false;
 	void ToggleImGuiVisibilityState() { sb_ShowImGuiWindow = !sb_ShowImGuiWindow; }

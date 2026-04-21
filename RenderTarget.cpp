@@ -2,6 +2,7 @@
 
 #include "Texture.h"
 #include "RenderTarget.h"
+#include "Logger.h"
 
 RenderTarget::RenderTarget()
     : m_Textures(AttachmentPoint::NumAttachmentPoints)
@@ -27,7 +28,9 @@ std::shared_ptr<Texture> RenderTarget::GetTexture(AttachmentPoint attachmentPoin
 // Resize all of the textures associated with the render target.
 void RenderTarget::Resize(DirectX::XMUINT2 size) {
     m_Size = size;
-    for(auto texture : m_Textures) { if(texture) texture->Resize(m_Size.x, m_Size.y); }
+    for(auto texture : m_Textures) { 
+        if(texture) texture->Resize(m_Size.x, m_Size.y);
+    }
 }
 void RenderTarget::Resize(uint32_t width, uint32_t height) {
     Resize(XMUINT2(width, height));

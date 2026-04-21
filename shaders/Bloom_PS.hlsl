@@ -40,7 +40,7 @@ float3 SampleBox(float2 uv, float delta) {
 // NOTE: implementation of different shader passes for bloom using conditionals, may not be the most performant
 float4 main(PixelInputType i) : SV_TARGET {
     float3 color;
-
+    
     if (useFinalPass == 0) {
         // Prefilter + first downsample pass
         if (usePrefilter != 0) {

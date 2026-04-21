@@ -75,12 +75,10 @@ PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT
 	
 	// Create stencil write PSO (currently just for outline effect, only used for PBR objects to be outlined)
 	dscDesc.StencilEnable = TRUE;
-
-	dscDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+	dscDesc.FrontFace.StencilFailOp      = D3D12_STENCIL_OP_KEEP;
 	dscDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_REPLACE;
-	dscDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
-	dscDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-
+	dscDesc.FrontFace.StencilPassOp      = D3D12_STENCIL_OP_REPLACE;
+	dscDesc.FrontFace.StencilFunc        = D3D12_COMPARISON_FUNC_ALWAYS;
 	hdrPipelineStateStream.DSDesc = dscDesc;
 
 	device.CreatePipelineState(hdrPipelineStateStream, m_StencilWrite_D3d12PipelineState);

@@ -111,6 +111,8 @@ public:
     // Get the sample description of the render target.
     DXGI_SAMPLE_DESC GetSampleDesc() const;
 
+    bool IsEmpty(AttachmentPoint i) const { return m_Textures[i] == nullptr; }
+
     // Reset all textures
     void Reset() {
         m_Textures = std::vector<std::shared_ptr<Texture>>(AttachmentPoint::NumAttachmentPoints);

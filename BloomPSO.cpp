@@ -19,20 +19,20 @@ BloomPSO::BloomPSO(Device& device, const RenderTarget& renderTarget) {
 		CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER            RasterizerDesc;
 	} bloomPipelineStateStream;
 
-	CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0);
-
 	CD3DX12_STATIC_SAMPLER_DESC linearClampSampler {};
-	linearClampSampler.ShaderRegister = 0;
-	linearClampSampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR; // need linear for GPU up/down sampling
-	linearClampSampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-	linearClampSampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-	linearClampSampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-	linearClampSampler.MipLODBias = 0.0f;
-	linearClampSampler.MaxAnisotropy = 1;
-	linearClampSampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-	linearClampSampler.MinLOD = 0;
-	// !!! If this is set to D3D12_FLOAT32_MAX (CD3DX12_STATIC_SAMPLER_DESC() default), screen textyre does not get rendered for some reason
-	linearClampSampler.MaxLOD = 0; 
+	{
+		linearClampSampler.ShaderRegister = 0;
+		linearClampSampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR; // need linear for GPU up/down sampling
+		linearClampSampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		linearClampSampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		linearClampSampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		linearClampSampler.MipLODBias = 0.0f;
+		linearClampSampler.MaxAnisotropy = 1;
+		linearClampSampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+		linearClampSampler.MinLOD = 0;
+		// !!! If this is set to D3D12_FLOAT32_MAX (CD3DX12_STATIC_SAMPLER_DESC() default), screen textyre does not get rendered for some reason
+		linearClampSampler.MaxLOD = 0;
+	}
 
 	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags_VSPS =
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
@@ -54,35 +54,36 @@ BloomPSO::BloomPSO(Device& device, const RenderTarget& renderTarget) {
 		m_RootSignature = std::make_shared<RootSignature>(device, rootSignatureDescription.Desc_1_1);
 	}
 
-	// PSO for Prefilter, Downsample and combine rendering 
-	// (Disable blending)
-	CD3DX12_RASTERIZER_DESC rasterizerDesc(D3D12_DEFAULT);
-	// !!! Must front cull for ScreenRender_VS to work
-	rasterizerDesc.CullMode = D3D12_CULL_MODE_FRONT;
+	{
+		// PSO for Prefilter, Downsample and combine rendering 
+		CD3DX12_RASTERIZER_DESC rasterizerDesc(D3D12_DEFAULT);
+		// !!! Must front cull for ScreenRender_VS to work
+		rasterizerDesc.CullMode = D3D12_CULL_MODE_FRONT;
 
-	auto blendDesc = CD3DX12_BLEND_DESC(CD3DX12_DEFAULT());
+		// No blending
+		auto blendDesc = CD3DX12_BLEND_DESC(CD3DX12_DEFAULT());
+		bloomPipelineStateStream.pRootSignature = m_RootSignature->GetD3D12RootSignature().Get();
+		bloomPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		bloomPipelineStateStream.VS = AssetImporter::GetCompiledShaderFromFile(L"ScreenRender_VS.cso");
+		bloomPipelineStateStream.PS = AssetImporter::GetCompiledShaderFromFile(L"Bloom_PS.cso");
+		bloomPipelineStateStream.RTVFormats = renderTarget.GetRenderTargetFormats();
+		bloomPipelineStateStream.SampleDesc = { 1, 0 };
+		bloomPipelineStateStream.BlendDesc = blendDesc;
+		bloomPipelineStateStream.RasterizerDesc = rasterizerDesc;
 
-	bloomPipelineStateStream.pRootSignature = m_RootSignature->GetD3D12RootSignature().Get();
-	bloomPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	bloomPipelineStateStream.VS = AssetImporter::GetCompiledShaderFromFile(L"ScreenRender_VS.cso");
-	bloomPipelineStateStream.PS = AssetImporter::GetCompiledShaderFromFile(L"Bloom_PS.cso");
-	bloomPipelineStateStream.RTVFormats = renderTarget.GetRenderTargetFormats();
-	bloomPipelineStateStream.SampleDesc = {1, 0};
-	bloomPipelineStateStream.BlendDesc = blendDesc;
-	bloomPipelineStateStream.RasterizerDesc = rasterizerDesc;
-
-	device.CreatePipelineState(bloomPipelineStateStream, m_BloomPSO);
-
-	// PSO for upsampling
-	// (Additive blend)
-	blendDesc.RenderTarget[AttachmentPoint::Color0].BlendEnable    = TRUE;
-	blendDesc.RenderTarget[AttachmentPoint::Color0].DestBlend      = D3D12_BLEND_ONE;
-	blendDesc.RenderTarget[AttachmentPoint::Color0].BlendOp        = D3D12_BLEND_OP_ADD;
-	blendDesc.RenderTarget[AttachmentPoint::Color0].DestBlendAlpha = D3D12_BLEND_ONE;
-	blendDesc.RenderTarget[AttachmentPoint::Color0].BlendOpAlpha   = D3D12_BLEND_OP_ADD;
-	bloomPipelineStateStream.BlendDesc = blendDesc;
+		device.CreatePipelineState(bloomPipelineStateStream, m_BloomPSO);
 	
-	device.CreatePipelineState(bloomPipelineStateStream, m_BloomAdditivePSO);
+		// PSO for upsampling
+		// Additive blend
+		blendDesc.RenderTarget[AttachmentPoint::Color0].BlendEnable = TRUE;
+		blendDesc.RenderTarget[AttachmentPoint::Color0].DestBlend = D3D12_BLEND_ONE;
+		blendDesc.RenderTarget[AttachmentPoint::Color0].BlendOp = D3D12_BLEND_OP_ADD;
+		blendDesc.RenderTarget[AttachmentPoint::Color0].DestBlendAlpha = D3D12_BLEND_ONE;
+		blendDesc.RenderTarget[AttachmentPoint::Color0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+		bloomPipelineStateStream.BlendDesc = blendDesc;
+
+		device.CreatePipelineState(bloomPipelineStateStream, m_BloomAdditivePSO);
+	}
 }
 
 void BloomPSO::SetPipelineState(CommandList& directCommandList) const {

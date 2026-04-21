@@ -105,6 +105,7 @@ namespace AssetImporter {
 		}
 
 		if(!pScene->HasMeshes()) {
+			Logger::Log("ASSET IMPORTER: No meshes found.");
 			return nullptr;
 		}
 

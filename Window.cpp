@@ -9,6 +9,7 @@
 #include "RenderTarget.h"
 #include "ResourceStateTracker.h"
 #include "Texture.h"
+#include "Logger.h"
 
 Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight, IGame& game)
     : m_hWnd(hWnd)
@@ -98,6 +99,14 @@ void Window::SetFullscreen(bool fullscreen) {
 
 void Window::ToggleFullscreen() {
     SetFullscreen(!m_IsFullscreen);
+}
+
+std::pair<uint32_t, uint32_t> Window::GetCurrentMonitorDimensions() const {
+    HMONITOR hMonitor = ::MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST);
+    MONITORINFOEX monitorInfo = {};
+    monitorInfo.cbSize = sizeof(MONITORINFOEX);
+    ::GetMonitorInfo(hMonitor, &monitorInfo);
+    return { m_WindowRect.right - m_WindowRect.left, m_WindowRect.bottom - m_WindowRect.top};
 }
 
 void Window::OnUpdate(UpdateEventArgs& e) {

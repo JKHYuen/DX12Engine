@@ -52,8 +52,6 @@ private:
     std::shared_ptr<Window>    m_Window;
     std::shared_ptr<SwapChain> m_SwapChain;
 
-    std::unique_ptr<EditorGui> m_EditorGui;
-
     RenderTarget m_HDR_MSAA_RT;
     RenderTarget m_MSAAResolveDstRT;    // destination of MSAA resolve
     RenderTarget m_PostProcessOutputRT; // Intermediate render target between post process passes

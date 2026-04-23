@@ -10,11 +10,6 @@
 
 #include <format>
 
-namespace {
-	// Same SRV desc for all textures in the bloom pass
-	D3D12_SHADER_RESOURCE_VIEW_DESC s_SRVDesc = {};
-}
-
 BloomPass::BloomPass(Device& device, const RenderTarget& screenRenderTarget, BloomPSO* pso, int maxIterations) :
 	m_TextureFormat     { screenRenderTarget.GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0] },
 	m_MaxIterationCount { maxIterations },
@@ -25,18 +20,15 @@ BloomPass::BloomPass(Device& device, const RenderTarget& screenRenderTarget, Blo
 	uint32_t textureWidth  = screenRenderTarget.GetTexture(AttachmentPoint::Color0)->GetWidth();
 	uint32_t textureHeight = screenRenderTarget.GetTexture(AttachmentPoint::Color0)->GetHeight();
 
-
 	// Initialize SRV
-	s_SRVDesc.Format = m_TextureFormat;
-	s_SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	s_SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	s_SRVDesc.Texture2D.MostDetailedMip = 0;
-	s_SRVDesc.Texture2D.MipLevels = 1;
+	m_SRVDesc.Format = m_TextureFormat;
+	m_SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	m_SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	m_SRVDesc.Texture2D.MostDetailedMip = 0;
+	m_SRVDesc.Texture2D.MipLevels = 1;
 
 	// Create render targets
 	{
-
-		// Intermediate Render Targets
 		m_SamplingRenderTargets.resize(m_MaxIterationCount);
 		for(size_t i = 0; i < m_MaxIterationCount; i++) {
 			textureWidth /= 2;
@@ -52,8 +44,8 @@ BloomPass::BloomPass(Device& device, const RenderTarget& screenRenderTarget, Blo
 		}
 	}
 
-	/// Create Debug SRV
-	EditorGui::Get().RegisterImageSRV(device, m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0), &s_SRVDesc, EditorGui::GuiSRVIndex::BloomPrefilter);
+	// Create Debug SRV
+	EditorGui::Get().RegisterImageSRV(device, m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0), &m_SRVDesc, EditorGui::GuiSRVIndex::BloomPrefilter);
 }
 
 void BloomPass::CreateSamplingRenderTarget(size_t idx, uint32_t textureWidth, uint32_t textureHeight) {
@@ -66,7 +58,7 @@ void BloomPass::CreateSamplingRenderTarget(size_t idx, uint32_t textureWidth, ui
 	samplingTexture->SetName(std::format(L"Bloom Sample Texture {}", idx));
 	m_SamplingRenderTargets[idx].AttachTexture(AttachmentPoint::Color0, samplingTexture);
 
-	samplingTexture->CreateShaderResourceView(s_SRVDesc);
+	samplingTexture->CreateShaderResourceView(m_SRVDesc);
 }
 
 void BloomPass::Render(CommandList& directCommandList, const RenderTarget& inputRenderTarget, const RenderTarget& outputRenderTarget) {
@@ -137,8 +129,7 @@ void BloomPass::Render(CommandList& directCommandList, const RenderTarget& input
 void BloomPass::ResizeRenderTargets(uint32_t width, uint32_t height) {
 	if(m_SamplingRenderTargets.empty() ||
 		(m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0)->GetWidth() * 2 == width &&
-		 m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0)->GetHeight() * 2 == height)
-	) {
+		 m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0)->GetHeight() * 2 == height)) {
 		return;
 	}
 
@@ -167,12 +158,6 @@ void BloomPass::ResizeRenderTargets(uint32_t width, uint32_t height) {
 		}
 	}
 
-	EditorGui::Get().RegisterImageSRV(m_Device, m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0), &s_SRVDesc, EditorGui::GuiSRVIndex::BloomPrefilter);
-}
-
-void BloomPass::SetProps(float intensity, float threshold, float softThreshold) {
-	m_Intensity     = intensity;
-	m_SoftThreshold = softThreshold;
-	m_Threshold     = threshold;
+	EditorGui::Get().RegisterImageSRV(m_Device, m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0), &m_SRVDesc, EditorGui::GuiSRVIndex::BloomPrefilter);
 }
 

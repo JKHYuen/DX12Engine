@@ -17,12 +17,12 @@ public:
 
 	void ResizeRenderTargets(uint32_t width, uint32_t height);
 
-	void SetProps(float intensity, float threshold, float softThreshold);
-
-private:
-	float m_Intensity     = 1.0f;
+	/// Default values
+	float m_Intensity     = 0.5f;
 	float m_Threshold     = 40.0f;
 	float m_SoftThreshold = 0.9f;
+	///
+private:
 
 	// Creates new render target at index idx in m_SamplingRenderTargets, SRV and RTV created as well
 	void CreateSamplingRenderTarget(size_t idx, uint32_t textureWidth, uint32_t textureHeight);
@@ -36,6 +36,7 @@ private:
 	BloomPSO* m_PSO;
 
 	DXGI_FORMAT m_TextureFormat;
+	D3D12_SHADER_RESOURCE_VIEW_DESC m_SRVDesc {}; // Same SRV desc for all textures in the bloom pass
 
 	// Max number of iterations (resolution halved iteration)
 	int m_MaxIterationCount;

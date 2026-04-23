@@ -55,7 +55,7 @@ namespace {
 	int   s_ShadowMapResolution = 4096;
 	float s_ShadowMapNear       = 0.1f;
 	float s_ShadowMapFar        = 150.0f;
-	float s_ShadowDistance      = 100.0f;
+	float s_ShadowDistance      = 50.0f;
 	float s_ShadowBias          = 0.001f;
 
 	float s_DefaultFOV = 45.0f;
@@ -329,7 +329,7 @@ void DemoGame::OnResize(const ResizeEventArgs& e) {
 
 	float aspectRatio = m_WindowWidth / (float)m_WindowHeight;
 	/// TODO: Define default z values somewhere
-	m_TestScene->m_MainCamera.Set_Projection(s_DefaultFOV, aspectRatio, s_ZNear, s_ZFar);
+	m_TestScene->m_MainCamera.Set_Projection(m_TestScene->m_MainCamera.Get_FoV(), aspectRatio, s_ZNear, s_ZFar);
 
 	m_ScreenViewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_WindowWidth), static_cast<float>(m_WindowHeight));
 	m_HDR_MSAA_RT.Resize(m_WindowWidth, m_WindowHeight);
@@ -487,7 +487,7 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 			}
 
 			// FOV Slider
-			static float fov = m_TestScene->m_MainCamera.Get_FoV();
+			float fov = m_TestScene->m_MainCamera.Get_FoV();
 			ImGui::SliderFloat("FOV", &fov, 12.0f, 90.0f);
 			m_TestScene->m_MainCamera.Set_FoV(fov);
 
@@ -538,25 +538,50 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 				}
 			}
 
-			// Debug Texture views
-			// Need ImVec4(0.0f, 0.0f, 0.0f, 1.0f) background color, else some textures are see through for some reason
-			// Might have something to do with alpha blending when ImGui theme has transparency
+			// Bloom
 			{
-				static float imageScale = 0.25f;
-				ImGui::SliderFloat("Scale", &imageScale, 0.0, 1.0, "%.2fx");
-				ImVec2 imageSize = ImVec2(1920.0f * imageScale, 1080.0f * imageScale);
+				static float s_BloomIntensity = m_BloomPass->m_Intensity;
+				static float s_Threshold = m_BloomPass->m_Threshold;
+				static float s_SoftThreshold = m_BloomPass->m_SoftThreshold;
+
+				if(ImGui::DragFloat("Intensity", &s_BloomIntensity, 0.01f, 0.0f, 10.0f, "%.2f", kSliderFlags)) {
+					m_BloomPass->m_Intensity = s_BloomIntensity;
+				}
+				if(ImGui::DragFloat("Theshold", &s_Threshold, 0.01f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
+					m_BloomPass->m_Threshold = s_Threshold;
+				}
+				if(ImGui::DragFloat("Soft Theshold", &s_SoftThreshold, 0.01f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
+					m_BloomPass->m_SoftThreshold = s_SoftThreshold;
+				}
 
 				// Bloom debug view
-				ImGui::ImageWithBg(
-					(ImTextureID)EditorGui::Get().GetImageSRVAllocation(EditorGui::GuiSRVIndex::BloomPrefilter).gpuHandle.ptr,
-					imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
-				);
+				// Need ImVec4(0.0f, 0.0f, 0.0f, 1.0f) background color, else some textures are see through for some reason
+				// Might have something to do with alpha blending when ImGui theme has transparency
+				if(ImGui::TreeNode("Prefilter Debug")) {
+					static float imageScale = 0.25f;
+					ImGui::SliderFloat("###Bloom Texture Scale", &imageScale, 0.0, 1.0, "%.2fx");
+					ImVec2 imageSize = ImVec2(1920.0f * imageScale, 1080.0f * imageScale);
+
+					ImGui::ImageWithBg(
+						(ImTextureID)EditorGui::Get().GetImageSRVAllocation(EditorGui::GuiSRVIndex::BloomPrefilter).gpuHandle.ptr,
+						imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
+					);
+					ImGui::TreePop();
+				}
+			}
+
+			// Shadow debug
+			if(ImGui::TreeNode("Shadow Debug")) {
+				static float imageScale = 0.25f;
+				ImGui::SliderFloat("###Directional Shadow Map Texture Scale", &imageScale, 0.0, 1.0, "%.2fx");
+				ImVec2 imageSize = ImVec2(1920.0f * imageScale, 1080.0f * imageScale);
 
 				// Directional shadow map debug view
 				ImGui::ImageWithBg(
 					(ImTextureID)EditorGui::Get().GetImageSRVAllocation(EditorGui::GuiSRVIndex::DirectionalShadowMap).gpuHandle.ptr,
 					imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
 				);
+				ImGui::TreePop();
 			}
 
 			/// Main Engine UI Window End
@@ -760,10 +785,7 @@ void DemoGame::OnKeyReleased(const KeyEventArgs& e) {
 void DemoGame::OnMouseWheel(const MouseWheelEventArgs& e) {
 	if(!EditorGui::Get().sb_ShowImGuiWindow) {
 		auto fov = m_TestScene->m_MainCamera.Get_FoV();
-
-		fov -= e.WheelDelta;
-		fov = std::clamp(fov, s_MinFOV, s_MaxFOV);
-
+		fov = std::clamp(fov - e.WheelDelta, s_MinFOV, s_MaxFOV);
 		m_TestScene->m_MainCamera.Set_FoV(fov);
 	}
 }

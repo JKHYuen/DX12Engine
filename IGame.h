@@ -7,7 +7,7 @@ class IGame {
 public:
     IGame() = default;
     IGame(const IGame&)            = delete;
-    IGame& operator=(IGame&)       = delete;
+    IGame& operator=(const IGame&) = delete;
     IGame(IGame&&)                 = delete;
     IGame& operator=(IGame&&)      = delete;
 

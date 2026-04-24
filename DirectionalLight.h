@@ -34,6 +34,11 @@ public:
 
     DirectionalLight(Device& device, DirectionalLightParams params);
 
+    DirectionalLight(const DirectionalLight&)            = delete;
+    DirectionalLight& operator=(const DirectionalLight&) = delete;
+    DirectionalLight(DirectionalLight&&)                 = delete;
+    DirectionalLight& operator=(DirectionalLight&&)      = delete;
+
     void GenerateViewMatrix();
 
     XMFLOAT4 GetColor() const { return m_Color; }
@@ -43,11 +48,11 @@ public:
 
     // rotX, rotY, rotZ is in degrees
     XMFLOAT4 GetDirection() const { return m_Direction; }
-    void SetDirection(float rotX, float rotY, float rotZ);
+    void SetEulerAngle(float rotX, float rotY, float rotZ);
 
     // Sets direction of light, by rotating default direction (0.0, 0.0, 1.0) by rotation parameters (radians)
     // Updates m_Position and calls GenerateViewMatrix
-    void SetQuaternionDirection(XMVECTOR rotationQuaternion);
+    void SetQuaternionAngle(XMVECTOR rotationQuaternion);
 
     float GetShadowBias() const { return m_ShadowBias; }
     void SetShadowBias(float newValue) { m_ShadowBias = newValue; }

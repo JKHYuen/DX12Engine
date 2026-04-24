@@ -14,29 +14,31 @@ class MouseButtonEventArgs;
 class KeyEventArgs;
 
 class Scene {
-	
+
 	friend class Picker;
 
 public:
-	/// TODO: make directional light and skybox optional
 	Scene(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const DirectionalLight::DirectionalLightParams& dirLightParams, const Skybox::SkyboxParams& skyboxParams, int windowWidth, int windowHeight);
 
-	Scene(const Scene&) = delete;
-	Scene& operator=(Scene&) = delete;
-	Scene(Scene&&) = delete;
-	Scene& operator=(Scene&&) = delete;
+	Scene(const Scene&)            = delete;
+	Scene& operator=(const Scene&) = delete;
+	Scene(Scene&&)				   = delete;
+	Scene& operator=(Scene&&)	   = delete;
 
 	void OnMouseButtonReleased(const MouseButtonEventArgs& e);
 	void OnKeyPressed(const KeyEventArgs& e);
 	void OnKeyReleased(const KeyEventArgs& e);
 
-	const DirectionalLight& GetDirectionalLight() const { return m_DirectionalLight; };
-	const Skybox& GetSkybox() const { return m_Skybox; };
+	// Note: non const functions that need to be called outside of this class need to be called through scene - not ideal, preserves encapsulation
+	const DirectionalLight& GetDirLight() const { return m_DirectionalLight; }
+	const Skybox& GetSkybox() const { return m_Skybox; }
+
+	void ComputeSkyboxIBLs(CommandList& directCommandList);
+	void SetDirLightAngle(float x, float y, float z);
+	void SetDirLightColor(float r, float g, float b);
 
 	GameObject* CreateGameObject(CommandList& copyCommandList, const GameObject::GameObjectParams& goParams, std::shared_ptr<Mesh> mesh);
 	void CreateGameObject(CommandList& copyCommandList, const GameObject::GameObjectParams& goParams, const std::wstring& meshFileName);
-
-	void ComputeSkyboxIBLMaps(CommandList& directCommandList);
 
 	/// TODO: test
 	void SetCubemap(CommandList& copyCommandList, const std::wstring& hdrTextureName);
@@ -44,9 +46,8 @@ public:
 	/// 
 
 	void Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, CommandList& directCommandList, const UpdateEventArgs& e);
-	
-	void SetDirectionalLightAngle(float rotX, float rotY, float rotZ);
 
+	// For object picking
 	void SetGameWindowSize(int width, int height) { 
 		m_GameWindowWidth = width;
 		m_GameWindowHeight = height;
@@ -72,8 +73,10 @@ private:
 
 	Device& m_Device;
 
+	// For object picking
 	int m_GameWindowWidth;
 	int m_GameWindowHeight;
+	//
 
 	std::unique_ptr<Picker> m_Picker {};
 };

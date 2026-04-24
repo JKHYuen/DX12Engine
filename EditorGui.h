@@ -20,10 +20,10 @@ public:
 	EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWND hwnd);
 	~EditorGui();
 
-	EditorGui(const EditorGui&)       = delete;
-	EditorGui& operator=(EditorGui&)  = delete;
-	EditorGui(EditorGui&&)            = delete;
-	EditorGui& operator=(EditorGui&&) = delete;
+	EditorGui(const EditorGui&)			    = delete;
+	EditorGui& operator=(const EditorGui&)  = delete;
+	EditorGui(EditorGui&&)                  = delete;
+	EditorGui& operator=(EditorGui&&)       = delete;
 
 	static EditorGui& Create(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWND hwnd);
 	static EditorGui& Get();

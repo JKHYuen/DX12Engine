@@ -191,7 +191,7 @@ bool DemoGame::Initialize() {
 			m_PBR_PSO->GetRootSignature(), // reuse PBR root signature for depth render
 			VertexInput::Get_POS_NORM_TAN_BIT_UV_InputLayout(),
 			XMFLOAT3(9.0f, 8.0f, 7.0f),
-			XMFLOAT3(140.0f, 230.0f, 0.0f),
+			XMFLOAT3(140.0f, 230.0f, 0.0f), 
 			s_ShadowMapResolution,
 			s_ShadowDistance,
 			s_ShadowMapNear,
@@ -219,7 +219,7 @@ bool DemoGame::Initialize() {
 
 		directCommandList->SetScissorRect(m_DefaultScissorRect);
 
-		m_TestScene->ComputeSkyboxIBLMaps(*directCommandList);
+		m_TestScene->ComputeSkyboxIBLs(*directCommandList);
 		directCommandQueue.ExecuteCommandList(directCommandList);
 
 		/// TEMP TEST SCENE
@@ -492,9 +492,19 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 			m_TestScene->m_MainCamera.Set_FoV(fov);
 
 			// Directional Light
-			static float sceneDirLightAngle[2] { 140.0f, 230.0f };
-			if(ImGui::DragFloat2("[x, y]", sceneDirLightAngle, 0.1f, 0.0f, 360.0f, "%.2f", kSliderFlags | ImGuiSliderFlags_WrapAround)) {
-				m_TestScene->SetDirectionalLightAngle(sceneDirLightAngle[0], sceneDirLightAngle[1], 0.0f);
+			{
+				const DirectionalLight& sceneLight = m_TestScene->GetDirLight();
+				m_TestScene->GetDirLight().GetColor().x;
+				static float sceneDirLightAngle[2] { sceneLight.GetDirection().x, sceneLight.GetDirection().y };
+				static float sceneDirLightColor[3] { sceneLight.GetColor().x, sceneLight.GetColor().y , sceneLight.GetColor().z };
+				m_TestScene->GetDirLight();
+				if(ImGui::DragFloat2("[x, y]", sceneDirLightAngle, 0.1f, 0.0f, 360.0f, "%.2f", kSliderFlags | ImGuiSliderFlags_WrapAround)) {
+					m_TestScene->SetDirLightAngle(sceneDirLightAngle[0], sceneDirLightAngle[1], 0.0f);
+				}
+
+				if(ImGui::DragFloat3("Directional Light Color", sceneDirLightColor, 0.1f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
+					m_TestScene->SetDirLightColor(sceneDirLightColor[0], sceneDirLightColor[1], sceneDirLightColor[2]);
+				}
 			}
 			
 			// Skybox Selector
@@ -527,7 +537,7 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 							auto& directCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 							auto directCommandList = directCommandQueue.GetCommandList();
 							directCommandList->SetScissorRect(m_DefaultScissorRect);
-							m_TestScene->ComputeSkyboxIBLMaps(*directCommandList);
+							m_TestScene->ComputeSkyboxIBLs(*directCommandList);
 							directCommandQueue.WaitForFenceValue(directCommandQueue.ExecuteCommandList(directCommandList));
 
 							s_SelectedSkybox = s;
@@ -540,18 +550,18 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 
 			// Bloom
 			{
-				static float s_BloomIntensity = m_BloomPass->m_Intensity;
-				static float s_Threshold = m_BloomPass->m_Threshold;
-				static float s_SoftThreshold = m_BloomPass->m_SoftThreshold;
+				static float s_BloomIntensity = m_BloomPass->GetIntensity();
+				static float s_Threshold = m_BloomPass->GetThreshold();
+				static float s_SoftThreshold = m_BloomPass->GetSoftThreshold();
 
 				if(ImGui::DragFloat("Intensity", &s_BloomIntensity, 0.01f, 0.0f, 10.0f, "%.2f", kSliderFlags)) {
-					m_BloomPass->m_Intensity = s_BloomIntensity;
+					m_BloomPass->SetIntensity(s_BloomIntensity);
 				}
 				if(ImGui::DragFloat("Theshold", &s_Threshold, 0.01f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
-					m_BloomPass->m_Threshold = s_Threshold;
+					m_BloomPass->SetThreshold(s_Threshold);
 				}
 				if(ImGui::DragFloat("Soft Theshold", &s_SoftThreshold, 0.01f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
-					m_BloomPass->m_SoftThreshold = s_SoftThreshold;
+					m_BloomPass->SetSoftThreshold(s_SoftThreshold);
 				}
 
 				// Bloom debug view

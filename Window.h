@@ -50,10 +50,10 @@ class Window {
 
 public:
     ~Window();
-    Window(const Window&) = delete;
-    Window(Window&&) = delete;
-    Window& operator=(Window&) = delete;
-    Window& operator=(Window&&) = delete;
+    Window(const Window&)            = delete;
+    Window& operator=(const Window&) = delete;
+    Window(Window&&)                 = delete;
+    Window& operator=(Window&&)      = delete;
 
     // Number of swapchain back buffers.
     static const UINT sk_BufferCount = 2;

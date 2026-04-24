@@ -17,12 +17,19 @@ public:
 
 	void ResizeRenderTargets(uint32_t width, uint32_t height);
 
+	float GetIntensity() const        { return m_Intensity; }
+	void  SetIntensity(float val)     { m_Intensity = val; }
+	float GetThreshold() const        { return m_Threshold; }
+	void  SetThreshold(float val)     { m_Threshold = val; }
+	float GetSoftThreshold() const    { return m_SoftThreshold; }
+	void  SetSoftThreshold(float val) { m_SoftThreshold = val; }
+
+private:
 	/// Default values
-	float m_Intensity     = 0.5f;
-	float m_Threshold     = 40.0f;
+	float m_Intensity = 0.5f;
+	float m_Threshold = 40.0f;
 	float m_SoftThreshold = 0.9f;
 	///
-private:
 
 	// Creates new render target at index idx in m_SamplingRenderTargets, SRV and RTV created as well
 	void CreateSamplingRenderTarget(size_t idx, uint32_t textureWidth, uint32_t textureHeight);

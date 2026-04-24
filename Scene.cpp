@@ -35,7 +35,7 @@ Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeC
 
 	m_SceneObjects.reserve(sk_MaxSceneObjects);
 
-	m_Picker = std::make_unique<Picker>(this);
+	m_Picker = std::make_unique<Picker>();
 
 	/// TODO: dont hardcode asset path
 	// Get all material names from asset folder (mostly for testing, scene instance should only hold used materials)
@@ -43,6 +43,18 @@ Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeC
 	for(const auto& entry : std::filesystem::directory_iterator(L"assets/materials")) {
 		m_MaterialNames.emplace_back(entry.path().filename().c_str());
 	}
+}
+
+void Scene::ComputeSkyboxIBLs(CommandList& directCommandList) {
+	m_Skybox.ComputeIBLMaps(directCommandList);
+}
+
+void Scene::SetDirLightAngle(float x, float y, float z) {
+	m_DirectionalLight.SetEulerAngle(x, y, z);
+}
+
+void Scene::SetDirLightColor(float r, float g, float b) {
+	m_DirectionalLight.SetColor(r, g, b);
 }
 
 /// TODO: figure out some proper game object storage, returned pointer here will be invalidated if vector resizes
@@ -56,11 +68,7 @@ void Scene::CreateGameObject(CommandList& copyCommandList, const GameObject::Gam
 	/// TODO
 }
 
-void Scene::ComputeSkyboxIBLMaps(CommandList& directCommandList) {
-	m_Skybox.ComputeIBLMaps(directCommandList);
-}
-
-/// TEST
+/// TODO: TEMP
 /// UNUSED
 void Scene::SetCubemap(CommandList& copyCommandList, const std::wstring& hdrTextureName) {
 	m_Skybox.SetCubemap(copyCommandList, hdrTextureName);
@@ -70,7 +78,7 @@ void Scene::SetSkybox(CommandList& copyCommandList, CommandList& computeCommandL
 	m_Skybox = Skybox(m_Device, copyCommandList, computeCommandList, skyboxParams);
 	sb_ChangeSkybox = true;
 }
-/// END TEST
+/// END TEMP
 
 void Scene::Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, CommandList& directCommandList, const UpdateEventArgs& e) {
 	// Render depth from directional light for same objects above
@@ -109,10 +117,6 @@ void Scene::Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, Comman
 
 }
 
-void Scene::SetDirectionalLightAngle(float rotX, float rotY, float rotZ) {
-	m_DirectionalLight.SetDirection(rotX, rotY, rotZ);
-}
-
 void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 	// Gameobject raycast picking for object inspector GUI, gameobjects are outlined if picked
 	// Disabled if:
@@ -123,7 +127,7 @@ void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 			if(GameObject* go = m_Picker->GetPickedObject()) {
 				go->SetOutlineState(false);
 			}
-			if(GameObject* go = m_Picker->MouseRaycast(e.X, e.Y, m_GameWindowWidth, m_GameWindowHeight)) {
+			if(GameObject* go = m_Picker->MouseRaycast(*this, e.X, e.Y, m_GameWindowWidth, m_GameWindowHeight)) {
 				go->SetOutlineState(true);
 			}
 		}
@@ -148,7 +152,6 @@ void Scene::OnKeyReleased(const KeyEventArgs& e) {
 		}
 	}
 }
-
 
 void Scene::RenderImGui() {
 	GameObject* picked = m_Picker->GetPickedObject();

@@ -33,7 +33,7 @@ GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, st
 	m_TextureResources[PBRObjectPSO::IrradianceCubemap]    = params.scene.GetSkybox().GetIrradianceTexture();
 	m_TextureResources[PBRObjectPSO::PrefilterCubemap]     = params.scene.GetSkybox().GetPrefilterTexture();
 	m_TextureResources[PBRObjectPSO::BRDFLut]              = params.scene.GetSkybox().Get_BRDF_LUT_Texture();
-	m_TextureResources[PBRObjectPSO::DirectionalShadowMap] = params.scene.GetDirectionalLight().GetShadowMapTexture();
+	m_TextureResources[PBRObjectPSO::DirectionalShadowMap] = params.scene.GetDirLight().GetShadowMapTexture();
 }
 
 /// TODO: somehow make this compatible with assimp loading
@@ -75,8 +75,8 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 		m_PBR_PSO->SetPipelineState(directCommandList);
 	}
 
-	XMFLOAT4X4 v = scene.GetDirectionalLight().GetViewMatrix();
-	XMFLOAT4X4 o = scene.GetDirectionalLight().GetOrthoMatrix();
+	XMFLOAT4X4 v = scene.GetDirLight().GetViewMatrix();
+	XMFLOAT4X4 o = scene.GetDirLight().GetOrthoMatrix();
 	XMMATRIX directionalLightViewMat = XMLoadFloat4x4(&v);
 	XMMATRIX directionalLightOrthoMat = XMLoadFloat4x4(&o);
 
@@ -90,8 +90,8 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 	PBRObjectPSO::MaterialProps pbrMaterialCB {};
 	pbrMaterialCB.Time = { (float)e.Time, (float)e.DeltaTime, 0.0f, 0.0f };
 
-	pbrMaterialCB.DirLight = scene.GetDirectionalLight().GetDirection();
-	pbrMaterialCB.DirLightColor = scene.GetDirectionalLight().GetColor();
+	pbrMaterialCB.DirLight = scene.GetDirLight().GetDirection();
+	pbrMaterialCB.DirLightColor = scene.GetDirLight().GetColor();
 
 	m_PBR_PSO->UpdateResources(directCommandList, m_TextureResources, pbrVertexCB, pbrMaterialCB);
 

@@ -7,11 +7,11 @@
 class Logger {
 public:
 	// Static class
-	Logger() = delete;
-	Logger(const Logger&) = delete;
-	Logger& operator=(Logger&) = delete;
-	Logger(Logger&&) = delete;
-	Logger& operator=(Logger&&) = delete;
+	Logger()                         = delete;
+	Logger(const Logger&)            = delete;
+	Logger& operator=(const Logger&) = delete;
+	Logger(Logger&&)                 = delete;
+	Logger& operator=(Logger&&)      = delete;
 
 	// Create WinAPI console and reroute std io to it
 	static void InitializeConsole();

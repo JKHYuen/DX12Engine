@@ -14,19 +14,18 @@ class GameObject;
 
 class Picker {
 public:
-	Picker(Scene* scene);
+	Picker() = default;
 
 	// Raycast intersection test with all objects in scene, results are cached and cleared when mouse moves.
-	GameObject* MouseRaycast(int mouseX, int mouseY, int windowWidth, int windowHeight);
+	GameObject* MouseRaycast(Scene& scene, int mouseX, int mouseY, int windowWidth, int windowHeight);
 
 	GameObject* GetPickedObject() const { return m_PickedObject; };
-	void ClearPickedObject() { m_PickedObject = nullptr; };
+	void ClearPickedObject()            { m_PickedObject = nullptr; };
 
 private:
-	Scene* m_Scene {};
 	GameObject* m_PickedObject {};
 
 	std::vector<std::pair<float, GameObject*>> m_RaycastCache {};
-	std::pair<int, int> m_LastMousePos {};
+	std::pair<int, int>                        m_LastMousePos {};
 };
 

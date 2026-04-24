@@ -24,7 +24,7 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
     , m_ViewPort(D3D12_VIEWPORT(0.0f, 0.0f, (float)params.shadowMapResolution, (float)params.shadowMapResolution, 0.0f, 1.0f)) {
 
     XMStoreFloat4x4(&m_OrthoMatrix, XMMatrixOrthographicLH(params.shadowDistance, params.shadowDistance, params.shadowMapNearZ, params.shadowMapFarZ));
-    SetDirection(params.eulerDir.x, params.eulerDir.y, params.eulerDir.z);
+    SetEulerAngle(params.eulerDir.x, params.eulerDir.y, params.eulerDir.z);
 
     // Create directional light shadow map
     auto shadowMapDesc = CD3DX12_RESOURCE_DESC::Tex2D(
@@ -80,15 +80,15 @@ void DirectionalLight::SetColor(float red, float green, float blue) {
     m_Color = XMFLOAT4(red, green, blue, 1.0f);
 }
 
-void DirectionalLight::SetDirection(float rotX, float rotY, float rotZ) {
+void DirectionalLight::SetEulerAngle(float rotX, float rotY, float rotZ) {
     rotX = XMConvertToRadians(std::fmod(rotX, 360.0f));
     rotY = XMConvertToRadians(std::fmod(rotY, 360.0f));
     rotZ = XMConvertToRadians(std::fmod(rotZ, 360.0f));
 
-    SetQuaternionDirection(XMQuaternionRotationRollPitchYaw(rotX, rotY, rotZ));
+    SetQuaternionAngle(XMQuaternionRotationRollPitchYaw(rotX, rotY, rotZ));
 }
 
-void DirectionalLight::SetQuaternionDirection(XMVECTOR rotationQuaternion) {
+void DirectionalLight::SetQuaternionAngle(XMVECTOR rotationQuaternion) {
     XMVECTOR dirVec = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f); // starting direction chosen arbitrarily
     dirVec = XMVector3Rotate(dirVec, rotationQuaternion);
 

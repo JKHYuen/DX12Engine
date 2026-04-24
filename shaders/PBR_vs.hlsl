@@ -2,8 +2,15 @@ cbuffer VertexCB : register(b0, space0) {
     matrix SRT;
     matrix MVP;
     matrix directionalLightMVP;
-    float4 CameraPosition;
+    float4 cameraPosition;
+	float2 uvScale;
+    float  heightMapMagnitude;
 };
+
+/// Register indices based on pixel shader
+Texture2D MaterialTex              : register(t2);
+SamplerState TrilinearClampSampler : register(s1); // for BRDF lut and directional shadow map
+///
 
 struct VertexInput {
     float3 vertexPosition : POSITION;
@@ -27,7 +34,16 @@ struct PixelInputType {
 PixelInputType main(VertexInput i) {
     PixelInputType o;
     
+    // uv scale
+    o.uv = i.uv * uvScale;
+    
     /// TODO: height map will be MaterialTex.a
+    if (heightMapMagnitude != 0) {
+        float displacement = MaterialTex.SampleLevel(TrilinearClampSampler, o.uv, 0).a;
+        // should substract "displacement" by 0.5 so vertices can be displaced both directions
+        // omitted this here to be consistent with parallax occulsion mapping
+        i.vertexPosition.xyz += i.normal * displacement * heightMapMagnitude;
+    }
     
      // TBN
     o.tangent =   normalize(mul((float3x3) SRT, i.tangent));
@@ -40,9 +56,8 @@ PixelInputType main(VertexInput i) {
     
     float4 hVertexPos = float4(i.vertexPosition, 1.0f);
     o.position = mul(MVP, hVertexPos);
-    o.uv = i.uv;
     o.worldPosition = mul(SRT, hVertexPos);
-    o.cameraPosition = CameraPosition;
+    o.cameraPosition = cameraPosition;
     
     o.directionalLightViewPosition = mul(directionalLightMVP, hVertexPos);
     

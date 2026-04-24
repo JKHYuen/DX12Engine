@@ -64,13 +64,19 @@ public:
 		XMFLOAT4X4 SRT;
 		XMFLOAT4X4 MVP;
 		XMFLOAT4X4 directionalLightMVP;
-		XMFLOAT4   CameraPosition;
+		XMFLOAT4   cameraPosition;
+		XMFLOAT2   uvScale;
+		float      heightMapMagnitude;
+		float      pad1;
 	};
 
 	struct alignas(16) MaterialProps {
 		XMFLOAT4   Time;
-		XMFLOAT4   DirLight;
-		XMFLOAT4   DirLightColor;
+		XMFLOAT4   dirLight;
+		XMFLOAT4   dirLightColor;
+		XMFLOAT2   uvScale;
+		float      pad1;
+		float      pad2;
 	};
 
 	static constexpr int sk_NumTextures = TextureIndex::NumTextures + VolatileTextureIndex::NumVolatilePBRTextures;

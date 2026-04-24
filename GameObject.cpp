@@ -22,6 +22,8 @@ GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, st
 	, m_Outline_PSO(params.outlinePSO) 
 	, m_Mesh(mesh)
 	, m_Name(params.name)
+	, m_UVScale(params.uvScale)
+	, m_HeightMapMagnitude(params.heightMapMagnitude)
 {
 	SetTranslation(params.translation.x, params.translation.y, params.translation.z);
 	SetEulerRotation(params.eulerRotation.x, params.eulerRotation.y, params.eulerRotation.z);
@@ -63,6 +65,7 @@ void GameObject::UpdateIBLShaderResources(const Scene& scene) {
 
 /// TODO: load from file with meshFileName
 GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, const std::wstring& meshFilePath) {
+
 }
 
 void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene) {
@@ -81,17 +84,24 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 	XMMATRIX directionalLightOrthoMat = XMLoadFloat4x4(&o);
 
 	PBRObjectPSO::VertexProps pbrVertexCB {};
-	XMStoreFloat4x4(&pbrVertexCB.SRT, XMLoadFloat4x4(&m_ScaleMat) * XMLoadFloat4x4(&m_RotationMat) * XMLoadFloat4x4(&m_TranslationMat));
-	XMStoreFloat4x4(&pbrVertexCB.MVP, XMLoadFloat4x4(&pbrVertexCB.SRT) * scene.m_MainCamera.Get_ViewMatrix() * scene.m_MainCamera.Get_ProjectionMatrix());
+	{
+		XMStoreFloat4x4(&pbrVertexCB.SRT, XMLoadFloat4x4(&m_ScaleMat) * XMLoadFloat4x4(&m_RotationMat) * XMLoadFloat4x4(&m_TranslationMat));
+		XMStoreFloat4x4(&pbrVertexCB.MVP, XMLoadFloat4x4(&pbrVertexCB.SRT) * scene.m_MainCamera.Get_ViewMatrix() * scene.m_MainCamera.Get_ProjectionMatrix());
 
-	XMStoreFloat4x4(&pbrVertexCB.directionalLightMVP, XMLoadFloat4x4(&pbrVertexCB.SRT) * directionalLightViewMat * directionalLightOrthoMat);
-	XMStoreFloat4(&pbrVertexCB.CameraPosition, scene.m_MainCamera.Get_Translation());
+		XMStoreFloat4x4(&pbrVertexCB.directionalLightMVP, XMLoadFloat4x4(&pbrVertexCB.SRT) * directionalLightViewMat * directionalLightOrthoMat);
+		XMStoreFloat4(&pbrVertexCB.cameraPosition, scene.m_MainCamera.Get_Translation());
+
+		pbrVertexCB.uvScale            = m_UVScale;
+		pbrVertexCB.heightMapMagnitude = m_HeightMapMagnitude;
+	}
 
 	PBRObjectPSO::MaterialProps pbrMaterialCB {};
-	pbrMaterialCB.Time = { (float)e.Time, (float)e.DeltaTime, 0.0f, 0.0f };
-
-	pbrMaterialCB.DirLight = scene.GetDirLight().GetDirection();
-	pbrMaterialCB.DirLightColor = scene.GetDirLight().GetColor();
+	{
+		pbrMaterialCB.Time          = { (float)e.Time, (float)e.DeltaTime, 0.0f, 0.0f };
+		pbrMaterialCB.dirLight      = scene.GetDirLight().GetDirection();
+		pbrMaterialCB.dirLightColor = scene.GetDirLight().GetColor();
+		pbrMaterialCB.uvScale       = m_UVScale;
+	}
 
 	m_PBR_PSO->UpdateResources(directCommandList, m_TextureResources, pbrVertexCB, pbrMaterialCB);
 

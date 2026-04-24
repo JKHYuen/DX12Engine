@@ -229,6 +229,8 @@ bool DemoGame::Initialize() {
 				L"stonewall",
 				*m_TestScene,
 				XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 1.0f, 1.0f),
+				0.0f,
+				XMFLOAT2{1.0f, 1.0f},
 				m_PBR_PSO.get(),
 				m_Outline_PSO.get(),
 			};
@@ -775,11 +777,11 @@ void DemoGame::OnKeyReleased(const KeyEventArgs& e) {
 		break;
 
 	case KeyCode::Q:
-		m_Down = 0.0f;
+		m_Up = 0.0f;
 		break;
 
 	case KeyCode::E:
-		m_Up = 0.0f;
+		m_Down = 0.0f;
 		break;
 
 	case KeyCode::F1: 

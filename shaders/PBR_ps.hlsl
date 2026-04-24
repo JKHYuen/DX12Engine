@@ -4,6 +4,7 @@ cbuffer MaterialCB : register(b0, space1) {
     float4 Time;
     float3 DirLight;
     float4 DirLightColor;
+    float2 UVScale;
 };
 
 Texture2D AlbedoTex                   : register(t0);
@@ -14,9 +15,9 @@ TextureCube<float4> PrefilterCubemap  : register(t4);
 Texture2D BRDFLut                     : register(t5);
 Texture2D DirectionalShadowMap        : register(t6);
 
-// TODO: add border sampler
+// TODO: directional shadow map should use border sampler (?)
 SamplerState AnisoWrapSampler : register(s0);
-SamplerState ClampSampler     : register(s1);
+SamplerState TrilinearClampSampler     : register(s1); // for BRDF lut and directional shadow map
 
 struct PixelInputType {
     float4 position                     : SV_POSITION;
@@ -76,10 +77,101 @@ float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness) {
     return F0 + (max(1.0 - roughness, F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
+// Parallax mapping adapted from: https://learnopengl.com/Advanced-Lighting/Parallax-Mapping
+float2 ParallaxMapping(float2 texCoords, float3 viewDir) {
+    float numLayers = lerp(maxParallaxLayers, minParallaxLayers, abs(dot(float3(0.0, 0.0, 1.0), viewDir)));
+    // calculate the size of each layer
+    float layerDepth = 1.0 / numLayers;
+    // depth of current layer
+    float currentLayerDepth = 0.0;
+    // the amount to shift the texture coordinates per layer (from vector P)
+    float2 P = viewDir.xy / viewDir.z * parallaxHeightScale;
+    float2 deltaTexCoords = P / numLayers;
+  
+    // get initial values
+    float2 currentTexCoords = texCoords;
+    float currentDepthMapValue = 1.0 - heightMap.Sample(SamplerWrap, currentTexCoords).r;
+      
+    [loop]
+    for (int i = 0; i < maxParallaxLayers && currentLayerDepth < currentDepthMapValue; i++) {
+        // shift texture coordinates along direction of P
+        currentTexCoords -= deltaTexCoords;
+        // get depthmap value at current texture coordinates
+        currentDepthMapValue = 1.0 - heightMap.Sample(SamplerWrap, currentTexCoords).r;
+        // get depth of next layer
+        currentLayerDepth += layerDepth;
+    }
+    
+    // get texture coordinates before collision (reverse operations)
+    float2 prevTexCoords = currentTexCoords + deltaTexCoords;
+
+    // get depth after and before collision for linear interpolation
+    float afterDepth = currentDepthMapValue - currentLayerDepth;
+    float beforeDepth = 1.0 - heightMap.Sample(SamplerWrap, prevTexCoords).r - currentLayerDepth + layerDepth;
+ 
+    // interpolation of texture coordinates
+    float weight = afterDepth / (afterDepth - beforeDepth);
+    float2 finalTexCoords = prevTexCoords * weight + currentTexCoords * (1.0 - weight);
+    
+    // Note: could be used for shadow correction
+    // currentParallaxLayer = currentLayerDepth + beforeDepth * weight + afterDepth * (1.0 - weight);
+
+    return finalTexCoords;
+}
+
+// EXPERIMENTAL
+// Parallax map self shadowing adpated from: https://chanhaeng.blogspot.com/2019/01/normalparllax-mapping-with-self.html
+float CalcParallaxSoftShadowMultiplier(float3 lightDir, float2 initialTexCoords, float initialHeight) {
+    float shadowMultiplier = 0.0;
+    
+    float dotDir = max(dot(float3(0, 0, 1), lightDir), 0.0);
+
+    // calculate lighting only for surface oriented to the light source
+    if (dotDir > 0) {
+        // calculate initial parameters
+        float numSamplesUnderSurface = 0;
+        shadowMultiplier = 0;
+        float numLayers = lerp(maxParallaxLayers, minParallaxLayers, dotDir);
+        float layerHeight = initialHeight / numLayers;
+        float2 texStep = parallaxHeightScale * lightDir.xy / lightDir.z / numLayers;
+
+        // current parameters
+        float currentLayerHeight = initialHeight - layerHeight;
+        float2 currentTexCoords = initialTexCoords + texStep;
+        float depthFromTexture = 1.0 - heightMap.Sample(SamplerWrap, currentTexCoords).r;
+        
+        // while point is below depth 0.0
+        [loop]
+        for (int i = 1; i < maxParallaxLayers && currentLayerHeight > 0.0; i++) {
+            // if point is under the surface
+            if (depthFromTexture < currentLayerHeight) {
+                // calculate partial shadowing factor
+                numSamplesUnderSurface += 1;
+                float newShadowMultiplier = (currentLayerHeight - depthFromTexture) * (1.0 - i / numLayers);
+                shadowMultiplier = max(shadowMultiplier, newShadowMultiplier);
+            }
+
+            // offset to the next layer
+            currentLayerHeight -= layerHeight;
+            currentTexCoords += texStep;
+            depthFromTexture = 1.0 - heightMap.Sample(SamplerWrap, currentTexCoords).r;
+        }
+        
+        // Shadowing factor should be 1 if there were no points under the surface
+        if (numSamplesUnderSurface < 1) {
+            shadowMultiplier = 1;
+        }
+        else {
+            shadowMultiplier = 1.0 - shadowMultiplier;
+        }
+    }
+
+    return shadowMultiplier;
+}
 
 float4 main(PixelInputType i) : SV_TARGET {
-    /// TODO: add uv scaling in CB
-    //i.uv *= 2;
+    /// uv scaling
+    i.uv *= UVScale;
     
     /// TODO: try just trilinear filtering for non albedo channels (suggested by Valve)
     float3 albedo   = AlbedoTex.Sample(AnisoWrapSampler, i.uv).rgb;
@@ -150,7 +242,7 @@ float4 main(PixelInputType i) : SV_TARGET {
     // Sample precalculated environment maps
     float3 irradianceMap = IrradianceCubemap.Sample(AnisoWrapSampler, normal).xyz;
     float3 prefilterMap = PrefilterCubemap.SampleLevel(AnisoWrapSampler, R, roughness * MAX_REFLECTION_LOD).xyz;
-    float2 envBRDF = BRDFLut.Sample(ClampSampler, float2(max(dot(normal, viewDirection), 0.0), roughness)).rg;
+    float2 envBRDF = BRDFLut.Sample(TrilinearClampSampler, float2(max(dot(normal, viewDirection), 0.0), roughness)).rg;
     
     float3 indirect_kS = FresnelSchlickRoughness(max(dot(normal, viewDirection), 0.0), F0, roughness);
     float3 indirect_kD = 1.0 - indirect_kS;
@@ -187,7 +279,7 @@ float4 main(PixelInputType i) : SV_TARGET {
     for (int x = -1; x <= 1; x++) {
         for (int y = -1; y <= 1; y++) {
             // TODO: use border sampler
-            float pcfDepth = DirectionalShadowMap.Sample(ClampSampler, projectTexCoord + float2(x, y) * texelSize).r;
+            float pcfDepth = DirectionalShadowMap.Sample(TrilinearClampSampler, projectTexCoord + float2(x, y) * texelSize).r;
             shadowFactor += lightDepthValue > pcfDepth ? 0.0 : 1.0;
         }
     }

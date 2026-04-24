@@ -162,9 +162,11 @@ void Scene::RenderImGui() {
 	static float s_ObjTranslation[3] {};
 	static float s_ObjEulerAngles[3] {};
 	static float s_ObjScale[3] {};
+	static float s_UVScale[2] {};
+	static float s_heightMapMagnitude {};
 	static GameObject* s_LastPickedObject {};
 	
-	// Newly picked object, update variables
+	// If newly picked object, update variables
 	if(picked != s_LastPickedObject) {
 		s_ObjectName = std::string { picked->GetName() };
 		s_ObjectName += "###ObjectInspector"; // appending this decouples window title and window ID
@@ -177,6 +179,11 @@ void Scene::RenderImGui() {
 		memcpy(s_ObjTranslation, &translation,   sizeof(float) * 3);
 		memcpy(s_ObjEulerAngles, &eulerRotation, sizeof(float) * 3);
 		memcpy(s_ObjScale,       &scale,         sizeof(float) * 3);
+
+		XMFLOAT2 uvScale = picked->GetUVScale();
+		memcpy(s_UVScale, &uvScale, sizeof(float) * 2);
+
+		float heightMapMagnitude = picked->GetHeightMapMagnitude();
 	}
 	s_LastPickedObject = picked;
 
@@ -214,14 +221,21 @@ void Scene::RenderImGui() {
 			picked->SetScale(s_ObjScale[0], s_ObjScale[1], s_ObjScale[2]);
 		}
 		ImGui::SameLine();
-		if(ImGui::Button("-")) {
-			picked->Scale(0.9f, 0.9f, 0.9f);
-		}
-		ImGui::SameLine();
 		if(ImGui::Button("+")) {
 			picked->Scale(1.1f, 1.1f, 1.1f);
 		}
+		ImGui::SameLine();
+		if(ImGui::Button("-")) {
+			picked->Scale(0.9f, 0.9f, 0.9f);
+		}
 
+		if(ImGui::DragFloat2("UV Scale", s_UVScale, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
+			picked->SetUVScale(s_UVScale[0], s_UVScale[1]);
+		}
+
+		if(ImGui::DragFloat("Height Map Magnitude", &s_heightMapMagnitude, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
+			picked->SetHeightMapMagnitude(s_heightMapMagnitude);
+		}
 
 		/// Object Inspector Window End
 		ImGui::End();

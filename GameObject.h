@@ -33,24 +33,26 @@ class OutlinePSO;
 
 class GameObject {
 public:
-	/// TODO: PSO objects should be added dynamically to GameObjects with polymorphism
+	/// TODO: Should be able to use any PSO, not just PBRObjectPSO (need polymorphism)
 	struct GameObjectParams {
 		// string passed by value for convenience e.g. when modifying instances of this struct
 		std::string name;
 		std::wstring pbrMatName;
 		const Scene& scene;
 		XMFLOAT3 translation, eulerRotation, scale;
+		float heightMapMagnitude = 0.0f;
+		XMFLOAT2 uvScale {1.0f, 1.0f};
 
 		PBRObjectPSO* pbrPSO;
 		OutlinePSO* outlinePSO;
 	};
 
 	// Warning: copy command list must still be executed after GameObject, this is to keep flexibility to batch copy commands together
-	// initialize with preconstructed mesh
+	// Initialize with preconstructed mesh
 	GameObject(CommandList& copyCommandList, GameObjectParams params, std::shared_ptr<Mesh> mesh); 
 
-	/// TODO: 
-	// initialize with mesh loaded from file
+	/// TODO: UNFINSIHED
+	// Initialize with mesh loaded from file
 	GameObject(CommandList& copyCommandList, GameObjectParams params, const std::wstring& meshFilePath);
 
 	void Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene);
@@ -66,18 +68,18 @@ public:
 	/// Transfom functions aren't very intuitive, good enough for now
 	void Translate(float x, float y, float z);   // Adds to world position values
 	void EulerRotate(float x, float y, float z); // Adds to euler angles
-	void Scale(float x, float y, float z);       // Adds to current scale (even though one might expect a multiply)
+	void Scale(float x, float y, float z);       // Multiplies current scale (*not add)
 	/// 
 
 	void SetTranslation(float x, float y, float z);
 	void SetEulerRotation(float x, float y, float z);
 	void SetScale(float x, float y, float z);
 
-	XMFLOAT3 GetTranslation() const { return m_Translation; };
+	XMFLOAT3 GetTranslation()   const { return m_Translation; };
 	XMFLOAT3 GetEulerRotation() const { return m_EulerRotation; };
-	XMFLOAT3 GetScale() const { return m_Scale; };
+	XMFLOAT3 GetScale()         const { return m_Scale; };
 
-	std::string_view GetName() const { return m_Name; }
+	std::string_view GetName() const      { return m_Name; }
 	void SetName(const std::string& name) { m_Name = name; }
 
 	const BoundingBox& GetAABB() const { return m_AABB; }
@@ -87,6 +89,12 @@ public:
 	/// Things that should be in some sort of component system:
 	void SetOutlineState(bool state) { b_Outline = state; };
 	std::wstring_view GetMaterialName() const { return m_MaterialName; }
+
+	XMFLOAT2 GetUVScale() const { return m_UVScale; }
+	void SetUVScale(float x, float y) { m_UVScale = {x, y}; }
+
+	float GetHeightMapMagnitude() const { return m_HeightMapMagnitude; }
+	void SetHeightMapMagnitude(float heightMapMagnitude) { m_HeightMapMagnitude = heightMapMagnitude; }
 	///
 	
 private:
@@ -110,6 +118,10 @@ private:
 
 	/// Things that should be in some sort of component system:
 	std::wstring m_MaterialName {};
+
+	XMFLOAT2 m_UVScale {};
+	float m_HeightMapMagnitude {};
+
 	bool b_Outline {};
 	///
 };

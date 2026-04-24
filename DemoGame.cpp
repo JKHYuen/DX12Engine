@@ -230,6 +230,7 @@ bool DemoGame::Initialize() {
 				*m_TestScene,
 				XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 1.0f, 1.0f),
 				0.0f,
+				0.0f,
 				XMFLOAT2{1.0f, 1.0f},
 				m_PBR_PSO.get(),
 				m_Outline_PSO.get(),
@@ -237,32 +238,41 @@ bool DemoGame::Initialize() {
 
 			goParams.translation = XMFLOAT3(0.0f, 3.0f, 0.0f);
 			goParams.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
+			goParams.heightMapMagnitude = 0.1f;
 			m_TestScene->CreateGameObject(*copyCommandList, goParams, copyCommandList->GetSpherePrimitive());
 
 			goParams.pbrMatName = L"marble";
 			goParams.translation = XMFLOAT3(-4.0f, 3.0f, 0.0f);
+			goParams.heightMapMagnitude = 0.0f;
 			m_TestScene->CreateGameObject(*copyCommandList, goParams, copyCommandList->GetSpherePrimitive());
 
 			goParams.name = "Cube";
 			goParams.pbrMatName = L"metal_grid";
 			goParams.translation = XMFLOAT3(4.0f, 3.0f, 0.0f);
 			goParams.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
+			goParams.heightMapMagnitude = 0.0f;
 			m_TestScene->CreateGameObject(*copyCommandList, goParams, copyCommandList->GetCubePrimitive());
+
+			/// Test model import
+			{
+				goParams.translation = XMFLOAT3(0.0f, 3.0f, 4.0f);
+				goParams.scale = XMFLOAT3(1.0f, 1.0f, 1.0f);
+				goParams.pbrMatName = L"viking_sword";
+				goParams.heightMapMagnitude = 0.0f;
+				auto importedMesh = AssetImporter::ImportModel(*copyCommandList, L"assets/models/" + goParams.pbrMatName + L"/" + goParams.pbrMatName + L".obj");
+
+				m_TestScene->CreateGameObject(*copyCommandList, goParams, importedMesh);
+			}
 
 			goParams.name = "Floor";
 			goParams.pbrMatName = L"bog";
+			goParams.uvScale = XMFLOAT2(5.0f, 5.0f);
+			goParams.heightMapMagnitude = 0.0f;
+			goParams.parallaxMagnitude = 0.005f;
 			goParams.translation = XMFLOAT3(0.0f, 0.0f, 0.0f);
 			goParams.scale = XMFLOAT3(40.0f, 40.0f, 40.0f);
 			m_TestScene->CreateGameObject(*copyCommandList, goParams, copyCommandList->GetQuadPrimitive());
 
-			/// Test model import
-			goParams.translation = XMFLOAT3(0.0f, 3.0f, 4.0f);
-			goParams.scale = XMFLOAT3(1.0f, 1.0f, 1.0f);
-			goParams.pbrMatName = L"viking_sword";
-			auto importedMesh = AssetImporter::ImportModel(*copyCommandList, L"assets/models/" + goParams.pbrMatName + L"/" + goParams.pbrMatName +L".obj");
-
-			//auto importedMesh = AssetImporter::ImportModel(*copyCommandList, L"assets/models/sponza/NewSponza_Main_glTF_003.gltf");
-			m_TestScene->CreateGameObject(*copyCommandList, goParams, importedMesh);
 
 			copyCommandQueue.ExecuteCommandList(copyCommandList);
 		}

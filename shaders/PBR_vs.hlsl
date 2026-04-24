@@ -29,6 +29,7 @@ struct PixelInputType {
     float4 worldPosition                : TEXCOORD1;
     float4 cameraPosition               : TEXCOORD2;
     float4 directionalLightViewPosition : TEXCOORD3; // vertex position with directional light's view/projection
+    float3 tangentViewDirection         : TEXCOORD4;
 };
 
 PixelInputType main(VertexInput i) {
@@ -37,7 +38,6 @@ PixelInputType main(VertexInput i) {
     // uv scale
     o.uv = i.uv * uvScale;
     
-    /// TODO: height map will be MaterialTex.a
     if (heightMapMagnitude != 0) {
         float displacement = MaterialTex.SampleLevel(TrilinearClampSampler, o.uv, 0).a;
         // should substract "displacement" by 0.5 so vertices can be displaced both directions
@@ -45,19 +45,19 @@ PixelInputType main(VertexInput i) {
         i.vertexPosition.xyz += i.normal * displacement * heightMapMagnitude;
     }
     
-     // TBN
-    o.tangent =   normalize(mul((float3x3) SRT, i.tangent));
-    o.bitangent = normalize(mul((float3x3) SRT, i.bitangent));
-    o.normal =    normalize(mul((float3x3) SRT, i.normal));
-    
-    // For parallax mapping only
-    //float3x3 TBN = float3x3(o.tangent, o.bitangent, o.normal);
-    //o.tangentViewDirection = mul(TBN, cameraPosition - o.worldPosition.xyz);
-    
     float4 hVertexPos = float4(i.vertexPosition, 1.0f);
     o.position = mul(MVP, hVertexPos);
     o.worldPosition = mul(SRT, hVertexPos);
     o.cameraPosition = cameraPosition;
+    
+    // TBN
+    o.tangent = normalize(mul((float3x3) SRT, i.tangent));
+    o.bitangent = normalize(mul((float3x3) SRT, i.bitangent));
+    o.normal = normalize(mul((float3x3) SRT, i.normal));
+    
+    // For parallax mapping only
+    float3x3 TBN = float3x3(o.tangent, o.bitangent, o.normal);
+    o.tangentViewDirection = mul(TBN, cameraPosition.xyz - o.worldPosition.xyz);
     
     o.directionalLightViewPosition = mul(directionalLightMVP, hVertexPos);
     

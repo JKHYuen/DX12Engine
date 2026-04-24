@@ -25,12 +25,13 @@ public:
 	PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRAY rtvFormat, DXGI_FORMAT depthFormat);
 
 	enum PBRRootParameters {
-		VertexCB,         // ConstantBuffer<Mat> VertexCB		 : register(b0);
-		MaterialCB,       // ConstantBuffer<Material> MaterialCB : register(b0, space1);
+		VertexCB,         // ConstantBuffer<VertexProps>   VertexCB	  : register(b0);
+		MaterialCB,       // ConstantBuffer<MaterialProps> MaterialCB : register(b0, space1);
+		LightCB,          // ConstantBuffer<LightProps>    LightCB    : register(b1);
 
 		Textures,         // Texture2D AlbedoTex				 : register(t0);
 						  // Texture2D NormalTex				 : register(t1);
-						  // Texture2D MaterialTex				 : register(t2);
+						  // Texture2D MaterialTex				 : register(t2); [r: ao, g: metallic, b: roughness, a: height]
 						  // Texture2D IrradianceCubemap		 : register(t3);
 						  // Texture2D PrefilterCubemap			 : register(t4);
 						  // Texture2D BRDFLut					 : register(t5);
@@ -71,12 +72,21 @@ public:
 	};
 
 	struct alignas(16) MaterialProps {
-		XMFLOAT4   Time;
+		float useParallaxShadow;
+		float minParallaxLayers;
+		float maxParallaxLayers;
+		float directionalShadowBias;
+		
+		float parallaxMagnitude;
+		float pad1;
+		float pad2;
+		float pad3;
+	};
+
+	struct alignas(16) LightProps {
+		XMFLOAT4   Time; // x: time, y: delta time
 		XMFLOAT4   dirLight;
 		XMFLOAT4   dirLightColor;
-		XMFLOAT2   uvScale;
-		float      pad1;
-		float      pad2;
 	};
 
 	static constexpr int sk_NumTextures = TextureIndex::NumTextures + VolatileTextureIndex::NumVolatilePBRTextures;
@@ -89,7 +99,7 @@ public:
 
 	void SetStencilWritePipelineState(CommandList& directCommandList) const;
 
-	void UpdateResources(CommandList& directCommandList, const std::vector<std::shared_ptr<Texture>>& pbrTextures, VertexProps vertexProps, MaterialProps materialProps);
+	void UpdateResources(CommandList& directCommandList, const std::vector<std::shared_ptr<Texture>>& pbrTextures, VertexProps vertexProps, MaterialProps materialProps, LightProps lightProps);
 
 private:
 	std::shared_ptr<RootSignature> m_RootSignature;

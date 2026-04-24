@@ -10,10 +10,13 @@
 
 #include <format>
 
-BloomPass::BloomPass(Device& device, const RenderTarget& screenRenderTarget, BloomPSO* pso, int maxIterations) :
+BloomPass::BloomPass(Device& device, const RenderTarget& screenRenderTarget, BloomPSO* pso, int maxIterations, float intensity, float threshold, float softThreshold) :
 	m_TextureFormat     { screenRenderTarget.GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0] },
 	m_MaxIterationCount { maxIterations },
 	m_IterationCount    { maxIterations },
+	m_Intensity         { intensity },
+	m_Threshold         { threshold },
+	m_SoftThreshold     { softThreshold },
 	m_PSO               { pso },
 	m_Device            { device }
 {

@@ -11,7 +11,7 @@ class CommandList;
 
 class BloomPass {
 public:
-	BloomPass(Device& device, const RenderTarget& screenRenderTarget, BloomPSO* pso, int maxIterations = 16);
+	BloomPass(Device& device, const RenderTarget& screenRenderTarget, BloomPSO* pso, int maxIterations = 16, float intensity = 0.5f, float threshold = 80.0f, float softThreshold = 0.9f);
 
 	void Render(CommandList& directCommandList, const RenderTarget& inputRenderTarget, const RenderTarget& outputRenderTarget);
 
@@ -25,11 +25,9 @@ public:
 	void  SetSoftThreshold(float val) { m_SoftThreshold = val; }
 
 private:
-	/// Default values
-	float m_Intensity = 0.5f;
-	float m_Threshold = 40.0f;
-	float m_SoftThreshold = 0.9f;
-	///
+	float m_Intensity;
+	float m_Threshold;
+	float m_SoftThreshold;
 
 	// Creates new render target at index idx in m_SamplingRenderTargets, SRV and RTV created as well
 	void CreateSamplingRenderTarget(size_t idx, uint32_t textureWidth, uint32_t textureHeight);

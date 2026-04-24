@@ -41,6 +41,7 @@ public:
 		const Scene& scene;
 		XMFLOAT3 translation, eulerRotation, scale;
 		float heightMapMagnitude = 0.0f;
+		float parallaxMagnitude = 0.0f;
 		XMFLOAT2 uvScale {1.0f, 1.0f};
 
 		PBRObjectPSO* pbrPSO;
@@ -94,7 +95,10 @@ public:
 	void SetUVScale(float x, float y) { m_UVScale = {x, y}; }
 
 	float GetHeightMapMagnitude() const { return m_HeightMapMagnitude; }
-	void SetHeightMapMagnitude(float heightMapMagnitude) { m_HeightMapMagnitude = heightMapMagnitude; }
+	void SetHeightMapMagnitude(float val) { m_HeightMapMagnitude = val; }
+
+	float GetParallaxMagnitude() const { return m_ParallaxMagnitude; }
+	void SetParallaxMagnitude(float val) { m_ParallaxMagnitude = val; }
 	///
 	
 private:
@@ -121,6 +125,7 @@ private:
 
 	XMFLOAT2 m_UVScale {};
 	float m_HeightMapMagnitude {};
+	float m_ParallaxMagnitude {};
 
 	bool b_Outline {};
 	///

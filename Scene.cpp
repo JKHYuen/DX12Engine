@@ -163,7 +163,8 @@ void Scene::RenderImGui() {
 	static float s_ObjEulerAngles[3] {};
 	static float s_ObjScale[3] {};
 	static float s_UVScale[2] {};
-	static float s_heightMapMagnitude {};
+	static float s_HeightMapMagnitude {};
+	static float s_ParallaxMagnitude {};
 	static GameObject* s_LastPickedObject {};
 	
 	// If newly picked object, update variables
@@ -183,7 +184,8 @@ void Scene::RenderImGui() {
 		XMFLOAT2 uvScale = picked->GetUVScale();
 		memcpy(s_UVScale, &uvScale, sizeof(float) * 2);
 
-		float heightMapMagnitude = picked->GetHeightMapMagnitude();
+		s_HeightMapMagnitude = picked->GetHeightMapMagnitude();
+		s_ParallaxMagnitude = picked->GetParallaxMagnitude();
 	}
 	s_LastPickedObject = picked;
 
@@ -233,8 +235,12 @@ void Scene::RenderImGui() {
 			picked->SetUVScale(s_UVScale[0], s_UVScale[1]);
 		}
 
-		if(ImGui::DragFloat("Height Map Magnitude", &s_heightMapMagnitude, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
-			picked->SetHeightMapMagnitude(s_heightMapMagnitude);
+		if(ImGui::DragFloat("Height Map Magnitude", &s_HeightMapMagnitude, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
+			picked->SetHeightMapMagnitude(s_HeightMapMagnitude);
+		}
+
+		if(ImGui::DragFloat("Parallax Magnitude", &s_ParallaxMagnitude, 0.001f, 0.0f, 1.0f, "%.3f", kSliderFlags)) {
+			picked->SetParallaxMagnitude(s_ParallaxMagnitude);
 		}
 
 		/// Object Inspector Window End

@@ -24,6 +24,7 @@ GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, st
 	, m_Name(params.name)
 	, m_UVScale(params.uvScale)
 	, m_HeightMapMagnitude(params.heightMapMagnitude)
+	, m_ParallaxMagnitude(params.parallaxMagnitude)
 {
 	SetTranslation(params.translation.x, params.translation.y, params.translation.z);
 	SetEulerRotation(params.eulerRotation.x, params.eulerRotation.y, params.eulerRotation.z);
@@ -95,15 +96,23 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 		pbrVertexCB.heightMapMagnitude = m_HeightMapMagnitude;
 	}
 
-	PBRObjectPSO::MaterialProps pbrMaterialCB {};
+	PBRObjectPSO::LightProps lightProps {};
 	{
-		pbrMaterialCB.Time          = { (float)e.Time, (float)e.DeltaTime, 0.0f, 0.0f };
-		pbrMaterialCB.dirLight      = scene.GetDirLight().GetDirection();
-		pbrMaterialCB.dirLightColor = scene.GetDirLight().GetColor();
-		pbrMaterialCB.uvScale       = m_UVScale;
+		lightProps.Time = { (float)e.Time, (float)e.DeltaTime, 0.0f, 0.0f };
+		lightProps.dirLight = scene.GetDirLight().GetDirection();
+		lightProps.dirLightColor = scene.GetDirLight().GetColor();
 	}
 
-	m_PBR_PSO->UpdateResources(directCommandList, m_TextureResources, pbrVertexCB, pbrMaterialCB);
+	PBRObjectPSO::MaterialProps materialProps {};
+	{
+		materialProps.useParallaxShadow = 1.0f;
+		materialProps.minParallaxLayers = 8.0f;
+		materialProps.maxParallaxLayers = 32.0f;
+		materialProps.directionalShadowBias = scene.GetDirLight().GetShadowBias(); 
+		materialProps.parallaxMagnitude = m_ParallaxMagnitude;
+	}
+
+	m_PBR_PSO->UpdateResources(directCommandList, m_TextureResources, pbrVertexCB, materialProps, lightProps);
 
 	m_Mesh->Draw(directCommandList);
 }

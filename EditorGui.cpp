@@ -255,10 +255,14 @@ void EditorGui::RenderObjectInspector(Device& device, const Scene& scene) {
 		ImGui::SameLine();
 		if(ImGui::Button("+###+Scale")) {
 			picked->Scale(1.1f, 1.1f, 1.1f);
+			XMFLOAT3 scale = picked->GetScale();
+			memcpy(s_ObjScale, &scale, sizeof(float) * 3);
 		}
 		ImGui::SameLine();
 		if(ImGui::Button("-###-Scale")) {
 			picked->Scale(0.9f, 0.9f, 0.9f);
+			XMFLOAT3 scale = picked->GetScale();
+			memcpy(s_ObjScale, &scale, sizeof(float) * 3);
 		}
 
 		if(ImGui::DragFloat2("UV Scale", s_UVScale, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
@@ -266,9 +270,15 @@ void EditorGui::RenderObjectInspector(Device& device, const Scene& scene) {
 		}
 		ImGui::SameLine();
 		if(ImGui::Button("+###+UVScale")) {
+			picked->m_RenderProps.uvScale.x += 1.0f;
+			picked->m_RenderProps.uvScale.y += 1.0f;
+			memcpy(s_UVScale, &picked->m_RenderProps.uvScale, sizeof(float) * 2);
 		}
 		ImGui::SameLine();
 		if(ImGui::Button("-###-UVScale")) {
+			picked->m_RenderProps.uvScale.x -= 1.0f;
+			picked->m_RenderProps.uvScale.y -= 1.0f;
+			memcpy(s_UVScale, &picked->m_RenderProps.uvScale, sizeof(float) * 2);
 		}
 
 		if(ImGui::DragFloat("Height Map Magnitude", &s_HeightMapMagnitude, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {

@@ -47,7 +47,7 @@ public:
 	/// Things that should be in some sort of component system:
 	// Instance of RenderProps will be kept as member 
 	struct RenderProps {
-		std::wstring pbrMatName;
+		std::wstring pbrMatName {};
 
 		float heightMapMagnitude = 0.0f;
 
@@ -59,8 +59,8 @@ public:
 		XMFLOAT2 uvScale { 1.0f, 1.0f };
 
 		// PSOs are owned by DemoGame
-		PBRObjectPSO* pbrPSO;
-		OutlinePSO* outlinePSO;
+		PBRObjectPSO* pbrPSO {};
+		OutlinePSO* outlinePSO {};
 	};
 
 	// Warning: copy command list must still be executed after GameObject, this is to keep flexibility to batch copy commands together

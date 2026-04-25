@@ -228,17 +228,12 @@ bool DemoGame::Initialize() {
 				"Sphere",
 				*m_TestScene,
 				XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 1.0f, 1.0f),
-
 			};
 
-			GameObject::RenderProps goRenderProps {
-				L"stonewall",
-				0.0f,
-				0.0f, false, 8, 32, // parallax params
-				XMFLOAT2{1.0f, 1.0f},
-				m_PBR_PSO.get(),
-				m_Outline_PSO.get()
-			};
+			GameObject::RenderProps goRenderProps {};
+			goRenderProps.pbrMatName = L"stonewall";
+			goRenderProps.pbrPSO = m_PBR_PSO.get();
+			goRenderProps.outlinePSO = m_Outline_PSO.get();
 
 			goParams.translation = XMFLOAT3(0.0f, 3.0f, 0.0f);
 			goParams.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);

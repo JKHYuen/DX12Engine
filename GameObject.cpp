@@ -20,13 +20,13 @@ using namespace DirectX;
 GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params, RenderProps renderProps, std::shared_ptr<Mesh> mesh)
 	: m_Mesh(mesh)
 	, m_Name(params.name)
-	, m_RenderProps(renderProps)
+	, m_RenderProps(std::move(renderProps))
 {
 	SetTranslation(params.translation.x, params.translation.y, params.translation.z);
 	SetEulerRotation(params.eulerRotation.x, params.eulerRotation.y, params.eulerRotation.z);
 	SetScale(params.scale.x, params.scale.y, params.scale.z);
 
-	UpdatePBRShaderResources(copyCommandList, renderProps.pbrMatName);
+	UpdatePBRShaderResources(copyCommandList, m_RenderProps.pbrMatName);
 
 	// Set rest of textures not updated in UpdateShaderResources()
 	m_TextureResources[PBRObjectPSO::IrradianceCubemap]    = params.scene.GetSkybox().GetIrradianceTexture();

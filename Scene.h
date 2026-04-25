@@ -38,8 +38,8 @@ public:
 	void SetDirLightAngle(float x, float y, float z);
 	void SetDirLightColor(float r, float g, float b);
 
-	GameObject* CreateGameObject(CommandList& copyCommandList, const GameObject::EntityParams& goParams, GameObject::RenderProps renderProps, std::shared_ptr<Mesh> mesh);
-	void CreateGameObject(CommandList& copyCommandList, const GameObject::EntityParams& goParams, GameObject::RenderProps renderProps, const std::wstring& meshFileName);
+	// We use std::move to move gameobject "go" into m_SceneObjects instead of constructing directly with emplace_back with Gameobject params so we dont have to keep track of Gameobject constructor params (they might change). "go" is an rvalue ref to avoid copy and to inform user object will be moved (i.e. invalidated).
+	void AddGameObject(GameObject&& go);
 
 	/// TODO: test
 	void SetCubemap(CommandList& copyCommandList, const std::wstring& hdrTextureName);

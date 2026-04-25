@@ -58,14 +58,9 @@ void Scene::SetDirLightColor(float r, float g, float b) {
 }
 
 /// TODO: figure out some proper game object storage, returned pointer here will be invalidated if vector resizes
-GameObject* Scene::CreateGameObject(CommandList& copyCommandList, const GameObject::EntityParams& goParams, GameObject::RenderProps renderProps, std::shared_ptr<Mesh> mesh) {
+void Scene::AddGameObject(GameObject&& go) {
 	assert(m_SceneObjects.size() < sk_MaxSceneObjects);
-	m_SceneObjects.emplace_back(copyCommandList, goParams, std::move(renderProps), mesh);
-	return &m_SceneObjects.back();
-}
-
-void Scene::CreateGameObject(CommandList& copyCommandList, const GameObject::EntityParams& goParams, GameObject::RenderProps renderProps, const std::wstring& meshFileName) {
-	/// TODO
+	m_SceneObjects.emplace_back(std::move(go));
 }
 
 /// TODO: TEMP

@@ -179,8 +179,8 @@ bool DemoGame::Initialize() {
 	m_IBL_PSO = std::make_unique<ImageBasedLightingPSO>(*m_Device, m_HDR_MSAA_RT);
 
 	m_Bloom_PSO = std::make_unique<BloomPSO>(*m_Device, m_HDR_MSAA_RT);
-	m_BloomPass = std::make_unique<BloomPass>(*m_Device, m_HDR_MSAA_RT, m_Bloom_PSO.get());
 	///
+	m_BloomPass = std::make_unique<BloomPass>(*m_Device, m_HDR_MSAA_RT, m_Bloom_PSO.get());
 
 	auto& copyCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 	// Load Assets (COPY operations)
@@ -231,26 +231,26 @@ bool DemoGame::Initialize() {
 			};
 
 			GameObject::RenderProps goRenderProps {};
-			goRenderProps.pbrMatName = L"stonewall";
 			goRenderProps.pbrPSO = m_PBR_PSO.get();
 			goRenderProps.outlinePSO = m_Outline_PSO.get();
 
+			goRenderProps.pbrMatName = L"stonewall";
 			goParams.translation = XMFLOAT3(0.0f, 3.0f, 0.0f);
 			goParams.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
 			goRenderProps.heightMapMagnitude = 0.1f;
-			m_TestScene->CreateGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive());
+			m_TestScene->AddGameObject({ *copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive() });
 
 			goParams.translation = XMFLOAT3(-4.0f, 3.0f, 0.0f);
 			goRenderProps.pbrMatName = L"marble";
 			goRenderProps.heightMapMagnitude = 0.0f;
-			m_TestScene->CreateGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive());
+			m_TestScene->AddGameObject({ *copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive() });
 
 			goParams.name = "Cube";
 			goParams.translation = XMFLOAT3(4.0f, 3.0f, 0.0f);
 			goParams.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
 			goRenderProps.pbrMatName = L"metal_grid";
 			goRenderProps.heightMapMagnitude = 0.0f;
-			m_TestScene->CreateGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetCubePrimitive());
+			m_TestScene->AddGameObject({ *copyCommandList, goParams, goRenderProps, copyCommandList->GetCubePrimitive() });
 
 			/// Test model import
 			{
@@ -260,7 +260,7 @@ bool DemoGame::Initialize() {
 				goRenderProps.heightMapMagnitude = 0.0f;
 				auto importedMesh = AssetImporter::ImportModel(*copyCommandList, L"assets/models/" + goRenderProps.pbrMatName + L"/" + goRenderProps.pbrMatName + L".obj");
 
-				m_TestScene->CreateGameObject(*copyCommandList, goParams, goRenderProps, importedMesh);
+				m_TestScene->AddGameObject({ *copyCommandList, goParams, goRenderProps, importedMesh });
 			}
 
 			goParams.name = "Floor";
@@ -271,7 +271,8 @@ bool DemoGame::Initialize() {
 			goRenderProps.heightMapMagnitude = 0.0f;
 			goRenderProps.parallaxMagnitude = 0.005f;
 			goRenderProps.useParallaxShadow = true;
-			m_TestScene->CreateGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetQuadPrimitive());
+			m_TestScene->AddGameObject({ *copyCommandList, goParams, goRenderProps, copyCommandList->GetQuadPrimitive() });
+
 
 			copyCommandQueue.ExecuteCommandList(copyCommandList);
 		}

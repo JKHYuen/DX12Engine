@@ -15,6 +15,7 @@ class KeyEventArgs;
 
 class Scene {
 
+	friend class EditorGui;
 	friend class Picker;
 
 public:
@@ -37,8 +38,8 @@ public:
 	void SetDirLightAngle(float x, float y, float z);
 	void SetDirLightColor(float r, float g, float b);
 
-	GameObject* CreateGameObject(CommandList& copyCommandList, const GameObject::GameObjectParams& goParams, std::shared_ptr<Mesh> mesh);
-	void CreateGameObject(CommandList& copyCommandList, const GameObject::GameObjectParams& goParams, const std::wstring& meshFileName);
+	GameObject* CreateGameObject(CommandList& copyCommandList, const GameObject::EntityParams& goParams, GameObject::RenderProps renderProps, std::shared_ptr<Mesh> mesh);
+	void CreateGameObject(CommandList& copyCommandList, const GameObject::EntityParams& goParams, GameObject::RenderProps renderProps, const std::wstring& meshFileName);
 
 	/// TODO: test
 	void SetCubemap(CommandList& copyCommandList, const std::wstring& hdrTextureName);
@@ -52,9 +53,6 @@ public:
 		m_GameWindowWidth = width;
 		m_GameWindowHeight = height;
 	};
-
-	// Currently only renders obnject inspector window
-	void RenderImGui();
 
 	// keep this public out of convenience for now
 	Camera m_MainCamera;

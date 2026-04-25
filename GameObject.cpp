@@ -17,20 +17,16 @@
 
 using namespace DirectX;
 
-GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, std::shared_ptr<Mesh> mesh) 
-	: m_PBR_PSO(params.pbrPSO)
-	, m_Outline_PSO(params.outlinePSO) 
-	, m_Mesh(mesh)
+GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params, RenderProps renderProps, std::shared_ptr<Mesh> mesh)
+	: m_Mesh(mesh)
 	, m_Name(params.name)
-	, m_UVScale(params.uvScale)
-	, m_HeightMapMagnitude(params.heightMapMagnitude)
-	, m_ParallaxMagnitude(params.parallaxMagnitude)
+	, m_RenderProps(renderProps)
 {
 	SetTranslation(params.translation.x, params.translation.y, params.translation.z);
 	SetEulerRotation(params.eulerRotation.x, params.eulerRotation.y, params.eulerRotation.z);
 	SetScale(params.scale.x, params.scale.y, params.scale.z);
 
-	UpdatePBRShaderResources(copyCommandList, params.pbrMatName);
+	UpdatePBRShaderResources(copyCommandList, renderProps.pbrMatName);
 
 	// Set rest of textures not updated in UpdateShaderResources()
 	m_TextureResources[PBRObjectPSO::IrradianceCubemap]    = params.scene.GetSkybox().GetIrradianceTexture();
@@ -42,7 +38,7 @@ GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, st
 /// TODO: somehow make this compatible with assimp loading
 ///        Rename this function to indicate it's loading textures from file
 void GameObject::UpdatePBRShaderResources(CommandList& copyCommandList, const std::wstring& pbrMatName) {
-	m_MaterialName = pbrMatName;
+	m_RenderProps.pbrMatName = pbrMatName;
 
 	/// TODO: set root asset folder somewhere, maybe in IGame
 	std::wstring matPathPrefix { L"assets/materials/" + pbrMatName + L"/" + pbrMatName };
@@ -65,18 +61,18 @@ void GameObject::UpdateIBLShaderResources(const Scene& scene) {
 }
 
 /// TODO: load from file with meshFileName
-GameObject::GameObject(CommandList& copyCommandList, GameObjectParams params, const std::wstring& meshFilePath) {
+GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params, RenderProps renderProps, const std::wstring& meshFilePath) {
 
 }
 
 void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene) {
 	// Render object with PBR shading, use stencil write version of PSO for outline effect to work
 	if(b_Outline) {
-		m_PBR_PSO->SetStencilWritePipelineState(directCommandList);
+		m_RenderProps.pbrPSO->SetStencilWritePipelineState(directCommandList);
 		directCommandList.GetD3D12CommandList()->OMSetStencilRef(1);
 	}
 	else {
-		m_PBR_PSO->SetPipelineState(directCommandList);
+		m_RenderProps.pbrPSO->SetPipelineState(directCommandList);
 	}
 
 	XMFLOAT4X4 v = scene.GetDirLight().GetViewMatrix();
@@ -92,8 +88,8 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 		XMStoreFloat4x4(&pbrVertexCB.directionalLightMVP, XMLoadFloat4x4(&pbrVertexCB.SRT) * directionalLightViewMat * directionalLightOrthoMat);
 		XMStoreFloat4(&pbrVertexCB.cameraPosition, scene.m_MainCamera.Get_Translation());
 
-		pbrVertexCB.uvScale            = m_UVScale;
-		pbrVertexCB.heightMapMagnitude = m_HeightMapMagnitude;
+		pbrVertexCB.uvScale            = m_RenderProps.uvScale;
+		pbrVertexCB.heightMapMagnitude = m_RenderProps.heightMapMagnitude;
 	}
 
 	PBRObjectPSO::LightProps lightProps {};
@@ -105,21 +101,21 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 
 	PBRObjectPSO::MaterialProps materialProps {};
 	{
-		materialProps.useParallaxShadow = 1.0f;
-		materialProps.minParallaxLayers = 8.0f;
-		materialProps.maxParallaxLayers = 32.0f;
+		materialProps.useParallaxShadow = m_RenderProps.useParallaxShadow ? 1.0f : 0.0f;
+		materialProps.minParallaxLayers = (float)m_RenderProps.minParallaxLayers;
+		materialProps.maxParallaxLayers = (float)m_RenderProps.maxParallaxLayers;
 		materialProps.directionalShadowBias = scene.GetDirLight().GetShadowBias(); 
-		materialProps.parallaxMagnitude = m_ParallaxMagnitude;
+		materialProps.parallaxMagnitude = m_RenderProps.parallaxMagnitude;
 	}
 
-	m_PBR_PSO->UpdateResources(directCommandList, m_TextureResources, pbrVertexCB, materialProps, lightProps);
+	m_RenderProps.pbrPSO->UpdateResources(directCommandList, m_TextureResources, pbrVertexCB, materialProps, lightProps);
 
 	m_Mesh->Draw(directCommandList);
 }
 
 void GameObject::RenderOutline(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene) {
 	if(b_Outline) {
-		m_Outline_PSO->SetPipelineState(directCommandList);
+		m_RenderProps.outlinePSO->SetPipelineState(directCommandList);
 		directCommandList.GetD3D12CommandList()->OMSetStencilRef(1);
 
 		OutlinePSO::VertexProps outlineVertexCB {};
@@ -136,7 +132,7 @@ void GameObject::RenderOutline(CommandList& directCommandList, const UpdateEvent
 
 		OutlinePSO::MaterialProps outlineMaterialCB {};
 		outlineMaterialCB.outlineColor = { 10.0f, 10.0f, 0.0f, 1.0f };
-		m_Outline_PSO->UpdateResources(directCommandList, outlineVertexCB, outlineMaterialCB);
+		m_RenderProps.outlinePSO->UpdateResources(directCommandList, outlineVertexCB, outlineMaterialCB);
 		m_Mesh->Draw(directCommandList);
 	}
 }

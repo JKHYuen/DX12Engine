@@ -58,13 +58,13 @@ void Scene::SetDirLightColor(float r, float g, float b) {
 }
 
 /// TODO: figure out some proper game object storage, returned pointer here will be invalidated if vector resizes
-GameObject* Scene::CreateGameObject(CommandList& copyCommandList, const GameObject::GameObjectParams& goParams, std::shared_ptr<Mesh> mesh) {
+GameObject* Scene::CreateGameObject(CommandList& copyCommandList, const GameObject::EntityParams& goParams, GameObject::RenderProps renderProps, std::shared_ptr<Mesh> mesh) {
 	assert(m_SceneObjects.size() < sk_MaxSceneObjects);
-	m_SceneObjects.emplace_back(copyCommandList, goParams, mesh);
+	m_SceneObjects.emplace_back(copyCommandList, goParams, std::move(renderProps), mesh);
 	return &m_SceneObjects.back();
 }
 
-void Scene::CreateGameObject(CommandList& copyCommandList, const GameObject::GameObjectParams& goParams, const std::wstring& meshFileName) {
+void Scene::CreateGameObject(CommandList& copyCommandList, const GameObject::EntityParams& goParams, GameObject::RenderProps renderProps, const std::wstring& meshFileName) {
 	/// TODO
 }
 
@@ -151,100 +151,4 @@ void Scene::OnKeyReleased(const KeyEventArgs& e) {
 			m_Picker->ClearPickedObject();
 		}
 	}
-}
-
-void Scene::RenderImGui() {
-	GameObject* picked = m_Picker->GetPickedObject();
-	if(picked == nullptr) return;
-
-	static std::string s_ObjectName {}; // can't be view, needs null terminated string for ImGui::Text
-	static std::wstring_view s_SelectedMat {};
-	static float s_ObjTranslation[3] {};
-	static float s_ObjEulerAngles[3] {};
-	static float s_ObjScale[3] {};
-	static float s_UVScale[2] {};
-	static float s_HeightMapMagnitude {};
-	static float s_ParallaxMagnitude {};
-	static GameObject* s_LastPickedObject {};
-	
-	// If newly picked object, update variables
-	if(picked != s_LastPickedObject) {
-		s_ObjectName = std::string { picked->GetName() };
-		s_ObjectName += "###ObjectInspector"; // appending this decouples window title and window ID
-
-		s_SelectedMat = picked->GetMaterialName();
-
-		XMFLOAT3 translation   = picked->GetTranslation();
-		XMFLOAT3 eulerRotation = picked->GetEulerRotation();
-		XMFLOAT3 scale         = picked->GetScale();
-		memcpy(s_ObjTranslation, &translation,   sizeof(float) * 3);
-		memcpy(s_ObjEulerAngles, &eulerRotation, sizeof(float) * 3);
-		memcpy(s_ObjScale,       &scale,         sizeof(float) * 3);
-
-		XMFLOAT2 uvScale = picked->GetUVScale();
-		memcpy(s_UVScale, &uvScale, sizeof(float) * 2);
-
-		s_HeightMapMagnitude = picked->GetHeightMapMagnitude();
-		s_ParallaxMagnitude = picked->GetParallaxMagnitude();
-	}
-	s_LastPickedObject = picked;
-
-	static const ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
-
-	ImGui::Begin(s_ObjectName.c_str(), nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
-	{
-		if(ImGui::BeginTable("PBR Material Table", 4, ImGuiTableFlags_Borders)) {
-			for(auto& s : m_MaterialNames) {
-				ImGui::TableNextColumn();
-
-				if(ImGui::Selectable(StringConvert::WideString_To_String(s).c_str(), s == s_SelectedMat)) {
-					auto& copyCommandQueue = m_Device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
-					auto copyCommandList = copyCommandQueue.GetCommandList();
-
-					picked->UpdatePBRShaderResources(*copyCommandList, s);
-
-					copyCommandQueue.ExecuteCommandList(copyCommandList);
-					copyCommandQueue.FlushWait();
-					s_SelectedMat = s;
-				};
-			}
-			ImGui::EndTable();
-		}
-
-		if(ImGui::DragFloat3("Position", s_ObjTranslation, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
-			picked->SetTranslation(s_ObjTranslation[0], s_ObjTranslation[1], s_ObjTranslation[2]);
-		}
-
-		if(ImGui::DragFloat3("Rotation", s_ObjEulerAngles, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
-			picked->SetEulerRotation(s_ObjEulerAngles[0], s_ObjEulerAngles[1], s_ObjEulerAngles[2]);
-		}
-
-		if(ImGui::DragFloat3("Scale", s_ObjScale, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
-			picked->SetScale(s_ObjScale[0], s_ObjScale[1], s_ObjScale[2]);
-		}
-		ImGui::SameLine();
-		if(ImGui::Button("+")) {
-			picked->Scale(1.1f, 1.1f, 1.1f);
-		}
-		ImGui::SameLine();
-		if(ImGui::Button("-")) {
-			picked->Scale(0.9f, 0.9f, 0.9f);
-		}
-
-		if(ImGui::DragFloat2("UV Scale", s_UVScale, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
-			picked->SetUVScale(s_UVScale[0], s_UVScale[1]);
-		}
-
-		if(ImGui::DragFloat("Height Map Magnitude", &s_HeightMapMagnitude, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
-			picked->SetHeightMapMagnitude(s_HeightMapMagnitude);
-		}
-
-		if(ImGui::DragFloat("Parallax Magnitude", &s_ParallaxMagnitude, 0.001f, 0.0f, 1.0f, "%.3f", kSliderFlags)) {
-			picked->SetParallaxMagnitude(s_ParallaxMagnitude);
-		}
-
-		/// Object Inspector Window End
-		ImGui::End();
-	}
-
 }

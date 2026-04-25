@@ -47,7 +47,7 @@ namespace {
 	constexpr float sk_MouseSpeed = 0.05f;
 
 	constexpr DXGI_FORMAT sk_HDRFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
-	constexpr DXGI_FORMAT sk_DepthBufferFormat = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+	constexpr DXGI_FORMAT sk_DepthStencilBufferFormat = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 
 	const std::wstring s_defaultSkyboxName = L"industrial_sunset_puresky_4k.hdr";
 
@@ -143,20 +143,20 @@ bool DemoGame::Initialize() {
 		auto colorTexture = std::make_shared<Texture>(*m_Device, colorDesc, &colorClearValue);
 		colorTexture->SetName(L"Color Render Target");
 
-		// depth buffer
-		auto depthDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-			sk_DepthBufferFormat, m_WindowWidth, m_WindowHeight, 1, 1, multiSampleDesc.Count, multiSampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
+		// depth stencil buffer
+		auto depthStencilDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+			sk_DepthStencilBufferFormat, m_WindowWidth, m_WindowHeight, 1, 1, multiSampleDesc.Count, multiSampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
 		);
 
 		D3D12_CLEAR_VALUE depthClearValue;
-		depthClearValue.Format = depthDesc.Format;
+		depthClearValue.Format = depthStencilDesc.Format;
 		depthClearValue.DepthStencil = { 1.0f, 0 };
 
-		auto depthTexture = std::make_shared<Texture>(*m_Device, depthDesc, &depthClearValue);
-		depthTexture->SetName(L"Depth Render Target");
+		auto depthStencilTexture = std::make_shared<Texture>(*m_Device, depthStencilDesc, &depthClearValue);
+		depthStencilTexture->SetName(L"Depth Stencil Render Target");
 
 		m_HDR_MSAA_RT.AttachTexture(AttachmentPoint::Color0, colorTexture);
-		m_HDR_MSAA_RT.AttachTexture(AttachmentPoint::DepthStencil, depthTexture);
+		m_HDR_MSAA_RT.AttachTexture(AttachmentPoint::DepthStencil, depthStencilTexture);
 
 		// Non multisampled floating point render texture
 		auto floatTextureDesc = CD3DX12_RESOURCE_DESC::Tex2D(
@@ -174,8 +174,8 @@ bool DemoGame::Initialize() {
 	}
 
 	/// TODO: Create PSOs (this should be managed somewhere else)
-	m_PBR_PSO = std::make_unique<PBRObjectPSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RT.GetRenderTargetFormats(), sk_DepthBufferFormat);
-	m_Outline_PSO = std::make_unique<OutlinePSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RT.GetRenderTargetFormats(), sk_DepthBufferFormat);
+	m_PBR_PSO = std::make_unique<PBRObjectPSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RT.GetRenderTargetFormats(), sk_DepthStencilBufferFormat);
+	m_Outline_PSO = std::make_unique<OutlinePSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RT.GetRenderTargetFormats(), sk_DepthStencilBufferFormat);
 	m_IBL_PSO = std::make_unique<ImageBasedLightingPSO>(*m_Device, m_HDR_MSAA_RT);
 
 	m_Bloom_PSO = std::make_unique<BloomPSO>(*m_Device, m_HDR_MSAA_RT);
@@ -224,60 +224,65 @@ bool DemoGame::Initialize() {
 
 		/// TEMP TEST SCENE
 		{
-			GameObject::GameObjectParams goParams{
+			GameObject::EntityParams goParams {
 				"Sphere",
-				L"stonewall",
 				*m_TestScene,
 				XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 1.0f, 1.0f),
+
+			};
+
+			GameObject::RenderProps goRenderProps {
+				L"stonewall",
 				0.0f,
-				0.0f,
+				0.0f, false, 8, 32, // parallax params
 				XMFLOAT2{1.0f, 1.0f},
 				m_PBR_PSO.get(),
-				m_Outline_PSO.get(),
+				m_Outline_PSO.get()
 			};
 
 			goParams.translation = XMFLOAT3(0.0f, 3.0f, 0.0f);
 			goParams.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
-			goParams.heightMapMagnitude = 0.1f;
-			m_TestScene->CreateGameObject(*copyCommandList, goParams, copyCommandList->GetSpherePrimitive());
+			goRenderProps.heightMapMagnitude = 0.1f;
+			m_TestScene->CreateGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive());
 
-			goParams.pbrMatName = L"marble";
 			goParams.translation = XMFLOAT3(-4.0f, 3.0f, 0.0f);
-			goParams.heightMapMagnitude = 0.0f;
-			m_TestScene->CreateGameObject(*copyCommandList, goParams, copyCommandList->GetSpherePrimitive());
+			goRenderProps.pbrMatName = L"marble";
+			goRenderProps.heightMapMagnitude = 0.0f;
+			m_TestScene->CreateGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive());
 
 			goParams.name = "Cube";
-			goParams.pbrMatName = L"metal_grid";
 			goParams.translation = XMFLOAT3(4.0f, 3.0f, 0.0f);
 			goParams.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
-			goParams.heightMapMagnitude = 0.0f;
-			m_TestScene->CreateGameObject(*copyCommandList, goParams, copyCommandList->GetCubePrimitive());
+			goRenderProps.pbrMatName = L"metal_grid";
+			goRenderProps.heightMapMagnitude = 0.0f;
+			m_TestScene->CreateGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetCubePrimitive());
 
 			/// Test model import
 			{
 				goParams.translation = XMFLOAT3(0.0f, 3.0f, 4.0f);
 				goParams.scale = XMFLOAT3(1.0f, 1.0f, 1.0f);
-				goParams.pbrMatName = L"viking_sword";
-				goParams.heightMapMagnitude = 0.0f;
-				auto importedMesh = AssetImporter::ImportModel(*copyCommandList, L"assets/models/" + goParams.pbrMatName + L"/" + goParams.pbrMatName + L".obj");
+				goRenderProps.pbrMatName = L"viking_sword";
+				goRenderProps.heightMapMagnitude = 0.0f;
+				auto importedMesh = AssetImporter::ImportModel(*copyCommandList, L"assets/models/" + goRenderProps.pbrMatName + L"/" + goRenderProps.pbrMatName + L".obj");
 
-				m_TestScene->CreateGameObject(*copyCommandList, goParams, importedMesh);
+				m_TestScene->CreateGameObject(*copyCommandList, goParams, goRenderProps, importedMesh);
 			}
 
 			goParams.name = "Floor";
-			goParams.pbrMatName = L"bog";
-			goParams.uvScale = XMFLOAT2(5.0f, 5.0f);
-			goParams.heightMapMagnitude = 0.0f;
-			goParams.parallaxMagnitude = 0.005f;
 			goParams.translation = XMFLOAT3(0.0f, 0.0f, 0.0f);
 			goParams.scale = XMFLOAT3(40.0f, 40.0f, 40.0f);
-			m_TestScene->CreateGameObject(*copyCommandList, goParams, copyCommandList->GetQuadPrimitive());
-
+			goRenderProps.pbrMatName = L"bog";
+			goRenderProps.uvScale = XMFLOAT2(5.0f, 5.0f);
+			goRenderProps.heightMapMagnitude = 0.0f;
+			goRenderProps.parallaxMagnitude = 0.005f;
+			goRenderProps.useParallaxShadow = true;
+			m_TestScene->CreateGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetQuadPrimitive());
 
 			copyCommandQueue.ExecuteCommandList(copyCommandList);
 		}
 	}
 
+	/// TODO: extract PSOs as classes to match rest of project
 	/// Create Post Process/Tonemap Pipeline States 
 	/// Note: post process pipeline currently unused, will be used for bloom eventually, it should also be in a separate class
 	{
@@ -609,12 +614,10 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 			/// Main Engine UI Window End
 			ImGui::End();
 		}
-
-		/// Object Inspector Window / Scene specific UI
-		{
-			m_TestScene->RenderImGui();
-		}
 	}
+
+	/// Object Inspector Window
+	EditorGui::Get().RenderObjectInspector(*m_Device, *m_TestScene);
 
 	EditorGui::Get().Render(directCommandList);
 }

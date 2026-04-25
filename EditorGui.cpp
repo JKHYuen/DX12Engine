@@ -2,7 +2,10 @@
 #include "Device.h"
 #include "CommandQueue.h"
 #include "CommandList.h"
+#include "GameObject.h"
+#include "Scene.h"
 #include "Resource.h"
+#include "StringHelpers.h"
 
 #include "imgui.h"
 #include "implot.h"
@@ -172,4 +175,126 @@ void EditorGui::Render(CommandList& directCommandList) {
 	ImGui::Render();
 	directCommandList.SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, s_D3DSrvDescHeap.Get());
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), directCommandList.GetD3D12CommandList().Get());
+}
+
+void EditorGui::RenderObjectInspector(Device& device, const Scene& scene) {
+	GameObject* picked = scene.m_Picker->GetPickedObject();
+	if(picked == nullptr) return;
+
+	static std::string s_ObjectName {}; // can't be string view, needs null terminated string for ImGui::Text
+	static std::wstring_view s_SelectedMat {};
+	static float s_ObjTranslation[3] {};
+	static float s_ObjEulerAngles[3] {};
+	static float s_ObjScale[3] {};
+	static float s_UVScale[2] {};
+	static float s_HeightMapMagnitude {};
+	static float s_ParallaxMagnitude {};
+	static bool  s_UseParallaxShadows {};
+	static int s_MinParallaxLayers {};
+	static int s_MaxParallaxLayers {};
+	static GameObject* s_LastPickedObject {};
+
+	// If newly picked object, update variables
+	if(picked != s_LastPickedObject) {
+		s_ObjectName = std::string { picked->GetName() };
+		s_ObjectName += "###ObjectInspector"; // appending this decouples window title and window ID
+
+		s_SelectedMat = picked->m_RenderProps.pbrMatName;
+
+		XMFLOAT3 translation = picked->GetTranslation();
+		XMFLOAT3 eulerRotation = picked->GetEulerRotation();
+		XMFLOAT3 scale = picked->GetScale();
+		memcpy(s_ObjTranslation, &translation, sizeof(float) * 3);
+		memcpy(s_ObjEulerAngles, &eulerRotation, sizeof(float) * 3);
+		memcpy(s_ObjScale, &scale, sizeof(float) * 3);
+
+		XMFLOAT2 uvScale = picked->m_RenderProps.uvScale;
+		memcpy(s_UVScale, &uvScale, sizeof(float) * 2);
+
+		s_HeightMapMagnitude = picked->m_RenderProps.heightMapMagnitude;
+		s_ParallaxMagnitude  = picked->m_RenderProps.parallaxMagnitude;
+		s_UseParallaxShadows = picked->m_RenderProps.useParallaxShadow;
+		s_MinParallaxLayers  = picked->m_RenderProps.minParallaxLayers;
+		s_MaxParallaxLayers  = picked->m_RenderProps.maxParallaxLayers;
+	}
+	s_LastPickedObject = picked;
+
+	static const ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
+
+	ImGui::Begin(s_ObjectName.c_str(), nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
+	{
+		if(ImGui::BeginTable("PBR Material Table", 4, ImGuiTableFlags_Borders)) {
+			for(const auto& s : scene.m_MaterialNames) {
+				ImGui::TableNextColumn();
+
+				if(ImGui::Selectable(StringConvert::WideString_To_String(s).c_str(), s == s_SelectedMat)) {
+					auto& copyCommandQueue = device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
+					auto copyCommandList = copyCommandQueue.GetCommandList();
+
+					picked->UpdatePBRShaderResources(*copyCommandList, s);
+
+					copyCommandQueue.ExecuteCommandList(copyCommandList);
+					copyCommandQueue.FlushWait();
+					s_SelectedMat = s;
+				};
+			}
+			ImGui::EndTable();
+		}
+
+		if(ImGui::DragFloat3("Position", s_ObjTranslation, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
+			picked->SetTranslation(s_ObjTranslation[0], s_ObjTranslation[1], s_ObjTranslation[2]);
+		}
+
+		if(ImGui::DragFloat3("Rotation", s_ObjEulerAngles, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
+			picked->SetEulerRotation(s_ObjEulerAngles[0], s_ObjEulerAngles[1], s_ObjEulerAngles[2]);
+		}
+
+		if(ImGui::DragFloat3("Scale", s_ObjScale, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
+			picked->SetScale(s_ObjScale[0], s_ObjScale[1], s_ObjScale[2]);
+		}
+		ImGui::SameLine();
+		if(ImGui::Button("+###+Scale")) {
+			picked->Scale(1.1f, 1.1f, 1.1f);
+		}
+		ImGui::SameLine();
+		if(ImGui::Button("-###-Scale")) {
+			picked->Scale(0.9f, 0.9f, 0.9f);
+		}
+
+		if(ImGui::DragFloat2("UV Scale", s_UVScale, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
+			picked->m_RenderProps.uvScale = { s_UVScale[0], s_UVScale[1] };
+		}
+		ImGui::SameLine();
+		if(ImGui::Button("+###+UVScale")) {
+		}
+		ImGui::SameLine();
+		if(ImGui::Button("-###-UVScale")) {
+		}
+
+		if(ImGui::DragFloat("Height Map Magnitude", &s_HeightMapMagnitude, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
+			picked->m_RenderProps.heightMapMagnitude = s_HeightMapMagnitude;
+		}
+
+		// Parallax Occlusion Mapping
+		{
+			if(ImGui::DragFloat("Parallax Magnitude", &s_ParallaxMagnitude, 0.001f, 0.0f, 1.0f, "%.3f", kSliderFlags)) {
+				picked->m_RenderProps.parallaxMagnitude = s_ParallaxMagnitude;
+			}
+
+			if(ImGui::Checkbox("Enable Parallax Self Shadows", &s_UseParallaxShadows)) {
+				picked->m_RenderProps.useParallaxShadow = s_UseParallaxShadows;
+			}
+
+			if(ImGui::DragInt("Min Parallax Layers", &s_MinParallaxLayers, 1.0f, 0, 100, "%d", kSliderFlags)) {
+				picked->m_RenderProps.minParallaxLayers = s_MinParallaxLayers;
+			}
+			if(ImGui::DragInt("Max Parallax Layers", &s_MaxParallaxLayers, 1.0f, 0, 100, "%d", kSliderFlags)) {
+				picked->m_RenderProps.maxParallaxLayers = s_MaxParallaxLayers;
+			}
+		}
+
+		/// Object Inspector Window End
+		ImGui::End();
+	}
+
 }

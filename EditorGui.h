@@ -1,9 +1,11 @@
 #pragma once
 
-// Wrapper for Dear ImGui
+// Wrapper for Dear ImGui Debug UI
 // Note: Seperate free list allocator and static SRV descriptor heap used instead of DynamicDescriptorHeap in main engine for simplicity
 
-// Singleton implementation for easy access to RegisterImageSRV() and FreeImageSRV() methods (used to display debug textures), too much dependency injection otherwise. Every game instance should only have one EditorGui instance, if game instances are switched, we can recreate EditorGui. Note that the stored descriptors in this class is currently never destroyed during runtime.
+// Singleton implementation for easy access to RegisterImageSRV() and FreeImageSRV() methods (used to display debug textures), too much dependency injection otherwise. Not static class for iniitialization control.
+// Encapsulation will inevitably break for debug UI, any class that needs to be displayed in debug UI will use "friend class EditorGui". This is so there is a normalized way to expose variables and avoids getters/setters/dependecy injection everywhere just for the debug UI.
+// Every game instance should only have one EditorGui instance, if game instances are switched (currently not supported), we can recreate EditorGui. Note that the stored descriptors in this class is only used for ImGui debug textures.
 
 #include "imgui.h"
 
@@ -13,6 +15,7 @@
 class Device;
 class CommandList;
 class Resource;
+class Scene;
 
 class EditorGui {
 public:
@@ -62,5 +65,7 @@ public:
 
 	bool sb_ShowImGuiWindow = false;
 	void ToggleImGuiVisibilityState() { sb_ShowImGuiWindow = !sb_ShowImGuiWindow; }
+
+	void RenderObjectInspector(Device& device, const Scene& scene);
 };
 

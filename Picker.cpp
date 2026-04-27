@@ -2,6 +2,7 @@
 #include "Scene.h"
 #include "GameObject.h"
 #include "Logger.h"
+#include "EditorGui.h"
 
 #include <queue>
 #include <algorithm>
@@ -91,6 +92,8 @@ GameObject* Picker::MouseRaycast(Scene& scene, int mouseX, int mouseY, int windo
 			m_PickedObject = nullptr;
 		}
 	}
+
+	EditorGui::Get().SetObjectInspectorState(m_PickedObject != nullptr);
 
 	return m_PickedObject;
 }

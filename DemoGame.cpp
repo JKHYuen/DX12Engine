@@ -180,6 +180,7 @@ bool DemoGame::Initialize() {
 
 	m_Bloom_PSO = std::make_unique<BloomPSO>(*m_Device, m_HDR_MSAA_RT);
 	///
+
 	m_BloomPass = std::make_unique<BloomPass>(*m_Device, m_HDR_MSAA_RT, m_Bloom_PSO.get());
 
 	auto& copyCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
@@ -237,7 +238,7 @@ bool DemoGame::Initialize() {
 			goRenderProps.pbrMatName = L"stonewall";
 			goParams.translation = XMFLOAT3(0.0f, 3.0f, 0.0f);
 			goParams.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
-			goRenderProps.heightMapMagnitude = 0.1f;
+			goRenderProps.heightMapMagnitude = 0.05f;
 			m_TestScene->AddGameObject({ *copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive() });
 
 			goParams.translation = XMFLOAT3(-4.0f, 3.0f, 0.0f);
@@ -273,14 +274,13 @@ bool DemoGame::Initialize() {
 			goRenderProps.useParallaxShadow = true;
 			m_TestScene->AddGameObject({ *copyCommandList, goParams, goRenderProps, copyCommandList->GetQuadPrimitive() });
 
-
 			copyCommandQueue.ExecuteCommandList(copyCommandList);
 		}
 	}
 
 	/// TODO: extract PSOs as classes to match rest of project
-	/// Create Post Process/Tonemap Pipeline States 
-	/// Note: post process pipeline currently unused, will be used for bloom eventually, it should also be in a separate class
+	// Create Post Process/Tonemap Pipeline States 
+	// Note: post process pipeline currently unused, will be used for bloom eventually, it should also be in a separate class
 	{
 		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags_VSPS =
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
@@ -370,7 +370,7 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 	// m_SwapChain->WaitForSwapChain();
 
 	// Update the camera transform if ImGui is not showing, unless right click is held
-	if(!EditorGui::Get().sb_ShowImGuiWindow || m_IsRightClickPressed) {
+	if(!EditorGui::Get().GetUIVisibilityState() || m_IsRightClickPressed) {
 		float speedMultipler = m_IsShiftPressed ? 32.0f : 8.0f;
 		
 		// extra slow movement if using left or right click
@@ -397,7 +397,7 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 void DemoGame::RenderImGui(CommandList& directCommandList) {
 	/// NOTE: Cursor visibility is currently solely controlled by ImGui, not ideal but works for now.
 	///       Cursor is invisible anytime ImGui window is not shown.
-	ImGui::SetMouseCursor(EditorGui::Get().sb_ShowImGuiWindow || !Application::Get().GetCursorClientAreaLockState() ? ImGuiMouseCursor_Arrow : ImGuiMouseCursor_None);
+	ImGui::SetMouseCursor(EditorGui::Get().GetUIVisibilityState() || !Application::Get().GetCursorClientAreaLockState() ? ImGuiMouseCursor_Arrow : ImGuiMouseCursor_None);
 
 	EditorGui::Get().NewFrame();
 
@@ -422,10 +422,13 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 		}
 	};
 
-	if(EditorGui::Get().sb_ShowImGuiWindow) {
+	if(EditorGui::Get().GetDebugWindowState()) {
 		/// Main Engine UI Window Start
 		{
-			ImGui::Begin("DX12 Engine", &EditorGui::Get().sb_ShowImGuiWindow, ImGuiWindowFlags_NoCollapse);
+			// b_DebugWindowState added only for x button to work
+			bool b_DebugWindowState = EditorGui::Get().GetDebugWindowState();
+			ImGui::Begin("DX12 Engine", &b_DebugWindowState, ImGuiWindowFlags_NoCollapse);
+			EditorGui::Get().SetDebugWindowState(b_DebugWindowState);
 
 			// Exit button
 			{
@@ -582,7 +585,7 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 				// Might have something to do with alpha blending when ImGui theme has transparency
 				if(ImGui::TreeNode("Prefilter Debug")) {
 					static float imageScale = 0.25f;
-					ImGui::SliderFloat("###Bloom Texture Scale", &imageScale, 0.0, 1.0, "%.2fx");
+					ImGui::SliderFloat("##Bloom Texture Scale", &imageScale, 0.0, 1.0, "%.2fx");
 					ImVec2 imageSize = ImVec2(1920.0f * imageScale, 1080.0f * imageScale);
 
 					ImGui::ImageWithBg(
@@ -596,7 +599,7 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 			// Shadow debug
 			if(ImGui::TreeNode("Shadow Debug")) {
 				static float imageScale = 0.25f;
-				ImGui::SliderFloat("###Directional Shadow Map Texture Scale", &imageScale, 0.0, 1.0, "%.2fx");
+				ImGui::SliderFloat("##Directional Shadow Map Texture Scale", &imageScale, 0.0, 1.0, "%.2fx");
 				ImVec2 imageSize = ImVec2(1920.0f * imageScale, 1080.0f * imageScale);
 
 				// Directional shadow map debug view
@@ -612,7 +615,7 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 		}
 	}
 
-	/// Object Inspector Window
+	// Object Inspector Window
 	EditorGui::Get().RenderObjectInspector(*m_Device, *m_TestScene);
 
 	EditorGui::Get().Render(directCommandList);
@@ -643,7 +646,6 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 		auto intermediatePostProcessTexture = m_PostProcessOutputRT.GetTexture(AttachmentPoint::Color0);
 		directCommandList->ClearTexture(intermediatePostProcessTexture, Colors::DebugMagenta);
 
-		/// TODO: Bloom
 		m_BloomPass->Render(*directCommandList, m_MSAAResolveDstRT, m_PostProcessOutputRT);
 
 		// Tonemapping
@@ -667,7 +669,7 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 
 void DemoGame::OnMouseMove(const MouseMotionEventArgs& e) {
 	// Record mouse rotations only if ImGui is closed or right click is held down
-	if(!EditorGui::Get().sb_ShowImGuiWindow || m_IsRightClickPressed) {
+	if(!EditorGui::Get().GetUIVisibilityState() || m_IsRightClickPressed) {
 		m_Pitch -= e.DeltaY * sk_MouseSpeed;
 		m_Pitch = std::clamp(m_Pitch, -90.0f, 90.0f);
 		m_Yaw -= e.DeltaX * sk_MouseSpeed;
@@ -688,7 +690,7 @@ void DemoGame::OnMouseButtonPressed(const MouseButtonEventArgs& e) {
 
 		// Holding right click moves camera back,
 		// disabled for ImGui because right click is held to enable camera movement
-		if(!EditorGui::Get().sb_ShowImGuiWindow) {
+		if(!EditorGui::Get().GetUIVisibilityState()) {
 			m_Forward = -1.0f;
 		}
 	}
@@ -737,6 +739,10 @@ void DemoGame::OnKeyPressed(const KeyEventArgs& e) {
 
 	case KeyCode::E:
 		m_Down = 1.0f;
+		break;
+
+	case KeyCode::F:
+		EditorGui::Get().SetPickerState(true);
 		break;
 
 	case KeyCode::Escape:
@@ -794,7 +800,11 @@ void DemoGame::OnKeyReleased(const KeyEventArgs& e) {
 		break;
 
 	case KeyCode::F1: 
-		EditorGui::Get().ToggleImGuiVisibilityState();
+		EditorGui::Get().ToggleDebugWindowState();
+		break;
+
+	case KeyCode::F:
+		EditorGui::Get().SetPickerState(false);
 		break;
 
 	case KeyCode::ShiftKey:
@@ -804,7 +814,7 @@ void DemoGame::OnKeyReleased(const KeyEventArgs& e) {
 }
 
 void DemoGame::OnMouseWheel(const MouseWheelEventArgs& e) {
-	if(!EditorGui::Get().sb_ShowImGuiWindow) {
+	if(!EditorGui::Get().GetUIVisibilityState()) {
 		auto fov = m_TestScene->m_MainCamera.Get_FoV();
 		fov = std::clamp(fov - e.WheelDelta, s_MinFOV, s_MaxFOV);
 		m_TestScene->m_MainCamera.Set_FoV(fov);

@@ -8,12 +8,11 @@ cbuffer MaterialCB : register(b0, space1) {
     float DirectionalShadowBias;
 
     float ParallaxMagnitude;
-    //float minRoughness;
 };
 
 cbuffer LightCB : register(b1) {
     float4 Time;
-    float3 DirLight;
+    float4 DirLight;
     float4 DirLightColor;
 };
 
@@ -216,7 +215,7 @@ float4 main(PixelInputType i) : SV_TARGET {
     float3 Lo = 0.0;
 
     // calculate per-light radiance (just one directional light for now)
-    float3 L = -DirLight;
+    const float3 L = -DirLight.xyz;
     float3 H = normalize(viewDirection + L);
 
     float3 radiance = DirLightColor.rgb;
@@ -302,16 +301,14 @@ float4 main(PixelInputType i) : SV_TARGET {
     if (lightDepthValue > 1.0)
         shadowFactor = 1.0;
     
-    float4 color = float4(ambient + Lo * shadowFactor, 1);
-    
     // EXPERIMENTAL - Parallax occlusion self shadowing
     // Not very efficient, not applied very correctly. But it looks okay.
     if (ParallaxMagnitude != 0 && UseParallaxShadow != 0) {
         float3x3 TBN = transpose(float3x3(i.tangent, i.bitangent, i.normal));
         /// TODO: make power factor tweakable
-        float parallaxSelfShadowFactor = pow(CalcParallaxSoftShadowMultiplier(mul(-DirLight, TBN), i.uv, 1.0 - MaterialTex.Sample(AnisoWrapSampler, i.uv).r), 5.0);
-        color *= parallaxSelfShadowFactor;
+        float parallaxSelfShadowFactor = pow(CalcParallaxSoftShadowMultiplier(mul(L, TBN), i.uv, 1.0 - MaterialTex.Sample(AnisoWrapSampler, i.uv).r), 5.0);
+        shadowFactor *= parallaxSelfShadowFactor;
     }
-
-    return color;
+    
+    return float4(ambient + Lo * shadowFactor, 1);
 }

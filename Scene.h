@@ -38,7 +38,7 @@ public:
 	void SetDirLightAngle(float x, float y, float z);
 	void SetDirLightColor(float r, float g, float b);
 
-	// We use std::move to move gameobject "go" into m_SceneObjects instead of constructing directly with emplace_back with Gameobject params so we dont have to keep track of Gameobject constructor params (they might change). "go" is an rvalue ref to avoid copy and to inform user object will be moved (i.e. invalidated).
+	// We use std::move to move gameobject "go" into m_SceneObjects instead of constructing directly with emplace_back with Gameobject params so we dont have to keep track of Gameobject constructor params (they might change). "go" is an rvalue ref to avoid copy and to inform the caller object will be moved (i.e. invalidated).
 	void AddGameObject(GameObject&& go);
 
 	/// TODO: test
@@ -58,6 +58,9 @@ public:
 	Camera m_MainCamera;
 
 private:
+	/// TODO: TEMP
+	bool s_ChangeSkybox = false;
+
 	/// TODO: Currently no system to validate destoyed objects, smarter storage needed
 	///       Same size objects should at least be grouped together in separate arrays in a real engine
 	std::vector<GameObject> m_SceneObjects;

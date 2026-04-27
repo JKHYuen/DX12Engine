@@ -19,6 +19,21 @@ class Scene;
 
 class EditorGui {
 public:
+	struct GuiDescriptorAllocation {
+		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle;
+		D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
+	};
+
+	// This must be manually added to for every type of texture that is shown on debug GUI.
+	// Do this instead of using hardcoded strings, so I don't have to memorize them in the future
+	// (Good enough for now)
+	enum GuiSRVIndex {
+		DirectionalShadowMap,
+		BloomPrefilter,
+
+		NumGuiSRVIndex
+	};
+
 	/// Singleton
 	EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWND hwnd);
 	~EditorGui();
@@ -40,32 +55,27 @@ public:
 	// it is assumed that screen render target is set to pipeline already
 	void Render(CommandList& directCommandList);
 
-	struct GuiDescriptorAllocation {
-		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle;
-		D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
-	};
+	bool GetDebugWindowState() const { return sb_ShowDebugWindow; }
+	void SetDebugWindowState(bool state) { sb_ShowDebugWindow = state; }
+	void ToggleDebugWindowState() { sb_ShowDebugWindow = !sb_ShowDebugWindow; }
 
-	// This must be manually added to for every type of texture that is shown on debug GUI.
-	// Do this instead of using hardcoded strings, so I don't have to memorize them in the future
-	// (Good enough for now)
-	enum GuiSRVIndex {
-		DirectionalShadowMap,
-		BloomPrefilter,
+	void SetObjectInspectorState(bool state) { sb_ObjectInspectorState = state; }
+	
+	void SetPickerState(bool state) { sb_PickerEnabled = state; }
 
-		NumGuiSRVIndex
-	};
+	bool GetUIVisibilityState() const { return sb_ObjectInspectorState || sb_ShowDebugWindow || sb_PickerEnabled; }
 
 	// Allocate to internal descriptor heap SRV with s_D3DSrvDescHeapAllocator
 	// Use this to allocate a SRV to be displayed on ImGui
 	void RegisterImageSRV(Device& device, const std::shared_ptr<Resource>& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* srvDesc, GuiSRVIndex srvIndex);
-
 	void FreeImageSRV(GuiDescriptorAllocation alloc);
-
 	GuiDescriptorAllocation GetImageSRVAllocation(GuiSRVIndex index) const;
 
-	bool sb_ShowImGuiWindow = false;
-	void ToggleImGuiVisibilityState() { sb_ShowImGuiWindow = !sb_ShowImGuiWindow; }
-
 	void RenderObjectInspector(Device& device, const Scene& scene);
+
+private:
+	bool sb_ShowDebugWindow = false;
+	bool sb_ObjectInspectorState = false;
+	bool sb_PickerEnabled = false;
 };
 

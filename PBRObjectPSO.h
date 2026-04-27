@@ -29,14 +29,12 @@ public:
 		MaterialCB,       // ConstantBuffer<MaterialProps> MaterialCB : register(b0, space1);
 		LightCB,          // ConstantBuffer<LightProps>    LightCB    : register(b1);
 
-		Textures,         // Texture2D AlbedoTex				 : register(t0);
-						  // Texture2D NormalTex				 : register(t1);
-						  // Texture2D MaterialTex				 : register(t2); [r: ao, g: metallic, b: roughness, a: height]
-						  // Texture2D IrradianceCubemap		 : register(t3);
-						  // Texture2D PrefilterCubemap			 : register(t4);
-						  // Texture2D BRDFLut					 : register(t5);
-
-		VolatileTextures, // Texture2D DirectionalShadowMap		 : register(t6);		
+		Textures,         // Texture2D AlbedoTex		 : register(t0);
+						  // Texture2D NormalTex		 : register(t1);
+						  // Texture2D MaterialTex		 : register(t2); [r: ao, g: metallic, b: roughness, a: height]
+						  // Texture2D IrradianceCubemap : register(t3);
+						  // Texture2D PrefilterCubemap	 : register(t4);
+						  // Texture2D BRDFLut			 : register(t5);
 
 		NumPBRRootParameters
 	};
@@ -50,15 +48,9 @@ public:
 		IrradianceCubemap,
 		PrefilterCubemap,
 		BRDFLut,
+		DirectionalShadowMap,
 
 		NumTextures
-	};
-
-	// Index of volatile textures come after static textures
-	enum VolatileTextureIndex {
-		DirectionalShadowMap = TextureIndex::NumTextures,
-
-		NumVolatilePBRTextures = 1 // Make sure to update this manually since this enum doesn't start at 0
 	};
 
 	struct alignas(16) VertexProps {
@@ -89,7 +81,7 @@ public:
 		XMFLOAT4   dirLightColor;
 	};
 
-	static constexpr int sk_NumTextures = TextureIndex::NumTextures + VolatileTextureIndex::NumVolatilePBRTextures;
+	static constexpr int sk_NumTextures = TextureIndex::NumTextures;
 
 	std::shared_ptr<RootSignature> GetRootSignature() const {
 		return m_RootSignature;

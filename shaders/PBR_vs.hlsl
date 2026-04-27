@@ -51,9 +51,9 @@ PixelInputType main(VertexInput i) {
     o.cameraPosition = cameraPosition;
     
     // TBN
-    o.tangent = normalize(mul((float3x3) SRT, i.tangent));
+    o.tangent   = normalize(mul((float3x3) SRT, i.tangent));
     o.bitangent = normalize(mul((float3x3) SRT, i.bitangent));
-    o.normal = normalize(mul((float3x3) SRT, i.normal));
+    o.normal    = normalize(mul((float3x3) SRT, i.normal));
     
     // For parallax mapping only
     float3x3 TBN = float3x3(o.tangent, o.bitangent, o.normal);

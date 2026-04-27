@@ -102,7 +102,8 @@ EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWN
 	init_info.NumFramesInFlight = bufferCount;
 	init_info.RTVFormat = RTVformat;
 
-	// Allocating SRV descriptors (for textures) is up to the application, so we provide callbacks.
+	// Allocating SRV descriptors (for debug textures) 
+	// This uses a different allocataor than the 3D render engine in this project
 	init_info.SrvDescriptorHeap = s_D3DSrvDescHeap.Get();
 	
 	init_info.SrvDescriptorAllocFn = 
@@ -116,6 +117,16 @@ EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWN
 		};
 
 	ImGui_ImplDX12_Init(&init_info);
+
+	/// TODO: test this on 1080p monitor
+	//// Source: https://github.com/ocornut/imgui/blob/master/examples/example_win32_directx11/main.cpp#L34
+	ImGui_ImplWin32_EnableDpiAwareness();
+	float main_scale = ImGui_ImplWin32_GetDpiScaleForMonitor(::MonitorFromPoint(POINT { 0, 0 }, MONITOR_DEFAULTTOPRIMARY)) * 0.8f;
+	ImGuiStyle& style = ImGui::GetStyle();
+	// Bake a fixed style scale. (until we have a solution for dynamic style scaling, changing this requires resetting Style + calling this again)
+	style.ScaleAllSizes(main_scale);     
+	// Set initial font scale. (in docking branch: using io.ConfigDpiScaleFonts=true automatically overrides this for every window depending on the current monitor)
+	style.FontScaleDpi = main_scale;
 }
 
 EditorGui& EditorGui::Create(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWND hwnd) {
@@ -179,7 +190,8 @@ void EditorGui::Render(CommandList& directCommandList) {
 
 void EditorGui::RenderObjectInspector(Device& device, const Scene& scene) {
 	GameObject* picked = scene.m_Picker->GetPickedObject();
-	if(picked == nullptr) return;
+
+	if(!sb_ObjectInspectorState) return;
 
 	static std::string s_ObjectName {}; // can't be string view, needs null terminated string for ImGui::Text
 	static std::wstring_view s_SelectedMat {};
@@ -197,7 +209,7 @@ void EditorGui::RenderObjectInspector(Device& device, const Scene& scene) {
 	// If newly picked object, update variables
 	if(picked != s_LastPickedObject) {
 		s_ObjectName = std::string { picked->GetName() };
-		s_ObjectName += "###ObjectInspector"; // appending this decouples window title and window ID
+		s_ObjectName += "##ObjectInspector"; // appending this decouples window title and window ID
 
 		s_SelectedMat = picked->m_RenderProps.pbrMatName;
 
@@ -221,7 +233,7 @@ void EditorGui::RenderObjectInspector(Device& device, const Scene& scene) {
 
 	static const ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
 
-	ImGui::Begin(s_ObjectName.c_str(), nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
+	ImGui::Begin(s_ObjectName.c_str(), &sb_ObjectInspectorState, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
 	{
 		if(ImGui::BeginTable("PBR Material Table", 4, ImGuiTableFlags_Borders)) {
 			for(const auto& s : scene.m_MaterialNames) {
@@ -249,36 +261,38 @@ void EditorGui::RenderObjectInspector(Device& device, const Scene& scene) {
 			picked->SetEulerRotation(s_ObjEulerAngles[0], s_ObjEulerAngles[1], s_ObjEulerAngles[2]);
 		}
 
-		if(ImGui::DragFloat3("Scale", s_ObjScale, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
-			picked->SetScale(s_ObjScale[0], s_ObjScale[1], s_ObjScale[2]);
-		}
-		ImGui::SameLine();
-		if(ImGui::Button("+###+Scale")) {
-			picked->Scale(1.1f, 1.1f, 1.1f);
-			XMFLOAT3 scale = picked->GetScale();
-			memcpy(s_ObjScale, &scale, sizeof(float) * 3);
-		}
-		ImGui::SameLine();
-		if(ImGui::Button("-###-Scale")) {
-			picked->Scale(0.9f, 0.9f, 0.9f);
-			XMFLOAT3 scale = picked->GetScale();
-			memcpy(s_ObjScale, &scale, sizeof(float) * 3);
+		{
+			if(ImGui::DragFloat3("Scale", s_ObjScale, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
+				picked->SetScale(s_ObjScale[0], s_ObjScale[1], s_ObjScale[2]);
+			}
+			ImGui::SameLine();
+			if(ImGui::Button("+##+Scale")) {
+				picked->Scale(1.1f, 1.1f, 1.1f);
+				XMFLOAT3 scale = picked->GetScale();
+				memcpy(s_ObjScale, &scale, sizeof(float) * 3);
+			}
+			ImGui::SameLine();
+			if(ImGui::Button("-##-Scale")) {
+				picked->Scale(0.9f, 0.9f, 0.9f);
+				XMFLOAT3 scale = picked->GetScale();
+				memcpy(s_ObjScale, &scale, sizeof(float) * 3);
+			}
 		}
 
-		if(ImGui::DragFloat2("UV Scale", s_UVScale, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
-			picked->m_RenderProps.uvScale = { s_UVScale[0], s_UVScale[1] };
-		}
-		ImGui::SameLine();
-		if(ImGui::Button("+###+UVScale")) {
-			picked->m_RenderProps.uvScale.x += 1.0f;
-			picked->m_RenderProps.uvScale.y += 1.0f;
-			memcpy(s_UVScale, &picked->m_RenderProps.uvScale, sizeof(float) * 2);
-		}
-		ImGui::SameLine();
-		if(ImGui::Button("-###-UVScale")) {
-			picked->m_RenderProps.uvScale.x -= 1.0f;
-			picked->m_RenderProps.uvScale.y -= 1.0f;
-			memcpy(s_UVScale, &picked->m_RenderProps.uvScale, sizeof(float) * 2);
+		{
+			if(ImGui::DragFloat2("UV Scale", s_UVScale, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
+				picked->m_RenderProps.uvScale = { s_UVScale[0], s_UVScale[1] };
+			}
+			ImGui::SameLine();
+			if(ImGui::Button("+##+UVScale")) {
+				s_UVScale[0] = picked->m_RenderProps.uvScale.x += 1.0f;
+				s_UVScale[1] = picked->m_RenderProps.uvScale.y += 1.0f;
+			}
+			ImGui::SameLine();
+			if(ImGui::Button("-##-UVScale")) {
+				s_UVScale[0] = picked->m_RenderProps.uvScale.x -= 1.0f;
+				s_UVScale[1] = picked->m_RenderProps.uvScale.y -= 1.0f;
+			}
 		}
 
 		if(ImGui::DragFloat("Height Map Magnitude", &s_HeightMapMagnitude, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
@@ -306,5 +320,4 @@ void EditorGui::RenderObjectInspector(Device& device, const Scene& scene) {
 		/// Object Inspector Window End
 		ImGui::End();
 	}
-
 }

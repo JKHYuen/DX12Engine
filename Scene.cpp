@@ -14,11 +14,6 @@
 
 #include <filesystem>
 
-/// TODO: TEMP
-namespace {
-	bool sb_ChangeSkybox = false;
-}
-
 Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const DirectionalLight::DirectionalLightParams& dirLightParams, const Skybox::SkyboxParams& skyboxParams, int windowWidth, int windowHeight)
 	: m_DirectionalLight(device, dirLightParams)
 	, m_Skybox(device, copyCommandList, computeCommandList, skyboxParams)
@@ -71,7 +66,7 @@ void Scene::SetCubemap(CommandList& copyCommandList, const std::wstring& hdrText
 
 void Scene::SetSkybox(CommandList& copyCommandList, CommandList& computeCommandList, const Skybox::SkyboxParams& skyboxParams) {
 	m_Skybox = Skybox(m_Device, copyCommandList, computeCommandList, skyboxParams);
-	sb_ChangeSkybox = true;
+	s_ChangeSkybox = true;
 }
 /// END TEMP
 
@@ -95,7 +90,7 @@ void Scene::Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, Comman
 	for(auto& o : m_SceneObjects) {
 
 		/// TODO: TEMP
-		if(sb_ChangeSkybox) {
+		if(s_ChangeSkybox) {
 			o.UpdateIBLShaderResources(*this);
 		}
 
@@ -104,7 +99,7 @@ void Scene::Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, Comman
 	}
 
 	/// TODO: TEMP
-	sb_ChangeSkybox = false;
+	s_ChangeSkybox = false;
 
 	for(auto& o : m_SceneObjects) {
 		o.RenderOutline(directCommandList, e, *this);
@@ -118,7 +113,7 @@ void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 	//   - ImGui mouse event is occuring i.e. mouse is hovered on top of a ImGui element
 	//	 - or ImGui UI is not open
 	if(e.Button == MouseButtonEventArgs::Left) {
-		if(EditorGui::Get().sb_ShowImGuiWindow && !ImGui::GetIO().WantCaptureMouse) {
+		if(EditorGui::Get().GetUIVisibilityState() && !ImGui::GetIO().WantCaptureMouse) {
 			if(GameObject* go = m_Picker->GetPickedObject()) {
 				go->SetOutlineState(false);
 			}
@@ -128,7 +123,7 @@ void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 		}
 
 		// Unpick object if mouse clicked and editor UI is not open
-		if(!EditorGui::Get().sb_ShowImGuiWindow) {
+		if(!EditorGui::Get().GetUIVisibilityState()) {
 			if(GameObject* go = m_Picker->GetPickedObject()) {
 				go->SetOutlineState(false);
 				m_Picker->ClearPickedObject();

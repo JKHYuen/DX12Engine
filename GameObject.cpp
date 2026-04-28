@@ -95,7 +95,7 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 	PBRObjectPSO::LightProps lightProps {};
 	{
 		lightProps.Time = { (float)e.Time, (float)e.DeltaTime, 0.0f, 0.0f };
-		lightProps.dirLight = scene.GetDirLight().GetDirection();
+		lightProps.dirLight = scene.GetDirLight().GetNormDirectionVector();
 		lightProps.dirLightColor = scene.GetDirLight().GetColor();
 	}
 

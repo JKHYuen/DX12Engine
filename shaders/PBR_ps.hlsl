@@ -12,7 +12,7 @@ cbuffer MaterialCB : register(b0, space1) {
 
 cbuffer LightCB : register(b1) {
     float4 Time;
-    float4 DirLight;
+    float4 DirLight; // vector of directional light
     float4 DirLightColor;
 };
 

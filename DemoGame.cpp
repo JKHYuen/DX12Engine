@@ -456,11 +456,11 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 				static std::pair yCurrentAxisExtents = { 0.0, 1.0 };
 
 				static const float s_GraphUpdateRate = 1.0f / 60.0f;
-				static float timer = s_GraphUpdateRate;
-				timer -= ImGui::GetIO().DeltaTime;
-				if(timer <= 0) {
+				static float s_Timer = s_GraphUpdateRate;
+				s_Timer -= ImGui::GetIO().DeltaTime;
+				if(s_Timer <= 0) {
 					s_FPSGraphBuffer.AddPoint((float)ImGui::GetTime(), (float)m_CurrentAvgFPS);
-					timer = s_GraphUpdateRate;
+					s_Timer = s_GraphUpdateRate;
 				}
 
 				ImGui::Text("FPS: %d", m_CurrentAvgFPS);
@@ -476,7 +476,7 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 					);
 
 					// Update axis extents
-					if(timer == s_GraphUpdateRate) {
+					if(s_Timer == s_GraphUpdateRate) {
 						ImPlot::SetupAxisLimits(ImAxis_X1, ImGui::GetTime() - timeScale, ImGui::GetTime(), ImGuiCond_Always);
 						xCurrentAxisExtents.first = ImGui::GetTime() - timeScale;
 						xCurrentAxisExtents.second = ImGui::GetTime();
@@ -509,17 +509,41 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 
 			// Directional Light
 			{
-				const DirectionalLight& sceneLight = m_TestScene->GetDirLight();
-				m_TestScene->GetDirLight().GetColor().x;
-				static float sceneDirLightAngle[2] { sceneLight.GetDirection().x, sceneLight.GetDirection().y };
-				static float sceneDirLightColor[3] { sceneLight.GetColor().x, sceneLight.GetColor().y , sceneLight.GetColor().z };
-				m_TestScene->GetDirLight();
-				if(ImGui::DragFloat2("[x, y]", sceneDirLightAngle, 0.1f, 0.0f, 360.0f, "%.2f", kSliderFlags | ImGuiSliderFlags_WrapAround)) {
-					m_TestScene->SetDirLightAngle(sceneDirLightAngle[0], sceneDirLightAngle[1], 0.0f);
+				static float s_SceneDirLightEulerAngle[2];
+				static float s_SceneDirLightColor[3];
+
+				static bool sb_DirInit = false;
+				if(!sb_DirInit) {
+					sb_DirInit = true;
+					const DirectionalLight& sceneLight = m_TestScene->GetDirLight();
+
+					XMFLOAT3 startingDirAngles = sceneLight.GetEulerAngles();
+					memcpy(s_SceneDirLightEulerAngle, &startingDirAngles, sizeof(float) * 2);
+
+					XMFLOAT4 startingSceneLightColor = sceneLight.GetColor();
+					memcpy(s_SceneDirLightColor, &startingSceneLightColor, sizeof(float) * 3);
 				}
 
-				if(ImGui::DragFloat3("Directional Light Color", sceneDirLightColor, 0.1f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
-					m_TestScene->SetDirLightColor(sceneDirLightColor[0], sceneDirLightColor[1], sceneDirLightColor[2]);
+				if(ImGui::DragFloat2("[x, y]", s_SceneDirLightEulerAngle, 0.1f, 0.0f, 360.0f, "%.2f", kSliderFlags | ImGuiSliderFlags_WrapAround)) {
+					m_TestScene->SetDirLightAngle(s_SceneDirLightEulerAngle[0], s_SceneDirLightEulerAngle[1], 0.0f);
+				}
+
+				if(ImGui::DragFloat3("Directional Light Color", s_SceneDirLightColor, 0.1f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
+					m_TestScene->SetDirLightColor(s_SceneDirLightColor[0], s_SceneDirLightColor[1], s_SceneDirLightColor[2]);
+				}
+
+				// Shadow debug
+				if(ImGui::TreeNode("Shadow Debug")) {
+					static float s_ImageScale = 0.25f;
+					ImGui::SliderFloat("##Directional Shadow Map Texture Scale", &s_ImageScale, 0.0, 1.0, "%.2fx");
+					ImVec2 imageSize = ImVec2(1920.0f * s_ImageScale, 1080.0f * s_ImageScale);
+
+					// Directional shadow map debug view
+					ImGui::ImageWithBg(
+						(ImTextureID)EditorGui::Get().GetImageSRVAllocation(EditorGui::GuiSRVIndex::DirectionalShadowMap).gpuHandle.ptr,
+						imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
+					);
+					ImGui::TreePop();
 				}
 			}
 			
@@ -594,20 +618,6 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 					);
 					ImGui::TreePop();
 				}
-			}
-
-			// Shadow debug
-			if(ImGui::TreeNode("Shadow Debug")) {
-				static float imageScale = 0.25f;
-				ImGui::SliderFloat("##Directional Shadow Map Texture Scale", &imageScale, 0.0, 1.0, "%.2fx");
-				ImVec2 imageSize = ImVec2(1920.0f * imageScale, 1080.0f * imageScale);
-
-				// Directional shadow map debug view
-				ImGui::ImageWithBg(
-					(ImTextureID)EditorGui::Get().GetImageSRVAllocation(EditorGui::GuiSRVIndex::DirectionalShadowMap).gpuHandle.ptr,
-					imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
-				);
-				ImGui::TreePop();
 			}
 
 			/// Main Engine UI Window End

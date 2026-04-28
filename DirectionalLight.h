@@ -47,8 +47,9 @@ public:
     XMFLOAT3 GetPosition() const { return m_Position; }
 
     // rotX, rotY, rotZ is in degrees
-    XMFLOAT4 GetDirection() const { return m_Direction; }
     void SetEulerAngle(float rotX, float rotY, float rotZ);
+
+    XMFLOAT4 GetNormDirectionVector() const { return m_NormDirectionVector; }
 
     // Sets direction of light, by rotating default direction (0.0, 0.0, 1.0) by rotation parameters (radians)
     // Updates m_Position and calls GenerateViewMatrix
@@ -57,7 +58,7 @@ public:
     float GetShadowBias() const { return m_ShadowBias; }
     void SetShadowBias(float newValue) { m_ShadowBias = newValue; }
 
-    void GetEulerAngles(float& out_X, float& out_Y) const;
+    XMFLOAT3 GetEulerAngles() const { return m_EulerAngles; }
 
     XMFLOAT4X4 GetOrthoMatrix() const { return m_OrthoMatrix; }
     XMFLOAT4X4 GetViewMatrix() const { return m_ViewMatrix; }
@@ -71,15 +72,16 @@ public:
 private:
     Device& m_Device;
 
-    float m_LightDistance = -100.0f;
-    XMFLOAT4 m_Color{};
-
     // normalized 3d free vector representing direction of light
-    XMFLOAT4 m_Direction{};
+    XMFLOAT4 m_NormDirectionVector;
+    // Keep euler angle representation for user facing values
+    XMFLOAT3 m_EulerAngles;
 
-    float m_ShadowBias{};
 
-    // For shadow mapping
+    /// For shadow mapping
+    float m_LightDistance;
+    float m_ShadowBias;
+    XMFLOAT4 m_Color{};
     XMFLOAT3 m_Position;
     XMFLOAT3 m_LookAt;
     XMFLOAT4X4 m_OrthoMatrix;
@@ -87,6 +89,7 @@ private:
     D3D12_VIEWPORT m_ViewPort;
 
     RenderTarget m_DirectionalShadowMap;
+    ///
 
     /// TODO: these members can be static
     ComPtr<ID3D12PipelineState> m_DepthRenderPSO;

@@ -16,6 +16,7 @@ class Device;
 class CommandList;
 class Resource;
 class Scene;
+class DemoGame;
 
 class EditorGui {
 public:
@@ -55,12 +56,13 @@ public:
 	// it is assumed that screen render target is set to pipeline already
 	void Render(CommandList& directCommandList);
 
-	bool GetDebugWindowState() const { return sb_ShowDebugWindow; }
-	void SetDebugWindowState(bool state) { sb_ShowDebugWindow = state; }
 	void ToggleDebugWindowState() { sb_ShowDebugWindow = !sb_ShowDebugWindow; }
 
 	void SetObjectInspectorState(bool state) { sb_ObjectInspectorState = state; }
 	
+	// sb_PickerEnabled only exists to make GetUIVisibilityState() return true
+	// Cursor visibility is tied to GetUIVisibilityState() and is needed for manual activation of picker
+	// Currently only a key press uses this funciton.
 	void SetPickerState(bool state) { sb_PickerEnabled = state; }
 
 	bool GetUIVisibilityState() const { return sb_ObjectInspectorState || sb_ShowDebugWindow || sb_PickerEnabled; }
@@ -71,11 +73,14 @@ public:
 	void FreeImageSRV(GuiDescriptorAllocation alloc);
 	GuiDescriptorAllocation GetImageSRVAllocation(GuiSRVIndex index) const;
 
-	void RenderObjectInspector(Device& device, const Scene& scene);
+	// Different "IGame"'s will need to write different versions of this function.
+	// For game switching support, this function probably has to exist elsewhere.
+	void DrawGameDebugUI(const DemoGame& game, Device& device, Scene& scene);
+	void DrawObjectInspector(Device& device, const Scene& scene);
 
 private:
 	bool sb_ShowDebugWindow = false;
 	bool sb_ObjectInspectorState = false;
-	bool sb_PickerEnabled = false;
+	bool sb_PickerEnabled = false; // See comment on SetPickerState()
 };
 

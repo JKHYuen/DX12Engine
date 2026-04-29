@@ -43,14 +43,15 @@ using namespace DirectX;
 using namespace Microsoft::WRL;
 
 // static parameters
+// non const values only represent starting values, they can change during runtime
 namespace {
 	constexpr float sk_MouseSpeed = 0.05f;
 
 	constexpr DXGI_FORMAT sk_HDRFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
 	constexpr DXGI_FORMAT sk_DepthStencilBufferFormat = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 
-	const std::wstring s_defaultSkyboxName = L"industrial_sunset_puresky_4k.hdr";
-
+	static const std::wstring s_defaultSkyboxName = L"industrial_sunset_puresky_4k.hdr";
+	
 	// Default Directional Light Shadow params
 	int   s_ShadowMapResolution = 4096;
 	float s_ShadowMapNear       = 0.1f;
@@ -362,8 +363,8 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 	frameTimeSum += e.DeltaTime;
 	m_frameTimeHistory[frameHistoryIndex] = e.DeltaTime;
 
-	frameHistoryIndex = (frameHistoryIndex + 1) % DemoGame::sk_frameTimeSamples;
-	m_CurrentAvgFPS = (int)(DemoGame::sk_frameTimeSamples / frameTimeSum);
+	frameHistoryIndex = (frameHistoryIndex + 1) % sk_frameTimeSamples;
+	m_CurrentAvgFPS = (int)(sk_frameTimeSamples / frameTimeSum);
 
 	// Can reduce input latency
 	// m_SwapChain->WaitForSwapChain();
@@ -395,253 +396,14 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 
 void DemoGame::RenderImGui(CommandList& directCommandList) {
 	/// NOTE: Cursor visibility is currently solely controlled by ImGui, not ideal but works for now.
-	///       Cursor is invisible anytime ImGui window is not shown.
+	///       Cursor is visible anytime a ImGui window is shown or if picker is enabled.
 	ImGui::SetMouseCursor(EditorGui::Get().GetUIVisibilityState() || !Application::Get().GetCursorClientAreaLockState() ? ImGuiMouseCursor_Arrow : ImGuiMouseCursor_None);
 
+	// Keeping these functions separate for flexibility.
 	EditorGui::Get().NewFrame();
 
-	static const ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
-
-	struct ScrollingBuffer {
-		int MaxSize;
-		int Offset;
-		ImVector<ImVec2> Data;
-		ScrollingBuffer(int max_size = 2000) {
-			MaxSize = max_size;
-			Offset = 0;
-			Data.reserve(MaxSize);
-		}
-		void AddPoint(float x, float y) {
-			if(Data.size() < MaxSize)
-				Data.push_back(ImVec2(x, y));
-			else {
-				Data[Offset] = ImVec2(x, y);
-				Offset = (Offset + 1) % MaxSize;
-			}
-		}
-	};
-
-	if(EditorGui::Get().GetDebugWindowState()) {
-		/// Main Engine UI Window Start
-		{
-			// b_DebugWindowState added only for x button to work
-			bool b_DebugWindowState = EditorGui::Get().GetDebugWindowState();
-			ImGui::Begin("DX12 Engine", &b_DebugWindowState, ImGuiWindowFlags_NoCollapse);
-			EditorGui::Get().SetDebugWindowState(b_DebugWindowState);
-
-			// Exit button
-			{
-				ImGui::PushStyleColor(ImGuiCol_Button,        (ImVec4)ImColor::HSV(0.0f, 0.6f, 0.6f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor::HSV(0.0f, 0.7f, 0.7f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonActive,  (ImVec4)ImColor::HSV(0.0f, 0.8f, 0.8f));
-				if(ImGui::Button("EXIT APP")) {
-					Application::Get().Quit();
-				}
-				ImGui::PopStyleColor(3);
-			}
-
-			// Performance Graph 
-			// Graph data update rate based on s_GraphUpdateRate, default: 60hz
-			// This is to throttle the rate ScrollingBuffer records data so we don't need a huge buffer for high frame rates over a big time scale
-			{
-				static ScrollingBuffer s_FPSGraphBuffer;
-
-				if(s_FPSGraphBuffer.Data.size() == 0) {
-					s_FPSGraphBuffer.AddPoint((float)ImGui::GetTime(), (float)m_CurrentAvgFPS);
-				}
-
-				// Save axis extents for update ticks faster than s_GraphUpdateRate
-				static std::pair xCurrentAxisExtents = { 0.0, 1.0 };
-				static std::pair yCurrentAxisExtents = { 0.0, 1.0 };
-
-				static const float s_GraphUpdateRate = 1.0f / 60.0f;
-				static float s_Timer = s_GraphUpdateRate;
-				s_Timer -= ImGui::GetIO().DeltaTime;
-				if(s_Timer <= 0) {
-					s_FPSGraphBuffer.AddPoint((float)ImGui::GetTime(), (float)m_CurrentAvgFPS);
-					s_Timer = s_GraphUpdateRate;
-				}
-
-				ImGui::Text("FPS: %d", m_CurrentAvgFPS);
-
-				static int timeScale = 5;
-				if(ImPlot::BeginPlot("##FPS Graph", ImVec2(-1, 100), ImPlotFlags_NoFrame | ImPlotFlags_NoLegend | ImPlotFlags_NoInputs)) {
-					ImPlot::SetupAxes(
-						nullptr, nullptr,
-						// x axis flags
-						ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_Lock,
-						// y axis flags
-						ImPlotAxisFlags_LockMin
-					);
-
-					// Update axis extents
-					if(s_Timer == s_GraphUpdateRate) {
-						ImPlot::SetupAxisLimits(ImAxis_X1, ImGui::GetTime() - timeScale, ImGui::GetTime(), ImGuiCond_Always);
-						xCurrentAxisExtents.first = ImGui::GetTime() - timeScale;
-						xCurrentAxisExtents.second = ImGui::GetTime();
-
-						if(m_CurrentAvgFPS >= yCurrentAxisExtents.second || m_CurrentAvgFPS * 2.0f <= yCurrentAxisExtents.second) {
-							float newYMax = std::max(144.0f, m_CurrentAvgFPS * 1.5f);
-							ImPlot::SetupAxisLimits(ImAxis_Y1, 0, newYMax, ImGuiCond_Always);
-							yCurrentAxisExtents.second = newYMax;
-						}
-					}
-					else {
-						ImPlot::SetupAxisLimits(ImAxis_X1, xCurrentAxisExtents.first, xCurrentAxisExtents.second, ImGuiCond_Always);
-						ImPlot::SetupAxisLimits(ImAxis_Y1, 0, yCurrentAxisExtents.second, ImGuiCond_Always);
-					}
-
-					ImPlot::PlotLine("FPS", &s_FPSGraphBuffer.Data[0].x, &s_FPSGraphBuffer.Data[0].y,
-						s_FPSGraphBuffer.Data.size(), 0, s_FPSGraphBuffer.Offset, 2 * sizeof(float)
-					);
-
-					ImPlot::EndPlot();
-
-					ImGui::SliderInt("Time Scale", &timeScale, 1, 30, "%ds");
-				}
-			}
-
-			// FOV Slider
-			float fov = m_TestScene->m_MainCamera.Get_FoV();
-			ImGui::SliderFloat("FOV", &fov, 12.0f, 90.0f);
-			m_TestScene->m_MainCamera.Set_FoV(fov);
-
-			// Directional Light
-			if(ImGui::CollapsingHeader("Directional Light")) {
-				static DirectionalLight& sceneLight = m_TestScene->GetDirLight();
-				static float s_SceneDirLightEulerAngle[2];
-				static float s_SceneDirLightColor[3];
-				static float s_ShadowNearFarZ[2];
-				static float s_ShadowRenderDistance;
-
-				static bool sb_DirInit = false;
-
-				if(!sb_DirInit) {
-					sb_DirInit = true;
-
-					XMFLOAT3 startingDirAngles = sceneLight.GetEulerAngles();
-					memcpy(s_SceneDirLightEulerAngle, &startingDirAngles, sizeof(float) * 2);
-
-					XMFLOAT4 startingSceneLightColor = sceneLight.GetColor();
-					memcpy(s_SceneDirLightColor, &startingSceneLightColor, sizeof(float) * 3);
-
-					XMFLOAT2 nearFarZ = sceneLight.GetShadowNearFarZ();
-					memcpy(s_ShadowNearFarZ, &nearFarZ, sizeof(float) * 2);
-
-					s_ShadowRenderDistance = sceneLight.GetShadowRenderDistance();
-				}
-
-				if(ImGui::DragFloat2("[x, y]", s_SceneDirLightEulerAngle, 0.1f, 0.0f, 360.0f, "%.2f", kSliderFlags | ImGuiSliderFlags_WrapAround)) {
-					sceneLight.SetEulerAngles(s_SceneDirLightEulerAngle[0], s_SceneDirLightEulerAngle[1], 0.0f);
-				}
-
-				if(ImGui::DragFloat3("Directional Light Color", s_SceneDirLightColor, 0.1f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
-					sceneLight.SetColor(s_SceneDirLightColor[0], s_SceneDirLightColor[1], s_SceneDirLightColor[2]);
-				}
-
-				if(ImGui::DragFloat2("Shadow Near/Far Z", s_ShadowNearFarZ, 0.1f, 0.1f, 10000.0f, "%.2f", kSliderFlags)) {
-					sceneLight.SetShadowNearFarZ({ s_ShadowNearFarZ[0], s_ShadowNearFarZ[1] });
-				}
-
-				if(ImGui::DragFloat("Shadow Render Distance", &s_ShadowRenderDistance, 0.1f, 0.1f, 10000.0f, "%.2f", kSliderFlags)) {
-					sceneLight.SetShadowRenderDistance(s_ShadowRenderDistance);
-				}
-
-				// Shadow debug
-				if(ImGui::TreeNode("Shadow Debug")) {
-					static float s_ImageScale = 0.25f;
-					ImGui::SliderFloat("##Directional Shadow Map Texture Scale", &s_ImageScale, 0.0, 1.0, "%.2fx");
-					ImVec2 imageSize = ImVec2(1920.0f * s_ImageScale, 1080.0f * s_ImageScale);
-
-					// Directional shadow map debug view
-					ImGui::ImageWithBg(
-						(ImTextureID)EditorGui::Get().GetImageSRVAllocation(EditorGui::GuiSRVIndex::DirectionalShadowMap).gpuHandle.ptr,
-						imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
-					);
-					ImGui::TreePop();
-				}
-			}
-			
-			// Skybox Selector
-			{
-				static std::wstring s_SelectedSkybox = s_defaultSkyboxName;
-				if(ImGui::BeginTable("Skybox Table", 3, ImGuiTableFlags_Borders)) {
-					for(auto& s : m_SkyboxNames) {
-						ImGui::TableNextColumn();
-
-						if(ImGui::Selectable(StringConvert::WideString_To_String(s).c_str(), s == s_SelectedSkybox)) {
-							auto& copyCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
-							auto copyCommandList = copyCommandQueue.GetCommandList();
-							auto& computeCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE);
-							auto computeCommandList = computeCommandQueue.GetCommandList();
-
-							// Load new skybox cubemap
-							/// TODO: Creates new skybox object every time, do something smarter
-							Skybox::SkyboxParams skyboxParams {
-								s,
-								m_IBL_PSO.get()
-							};
-
-							m_TestScene->SetSkybox(*copyCommandList, *computeCommandList, skyboxParams);
-
-							copyCommandQueue.WaitForFenceValue(copyCommandQueue.ExecuteCommandList(copyCommandList));
-							computeCommandQueue.WaitForFenceValue(computeCommandQueue.ExecuteCommandList(computeCommandList));
-							///
-
-							// Render new IBLs
-							auto& directCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
-							auto directCommandList = directCommandQueue.GetCommandList();
-							directCommandList->SetScissorRect(m_DefaultScissorRect);
-							m_TestScene->ComputeSkyboxIBLs(*directCommandList);
-							directCommandQueue.WaitForFenceValue(directCommandQueue.ExecuteCommandList(directCommandList));
-
-							s_SelectedSkybox = s;
-						};
-
-					}
-					ImGui::EndTable();
-				}
-			}
-
-			// Bloom
-			if(ImGui::CollapsingHeader("Bloom")) {
-				static float s_BloomIntensity = m_BloomPass->GetIntensity();
-				static float s_Threshold = m_BloomPass->GetThreshold();
-				static float s_SoftThreshold = m_BloomPass->GetSoftThreshold();
-
-				if(ImGui::DragFloat("Intensity", &s_BloomIntensity, 0.01f, 0.0f, 10.0f, "%.2f", kSliderFlags)) {
-					m_BloomPass->SetIntensity(s_BloomIntensity);
-				}
-				if(ImGui::DragFloat("Theshold", &s_Threshold, 0.01f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
-					m_BloomPass->SetThreshold(s_Threshold);
-				}
-				if(ImGui::DragFloat("Soft Theshold", &s_SoftThreshold, 0.01f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
-					m_BloomPass->SetSoftThreshold(s_SoftThreshold);
-				}
-
-				// Bloom debug view
-				// Need ImVec4(0.0f, 0.0f, 0.0f, 1.0f) background color, else some textures are see through for some reason
-				// Might have something to do with alpha blending when ImGui theme has transparency
-				if(ImGui::TreeNode("Prefilter Debug")) {
-					static float imageScale = 0.25f;
-					ImGui::SliderFloat("##Bloom Texture Scale", &imageScale, 0.0, 1.0, "%.2fx");
-					ImVec2 imageSize = ImVec2(1920.0f * imageScale, 1080.0f * imageScale);
-
-					ImGui::ImageWithBg(
-						(ImTextureID)EditorGui::Get().GetImageSRVAllocation(EditorGui::GuiSRVIndex::BloomPrefilter).gpuHandle.ptr,
-						imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
-					);
-					ImGui::TreePop();
-				}
-			}
-
-			/// Main Engine UI Window End
-			ImGui::End();
-		}
-	}
-
-	// Object Inspector Window
-	EditorGui::Get().RenderObjectInspector(*m_Device, *m_TestScene);
+	EditorGui::Get().DrawGameDebugUI(*this, *m_Device, *m_TestScene);
+	EditorGui::Get().DrawObjectInspector(*m_Device, *m_TestScene);
 
 	EditorGui::Get().Render(directCommandList);
 }

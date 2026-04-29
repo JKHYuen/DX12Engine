@@ -1,4 +1,13 @@
 #include "EditorGui.h"
+
+#if defined(min)
+#undef min
+#endif
+
+#if defined(max)
+#undef max
+#endif
+
 #include "Device.h"
 #include "CommandQueue.h"
 #include "CommandList.h"
@@ -14,6 +23,11 @@
 
 #include <wrl/client.h>
 #include "Logger.h"
+
+// Game specific
+#include "Application.h"
+#include "DemoGame.h"
+#include "BloomPass.h"
 
 namespace {
 	EditorGui* sp_Singleton = nullptr;
@@ -188,10 +202,254 @@ void EditorGui::Render(CommandList& directCommandList) {
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), directCommandList.GetD3D12CommandList().Get());
 }
 
-void EditorGui::RenderObjectInspector(Device& device, const Scene& scene) {
-	GameObject* picked = scene.m_Picker->GetPickedObject();
+void EditorGui::DrawGameDebugUI(const DemoGame& game, Device& device, Scene& scene) {
+	static const ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
 
+	struct ScrollingBuffer {
+		int MaxSize;
+		int Offset;
+		ImVector<ImVec2> Data;
+		ScrollingBuffer(int max_size = 2000) {
+			MaxSize = max_size;
+			Offset = 0;
+			Data.reserve(MaxSize);
+		}
+		void AddPoint(float x, float y) {
+			if(Data.size() < MaxSize)
+				Data.push_back(ImVec2(x, y));
+			else {
+				Data[Offset] = ImVec2(x, y);
+				Offset = (Offset + 1) % MaxSize;
+			}
+		}
+	};
+
+	if(sb_ShowDebugWindow) {
+		/// Main Engine UI Window Start
+		{
+			// b_CurrentDebugWindowState added only for x button to work
+			bool b_CurrentDebugWindowState = sb_ShowDebugWindow;
+			ImGui::Begin("DX12 Engine", &b_CurrentDebugWindowState, ImGuiWindowFlags_NoCollapse);
+			sb_ShowDebugWindow = b_CurrentDebugWindowState;
+
+			// Exit button
+			{
+				ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(0.0f, 0.6f, 0.6f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor::HSV(0.0f, 0.7f, 0.7f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor::HSV(0.0f, 0.8f, 0.8f));
+				if(ImGui::Button("EXIT APP")) {
+					Application::Get().Quit();
+				}
+				ImGui::PopStyleColor(3);
+			}
+
+			// Performance Graph 
+			// Graph data update rate based on s_GraphUpdateRate, default: 60hz
+			// This is to throttle the rate ScrollingBuffer records data so we don't need a huge buffer for high frame rates over a big time scale
+			{
+				static ScrollingBuffer s_FPSGraphBuffer;
+
+				if(s_FPSGraphBuffer.Data.size() == 0) {
+					s_FPSGraphBuffer.AddPoint((float)ImGui::GetTime(), (float)game.m_CurrentAvgFPS);
+				}
+
+				// Save axis extents for update ticks faster than s_GraphUpdateRate
+				static std::pair xCurrentAxisExtents = { 0.0, 1.0 };
+				static std::pair yCurrentAxisExtents = { 0.0, 1.0 };
+
+				static const float s_GraphUpdateRate = 1.0f / 60.0f;
+				static float s_Timer = s_GraphUpdateRate;
+				s_Timer -= ImGui::GetIO().DeltaTime;
+				if(s_Timer <= 0) {
+					s_FPSGraphBuffer.AddPoint((float)ImGui::GetTime(), (float)game.m_CurrentAvgFPS);
+					s_Timer = s_GraphUpdateRate;
+				}
+
+				ImGui::Text("FPS: %d", game.m_CurrentAvgFPS);
+
+				static int timeScale = 5;
+				if(ImPlot::BeginPlot("##FPS Graph", ImVec2(-1, 100), ImPlotFlags_NoFrame | ImPlotFlags_NoLegend | ImPlotFlags_NoInputs)) {
+					ImPlot::SetupAxes(
+						nullptr, nullptr,
+						// x axis flags
+						ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_Lock,
+						// y axis flags
+						ImPlotAxisFlags_LockMin
+					);
+
+					// Update axis extents
+					if(s_Timer == s_GraphUpdateRate) {
+						ImPlot::SetupAxisLimits(ImAxis_X1, ImGui::GetTime() - timeScale, ImGui::GetTime(), ImGuiCond_Always);
+						xCurrentAxisExtents.first = ImGui::GetTime() - timeScale;
+						xCurrentAxisExtents.second = ImGui::GetTime();
+
+						if(game.m_CurrentAvgFPS >= yCurrentAxisExtents.second || game.m_CurrentAvgFPS * 2.0f <= yCurrentAxisExtents.second) {
+							float newYMax = std::max(120.0f, game.m_CurrentAvgFPS * 1.5f);
+							ImPlot::SetupAxisLimits(ImAxis_Y1, 0, newYMax, ImGuiCond_Always);
+							yCurrentAxisExtents.second = newYMax;
+						}
+					}
+					else {
+						ImPlot::SetupAxisLimits(ImAxis_X1, xCurrentAxisExtents.first, xCurrentAxisExtents.second, ImGuiCond_Always);
+						ImPlot::SetupAxisLimits(ImAxis_Y1, 0, yCurrentAxisExtents.second, ImGuiCond_Always);
+					}
+
+					ImPlot::PlotLine("FPS", &s_FPSGraphBuffer.Data[0].x, &s_FPSGraphBuffer.Data[0].y,
+						s_FPSGraphBuffer.Data.size(), 0, s_FPSGraphBuffer.Offset, 2 * sizeof(float)
+					);
+
+					ImPlot::EndPlot();
+
+					ImGui::SliderInt("Time Scale", &timeScale, 1, 30, "%ds");
+				}
+			}
+
+			// FOV Slider
+			float fov = scene.m_MainCamera.Get_FoV();
+			ImGui::SliderFloat("FOV", &fov, 12.0f, 90.0f);
+			scene.m_MainCamera.Set_FoV(fov);
+
+			// Directional Light
+			if(ImGui::CollapsingHeader("Directional Light")) {
+				static DirectionalLight& sceneLight = scene.GetDirLight();
+				static float s_SceneDirLightEulerAngle[2];
+				static float s_SceneDirLightColor[3];
+				static float s_ShadowNearFarZ[2];
+				static float s_ShadowRenderDistance;
+
+				static bool sb_DirInit = false;
+
+				if(!sb_DirInit) {
+					sb_DirInit = true;
+
+					XMFLOAT3 startingDirAngles = sceneLight.GetEulerAngles();
+					memcpy(s_SceneDirLightEulerAngle, &startingDirAngles, sizeof(float) * 2);
+
+					XMFLOAT4 startingSceneLightColor = sceneLight.GetColor();
+					memcpy(s_SceneDirLightColor, &startingSceneLightColor, sizeof(float) * 3);
+
+					XMFLOAT2 nearFarZ = sceneLight.GetShadowNearFarZ();
+					memcpy(s_ShadowNearFarZ, &nearFarZ, sizeof(float) * 2);
+
+					s_ShadowRenderDistance = sceneLight.GetShadowRenderDistance();
+				}
+
+				if(ImGui::DragFloat2("[x, y]", s_SceneDirLightEulerAngle, 0.1f, 0.0f, 360.0f, "%.2f", kSliderFlags | ImGuiSliderFlags_WrapAround)) {
+					sceneLight.SetEulerAngles(s_SceneDirLightEulerAngle[0], s_SceneDirLightEulerAngle[1], 0.0f);
+				}
+
+				if(ImGui::DragFloat3("Directional Light Color", s_SceneDirLightColor, 0.1f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
+					sceneLight.SetColor(s_SceneDirLightColor[0], s_SceneDirLightColor[1], s_SceneDirLightColor[2]);
+				}
+
+				if(ImGui::DragFloat2("Shadow Near/Far Z", s_ShadowNearFarZ, 0.1f, 0.1f, 10000.0f, "%.2f", kSliderFlags)) {
+					sceneLight.SetShadowNearFarZ({ s_ShadowNearFarZ[0], s_ShadowNearFarZ[1] });
+				}
+
+				if(ImGui::DragFloat("Shadow Render Distance", &s_ShadowRenderDistance, 0.1f, 0.1f, 10000.0f, "%.2f", kSliderFlags)) {
+					sceneLight.SetShadowRenderDistance(s_ShadowRenderDistance);
+				}
+
+				// Shadow debug
+				if(ImGui::TreeNode("Shadow Debug")) {
+					static float s_ImageScale = 0.25f;
+					ImGui::SliderFloat("##Directional Shadow Map Texture Scale", &s_ImageScale, 0.0, 1.0, "%.2fx");
+					ImVec2 imageSize = ImVec2(1920.0f * s_ImageScale, 1080.0f * s_ImageScale);
+
+					// Directional shadow map debug view
+					ImGui::ImageWithBg(
+						(ImTextureID)GetImageSRVAllocation(EditorGui::GuiSRVIndex::DirectionalShadowMap).gpuHandle.ptr,
+						imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
+					);
+					ImGui::TreePop();
+				}
+			}
+
+			// Skybox Selector
+			{
+				static std::wstring_view s_SelectedSkybox = scene.m_Skybox.GetTextureName();
+				if(ImGui::BeginTable("Skybox Table", 3, ImGuiTableFlags_Borders)) {
+					for(auto& s : game.m_SkyboxNames) {
+						ImGui::TableNextColumn();
+
+						if(ImGui::Selectable(StringConvert::WideString_To_String(s).c_str(), s == s_SelectedSkybox)) {
+							auto& copyCommandQueue = device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
+							auto copyCommandList = copyCommandQueue.GetCommandList();
+							auto& computeCommandQueue = device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE);
+							auto computeCommandList = computeCommandQueue.GetCommandList();
+
+							// Load new skybox cubemap
+							/// TODO: Creates new skybox object every time, do something smarter
+							Skybox::SkyboxParams skyboxParams {
+								s,
+								game.m_IBL_PSO.get()
+							};
+
+							scene.SetSkybox(*copyCommandList, *computeCommandList, skyboxParams);
+
+							copyCommandQueue.WaitForFenceValue(copyCommandQueue.ExecuteCommandList(copyCommandList));
+							computeCommandQueue.WaitForFenceValue(computeCommandQueue.ExecuteCommandList(computeCommandList));
+							///
+
+							// Render new IBLs
+							auto& directCommandQueue = device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
+							auto directCommandList = directCommandQueue.GetCommandList();
+							directCommandList->SetScissorRect(game.m_DefaultScissorRect);
+							scene.ComputeSkyboxIBLs(*directCommandList);
+							directCommandQueue.WaitForFenceValue(directCommandQueue.ExecuteCommandList(directCommandList));
+
+							s_SelectedSkybox = s;
+						};
+
+					}
+					ImGui::EndTable();
+				}
+			}
+
+			// Bloom
+			if(ImGui::CollapsingHeader("Bloom")) {
+				static BloomPass* bloomPass = game.m_BloomPass.get();
+				static float s_BloomIntensity = bloomPass->GetIntensity();
+				static float s_Threshold      = bloomPass->GetThreshold();
+				static float s_SoftThreshold  = bloomPass->GetSoftThreshold();
+
+				if(ImGui::DragFloat("Intensity", &s_BloomIntensity, 0.01f, 0.0f, 10.0f, "%.2f", kSliderFlags)) {
+					bloomPass->SetIntensity(s_BloomIntensity);
+				}
+				if(ImGui::DragFloat("Theshold", &s_Threshold, 0.01f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
+					bloomPass->SetThreshold(s_Threshold);
+				}
+				if(ImGui::DragFloat("Soft Theshold", &s_SoftThreshold, 0.01f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
+					bloomPass->SetSoftThreshold(s_SoftThreshold);
+				}
+
+				// Bloom debug view
+				// Need ImVec4(0.0f, 0.0f, 0.0f, 1.0f) background color, else some textures are see through for some reason
+				// Might have something to do with alpha blending when ImGui theme has transparency
+				if(ImGui::TreeNode("Prefilter Debug")) {
+					static float imageScale = 0.25f;
+					ImGui::SliderFloat("##Bloom Texture Scale", &imageScale, 0.0, 1.0, "%.2fx");
+					ImVec2 imageSize = ImVec2(1920.0f * imageScale, 1080.0f * imageScale);
+
+					ImGui::ImageWithBg(
+						(ImTextureID)GetImageSRVAllocation(EditorGui::GuiSRVIndex::BloomPrefilter).gpuHandle.ptr,
+						imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
+					);
+					ImGui::TreePop();
+				}
+			}
+
+			/// Main Engine UI Window End
+			ImGui::End();
+		}
+	}
+}
+
+void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
+	GameObject* picked = scene.m_Picker->GetPickedObject();
 	if(!sb_ObjectInspectorState) return;
+
+	static const ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
 
 	static std::string s_ObjectName {}; // can't be string view, needs null terminated string for ImGui::Text
 	static std::wstring_view s_SelectedMat {};
@@ -230,8 +488,6 @@ void EditorGui::RenderObjectInspector(Device& device, const Scene& scene) {
 		s_MaxParallaxLayers  = picked->m_RenderProps.maxParallaxLayers;
 	}
 	s_LastPickedObject = picked;
-
-	static const ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
 
 	ImGui::Begin(s_ObjectName.c_str(), &sb_ObjectInspectorState, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
 	{

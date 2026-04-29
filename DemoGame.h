@@ -26,6 +26,9 @@ class ImageBasedLightingPSO;
 class ShaderResourceView;
 
 class DemoGame : public IGame {
+
+    friend class EditorGui;
+
 public:
     DemoGame(const std::wstring& name, uint32_t width, uint32_t height, bool vSync = false);
 
@@ -100,6 +103,5 @@ private:
     int m_CurrentAvgFPS;
     static const int sk_frameTimeSamples = 128;
     double m_frameTimeHistory[sk_frameTimeSamples] = {};
-
 };
 

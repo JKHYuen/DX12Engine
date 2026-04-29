@@ -48,13 +48,14 @@ void Skybox::SetCubemap(CommandList& copyCommandList, const std::wstring& hdrTex
 	copyCommandList.PanoToCubemapCompute(m_SkyCubemapTexture, m_HDRPanoTexture);
 }
 
-Skybox::Skybox(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, SkyboxParams params)
-	: m_IBL_PSO(params.iblPSO) {
+Skybox::Skybox(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const SkyboxParams& params)
+	: m_IBL_PSO(params.iblPSO)
+	, m_SkyboxTextureName(params.hdrTextureName) {
 
 	DXGI_FORMAT cubemapFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
 
 	m_SkyboxCubeMesh = copyCommandList.GetCubePrimitive();
-	m_HDRPanoTexture = copyCommandList.LoadTextureFromFile(L"assets/cubemaps/" + params.hdrTextureName, true);
+	m_HDRPanoTexture = copyCommandList.LoadTextureFromFile(L"assets/cubemaps/" + m_SkyboxTextureName, true);
 
 	// Convert hdr panoramic texture to cubemap
 	auto skyboxCubemapDesc = m_HDRPanoTexture->GetD3D12ResourceDesc();
@@ -63,7 +64,7 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, CommandList& comput
 	skyboxCubemapDesc.MipLevels = sk_CubemapMipLevels;
 	
 	m_SkyCubemapTexture = std::make_shared<Texture>(device, skyboxCubemapDesc, nullptr, false);
-	m_SkyCubemapTexture->SetName(params.hdrTextureName + L" Skybox Cubemap");
+	m_SkyCubemapTexture->SetName(m_SkyboxTextureName + L" Skybox Cubemap");
 
 	// PanoToCubemapCompute function will switch to compute queue when called by a COPY command list
 	computeCommandList.PanoToCubemapCompute(m_SkyCubemapTexture, m_HDRPanoTexture);
@@ -86,7 +87,7 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, CommandList& comput
 		);
 
 		auto irradianceConvolutionCubemap = std::make_shared<Texture>(device, irradianceCubemapDesc, nullptr, false);
-		irradianceConvolutionCubemap->SetName(L"Skybox Irradiance Convolution Cubemap - " + params.hdrTextureName);
+		irradianceConvolutionCubemap->SetName(L"Skybox Irradiance Convolution Cubemap - " + m_SkyboxTextureName);
 
 		m_IrradianceConvolutionCubemap_RT.AttachTexture(AttachmentPoint::Color0, irradianceConvolutionCubemap);
 
@@ -102,7 +103,7 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, CommandList& comput
 		);
 
 		auto prefilterCubemap = std::make_shared<Texture>(device, prefilterCubemapDesc, nullptr, false);
-		prefilterCubemap->SetName(L"Skybox Prefilter Cubemap - " + params.hdrTextureName);
+		prefilterCubemap->SetName(L"Skybox Prefilter Cubemap - " + m_SkyboxTextureName);
 
 		m_PrefilterCubemap_RT.AttachTexture(AttachmentPoint::Color0, prefilterCubemap);
 

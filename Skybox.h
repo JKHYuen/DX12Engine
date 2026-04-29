@@ -15,12 +15,12 @@ class ImageBasedLightingPSO;
 class Skybox {
 public:
 	struct SkyboxParams {
-		std::wstring hdrTextureName;
+		const std::wstring& hdrTextureName;
 		ImageBasedLightingPSO* iblPSO;
 	};
 
 	// Loads "hdrTextureName" from file as skybox
-	Skybox(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, SkyboxParams params);
+	Skybox(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const SkyboxParams& params);
 	
 	void SetCubemap(CommandList& copyCommandList, const std::wstring& hdrTextureName);
 
@@ -35,7 +35,11 @@ public:
 	std::shared_ptr<Texture> GetPrefilterTexture()  const { return m_PrefilterCubemap_RT.GetTexture(AttachmentPoint::Color0); };
 	std::shared_ptr<Texture> Get_BRDF_LUT_Texture() const { return m_BRDF_LUT_RT.GetTexture(AttachmentPoint::Color0); };
 
+	std::wstring_view GetTextureName() const { return m_SkyboxTextureName; }
+
 private:
+	std::wstring m_SkyboxTextureName;
+
 	// PSO owned by DemoGame currently
 	ImageBasedLightingPSO* m_IBL_PSO;
 

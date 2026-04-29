@@ -40,7 +40,7 @@ public:
 	struct EntityParams {
 		// string passed by value for convenience e.g. when modifying instances of this struct
 		std::string name;
-		const Scene& scene;
+		Scene& scene;
 		XMFLOAT3 translation, eulerRotation, scale;
 	};
 
@@ -72,7 +72,7 @@ public:
 	// Initialize with mesh loaded from file
 	GameObject(CommandList& copyCommandList, const EntityParams& params, RenderProps renderProps, const std::wstring& meshFilePath);
 
-	void Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene);
+	void Render(CommandList& directCommandList, const UpdateEventArgs& e, Scene& scene);
 	void RenderOutline(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene);
 
 	void RenderToDirectionalShadowMap(CommandList& directCommandList, const DirectionalLight& directionalLight);

@@ -148,7 +148,7 @@ float CalcParallaxSoftShadowMultiplier(float3 lightDir, float2 initialTexCoords,
         // current parameters
         float currentLayerHeight = initialHeight - layerHeight;
         float2 currentTexCoords = initialTexCoords + texStep;
-        float depthFromTexture = 1.0 - MaterialTex.Sample(AnisoWrapSampler, currentTexCoords).r;
+        float depthFromTexture = 1.0 - MaterialTex.Sample(AnisoWrapSampler, currentTexCoords).a;
         
         // while point is below depth 0.0
         [loop]
@@ -164,7 +164,7 @@ float CalcParallaxSoftShadowMultiplier(float3 lightDir, float2 initialTexCoords,
             // offset to the next layer
             currentLayerHeight -= layerHeight;
             currentTexCoords += texStep;
-            depthFromTexture = 1.0 - MaterialTex.Sample(AnisoWrapSampler, currentTexCoords).r;
+            depthFromTexture = 1.0 - MaterialTex.Sample(AnisoWrapSampler, currentTexCoords).a;
         }
         
         // Shadowing factor should be 1 if there were no points under the surface
@@ -302,11 +302,11 @@ float4 main(PixelInputType i) : SV_TARGET {
         shadowFactor = 1.0;
     
     // EXPERIMENTAL - Parallax occlusion self shadowing
-    // Not very efficient, not applied very correctly. But it looks okay.
     if (ParallaxMagnitude != 0 && UseParallaxShadow != 0) {
         float3x3 TBN = transpose(float3x3(i.tangent, i.bitangent, i.normal));
         /// TODO: make power factor tweakable
-        float parallaxSelfShadowFactor = pow(CalcParallaxSoftShadowMultiplier(mul(L, TBN), i.uv, 1.0 - MaterialTex.Sample(AnisoWrapSampler, i.uv).r), 5.0);
+        // Power factor added as a hacky way to make shadows more visible
+        float parallaxSelfShadowFactor = pow(CalcParallaxSoftShadowMultiplier(mul(L, TBN), i.uv, 1.0 - MaterialTex.Sample(AnisoWrapSampler, i.uv).a), 16.0);
         shadowFactor *= parallaxSelfShadowFactor;
     }
     

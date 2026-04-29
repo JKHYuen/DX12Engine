@@ -30,13 +30,13 @@ public:
 	void OnKeyPressed(const KeyEventArgs& e);
 	void OnKeyReleased(const KeyEventArgs& e);
 
-	// Note: non const functions that need to be called outside of this class need to be called through scene - not ideal, preserves encapsulation
-	const DirectionalLight& GetDirLight() const { return m_DirectionalLight; }
+	// Note: NOT const, too many functions need to be called through scene otherwise.
+	//       Not the best design, need to figure out something better
+	DirectionalLight& GetDirLight() { return m_DirectionalLight; }
+
 	const Skybox& GetSkybox() const { return m_Skybox; }
 
 	void ComputeSkyboxIBLs(CommandList& directCommandList);
-	void SetDirLightAngle(float x, float y, float z);
-	void SetDirLightColor(float r, float g, float b);
 
 	// We use std::move to move gameobject "go" into m_SceneObjects instead of constructing directly with emplace_back with Gameobject params so we dont have to keep track of Gameobject constructor params (they might change). "go" is an rvalue ref to avoid copy and to inform the caller object will be moved (i.e. invalidated).
 	void AddGameObject(GameObject&& go);

@@ -29,7 +29,9 @@ public:
         XMFLOAT3 color;
         XMFLOAT3 eulerDir;
         int shadowMapResolution;
-        float shadowDistance, shadowMapNearZ, shadowMapFarZ, shadowBias;
+        float shadowRenderDistance;
+        XMFLOAT2 shadowNearFarZ;
+        float shadowBias;
     };
 
     DirectionalLight(Device& device, DirectionalLightParams params);
@@ -39,15 +41,13 @@ public:
     DirectionalLight(DirectionalLight&&)                 = delete;
     DirectionalLight& operator=(DirectionalLight&&)      = delete;
 
-    void GenerateViewMatrix();
-
     XMFLOAT4 GetColor() const { return m_Color; }
     void SetColor(float r, float g, float b);
 
     XMFLOAT3 GetPosition() const { return m_Position; }
 
     // rotX, rotY, rotZ is in degrees
-    void SetEulerAngle(float rotX, float rotY, float rotZ);
+    void SetEulerAngles(float rotX, float rotY, float rotZ);
 
     XMFLOAT4 GetNormDirectionVector() const { return m_NormDirectionVector; }
 
@@ -64,6 +64,11 @@ public:
     XMFLOAT4X4 GetViewMatrix() const { return m_ViewMatrix; }
     D3D12_VIEWPORT GetViewPort() const { return m_ViewPort; }
 
+    XMFLOAT2 GetShadowNearFarZ() const {return m_ShadowNearFarZ;}
+    float GetShadowRenderDistance() const { return m_ShadowRenderDistance; }
+    void SetShadowNearFarZ(XMFLOAT2 nearFarZ);
+    void SetShadowRenderDistance(float distance);
+
     std::shared_ptr<Texture> GetShadowMapTexture() const { return m_DirectionalShadowMap.GetTexture(AttachmentPoint::DepthStencil); }
     
     void SetShadowDepthPipelineStateAndRenderTarget(CommandList& directCommandList) const;
@@ -77,11 +82,12 @@ private:
     // Keep euler angle representation for user facing values
     XMFLOAT3 m_EulerAngles;
 
-
     /// For shadow mapping
-    float m_LightDistance;
+    float m_LightDistance; // distance of directional light from origin
+    XMFLOAT2 m_ShadowNearFarZ;
+    float m_ShadowRenderDistance; // width/height of ortho proj matrix
     float m_ShadowBias;
-    XMFLOAT4 m_Color{};
+    XMFLOAT4 m_Color;
     XMFLOAT3 m_Position;
     XMFLOAT3 m_LookAt;
     XMFLOAT4X4 m_OrthoMatrix;

@@ -44,14 +44,6 @@ void Scene::ComputeSkyboxIBLs(CommandList& directCommandList) {
 	m_Skybox.ComputeIBLMaps(directCommandList);
 }
 
-void Scene::SetDirLightAngle(float x, float y, float z) {
-	m_DirectionalLight.SetEulerAngle(x, y, z);
-}
-
-void Scene::SetDirLightColor(float r, float g, float b) {
-	m_DirectionalLight.SetColor(r, g, b);
-}
-
 /// TODO: figure out some proper game object storage, returned pointer here will be invalidated if vector resizes
 void Scene::AddGameObject(GameObject&& go) {
 	assert(m_SceneObjects.size() < sk_MaxSceneObjects);

@@ -65,7 +65,7 @@ GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params,
 
 }
 
-void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene) {
+void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e, Scene& scene) {
 	// Render object with PBR shading, use stencil write version of PSO for outline effect to work
 	if(b_Outline) {
 		m_RenderProps.pbrPSO->SetStencilWritePipelineState(directCommandList);

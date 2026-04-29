@@ -20,7 +20,7 @@ public:
 	GameObject* MouseRaycast(Scene& scene, int mouseX, int mouseY, int windowWidth, int windowHeight);
 
 	GameObject* GetPickedObject() const { return m_PickedObject; };
-	void ClearPickedObject()            { m_PickedObject = nullptr; };
+	void ClearPickedObject();
 
 private:
 	GameObject* m_PickedObject {};

@@ -22,12 +22,12 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
     , m_ShadowBias(params.shadowBias)
     , m_Color(XMFLOAT4(params.color.x, params.color.y, params.color.z, 1.0f))
     , m_ViewPort(D3D12_VIEWPORT(0.0f, 0.0f, (float)params.shadowMapResolution, (float)params.shadowMapResolution, 0.0f, 1.0f))
-    /// TODO: bandaid fix
-    , m_LightDistance(params.shadowMapFarZ - 50) 
+    , m_LightDistance(params.shadowNearFarZ.y - 50) // random heuristic
+    , m_ShadowRenderDistance(params.shadowRenderDistance)
+    , m_ShadowNearFarZ(params.shadowNearFarZ)
 {
-
-    XMStoreFloat4x4(&m_OrthoMatrix, XMMatrixOrthographicLH(params.shadowDistance, params.shadowDistance, params.shadowMapNearZ, params.shadowMapFarZ));
-    SetEulerAngle(params.eulerDir.x, params.eulerDir.y, params.eulerDir.z);
+    XMStoreFloat4x4(&m_OrthoMatrix, XMMatrixOrthographicLH(params.shadowRenderDistance, params.shadowRenderDistance, m_ShadowNearFarZ.x, m_ShadowNearFarZ.y));
+    SetEulerAngles(params.eulerDir.x, params.eulerDir.y, params.eulerDir.z);
 
     // Create directional light shadow map
     auto shadowMapDesc = CD3DX12_RESOURCE_DESC::Tex2D(
@@ -83,7 +83,7 @@ void DirectionalLight::SetColor(float red, float green, float blue) {
     m_Color = XMFLOAT4(red, green, blue, 1.0f);
 }
 
-void DirectionalLight::SetEulerAngle(float rotX, float rotY, float rotZ) {
+void DirectionalLight::SetEulerAngles(float rotX, float rotY, float rotZ) {
     if(rotX < 0) rotX += 360.0f;
     if(rotY < 0) rotY += 360.0f;
     if(rotZ < 0) rotZ += 360.0f;
@@ -110,14 +110,18 @@ void DirectionalLight::SetQuaternionAngle(XMVECTOR rotationQuaternion) {
     m_Position.z = XMVectorGetZ(dirVec) * -m_LightDistance;
 
     // Regenerate view matrix
-    GenerateViewMatrix();
+    static XMFLOAT3 up { 0.0f, 1.0f, 0.0f };
+    // Always look at origin, direction determined by m_Position
+    static XMFLOAT3 lookAt { 0.0f, 0.0f, 0.0f };
+    XMStoreFloat4x4(&m_ViewMatrix, XMMatrixLookAtLH(XMLoadFloat3(&m_Position), XMLoadFloat3(&lookAt), XMLoadFloat3(&up)));
 }
 
-void DirectionalLight::GenerateViewMatrix() {
-    static XMFLOAT3 up{ 0.0f, 1.0f, 0.0f };
-    // Always look at origin, direction determined by m_Position
-    static XMFLOAT3 lookAt{ 0.0f, 0.0f, 0.0f };
-    XMStoreFloat4x4(&m_ViewMatrix, XMMatrixLookAtLH(XMLoadFloat3(&m_Position), XMLoadFloat3(&lookAt), XMLoadFloat3(&up)));
+void DirectionalLight::SetShadowNearFarZ(XMFLOAT2 nearFarZ) {
+    XMStoreFloat4x4(&m_OrthoMatrix, XMMatrixOrthographicLH(m_ShadowRenderDistance, m_ShadowRenderDistance, nearFarZ.x, nearFarZ.y));
+}
+
+void DirectionalLight::SetShadowRenderDistance(float distance) {
+    XMStoreFloat4x4(&m_OrthoMatrix, XMMatrixOrthographicLH(distance, distance, m_ShadowNearFarZ.x, m_ShadowNearFarZ.y));
 }
 
 void DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget(CommandList& directCommandList) const {

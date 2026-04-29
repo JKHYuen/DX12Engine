@@ -51,7 +51,7 @@ namespace {
 
 	const std::wstring s_defaultSkyboxName = L"industrial_sunset_puresky_4k.hdr";
 
-	// Directional Light Shadow params
+	// Default Directional Light Shadow params
 	int   s_ShadowMapResolution = 4096;
 	float s_ShadowMapNear       = 0.1f;
 	float s_ShadowMapFar        = 150.0f;
@@ -195,8 +195,7 @@ bool DemoGame::Initialize() {
 			XMFLOAT3(140.0f, 230.0f, 0.0f), 
 			s_ShadowMapResolution,
 			s_ShadowDistance,
-			s_ShadowMapNear,
-			s_ShadowMapFar,
+			{s_ShadowMapNear, s_ShadowMapFar},
 			s_ShadowBias
 		};
 
@@ -508,28 +507,44 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 			m_TestScene->m_MainCamera.Set_FoV(fov);
 
 			// Directional Light
-			{
+			if(ImGui::CollapsingHeader("Directional Light")) {
+				static DirectionalLight& sceneLight = m_TestScene->GetDirLight();
 				static float s_SceneDirLightEulerAngle[2];
 				static float s_SceneDirLightColor[3];
+				static float s_ShadowNearFarZ[2];
+				static float s_ShadowRenderDistance;
 
 				static bool sb_DirInit = false;
+
 				if(!sb_DirInit) {
 					sb_DirInit = true;
-					const DirectionalLight& sceneLight = m_TestScene->GetDirLight();
 
 					XMFLOAT3 startingDirAngles = sceneLight.GetEulerAngles();
 					memcpy(s_SceneDirLightEulerAngle, &startingDirAngles, sizeof(float) * 2);
 
 					XMFLOAT4 startingSceneLightColor = sceneLight.GetColor();
 					memcpy(s_SceneDirLightColor, &startingSceneLightColor, sizeof(float) * 3);
+
+					XMFLOAT2 nearFarZ = sceneLight.GetShadowNearFarZ();
+					memcpy(s_ShadowNearFarZ, &nearFarZ, sizeof(float) * 2);
+
+					s_ShadowRenderDistance = sceneLight.GetShadowRenderDistance();
 				}
 
 				if(ImGui::DragFloat2("[x, y]", s_SceneDirLightEulerAngle, 0.1f, 0.0f, 360.0f, "%.2f", kSliderFlags | ImGuiSliderFlags_WrapAround)) {
-					m_TestScene->SetDirLightAngle(s_SceneDirLightEulerAngle[0], s_SceneDirLightEulerAngle[1], 0.0f);
+					sceneLight.SetEulerAngles(s_SceneDirLightEulerAngle[0], s_SceneDirLightEulerAngle[1], 0.0f);
 				}
 
 				if(ImGui::DragFloat3("Directional Light Color", s_SceneDirLightColor, 0.1f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
-					m_TestScene->SetDirLightColor(s_SceneDirLightColor[0], s_SceneDirLightColor[1], s_SceneDirLightColor[2]);
+					sceneLight.SetColor(s_SceneDirLightColor[0], s_SceneDirLightColor[1], s_SceneDirLightColor[2]);
+				}
+
+				if(ImGui::DragFloat2("Shadow Near/Far Z", s_ShadowNearFarZ, 0.1f, 0.1f, 10000.0f, "%.2f", kSliderFlags)) {
+					sceneLight.SetShadowNearFarZ({ s_ShadowNearFarZ[0], s_ShadowNearFarZ[1] });
+				}
+
+				if(ImGui::DragFloat("Shadow Render Distance", &s_ShadowRenderDistance, 0.1f, 0.1f, 10000.0f, "%.2f", kSliderFlags)) {
+					sceneLight.SetShadowRenderDistance(s_ShadowRenderDistance);
 				}
 
 				// Shadow debug
@@ -589,7 +604,7 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 			}
 
 			// Bloom
-			{
+			if(ImGui::CollapsingHeader("Bloom")) {
 				static float s_BloomIntensity = m_BloomPass->GetIntensity();
 				static float s_Threshold = m_BloomPass->GetThreshold();
 				static float s_SoftThreshold = m_BloomPass->GetSoftThreshold();

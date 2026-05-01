@@ -78,7 +78,7 @@ void BloomEffect::Render(CommandList& directCommandList, const RenderTarget& inp
 
 	directCommandList.SetGraphicsDynamicConstantBuffer(BloomPSO::BloomRootParameters::BloomCB, bloomProps);
 	directCommandList.SetShaderResourceView(BloomPSO::BloomRootParameters::Textures, 0, inputRenderTarget.GetTexture(AttachmentPoint::Color0), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	directCommandList.SetShaderResourceView(BloomPSO::BloomRootParameters::Textures, 1, nullptr);
+	directCommandList.SetNullShaderResourceView(BloomPSO::BloomRootParameters::Textures, 1);
 
 	directCommandList.ClearTexture(m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0), Colors::DebugMagenta);
 	directCommandList.SetRenderTarget(m_SamplingRenderTargets[0]);
@@ -97,7 +97,7 @@ void BloomEffect::Render(CommandList& directCommandList, const RenderTarget& inp
 		directCommandList.SetViewport(m_SamplingRenderTargets[i].GetViewport());
 
 		directCommandList.SetShaderResourceView(BloomPSO::BloomRootParameters::Textures, 0, m_SamplingRenderTargets[i - 1].GetTexture(AttachmentPoint::Color0));
-		directCommandList.SetShaderResourceView(BloomPSO::BloomRootParameters::Textures, 1, nullptr);
+		directCommandList.SetNullShaderResourceView(BloomPSO::BloomRootParameters::Textures, 1);
 
 		directCommandList.Draw(3);
 	}
@@ -112,7 +112,7 @@ void BloomEffect::Render(CommandList& directCommandList, const RenderTarget& inp
 		directCommandList.SetViewport(m_SamplingRenderTargets[i].GetViewport());
 
 		directCommandList.SetShaderResourceView(BloomPSO::BloomRootParameters::Textures, 0, m_SamplingRenderTargets[i + 1].GetTexture(AttachmentPoint::Color0));
-		directCommandList.SetShaderResourceView(BloomPSO::BloomRootParameters::Textures, 1, nullptr);
+		directCommandList.SetNullShaderResourceView(BloomPSO::BloomRootParameters::Textures, 1);
 
 		directCommandList.Draw(3);
 	}

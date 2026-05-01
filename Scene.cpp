@@ -63,7 +63,7 @@ void Scene::SetSkybox(CommandList& copyCommandList, CommandList& computeCommandL
 /// END TEMP
 
 void Scene::Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, CommandList& directCommandList, const UpdateEventArgs& e) {
-	// Render depth from directional light for same objects above
+	// Render depth from directional light
 	m_DirectionalLight.SetShadowDepthPipelineStateAndRenderTarget(directCommandList);
 	for(auto& o : m_SceneObjects) {
 		o.RenderToDirectionalShadowMap(directCommandList, m_DirectionalLight);
@@ -106,9 +106,11 @@ void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 	//	 - or ImGui UI is not open
 	if(e.Button == MouseButtonEventArgs::Left) {
 		if(EditorGui::Get().GetUIVisibilityState() && !ImGui::GetIO().WantCaptureMouse) {
+			// Unhighlight already highlighted object if there is one
 			if(GameObject* go = m_Picker->GetPickedObject()) {
-				go->SetOutlineState(false);
+				m_Picker->ClearPickedObject();
 			}
+			// Highlight new object
 			if(GameObject* go = m_Picker->MouseRaycast(*this, e.X, e.Y, m_GameWindowWidth, m_GameWindowHeight)) {
 				go->SetOutlineState(true);
 			}
@@ -117,7 +119,6 @@ void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 		// Unpick object if mouse clicked and editor UI is not open
 		if(!EditorGui::Get().GetUIVisibilityState()) {
 			if(GameObject* go = m_Picker->GetPickedObject()) {
-				go->SetOutlineState(false);
 				m_Picker->ClearPickedObject();
 			}
 		}
@@ -129,7 +130,6 @@ void Scene::OnKeyPressed(const KeyEventArgs& e) {}
 void Scene::OnKeyReleased(const KeyEventArgs& e) {
 	if(e.Key == KeyCode::X) {
 		if(GameObject* go = m_Picker->GetPickedObject()) {
-			go->SetOutlineState(false);
 			m_Picker->ClearPickedObject();
 		}
 	}

@@ -15,7 +15,7 @@
 using namespace DirectX;
 using namespace Microsoft::WRL;
 
-PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRAY rtvFormat, DXGI_FORMAT depthFormat) {
+PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRAY rtvFormat, DXGI_FORMAT depthStencilFormat) {
 	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags_VSPS =
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
@@ -52,7 +52,7 @@ PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT
 		CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
 		CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
 		CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_DESC SampleDesc;
-		CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL DSDesc;
+		CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL DepthStencilDesc;
 	} hdrPipelineStateStream;
 
 	hdrPipelineStateStream.pRootSignature = m_RootSignature->GetD3D12RootSignature().Get();
@@ -60,21 +60,20 @@ PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT
 	hdrPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	hdrPipelineStateStream.VS = AssetImporter::GetCompiledShaderFromFile(L"PBR_VS.cso");
 	hdrPipelineStateStream.PS = AssetImporter::GetCompiledShaderFromFile(L"PBR_PS.cso");
-	hdrPipelineStateStream.DSVFormat = depthFormat;
+	hdrPipelineStateStream.DSVFormat = depthStencilFormat;
 	hdrPipelineStateStream.RTVFormats = rtvFormat;
 	hdrPipelineStateStream.SampleDesc = sampleDesc;
-	auto dscDesc = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-	hdrPipelineStateStream.DSDesc = dscDesc;
+	auto depthStencilDesc = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	hdrPipelineStateStream.DepthStencilDesc = depthStencilDesc;
 
 	device.CreatePipelineState(hdrPipelineStateStream, m_D3d12PipelineState);
 	
 	// Create stencil write PSO (currently just for outline effect, only used for PBR objects to be outlined)
-	dscDesc.StencilEnable = TRUE;
-	dscDesc.FrontFace.StencilFailOp      = D3D12_STENCIL_OP_KEEP;
-	dscDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_REPLACE;
-	dscDesc.FrontFace.StencilPassOp      = D3D12_STENCIL_OP_REPLACE;
-	dscDesc.FrontFace.StencilFunc        = D3D12_COMPARISON_FUNC_ALWAYS;
-	hdrPipelineStateStream.DSDesc = dscDesc;
+	depthStencilDesc.StencilEnable = TRUE;
+	depthStencilDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_REPLACE;
+	depthStencilDesc.FrontFace.StencilPassOp      = D3D12_STENCIL_OP_REPLACE;
+	depthStencilDesc.FrontFace.StencilFunc        = D3D12_COMPARISON_FUNC_ALWAYS;
+	hdrPipelineStateStream.DepthStencilDesc = depthStencilDesc;
 
 	device.CreatePipelineState(hdrPipelineStateStream, m_StencilWrite_D3d12PipelineState);
 }
@@ -90,7 +89,7 @@ void PBRObjectPSO::SetStencilWritePipelineState(CommandList& directCommandList) 
 }
 
 void PBRObjectPSO::UpdateResources(CommandList& directCommandList, const std::vector<std::shared_ptr<Texture>>& pbrTextures, VertexProps vertexProps, MaterialProps materialProps, LightProps lightProps) {
-	assert((pbrTextures.size() == sk_NumTextures) && "Incorrect number of PBR textures.");
+	assert((pbrTextures.size() == TextureIndex::NumTextures) && "Incorrect number of PBR textures.");
 
 	// Note: may have performance increase if these are only updated when needed
 	directCommandList.SetGraphicsDynamicConstantBuffer(PBRRootParameters::VertexCB, vertexProps);

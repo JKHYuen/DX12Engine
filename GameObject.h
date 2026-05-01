@@ -6,10 +6,9 @@
 	
 	NOTE:
 		- AABB does not support rotation updates currently (it's non-trivial)
-		- A dynamic component system would be nice, however this makes effecient object storage hard
-		  Currently just uses vector with no object destruction support
-		- Can use dirty flag system for SRT updates
-		- "m_PBR_PSO" will probably need to be a polymorphic type eventually
+		- A dynamic component system should be used for render features
+			- "m_PBR_PSO" will probably need to be a polymorphic type eventually
+		- Can use dirty flag system for SRT/root sig updates
 */
 
 #include "DirectXMath.h"
@@ -72,7 +71,7 @@ public:
 	// Initialize with mesh loaded from file
 	GameObject(CommandList& copyCommandList, const EntityParams& params, RenderProps renderProps, const std::wstring& meshFilePath);
 
-	void Render(CommandList& directCommandList, const UpdateEventArgs& e, Scene& scene);
+	void Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene & scene);
 	void RenderOutline(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene);
 
 	void RenderToDirectionalShadowMap(CommandList& directCommandList, const DirectionalLight& directionalLight);
@@ -103,12 +102,12 @@ public:
 	std::shared_ptr<Mesh> GetMesh() const { return m_Mesh; }
 
 	/// Things that should be in some sort of component system:
-	void SetOutlineState(bool state) { b_Outline = state; };
+	void SetOutlineState(bool state) { mb_Outline = state; };
 	///
 	
 private:
 	std::shared_ptr<Mesh> m_Mesh {};
-	std::vector<std::shared_ptr<Texture>> m_TextureResources { PBRObjectPSO::sk_NumTextures };
+	std::vector<std::shared_ptr<Texture>> m_TextureResources { PBRObjectPSO::TextureIndex::NumTextures };
 	
 	BoundingBox m_AABB {};
 
@@ -122,8 +121,9 @@ private:
 	XMFLOAT3 m_Translation, m_EulerRotation, m_Scale;
 
 	/// Things that should be in some sort of component system:
+	PBRObjectPSO::VertexProps m_PBRVertexCB {};
 	RenderProps m_RenderProps {};
-	bool b_Outline {};
+	bool mb_Outline {};
 	///
 };
 

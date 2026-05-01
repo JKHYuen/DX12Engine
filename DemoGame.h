@@ -21,7 +21,8 @@ class Skybox;
 class PBRObjectPSO;
 class OutlinePSO;
 class BloomPSO;
-class BloomPass;
+class BloomEffect;
+class OutlineEffect;
 class ImageBasedLightingPSO;
 class ShaderResourceView;
 
@@ -65,7 +66,8 @@ private:
     std::unique_ptr<ImageBasedLightingPSO> m_IBL_PSO;
     std::unique_ptr<BloomPSO> m_Bloom_PSO;
     ///
-    std::unique_ptr<BloomPass> m_BloomPass;
+    std::unique_ptr<BloomEffect> m_BloomEffect;
+    std::unique_ptr<OutlineEffect> m_OutlineEffect;
 
     std::shared_ptr<RootSignature> m_PostProcessRootSignature;
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_TonemapPSO;
@@ -78,7 +80,7 @@ private:
     std::vector<std::wstring> m_SkyboxNames;
 
     // Pointer because this can not be initialized on DemoGame construction
-    std::unique_ptr<Scene> m_TestScene;
+    std::unique_ptr<Scene> m_DemoScene;
 
     // Camera Controller
     float m_Forward;

@@ -30,9 +30,7 @@ public:
 	void OnKeyPressed(const KeyEventArgs& e);
 	void OnKeyReleased(const KeyEventArgs& e);
 
-	// Note: NOT const, too many functions need to be called through scene otherwise.
-	//       Not the best design, need to figure out something better
-	DirectionalLight& GetDirLight() { return m_DirectionalLight; }
+	const DirectionalLight& GetDirLight() const { return m_DirectionalLight; }
 
 	const Skybox& GetSkybox() const { return m_Skybox; }
 
@@ -58,20 +56,18 @@ public:
 	Camera m_MainCamera;
 
 private:
-	/// TODO: TEMP
-	bool s_ChangeSkybox = false;
-
+	static const int sk_MaxSceneObjects = 100;
 	/// TODO: Currently no system to validate destoyed objects, smarter storage needed
 	///       Same size objects should at least be grouped together in separate arrays in a real engine
 	std::vector<GameObject> m_SceneObjects;
-	static const int sk_MaxSceneObjects = 100;
 
 	// All materials used in this scene, currently just loads all material names in asset folder
 	std::vector<std::wstring> m_MaterialNames;
 
 	DirectionalLight m_DirectionalLight;
 	Skybox m_Skybox;
-
+	
+	// Device owned by IGame
 	Device& m_Device;
 
 	// For object picking
@@ -80,5 +76,8 @@ private:
 	//
 
 	std::unique_ptr<Picker> m_Picker {};
+
+	/// TODO: TEMP
+	bool s_ChangeSkybox = false;
 };
 

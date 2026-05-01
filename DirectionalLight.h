@@ -7,6 +7,7 @@
 #include <d3dx12.h>
 #include <wrl/client.h>
 
+#include "PBRObjectPSO.h"
 #include "RenderTarget.h"
 
 using namespace DirectX;
@@ -60,8 +61,8 @@ public:
 
     XMFLOAT3 GetEulerAngles() const { return m_EulerAngles; }
 
-    XMFLOAT4X4 GetOrthoMatrix() const { return m_OrthoMatrix; }
-    XMFLOAT4X4 GetViewMatrix() const { return m_ViewMatrix; }
+    XMFLOAT4X4 GetOrthoMatrix() const { return m_LightOrthoMatrix; }
+    XMFLOAT4X4 GetViewMatrix() const { return m_LightViewMatrix; }
     D3D12_VIEWPORT GetViewPort() const { return m_ViewPort; }
 
     XMFLOAT2 GetShadowNearFarZ() const {return m_ShadowNearFarZ;}
@@ -72,7 +73,7 @@ public:
     std::shared_ptr<Texture> GetShadowMapTexture() const { return m_DirectionalShadowMap.GetTexture(AttachmentPoint::DepthStencil); }
     
     void SetShadowDepthPipelineStateAndRenderTarget(CommandList& directCommandList) const;
-    void RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, XMMATRIX modelMatrix) const;
+    void RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, PBRObjectPSO::VertexProps vertexProps) const;
 
 private:
     Device& m_Device;
@@ -90,8 +91,8 @@ private:
     XMFLOAT4 m_Color;
     XMFLOAT3 m_Position;
     XMFLOAT3 m_LookAt;
-    XMFLOAT4X4 m_OrthoMatrix;
-    XMFLOAT4X4 m_ViewMatrix;
+    XMFLOAT4X4 m_LightOrthoMatrix;
+    XMFLOAT4X4 m_LightViewMatrix;
     D3D12_VIEWPORT m_ViewPort;
 
     RenderTarget m_DirectionalShadowMap;

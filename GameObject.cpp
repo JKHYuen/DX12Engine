@@ -65,9 +65,9 @@ GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params,
 
 }
 
-void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e, Scene& scene) {
+void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene) {
 	// Render object with PBR shading, use stencil write version of PSO for outline effect to work
-	if(b_Outline) {
+	if(mb_Outline) {
 		m_RenderProps.pbrPSO->SetStencilWritePipelineState(directCommandList);
 		directCommandList.GetD3D12CommandList()->OMSetStencilRef(1);
 	}
@@ -80,16 +80,15 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 	XMMATRIX directionalLightViewMat = XMLoadFloat4x4(&v);
 	XMMATRIX directionalLightOrthoMat = XMLoadFloat4x4(&o);
 
-	PBRObjectPSO::VertexProps pbrVertexCB {};
 	{
-		XMStoreFloat4x4(&pbrVertexCB.SRT, XMLoadFloat4x4(&m_ScaleMat) * XMLoadFloat4x4(&m_RotationMat) * XMLoadFloat4x4(&m_TranslationMat));
-		XMStoreFloat4x4(&pbrVertexCB.MVP, XMLoadFloat4x4(&pbrVertexCB.SRT) * scene.m_MainCamera.Get_ViewMatrix() * scene.m_MainCamera.Get_ProjectionMatrix());
+		XMStoreFloat4x4(&m_PBRVertexCB.SRT, XMLoadFloat4x4(&m_ScaleMat) * XMLoadFloat4x4(&m_RotationMat) * XMLoadFloat4x4(&m_TranslationMat));
+		XMStoreFloat4x4(&m_PBRVertexCB.MVP, XMLoadFloat4x4(&m_PBRVertexCB.SRT) * scene.m_MainCamera.Get_ViewMatrix() * scene.m_MainCamera.Get_ProjectionMatrix());
 
-		XMStoreFloat4x4(&pbrVertexCB.directionalLightMVP, XMLoadFloat4x4(&pbrVertexCB.SRT) * directionalLightViewMat * directionalLightOrthoMat);
-		XMStoreFloat4(&pbrVertexCB.cameraPosition, scene.m_MainCamera.Get_Translation());
+		XMStoreFloat4x4(&m_PBRVertexCB.directionalLightMVP, XMLoadFloat4x4(&m_PBRVertexCB.SRT) * directionalLightViewMat * directionalLightOrthoMat);
+		XMStoreFloat4(&m_PBRVertexCB.cameraPosition, scene.m_MainCamera.Get_Translation());
 
-		pbrVertexCB.uvScale            = m_RenderProps.uvScale;
-		pbrVertexCB.heightMapMagnitude = m_RenderProps.heightMapMagnitude;
+		m_PBRVertexCB.uvScale            = m_RenderProps.uvScale;
+		m_PBRVertexCB.heightMapMagnitude = m_RenderProps.heightMapMagnitude;
 	}
 
 	PBRObjectPSO::LightProps lightProps {};
@@ -104,17 +103,17 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 		materialProps.useParallaxShadow = m_RenderProps.useParallaxShadow ? 1.0f : 0.0f;
 		materialProps.minParallaxLayers = (float)m_RenderProps.minParallaxLayers;
 		materialProps.maxParallaxLayers = (float)m_RenderProps.maxParallaxLayers;
-		materialProps.directionalShadowBias = scene.GetDirLight().GetShadowBias(); 
+		materialProps.directionalShadowBias = scene.GetDirLight().GetShadowBias();
 		materialProps.parallaxMagnitude = m_RenderProps.parallaxMagnitude;
 	}
 
-	m_RenderProps.pbrPSO->UpdateResources(directCommandList, m_TextureResources, pbrVertexCB, materialProps, lightProps);
+	m_RenderProps.pbrPSO->UpdateResources(directCommandList, m_TextureResources, m_PBRVertexCB, materialProps, lightProps);
 
 	m_Mesh->Draw(directCommandList);
 }
 
 void GameObject::RenderOutline(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene) {
-	if(b_Outline) {
+	if(mb_Outline) {
 		m_RenderProps.outlinePSO->SetPipelineState(directCommandList);
 		directCommandList.GetD3D12CommandList()->OMSetStencilRef(1);
 
@@ -140,8 +139,15 @@ void GameObject::RenderOutline(CommandList& directCommandList, const UpdateEvent
 // we can use a dirty flag to only update SRT when neccesary
 // assume we are in right rendering pipeline (see DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget)
 void GameObject::RenderToDirectionalShadowMap(CommandList& directCommandList, const DirectionalLight& directionalLight) {
-	XMMATRIX SRTMat = XMLoadFloat4x4(&m_ScaleMat) * XMLoadFloat4x4(&m_RotationMat) * XMLoadFloat4x4(&m_TranslationMat);
-	directionalLight.RenderObjectToDepth(directCommandList, *m_Mesh, SRTMat);
+	// Set all but MaterialTex to null SRVs (we need MaterialTex for height map)
+	for(int i = 0; i < PBRObjectPSO::TextureIndex::NumTextures; i++) {
+		if(i != PBRObjectPSO::TextureIndex::MaterialTex) {
+			directCommandList.SetNullShaderResourceView(PBRObjectPSO::PBRRootParameters::Textures, i);
+		}
+	}
+	directCommandList.SetShaderResourceView(PBRObjectPSO::PBRRootParameters::Textures, PBRObjectPSO::TextureIndex::MaterialTex, m_TextureResources[PBRObjectPSO::TextureIndex::MaterialTex], D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE);
+
+	directionalLight.RenderObjectToDepth(directCommandList, *m_Mesh, m_PBRVertexCB);
 }
 
 void GameObject::Translate(float x, float y, float z) {

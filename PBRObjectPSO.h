@@ -81,8 +81,6 @@ public:
 		XMFLOAT4   dirLightColor;
 	};
 
-	static constexpr int sk_NumTextures = TextureIndex::NumTextures;
-
 	std::shared_ptr<RootSignature> GetRootSignature() const {
 		return m_RootSignature;
 	}

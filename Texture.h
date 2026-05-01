@@ -129,10 +129,10 @@ private:
     uint32_t m_Width;
     uint32_t m_Height;
 
-    DescriptorAllocation m_RenderTargetView;
-    DescriptorAllocation m_DepthStencilView;
-    DescriptorAllocation m_ShaderResourceView;
-    DescriptorAllocation m_UnorderedAccessView;
+    DescriptorAllocation m_RTVAlloc;
+    DescriptorAllocation m_DSVAlloc;
+    DescriptorAllocation m_SRVAlloc;
+    DescriptorAllocation m_UAVAlloc;
 };
 
 

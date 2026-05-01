@@ -37,6 +37,20 @@ CommandList::CommandList(Device& device, D3D12_COMMAND_LIST_TYPE type)
 	, m_CurrentRootSignature(nullptr)
 	, m_CurrentPipelineState(nullptr) {
 
+	// Create SRV (static var) used to pad unused texture slots
+	if(CommandList::s_NullSRV == nullptr) {
+		D3D12_SHADER_RESOURCE_VIEW_DESC defaultSRVDesc;
+		defaultSRVDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		defaultSRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		defaultSRVDesc.Texture2D.MostDetailedMip = 0;
+		defaultSRVDesc.Texture2D.MipLevels = 1;
+		defaultSRVDesc.Texture2D.PlaneSlice = 0;
+		defaultSRVDesc.Texture2D.ResourceMinLODClamp = 0;
+		defaultSRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+		CommandList::s_NullSRV = std::make_shared<ShaderResourceView>(m_Device, nullptr, &defaultSRVDesc);
+	}
+
 	auto d3d12Device = device.GetD3D12Device();
 
 	ThrowIfFailed(
@@ -893,6 +907,10 @@ void CommandList::SetShaderResourceView(uint32_t rootParameterIndex, uint32_t de
 	m_DynamicDescriptorHeap[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV]->StageDescriptors(
 		rootParameterIndex, descriptorOffset, 1, srv->GetDescriptorHandle()
 	);
+}
+
+void CommandList::SetNullShaderResourceView(uint32_t rootParameterIndex, uint32_t descriptorOffset, D3D12_RESOURCE_STATES stateAfter, UINT firstSubresource, UINT numSubresources) {
+	SetShaderResourceView(rootParameterIndex, descriptorOffset, CommandList::s_NullSRV, stateAfter, firstSubresource, numSubresources);
 }
 
 void CommandList::SetShaderResourceView(int32_t rootParameterIndex, uint32_t descriptorOffset, const std::shared_ptr<Texture>& texture, 

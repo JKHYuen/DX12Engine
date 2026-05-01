@@ -393,6 +393,16 @@ public:
     );
 
     /**
+     * Set null SRV on the graphics pipeline.
+     */
+    void SetNullShaderResourceView(
+        uint32_t rootParameterIndex, uint32_t descriptorOffset,
+        D3D12_RESOURCE_STATES stateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+        UINT firstSubresource = 0,
+        UINT numSubresources = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES
+    );
+
+    /**
      * Set an SRV on the graphics pipeline using the default SRV for the texture.
      */
     void SetShaderResourceView(
@@ -495,6 +505,9 @@ protected:
     }
 
 private:
+    // Default SRV with null resource for padding unused pipeline slots
+    static inline std::shared_ptr<ShaderResourceView> s_NullSRV {};
+
     /// TODO: Move asset cache somewhere else
     // Keep track of loaded textures to avoid loading the same texture multiple times.
     // Note: these caches should use weak_ptrs, but we are using shared_ptr to cache objects indefinitely for this limited project for now

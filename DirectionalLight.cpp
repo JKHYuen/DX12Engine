@@ -26,7 +26,7 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
     , m_ShadowRenderDistance(params.shadowRenderDistance)
     , m_ShadowNearFarZ(params.shadowNearFarZ)
 {
-    XMStoreFloat4x4(&m_OrthoMatrix, XMMatrixOrthographicLH(params.shadowRenderDistance, params.shadowRenderDistance, m_ShadowNearFarZ.x, m_ShadowNearFarZ.y));
+    XMStoreFloat4x4(&m_LightOrthoMatrix, XMMatrixOrthographicLH(params.shadowRenderDistance, params.shadowRenderDistance, m_ShadowNearFarZ.x, m_ShadowNearFarZ.y));
     SetEulerAngles(params.eulerDir.x, params.eulerDir.y, params.eulerDir.z);
 
     // Create directional light shadow map
@@ -113,15 +113,15 @@ void DirectionalLight::SetQuaternionAngle(XMVECTOR rotationQuaternion) {
     static XMFLOAT3 up { 0.0f, 1.0f, 0.0f };
     // Always look at origin, direction determined by m_Position
     static XMFLOAT3 lookAt { 0.0f, 0.0f, 0.0f };
-    XMStoreFloat4x4(&m_ViewMatrix, XMMatrixLookAtLH(XMLoadFloat3(&m_Position), XMLoadFloat3(&lookAt), XMLoadFloat3(&up)));
+    XMStoreFloat4x4(&m_LightViewMatrix, XMMatrixLookAtLH(XMLoadFloat3(&m_Position), XMLoadFloat3(&lookAt), XMLoadFloat3(&up)));
 }
 
 void DirectionalLight::SetShadowNearFarZ(XMFLOAT2 nearFarZ) {
-    XMStoreFloat4x4(&m_OrthoMatrix, XMMatrixOrthographicLH(m_ShadowRenderDistance, m_ShadowRenderDistance, nearFarZ.x, nearFarZ.y));
+    XMStoreFloat4x4(&m_LightOrthoMatrix, XMMatrixOrthographicLH(m_ShadowRenderDistance, m_ShadowRenderDistance, nearFarZ.x, nearFarZ.y));
 }
 
 void DirectionalLight::SetShadowRenderDistance(float distance) {
-    XMStoreFloat4x4(&m_OrthoMatrix, XMMatrixOrthographicLH(distance, distance, m_ShadowNearFarZ.x, m_ShadowNearFarZ.y));
+    XMStoreFloat4x4(&m_LightOrthoMatrix, XMMatrixOrthographicLH(distance, distance, m_ShadowNearFarZ.x, m_ShadowNearFarZ.y));
 }
 
 void DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget(CommandList& directCommandList) const {
@@ -133,11 +133,22 @@ void DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget(CommandList& d
     directCommandList.SetGraphicsRootSignature(m_DepthRenderRootSignature);
 }
 
-void DirectionalLight::RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, XMMATRIX modelMatrix) const {
-    PBRObjectPSO::VertexProps shadowDepthVertexCB;
+void DirectionalLight::RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, PBRObjectPSO::VertexProps vertexProps) const {
+    // Use directional light view/proj matrix and all other copied values from vertexProps
+    XMStoreFloat4x4(&vertexProps.MVP, XMLoadFloat4x4(&vertexProps.SRT) * XMLoadFloat4x4(&m_LightViewMatrix) * XMLoadFloat4x4(&m_LightOrthoMatrix));
 
-    XMStoreFloat4x4(&shadowDepthVertexCB.SRT, modelMatrix);
-    XMStoreFloat4x4(&shadowDepthVertexCB.MVP, modelMatrix * XMLoadFloat4x4(&m_ViewMatrix) * XMLoadFloat4x4(&m_OrthoMatrix));
-    directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::PBRRootParameters::VertexCB, shadowDepthVertexCB);
+    directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::PBRRootParameters::VertexCB, vertexProps);
     mesh.Draw(directCommandList);
 }
+
+
+
+
+
+
+
+
+
+
+
+

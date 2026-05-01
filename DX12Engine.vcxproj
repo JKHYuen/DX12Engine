@@ -203,7 +203,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="BloomPass.cpp" />
+    <ClCompile Include="BloomEffect.cpp" />
     <ClCompile Include="BloomPSO.cpp" />
     <ClCompile Include="Buffer.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
@@ -310,6 +310,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="OutlineEffect.cpp" />
     <ClCompile Include="OutlinePSO.cpp" />
     <ClCompile Include="PanoToCubemapPSO.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
@@ -393,7 +394,7 @@
   <ItemGroup>
     <ClInclude Include="Application.h" />
     <ClInclude Include="AssetImporter.h" />
-    <ClInclude Include="BloomPass.h" />
+    <ClInclude Include="BloomEffect.h" />
     <ClInclude Include="BloomPSO.h" />
     <ClInclude Include="Buffer.h" />
     <ClInclude Include="ByteAddressBuffer.h" />
@@ -437,6 +438,7 @@
     <ClInclude Include="IndexBuffer.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="Mesh.h" />
+    <ClInclude Include="OutlineEffect.h" />
     <ClInclude Include="OutlinePSO.h" />
     <ClInclude Include="PanoToCubemapPSO.h" />
     <ClInclude Include="PBRObjectPSO.h" />

@@ -1,4 +1,4 @@
-#include "BloomPass.h"
+#include "BloomEffect.h"
 #include "Device.h"
 #include "Texture.h"
 #include "RenderTarget.h"
@@ -10,7 +10,7 @@
 
 #include <format>
 
-BloomPass::BloomPass(Device& device, const RenderTarget& screenRenderTarget, BloomPSO* pso, int maxIterations, float intensity, float threshold, float softThreshold) :
+BloomEffect::BloomEffect(Device& device, const RenderTarget& screenRenderTarget, BloomPSO* pso, int maxIterations, float intensity, float threshold, float softThreshold) :
 	m_TextureFormat     { screenRenderTarget.GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0] },
 	m_MaxIterationCount { maxIterations },
 	m_IterationCount    { maxIterations },
@@ -51,7 +51,7 @@ BloomPass::BloomPass(Device& device, const RenderTarget& screenRenderTarget, Blo
 	EditorGui::Get().RegisterImageSRV(device, m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0), &m_SRVDesc, EditorGui::GuiSRVIndex::BloomPrefilter);
 }
 
-void BloomPass::CreateSamplingRenderTarget(size_t idx, uint32_t textureWidth, uint32_t textureHeight) {
+void BloomEffect::CreateSamplingRenderTarget(size_t idx, uint32_t textureWidth, uint32_t textureHeight) {
 	auto sampleTextureDesc = CD3DX12_RESOURCE_DESC::Tex2D(
 		m_TextureFormat, textureWidth, textureHeight,
 		1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
@@ -64,7 +64,7 @@ void BloomPass::CreateSamplingRenderTarget(size_t idx, uint32_t textureWidth, ui
 	samplingTexture->CreateShaderResourceView(m_SRVDesc);
 }
 
-void BloomPass::Render(CommandList& directCommandList, const RenderTarget& inputRenderTarget, const RenderTarget& outputRenderTarget) {
+void BloomEffect::Render(CommandList& directCommandList, const RenderTarget& inputRenderTarget, const RenderTarget& outputRenderTarget) {
 	m_PSO->SetPipelineState(directCommandList);
 
 	// First downsample + prefilter
@@ -129,7 +129,7 @@ void BloomPass::Render(CommandList& directCommandList, const RenderTarget& input
 	directCommandList.Draw(3);
 }
 
-void BloomPass::ResizeRenderTargets(uint32_t width, uint32_t height) {
+void BloomEffect::ResizeRenderTargets(uint32_t width, uint32_t height) {
 	if(m_SamplingRenderTargets.empty() ||
 		(m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0)->GetWidth() * 2 == width &&
 		 m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0)->GetHeight() * 2 == height)) {

@@ -16,7 +16,8 @@ class Picker {
 public:
 	Picker() = default;
 
-	// Raycast intersection test with all objects in scene, results are cached and cleared when mouse moves.
+	// Raycast intersection test with all objects in a scene, results are cached and cleared when mouse moves.
+	// Only checks GameObject type and assumes it has a valid AABB
 	GameObject* MouseRaycast(Scene& scene, int mouseX, int mouseY, int windowWidth, int windowHeight);
 
 	GameObject* GetPickedObject() const { return m_PickedObject; };

@@ -31,7 +31,8 @@
 #include "OutlinePSO.h"
 #include "ImageBasedLightingPSO.h"
 #include "BloomPSO.h"
-#include "BloomPass.h"
+#include "BloomEffect.h"
+#include "OutlineEffect.h"
 #include "AssetImporter.h"
 #include "Logger.h"
 
@@ -182,7 +183,8 @@ bool DemoGame::Initialize() {
 	m_Bloom_PSO = std::make_unique<BloomPSO>(*m_Device, m_HDR_MSAA_RT);
 	///
 
-	m_BloomPass = std::make_unique<BloomPass>(*m_Device, m_HDR_MSAA_RT, m_Bloom_PSO.get());
+	m_BloomEffect = std::make_unique<BloomEffect>(*m_Device, m_HDR_MSAA_RT, m_Bloom_PSO.get());
+	m_OutlineEffect = std::make_unique<OutlineEffect>(*m_Device, m_HDR_MSAA_RT, m_Outline_PSO.get(), m_BloomEffect.get());
 
 	auto& copyCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 	// Load Assets (COPY operations)
@@ -208,7 +210,7 @@ bool DemoGame::Initialize() {
 			m_IBL_PSO.get()
 		};
 
-		m_TestScene = std::make_unique<Scene>(*m_Device, *copyCommandList, *computeCommandList, dirLightParams, skyboxParams, m_WindowWidth, m_WindowHeight);
+		m_DemoScene = std::make_unique<Scene>(*m_Device, *copyCommandList, *computeCommandList, dirLightParams, skyboxParams, m_WindowWidth, m_WindowHeight);
 
 		// Wait for IBL resource creation to finish (panotocubemap in Skybox class)
 		copyCommandQueue.WaitForFenceValue(copyCommandQueue.ExecuteCommandList(copyCommandList));
@@ -220,14 +222,14 @@ bool DemoGame::Initialize() {
 
 		directCommandList->SetScissorRect(m_DefaultScissorRect);
 
-		m_TestScene->ComputeSkyboxIBLs(*directCommandList);
+		m_DemoScene->ComputeSkyboxIBLs(*directCommandList);
 		directCommandQueue.ExecuteCommandList(directCommandList);
 
 		/// TEMP TEST SCENE
 		{
 			GameObject::EntityParams goParams {
 				"Sphere",
-				*m_TestScene,
+				*m_DemoScene,
 				XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 1.0f, 1.0f),
 			};
 
@@ -239,19 +241,19 @@ bool DemoGame::Initialize() {
 			goParams.translation = XMFLOAT3(0.0f, 3.0f, 0.0f);
 			goParams.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
 			goRenderProps.heightMapMagnitude = 0.05f;
-			m_TestScene->AddGameObject({ *copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive() });
+			m_DemoScene->AddGameObject({ *copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive() });
 
 			goParams.translation = XMFLOAT3(-4.0f, 3.0f, 0.0f);
 			goRenderProps.pbrMatName = L"marble";
 			goRenderProps.heightMapMagnitude = 0.0f;
-			m_TestScene->AddGameObject({ *copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive() });
+			m_DemoScene->AddGameObject({ *copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive() });
 
 			goParams.name = "Cube";
 			goParams.translation = XMFLOAT3(4.0f, 3.0f, 0.0f);
 			goParams.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
 			goRenderProps.pbrMatName = L"metal_grid";
 			goRenderProps.heightMapMagnitude = 0.0f;
-			m_TestScene->AddGameObject({ *copyCommandList, goParams, goRenderProps, copyCommandList->GetCubePrimitive() });
+			m_DemoScene->AddGameObject({ *copyCommandList, goParams, goRenderProps, copyCommandList->GetCubePrimitive() });
 
 			/// Test model import
 			{
@@ -261,7 +263,7 @@ bool DemoGame::Initialize() {
 				goRenderProps.heightMapMagnitude = 0.0f;
 				auto importedMesh = AssetImporter::ImportModel(*copyCommandList, L"assets/models/" + goRenderProps.pbrMatName + L"/" + goRenderProps.pbrMatName + L".obj");
 
-				m_TestScene->AddGameObject({ *copyCommandList, goParams, goRenderProps, importedMesh });
+				m_DemoScene->AddGameObject({ *copyCommandList, goParams, goRenderProps, importedMesh });
 			}
 
 			goParams.name = "Floor";
@@ -272,7 +274,7 @@ bool DemoGame::Initialize() {
 			goRenderProps.heightMapMagnitude = 0.0f;
 			goRenderProps.parallaxMagnitude = 0.005f;
 			goRenderProps.useParallaxShadow = true;
-			m_TestScene->AddGameObject({ *copyCommandList, goParams, goRenderProps, copyCommandList->GetQuadPrimitive() });
+			m_DemoScene->AddGameObject({ *copyCommandList, goParams, goRenderProps, copyCommandList->GetQuadPrimitive() });
 
 			copyCommandQueue.ExecuteCommandList(copyCommandList);
 		}
@@ -342,16 +344,16 @@ void DemoGame::OnResize(const ResizeEventArgs& e) {
 
 	float aspectRatio = m_WindowWidth / (float)m_WindowHeight;
 	/// TODO: Define default z values somewhere
-	m_TestScene->m_MainCamera.Set_Projection(m_TestScene->m_MainCamera.Get_FoV(), aspectRatio, s_ZNear, s_ZFar);
+	m_DemoScene->m_MainCamera.Set_Projection(m_DemoScene->m_MainCamera.Get_FoV(), aspectRatio, s_ZNear, s_ZFar);
 
 	m_ScreenViewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_WindowWidth), static_cast<float>(m_WindowHeight));
 	m_HDR_MSAA_RT.Resize(m_WindowWidth, m_WindowHeight);
 	m_MSAAResolveDstRT.Resize(m_WindowWidth, m_WindowHeight);
 	m_PostProcessOutputRT.Resize(m_WindowWidth, m_WindowHeight);
 
-	m_BloomPass->ResizeRenderTargets(m_WindowWidth, m_WindowHeight);
+	m_BloomEffect->ResizeRenderTargets(m_WindowWidth, m_WindowHeight);
 
-	m_TestScene->SetGameWindowSize(m_WindowWidth, m_WindowHeight);
+	m_DemoScene->SetGameWindowSize(m_WindowWidth, m_WindowHeight);
 }
 
 void DemoGame::OnUpdate(const UpdateEventArgs& e) {
@@ -384,11 +386,11 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 		XMVECTOR cameraPan = XMVectorSet(0.0f, m_Up - m_Down, 0.0f, 1.0f) 
 			* speedMultipler * (float)e.DeltaTime;
 
-		m_TestScene->m_MainCamera.Translate(cameraTranslation, Space::Local);
-		m_TestScene->m_MainCamera.Translate(cameraPan, Space::Local);
+		m_DemoScene->m_MainCamera.Translate(cameraTranslation, Space::Local);
+		m_DemoScene->m_MainCamera.Translate(cameraPan, Space::Local);
 
 		XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(-m_Pitch), XMConvertToRadians(-m_Yaw), 0.0f);
-		m_TestScene->m_MainCamera.Set_Rotation(cameraRotation);
+		m_DemoScene->m_MainCamera.Set_Rotation(cameraRotation);
 	}
 
 	OnRender(e);
@@ -401,10 +403,8 @@ void DemoGame::RenderImGui(CommandList& directCommandList) {
 
 	// Keeping these functions separate for flexibility.
 	EditorGui::Get().NewFrame();
-
-	EditorGui::Get().DrawGameDebugUI(*this, *m_Device, *m_TestScene);
-	EditorGui::Get().DrawObjectInspector(*m_Device, *m_TestScene);
-
+	EditorGui::Get().DrawGameDebugUI(*m_Device, *m_DemoScene, *this);
+	EditorGui::Get().DrawObjectInspector(*m_Device, *m_DemoScene);
 	EditorGui::Get().Render(directCommandList);
 }
 
@@ -416,7 +416,7 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 
 	/// Render Test Scene
 	// Perform HDR rendering to multisampled render target
-	m_TestScene->Render(m_HDR_MSAA_RT, m_ScreenViewport, *directCommandList, e);
+	m_DemoScene->Render(m_HDR_MSAA_RT, m_ScreenViewport, *directCommandList, e);
 
 	/// MSAA resolve
 	auto& swapChainRT = m_SwapChain->GetRenderTarget();
@@ -433,8 +433,9 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 		auto intermediatePostProcessTexture = m_PostProcessOutputRT.GetTexture(AttachmentPoint::Color0);
 		directCommandList->ClearTexture(intermediatePostProcessTexture, Colors::DebugMagenta);
 
-		m_BloomPass->Render(*directCommandList, m_MSAAResolveDstRT, m_PostProcessOutputRT);
+		m_BloomEffect->Render(*directCommandList, m_MSAAResolveDstRT, m_PostProcessOutputRT);
 
+		/// TODO: move this to a tonemapping PSO class
 		// Tonemapping
 		directCommandList->SetPipelineState(m_TonemapPSO);
 		directCommandList->SetGraphicsRootSignature(m_PostProcessRootSignature);
@@ -484,7 +485,7 @@ void DemoGame::OnMouseButtonPressed(const MouseButtonEventArgs& e) {
 }
 
 void DemoGame::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
-	m_TestScene->OnMouseButtonReleased(e);
+	m_DemoScene->OnMouseButtonReleased(e);
 
 	if(e.Button == MouseButtonEventArgs::Left) {
 		m_IsLeftClickPressed = false;
@@ -497,7 +498,7 @@ void DemoGame::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 }
 
 void DemoGame::OnKeyPressed(const KeyEventArgs& e) {
-	m_TestScene->OnKeyPressed(e);
+	m_DemoScene->OnKeyPressed(e);
 
 	switch(e.Key) {
 	case KeyCode::Up:
@@ -555,7 +556,7 @@ void DemoGame::OnKeyPressed(const KeyEventArgs& e) {
 }
 
 void DemoGame::OnKeyReleased(const KeyEventArgs& e) {
-	m_TestScene->OnKeyReleased(e);
+	m_DemoScene->OnKeyReleased(e);
 
 	switch(e.Key) {
 	case KeyCode::Up:
@@ -602,9 +603,9 @@ void DemoGame::OnKeyReleased(const KeyEventArgs& e) {
 
 void DemoGame::OnMouseWheel(const MouseWheelEventArgs& e) {
 	if(!EditorGui::Get().GetUIVisibilityState()) {
-		auto fov = m_TestScene->m_MainCamera.Get_FoV();
+		auto fov = m_DemoScene->m_MainCamera.Get_FoV();
 		fov = std::clamp(fov - e.WheelDelta, s_MinFOV, s_MaxFOV);
-		m_TestScene->m_MainCamera.Set_FoV(fov);
+		m_DemoScene->m_MainCamera.Set_FoV(fov);
 	}
 }
 

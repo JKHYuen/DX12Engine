@@ -31,6 +31,13 @@
   */
 
 
+/* USAGE NOTES -KHY
+ * This class is only needed if setting a resource onto the pipeline using an SRV using CommandList::SetShaderResourceView(),
+ * as opposed to using the other overloads (e.g. via shared_ptr<Texture>).
+ * Only advantage of using this class over manually creating SRV with DX12 device is convenient constructor and keeping track of SRV's
+ * resource and allocation.
+ */
+
 #include <d3d12.h> 
 #include <memory>   
 #include "DescriptorAllocation.h"

@@ -17,6 +17,7 @@ ImageBasedLightingPSO::ImageBasedLightingPSO(Device& device, const RenderTarget&
 		CD3DX12_PIPELINE_STATE_STREAM_PS                    PS;
 		CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
 		CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_DESC           SampleDesc;
+		CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL         DepthStencilDesc;
 		CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER            RasterizerDesc;
 	} skyboxPipelineStateStream;
 
@@ -44,6 +45,9 @@ ImageBasedLightingPSO::ImageBasedLightingPSO(Device& device, const RenderTarget&
 	rootSignatureDesc.Init_1_1(2, rootParameters, 1, &linearClampSampler, rootSignatureFlags_VSPS);
 	m_SkyboxRootSignature = std::make_shared<RootSignature>(device, rootSignatureDesc.Desc_1_1);
 
+	auto depthStencilDesc = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	depthStencilDesc.DepthEnable = FALSE;
+
 	CD3DX12_RASTERIZER_DESC rasterizerDesc(D3D12_DEFAULT);
 	rasterizerDesc.CullMode = D3D12_CULL_MODE_FRONT;
 
@@ -54,6 +58,7 @@ ImageBasedLightingPSO::ImageBasedLightingPSO(Device& device, const RenderTarget&
 	skyboxPipelineStateStream.PS = AssetImporter::GetCompiledShaderFromFile(L"Skybox_PS.cso");
 	skyboxPipelineStateStream.RTVFormats = renderTarget.GetRenderTargetFormats();
 	skyboxPipelineStateStream.SampleDesc = renderTarget.GetSampleDesc();
+	skyboxPipelineStateStream.DepthStencilDesc = depthStencilDesc;
 	skyboxPipelineStateStream.RasterizerDesc = rasterizerDesc;
 
 	device.CreatePipelineState(skyboxPipelineStateStream, m_SkyboxPSO);

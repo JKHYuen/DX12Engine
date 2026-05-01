@@ -180,10 +180,13 @@
     <ClCompile Include="ImageBasedLightingPSO.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="BloomPass.cpp">
+    <ClCompile Include="BloomEffect.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="BloomPSO.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OutlineEffect.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -383,13 +386,16 @@
     <ClInclude Include="ImageBasedLightingPSO.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="BloomPass.h">
+    <ClInclude Include="BloomEffect.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="BloomPSO.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Colors.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OutlineEffect.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -43,25 +43,10 @@ OutlinePSO::OutlinePSO(Device& device, D3D12_RT_FORMAT_ARRAY rtvFormats, DXGI_FO
 	outlinePipelineStateStream.RasterDesc = rasterDesc;
 
 	device.CreatePipelineState(outlinePipelineStateStream, m_D3d12PipelineState);
-
-	// Create stencil write PSO
-	depthStencilDesc.DepthEnable   = FALSE;
-	depthStencilDesc.StencilEnable = TRUE;
-	depthStencilDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_REPLACE;
-	depthStencilDesc.FrontFace.StencilPassOp      = D3D12_STENCIL_OP_REPLACE;
-	depthStencilDesc.FrontFace.StencilFunc        = D3D12_COMPARISON_FUNC_ALWAYS;
-	outlinePipelineStateStream.DepthStencilDesc = depthStencilDesc;
-
-	device.CreatePipelineState(outlinePipelineStateStream, m_StencilWrite_D3d12PipelineState);
 }
 
 void OutlinePSO::SetPipelineState(CommandList& directCommandList) const {
 	directCommandList.SetPipelineState(m_D3d12PipelineState);
-	directCommandList.SetGraphicsRootSignature(m_ObjectRootSignature);
-}
-
-void OutlinePSO::SetStencilWritePipelineState(CommandList& directCommandList) const {
-	directCommandList.SetPipelineState(m_StencilWrite_D3d12PipelineState);
 	directCommandList.SetGraphicsRootSignature(m_ObjectRootSignature);
 }
 

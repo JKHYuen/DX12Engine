@@ -35,22 +35,6 @@ OutlineEffect::OutlineEffect(Device& device, const RenderTarget& screenRenderTar
 		srvDesc.Texture2D.MipLevels = 1;
 		outlineTexture->CreateShaderResourceView(srvDesc);
 	}
-
-	// Depth stencil texture for outline RT
-	{
-		auto depthStencilDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-			screenRenderTarget.GetDepthStencilFormat(), outputWidth, outputHeight, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
-		);
-
-		D3D12_CLEAR_VALUE depthClearValue;
-		depthClearValue.Format = depthStencilDesc.Format;
-		depthClearValue.DepthStencil = { 1.0f, 0 };
-
-		auto depthStencilTexture = std::make_shared<Texture>(device, depthStencilDesc, &depthClearValue);
-		depthStencilTexture->SetName(L"Outline Depth Stencil Texture");
-
-		m_OutlineRT.AttachTexture(AttachmentPoint::DepthStencil, depthStencilTexture);
-	}
 	
 	m_BloomEffect = std::make_unique<BloomEffect>(device, screenRenderTarget, bloomPSO, 2, 1.0f, 1.0f, 0.9f);
 }
@@ -65,7 +49,7 @@ bool OutlineEffect::Render(CommandList& directCommandList, const UpdateEventArgs
 	const GameObject* outlineObject = scene.GetPicker()->GetPickedObject();
 	if(outlineObject == nullptr) return false;
 
-	m_OutlinePSO->SetStencilWritePipelineState(directCommandList);
+	m_OutlinePSO->SetPipelineState(directCommandList);
 	directCommandList.SetViewport(m_OutlineRT.GetViewport());
 	directCommandList.SetRenderTarget(m_OutlineRT);
 	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

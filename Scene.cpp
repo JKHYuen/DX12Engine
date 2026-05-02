@@ -44,12 +44,6 @@ void Scene::ComputeSkyboxIBLs(CommandList& directCommandList) {
 	m_Skybox.ComputeIBLMaps(directCommandList);
 }
 
-/// TODO: figure out some proper game object storage, returned pointer here will be invalidated if vector resizes
-void Scene::AddGameObject(GameObject&& go) {
-	assert(m_SceneObjects.size() < sk_MaxSceneObjects);
-	m_SceneObjects.emplace_back(std::move(go));
-}
-
 /// TODO: TEMP
 /// UNUSED
 void Scene::SetCubemap(CommandList& copyCommandList, const std::wstring& hdrTextureName) {

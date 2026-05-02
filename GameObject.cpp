@@ -17,10 +17,10 @@
 
 using namespace DirectX;
 
-GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params, RenderProps renderProps, std::shared_ptr<Mesh> mesh)
+GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params, const RenderProps& renderProps, std::shared_ptr<Mesh> mesh)
 	: m_Mesh(mesh)
 	, m_Name(params.name)
-	, m_RenderProps(std::move(renderProps))
+	, m_RenderProps(renderProps)
 {
 	SetTranslation(params.translation.x, params.translation.y, params.translation.z);
 	SetEulerRotation(params.eulerRotation.x, params.eulerRotation.y, params.eulerRotation.z);

@@ -64,7 +64,7 @@ public:
 	// NOTE: copy command list must still be executed after GameObject, this is to keep flexibility to batch copy commands together
 	// We don't use RenderProps&& so there isn't accidental object invalidation ofr the caller
 	// Initialize with preconstructed mesh
-	GameObject(CommandList& copyCommandList, const EntityParams& params, RenderProps renderProps, std::shared_ptr<Mesh> mesh);
+	GameObject(CommandList& copyCommandList, const EntityParams& params, const RenderProps& renderProps, std::shared_ptr<Mesh> mesh);
 
 	/// TODO: UNFINSIHED
 	// Initialize with mesh loaded from file

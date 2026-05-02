@@ -44,7 +44,7 @@ using namespace DirectX;
 using namespace Microsoft::WRL;
 
 // static parameters
-// non const values only represent starting values, they can change during runtime
+// non const values only represent starting values, they will change during runtime
 namespace {
 	constexpr float sk_MouseSpeed = 0.05f;
 
@@ -198,19 +198,19 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 			goParams.translation = XMFLOAT3(0.0f, 3.0f, 0.0f);
 			goParams.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
 			goRenderProps.heightMapMagnitude = 0.05f;
-			m_DemoScene->AddGameObject({ *copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive() });
+			m_DemoScene->AddGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive());
 
 			goParams.translation = XMFLOAT3(-4.0f, 3.0f, 0.0f);
 			goRenderProps.pbrMatName = L"marble";
 			goRenderProps.heightMapMagnitude = 0.0f;
-			m_DemoScene->AddGameObject({ *copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive() });
+			m_DemoScene->AddGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive());
 
 			goParams.name = "Cube";
 			goParams.translation = XMFLOAT3(4.0f, 3.0f, 0.0f);
 			goParams.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
 			goRenderProps.pbrMatName = L"metal_grid";
 			goRenderProps.heightMapMagnitude = 0.0f;
-			m_DemoScene->AddGameObject({ *copyCommandList, goParams, goRenderProps, copyCommandList->GetCubePrimitive() });
+			m_DemoScene->AddGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetCubePrimitive());
 
 			/// Test model import
 			{
@@ -220,7 +220,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 				goRenderProps.heightMapMagnitude = 0.0f;
 				auto importedMesh = AssetImporter::ImportModel(*copyCommandList, L"assets/models/" + goRenderProps.pbrMatName + L"/" + goRenderProps.pbrMatName + L".obj");
 
-				m_DemoScene->AddGameObject({ *copyCommandList, goParams, goRenderProps, importedMesh });
+				m_DemoScene->AddGameObject(*copyCommandList, goParams, goRenderProps, importedMesh);
 			}
 
 			goParams.name = "Floor";
@@ -231,7 +231,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 			goRenderProps.heightMapMagnitude = 0.0f;
 			goRenderProps.parallaxMagnitude = 0.005f;
 			goRenderProps.useParallaxShadow = true;
-			m_DemoScene->AddGameObject({ *copyCommandList, goParams, goRenderProps, copyCommandList->GetQuadPrimitive() });
+			m_DemoScene->AddGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetQuadPrimitive());
 
 			copyCommandQueue.ExecuteCommandList(copyCommandList);
 		}

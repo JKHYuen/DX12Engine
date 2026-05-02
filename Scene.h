@@ -37,8 +37,12 @@ public:
 
 	void ComputeSkyboxIBLs(CommandList& directCommandList);
 
-	// We use std::move to move gameobject "go" into m_SceneObjects instead of constructing directly with emplace_back with Gameobject params so we dont have to keep track of Gameobject constructor params (they might change). "go" is an rvalue ref to avoid copy and to inform the caller object will be moved (i.e. invalidated).
-	void AddGameObject(GameObject&& go);
+	/// TODO: figure out some proper game object storage, pointers to m_SceneObjects can be invalidated
+	template<class ...TArgs>
+	void AddGameObject(TArgs&&... tArgs) {
+		assert(m_SceneObjects.size() < sk_MaxSceneObjects);
+		m_SceneObjects.emplace_back(std::forward<TArgs>(tArgs)...);
+	}
 
 	/// TODO: test
 	void SetCubemap(CommandList& copyCommandList, const std::wstring& hdrTextureName);

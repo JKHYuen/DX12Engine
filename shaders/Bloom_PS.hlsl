@@ -8,6 +8,7 @@ cbuffer MaterialParamBuffer : register(b0, space0) {
 
 Texture2D sourceTexture  : register(t0);
 Texture2D screenTexture  : register(t1);
+Texture2D maskTexture    : register(t2);
 
 SamplerState clampSampler : register(s0);
 
@@ -54,7 +55,10 @@ float4 main(PixelInputType i) : SV_TARGET {
     // Use final upsample + bloom addition pass
     else {
         color = screenTexture.Sample(clampSampler, i.uv).rgb;
-        color.rgb += intensity * SampleBox(i.uv, 0.5);
+        // low effort masking with red channel,
+        // mask texture will have color for outline effect (for techinical reasons), so technically outlines must have a red component that's not zero
+        float mask = maskTexture.Sample(clampSampler, i.uv).r == 0 ? 1.0 : 0.0; 
+        color.rgb += intensity * SampleBox(i.uv, 0.5) * mask;
     }
     
     return float4(color, 1.0);

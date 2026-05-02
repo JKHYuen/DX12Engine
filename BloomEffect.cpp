@@ -65,7 +65,7 @@ void BloomEffect::CreateSamplingRenderTarget(size_t idx, uint32_t textureWidth, 
 	samplingTexture->CreateShaderResourceView(m_SRVDesc);
 }
 
-void BloomEffect::Render(CommandList& directCommandList, const RenderTarget& inputRenderTarget, const RenderTarget& outputRenderTarget, const RenderTarget* blendRenderTarget) {
+void BloomEffect::Render(CommandList& directCommandList, const RenderTarget& inputRenderTarget, const RenderTarget& outputRenderTarget, const RenderTarget* blendRenderTarget, bool b_MaskOutInput) {
 	m_PSO->SetPipelineState(directCommandList);
 
 	// First downsample + prefilter
@@ -80,6 +80,7 @@ void BloomEffect::Render(CommandList& directCommandList, const RenderTarget& inp
 	directCommandList.SetGraphicsDynamicConstantBuffer(BloomPSO::BloomRootParameters::BloomCB, bloomProps);
 	directCommandList.SetShaderResourceView(BloomPSO::BloomRootParameters::Textures, 0, inputRenderTarget.GetTexture(AttachmentPoint::Color0), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	directCommandList.SetNullShaderResourceView(BloomPSO::BloomRootParameters::Textures, 1);
+	directCommandList.SetNullShaderResourceView(BloomPSO::BloomRootParameters::Textures, 2);
 
 	directCommandList.ClearTexture(m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0), Colors::DebugMagenta);
 	directCommandList.SetRenderTarget(m_SamplingRenderTargets[0]);
@@ -99,6 +100,7 @@ void BloomEffect::Render(CommandList& directCommandList, const RenderTarget& inp
 
 		directCommandList.SetShaderResourceView(BloomPSO::BloomRootParameters::Textures, 0, m_SamplingRenderTargets[i - 1].GetTexture(AttachmentPoint::Color0));
 		directCommandList.SetNullShaderResourceView(BloomPSO::BloomRootParameters::Textures, 1);
+		directCommandList.SetNullShaderResourceView(BloomPSO::BloomRootParameters::Textures, 2);
 
 		directCommandList.Draw(3);
 	}
@@ -114,12 +116,14 @@ void BloomEffect::Render(CommandList& directCommandList, const RenderTarget& inp
 
 		directCommandList.SetShaderResourceView(BloomPSO::BloomRootParameters::Textures, 0, m_SamplingRenderTargets[i + 1].GetTexture(AttachmentPoint::Color0));
 		directCommandList.SetNullShaderResourceView(BloomPSO::BloomRootParameters::Textures, 1);
+		directCommandList.SetNullShaderResourceView(BloomPSO::BloomRootParameters::Textures, 2);
 
 		directCommandList.Draw(3);
 	}
 
 	// Final Pass
-	m_PSO->SetPipelineState(directCommandList); // disable additive blending from progressive upsampling
+	// disable additive blending from progressive upsampling
+	m_PSO->SetPipelineState(directCommandList); 
 	bloomProps.useFinalPass = 1.0f;
 	directCommandList.SetGraphicsDynamicConstantBuffer(BloomPSO::BloomRootParameters::BloomCB, bloomProps);
 	directCommandList.SetRenderTarget(outputRenderTarget);
@@ -132,6 +136,13 @@ void BloomEffect::Render(CommandList& directCommandList, const RenderTarget& inp
 			inputRenderTarget.GetTexture(AttachmentPoint::Color0) : blendRenderTarget->GetTexture(AttachmentPoint::Color0),
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
 	);
+
+	if(b_MaskOutInput) {
+		directCommandList.SetShaderResourceView(BloomPSO::BloomRootParameters::Textures, 2, inputRenderTarget.GetTexture(AttachmentPoint::Color0));
+	}
+	else {
+		directCommandList.SetNullShaderResourceView(BloomPSO::BloomRootParameters::Textures, 2);
+	}
 
 	directCommandList.Draw(3);
 }

@@ -30,6 +30,7 @@ public:
 	enum TextureIndex {
 		SourceTex,
 		ScreenTex,
+		maskTex,
 
 		NumTextures
 	};

@@ -66,14 +66,7 @@ GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params,
 }
 
 void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene) {
-	// Render object with PBR shading, use stencil write version of PSO for outline effect to work
-	if(mb_Outline) {
-		m_RenderProps.pbrPSO->SetStencilWritePipelineState(directCommandList);
-		directCommandList.GetD3D12CommandList()->OMSetStencilRef(1);
-	}
-	else {
-		m_RenderProps.pbrPSO->SetPipelineState(directCommandList);
-	}
+	m_RenderProps.pbrPSO->SetPipelineState(directCommandList);
 
 	XMFLOAT4X4 v = scene.GetDirLight().GetViewMatrix();
 	XMFLOAT4X4 o = scene.GetDirLight().GetOrthoMatrix();
@@ -112,7 +105,7 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 	m_Mesh->Draw(directCommandList);
 }
 
-void GameObject::RenderOutline(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, OutlinePSO* outlinePSO) const {
+void GameObject::RenderSilhouette(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, OutlinePSO* outlinePSO) const {
 	// Set all but MaterialTex to null SRVs (we need MaterialTex for height map)
 	for(int i = 0; i < PBRObjectPSO::TextureIndex::NumTextures; i++) {
 		if(i != PBRObjectPSO::TextureIndex::MaterialTex) {
@@ -123,15 +116,10 @@ void GameObject::RenderOutline(CommandList& directCommandList, const UpdateEvent
 		}
 	}
 
-	PBRObjectPSO::LightProps lightProps {};
-	{
-		lightProps.Time = { (float)e.Time, (float)e.DeltaTime, 0.0f, 0.0f };
-		lightProps.dirLight = scene.GetDirLight().GetNormDirectionVector();
-		lightProps.dirLightColor = scene.GetDirLight().GetColor();
-		lightProps.outlineColor = { 10.0f, 10.0f, 0.0f, 1.0f }; // unused in this shader
-	}
+	PBRObjectPSO::LightProps props = m_PBRLightCB;
+	props.outlineColor = XMFLOAT4{ 10.0f, 10.0f, 0.0f, 1.0f };
 
-	outlinePSO->UpdateResources(directCommandList, m_PBRVertexCB, lightProps);
+	outlinePSO->UpdateResources(directCommandList, m_PBRVertexCB, props);
 	m_Mesh->Draw(directCommandList);
 }
 

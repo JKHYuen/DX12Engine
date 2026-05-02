@@ -52,11 +52,12 @@ OutlineEffect::OutlineEffect(Device& device, const RenderTarget& screenRenderTar
 		m_OutlineRT.AttachTexture(AttachmentPoint::DepthStencil, depthStencilTexture);
 	}
 	
-	m_BloomEffect = std::make_unique<BloomEffect>(device, screenRenderTarget, bloomPSO, 2, 0.1f, 1.0f, 0.9f);
+	m_BloomEffect = std::make_unique<BloomEffect>(device, screenRenderTarget, bloomPSO, 2, 1.0f, 1.0f, 0.9f);
 }
 
 void OutlineEffect::Resize(uint32_t width, uint32_t height) {
-	/// TODO:
+	m_BloomEffect->ResizeRenderTargets(width, height);
+	m_OutlineRT.Resize(width, height);
 }
 
 bool OutlineEffect::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, const RenderTarget& blendRenderTarget, const RenderTarget& outputRenderTarget) {
@@ -64,18 +65,18 @@ bool OutlineEffect::Render(CommandList& directCommandList, const UpdateEventArgs
 	const GameObject* outlineObject = scene.GetPicker()->GetPickedObject();
 	if(outlineObject == nullptr) return false;
 
-	m_OutlinePSO->SetPipelineState(directCommandList);
+	m_OutlinePSO->SetStencilWritePipelineState(directCommandList);
 	directCommandList.SetViewport(m_OutlineRT.GetViewport());
 	directCommandList.SetRenderTarget(m_OutlineRT);
 	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	directCommandList.GetD3D12CommandList()->OMSetStencilRef(1);
-
 	directCommandList.ClearTexture(m_OutlineRT.GetTexture(AttachmentPoint::Color0), Colors::Clear);
 
-	outlineObject->RenderOutline(directCommandList, e, scene, m_OutlinePSO);
+	// Render object silhouette to intermediate RT
+	outlineObject->RenderSilhouette(directCommandList, e, scene, m_OutlinePSO);
 
-	m_BloomEffect->Render(directCommandList, m_OutlineRT, outputRenderTarget, &blendRenderTarget);
+	// Bloom (blur) silhoutte
+	m_BloomEffect->Render(directCommandList, m_OutlineRT, outputRenderTarget, &blendRenderTarget, true);
 
 	return true;
 }

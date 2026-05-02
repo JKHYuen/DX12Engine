@@ -18,7 +18,7 @@ public:
 
 	// "blendRenderTarget" is an optional render target if we want a texture other than inputRenderTarget to be blended with on the last render pass.
 	// (Last render pass uses outputRenderTarget as render target and adds m_SamplingRenderTargets[0] and blendRenderTarget/inputRenderTarget together with intensity multiplier to apply bloom)
-	void Render(CommandList& directCommandList, const RenderTarget& inputRenderTarget, const RenderTarget& outputRenderTarget, const RenderTarget* blendRenderTarget = nullptr);
+	void Render(CommandList& directCommandList, const RenderTarget& inputRenderTarget, const RenderTarget& outputRenderTarget, const RenderTarget* blendRenderTarget = nullptr, bool b_MaskOutInput = false);
 
 	void ResizeRenderTargets(uint32_t width, uint32_t height);
 

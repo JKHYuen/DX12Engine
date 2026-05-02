@@ -54,13 +54,13 @@ private:
     // this adds a buffer so it is allowed by DX
     struct PostProcessRenderTargets {
         PostProcessRenderTargets() = default;
-        PostProcessRenderTargets(Device& device, DXGI_FORMAT format, uint32_t width, uint32_t height) {
+        PostProcessRenderTargets(Device& device, DXGI_FORMAT colorFormat, uint32_t width, uint32_t height) {
             auto textureDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-                format, width, height, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
+                colorFormat, width, height, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
             );
 
             D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc {};
-            srvDesc.Format = format;
+            srvDesc.Format = colorFormat;
             srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
             srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
             srvDesc.Texture2D.MostDetailedMip = 0;
@@ -93,8 +93,6 @@ private:
     std::shared_ptr<SwapChain> m_SwapChain;
 
     RenderTarget m_HDR_MSAA_RT {};
-    //RenderTarget m_MSAAResolveDstRT {};    // destination of MSAA resolve
-    //RenderTarget m_PostProcessOutputRT {}; // Intermediate render target between post process passes
 
     /// TODO: figure out more generalized PSO loading system
     std::unique_ptr<PBRObjectPSO> m_PBR_PSO;

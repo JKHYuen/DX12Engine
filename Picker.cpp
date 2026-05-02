@@ -99,10 +99,6 @@ GameObject* Picker::MouseRaycast(Scene& scene, int mouseX, int mouseY, int windo
 }
 
 void Picker::ClearPickedObject() {
-	if(m_PickedObject) {
-		m_PickedObject->SetOutlineState(false);
-	}
-
 	m_PickedObject = nullptr;
 	EditorGui::Get().SetObjectInspectorState(false);
 }

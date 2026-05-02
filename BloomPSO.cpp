@@ -30,7 +30,7 @@ BloomPSO::BloomPSO(Device& device, const RenderTarget& renderTarget) {
 		linearClampSampler.MaxAnisotropy = 1;
 		linearClampSampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
 		linearClampSampler.MinLOD = 0;
-		// !!! If this is set to D3D12_FLOAT32_MAX (CD3DX12_STATIC_SAMPLER_DESC() default), screen textyre does not get rendered for some reason
+		// !!! If this is set to D3D12_FLOAT32_MAX (CD3DX12_STATIC_SAMPLER_DESC() default), screen texture does not get rendered for some reason
 		linearClampSampler.MaxLOD = 0;
 	}
 
@@ -44,7 +44,7 @@ BloomPSO::BloomPSO(Device& device, const RenderTarget& renderTarget) {
 	{
 		rootParameters[BloomRootParameters::BloomCB].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
 
-		CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0);
+		CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, TextureIndex::NumTextures, 0);
 		rootParameters[BloomRootParameters::Textures].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
 		CD3DX12_STATIC_SAMPLER_DESC samplers[] = { linearClampSampler };
@@ -62,6 +62,7 @@ BloomPSO::BloomPSO(Device& device, const RenderTarget& renderTarget) {
 
 		// No blending
 		auto blendDesc = CD3DX12_BLEND_DESC(CD3DX12_DEFAULT());
+
 		bloomPipelineStateStream.pRootSignature = m_RootSignature->GetD3D12RootSignature().Get();
 		bloomPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		bloomPipelineStateStream.VS = AssetImporter::GetCompiledShaderFromFile(L"ScreenRender_VS.cso");
@@ -79,9 +80,6 @@ BloomPSO::BloomPSO(Device& device, const RenderTarget& renderTarget) {
 		blendDesc.RenderTarget[AttachmentPoint::Color0].SrcBlend = D3D12_BLEND_ONE;
 		blendDesc.RenderTarget[AttachmentPoint::Color0].DestBlend = D3D12_BLEND_ONE;
 		blendDesc.RenderTarget[AttachmentPoint::Color0].BlendOp = D3D12_BLEND_OP_ADD;
-		//blendDesc.RenderTarget[AttachmentPoint::Color0].SrcBlendAlpha = D3D12_BLEND_ONE;
-		//blendDesc.RenderTarget[AttachmentPoint::Color0].DestBlendAlpha = D3D12_BLEND_ONE;
-		//blendDesc.RenderTarget[AttachmentPoint::Color0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
 		bloomPipelineStateStream.BlendDesc = blendDesc;
 
 		device.CreatePipelineState(bloomPipelineStateStream, m_BloomAdditivePSO);

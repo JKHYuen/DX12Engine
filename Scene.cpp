@@ -100,14 +100,8 @@ void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 	//	 - or ImGui UI is not open
 	if(e.Button == MouseButtonEventArgs::Left) {
 		if(EditorGui::Get().GetUIVisibilityState() && !ImGui::GetIO().WantCaptureMouse) {
-			// Unhighlight already highlighted object if there is one
-			if(const GameObject* go = m_Picker->GetPickedObject()) {
-				m_Picker->ClearPickedObject();
-			}
-			// Highlight new object
-			if(GameObject* go = m_Picker->MouseRaycast(*this, e.X, e.Y, m_GameWindowWidth, m_GameWindowHeight)) {
-				go->SetOutlineState(true);
-			}
+			// Update picked object
+			m_Picker->MouseRaycast(*this, e.X, e.Y, m_GameWindowWidth, m_GameWindowHeight);
 		}
 
 		// Unpick object if mouse clicked and editor UI is not open

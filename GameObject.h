@@ -72,7 +72,7 @@ public:
 
 	void Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene);
 
-	void RenderOutline(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, OutlinePSO* outlinePSO) const;
+	void RenderSilhouette(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, OutlinePSO* outlinePSO) const;
 
 	void RenderToDirectionalShadowMap(CommandList& directCommandList, const DirectionalLight& directionalLight);
 
@@ -100,10 +100,6 @@ public:
 
 	const BoundingBox& GetAABB() const { return m_AABB; }
 	std::shared_ptr<Mesh> GetMesh() const { return m_Mesh; }
-
-	/// Things that should be in some sort of component system:
-	void SetOutlineState(bool state) { mb_Outline = state; };
-	///
 	
 private:
 	std::shared_ptr<Mesh> m_Mesh {};
@@ -124,7 +120,6 @@ private:
 	PBRObjectPSO::VertexProps m_PBRVertexCB {};
 	PBRObjectPSO::LightProps m_PBRLightCB {};
 	RenderProps m_RenderProps {};
-	bool mb_Outline {};
 	///
 };
 

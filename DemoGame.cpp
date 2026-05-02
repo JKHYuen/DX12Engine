@@ -91,7 +91,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	EditorGui::Create(*m_Device, sk_HDRFormat, SwapChain::sk_BufferCount, m_Window->GetWindowHandle());
 
 	// Create post process RT buffers
-	m_PostProcessRTs = {*m_Device, sk_HDRFormat , windowWidth, windowHeight};
+	m_PostProcessRTs = {*m_Device, sk_HDRFormat, windowWidth, windowHeight};
 
 	// TODO: Tweakable MSAA
 	DXGI_SAMPLE_DESC multiSampleDesc = m_Device->GetMultisampleQualityLevels(sk_HDRFormat);
@@ -117,7 +117,8 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 
 		// depth stencil buffer
 		auto depthStencilDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-			sk_DepthStencilBufferFormat, m_WindowWidth, m_WindowHeight, 1, 1, multiSampleDesc.Count, multiSampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
+			sk_DepthStencilBufferFormat, m_WindowWidth, m_WindowHeight, 1, 1, multiSampleDesc.Count, multiSampleDesc.Quality,
+			D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
 		);
 
 		D3D12_CLEAR_VALUE depthClearValue;
@@ -307,16 +308,15 @@ void DemoGame::OnResize(const ResizeEventArgs& e) {
 	m_SwapChain->Resize(m_WindowWidth, m_WindowHeight);
 
 	float aspectRatio = m_WindowWidth / (float)m_WindowHeight;
-	/// TODO: Define default z values somewhere
 	m_DemoScene->m_MainCamera.Set_Projection(m_DemoScene->m_MainCamera.Get_FoV(), aspectRatio, s_ZNear, s_ZFar);
 
 	m_ScreenViewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_WindowWidth), static_cast<float>(m_WindowHeight));
 	m_HDR_MSAA_RT.Resize(m_WindowWidth, m_WindowHeight);
-	//m_MSAAResolveDstRT.Resize(m_WindowWidth, m_WindowHeight);
-	//m_PostProcessOutputRT.Resize(m_WindowWidth, m_WindowHeight);
+
 	m_PostProcessRTs.Resize(m_WindowWidth, m_WindowHeight);
 
 	m_BloomEffect->ResizeRenderTargets(m_WindowWidth, m_WindowHeight);
+	m_OutlineEffect->Resize(m_WindowWidth, m_WindowHeight);
 
 	m_DemoScene->SetGameWindowSize(m_WindowWidth, m_WindowHeight);
 }
@@ -397,9 +397,9 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 		m_BloomEffect->Render(*directCommandList, m_PostProcessRTs.RTs[0], m_PostProcessRTs.RTs[1]);
 		
 		/// TODO: come up with something less silly, we need some more logic in PostProcessRenderTargets
-		RenderTarget* nextPostProcessRT = &m_PostProcessRTs.RTs[1];
+		RenderTarget* nextInputPostProcessRT = &m_PostProcessRTs.RTs[1];
 		if(m_OutlineEffect->Render(*directCommandList, e, *m_DemoScene, m_PostProcessRTs.RTs[1], m_PostProcessRTs.RTs[0])) {
-			nextPostProcessRT = &m_PostProcessRTs.RTs[0];
+			nextInputPostProcessRT = &m_PostProcessRTs.RTs[0];
 		};
 
 		/// TODO: move this to a tonemapping PSO class
@@ -409,7 +409,7 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 		directCommandList->SetViewport(swapChainRT.GetViewport());
 		directCommandList->SetRenderTarget(swapChainRT);
 		directCommandList->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		directCommandList->SetShaderResourceView(0, 0, nextPostProcessRT->GetTexture(AttachmentPoint::Color0), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		directCommandList->SetShaderResourceView(0, 0, nextInputPostProcessRT->GetTexture(AttachmentPoint::Color0), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		// non indexed full screen render (see ScreenRender vertex shader)
 		directCommandList->Draw(3);
 	}

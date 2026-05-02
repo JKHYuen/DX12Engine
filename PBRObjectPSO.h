@@ -95,6 +95,5 @@ public:
 private:
 	std::shared_ptr<RootSignature> m_RootSignature;
 	ComPtr<ID3D12PipelineState> m_D3d12PipelineState;
-	ComPtr<ID3D12PipelineState> m_StencilWrite_D3d12PipelineState;
 };
 

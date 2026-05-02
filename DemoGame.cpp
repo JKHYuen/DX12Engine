@@ -72,25 +72,10 @@ namespace {
 DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t windowHeight, bool vSync)
 	: m_DefaultScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX))
 	, m_ScreenViewport(CD3DX12_VIEWPORT(0.0f, 0.0f, (float)windowWidth, (float)windowHeight))
-	, m_Forward(0)
-	, m_Backward(0)
-	, m_Left(0)
-	, m_Right(0)
-	, m_Up(0)
-	, m_Down(0)
-	, m_Pitch(0)
-	, m_Yaw(0)
-	, m_IsShiftPressed(false)
-	, m_IsLeftClickPressed(false)
-	, m_IsRightClickPressed(false)
-	, m_CurrentAvgFPS(0)
 	, m_WindowWidth(windowWidth)
 	, m_WindowHeight(windowHeight)
 	, m_IsVsync(vSync)
-	, m_HDR_MSAA_RT() 
-	, m_MSAAResolveDstRT() 
-	, m_PostProcessOutputRT() {
-
+{
 	m_Window = Application::Get().CreateRenderWindow(name, windowWidth, windowHeight, *this);
 
 	/// TODO: dont hardcode asset path
@@ -99,29 +84,14 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	for(const auto& entry : std::filesystem::directory_iterator(L"assets/cubemaps")) {
 		m_SkyboxNames.emplace_back(entry.path().filename().c_str());
 	}
-}
 
-uint32_t DemoGame::Run() {
-	// m_Device created here
-	Initialize();
-	m_Window->Show();
-
-	// Starts Windows msg loop
-	// OnUpdate() called on WM_PAINT message
-	uint32_t retCode = Application::Get().Run();
-
-	// Bandaid Fix: 
-	// Manually destroy DX device and adapter, ImGUI gets upset if these aren't destoyed before it calls its shutdown functions
-	//m_Device.reset();
-
-	return retCode;
-}
-
-bool DemoGame::Initialize() {
 	m_Device = std::make_shared<Device>();
 
 	// Create EditorGui singleton
 	EditorGui::Create(*m_Device, sk_HDRFormat, SwapChain::sk_BufferCount, m_Window->GetWindowHandle());
+
+	// Create post process RT buffers
+	m_PostProcessRTs = {*m_Device, sk_HDRFormat , windowWidth, windowHeight};
 
 	// TODO: Tweakable MSAA
 	DXGI_SAMPLE_DESC multiSampleDesc = m_Device->GetMultisampleQualityLevels(sk_HDRFormat);
@@ -159,32 +129,18 @@ bool DemoGame::Initialize() {
 
 		m_HDR_MSAA_RT.AttachTexture(AttachmentPoint::Color0, colorTexture);
 		m_HDR_MSAA_RT.AttachTexture(AttachmentPoint::DepthStencil, depthStencilTexture);
-
-		// Non multisampled floating point render texture
-		auto floatTextureDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-			sk_HDRFormat, m_WindowWidth, m_WindowHeight, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
-		);
-
-		// multisampled HDR rendertarget will be resolved into this texture before postprocessing/tonemapping
-		auto prePostProcessRenderTexture = std::make_shared<Texture>(*m_Device, floatTextureDesc, &colorClearValue, true);
-		prePostProcessRenderTexture->SetName(L"MSAA Resolve Destination Render Target");
-		m_MSAAResolveDstRT.AttachTexture(AttachmentPoint::Color0, prePostProcessRenderTexture);
-
-		auto postProcessOutputTexture = std::make_shared<Texture>(*m_Device, floatTextureDesc, &colorClearValue, true);
-		postProcessOutputTexture->SetName(L"Post Process Output Render Target");
-		m_PostProcessOutputRT.AttachTexture(AttachmentPoint::Color0, postProcessOutputTexture);
 	}
 
 	/// TODO: Create PSOs (this should be managed somewhere else)
 	m_PBR_PSO = std::make_unique<PBRObjectPSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RT.GetRenderTargetFormats(), sk_DepthStencilBufferFormat);
-	m_Outline_PSO = std::make_unique<OutlinePSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RT.GetRenderTargetFormats(), sk_DepthStencilBufferFormat);
 	m_IBL_PSO = std::make_unique<ImageBasedLightingPSO>(*m_Device, m_HDR_MSAA_RT);
 
 	m_Bloom_PSO = std::make_unique<BloomPSO>(*m_Device, m_HDR_MSAA_RT);
+	m_Outline_PSO = std::make_unique<OutlinePSO>(*m_Device, m_HDR_MSAA_RT.GetRenderTargetFormats(), m_HDR_MSAA_RT.GetDepthStencilFormat(), m_PBR_PSO.get()->GetRootSignature());
 	///
 
 	m_BloomEffect = std::make_unique<BloomEffect>(*m_Device, m_HDR_MSAA_RT, m_Bloom_PSO.get());
-	m_OutlineEffect = std::make_unique<OutlineEffect>(*m_Device, m_HDR_MSAA_RT, m_Outline_PSO.get(), m_BloomEffect.get());
+	m_OutlineEffect = std::make_unique<OutlineEffect>(*m_Device, m_HDR_MSAA_RT, m_Outline_PSO.get(), m_Bloom_PSO.get());
 
 	auto& copyCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 	// Load Assets (COPY operations)
@@ -195,7 +151,7 @@ bool DemoGame::Initialize() {
 			m_PBR_PSO->GetRootSignature(), // reuse PBR root signature for depth render
 			VertexInput::Get_POS_NORM_TAN_BIT_UV_InputLayout(),
 			XMFLOAT3(9.0f, 8.0f, 7.0f),
-			XMFLOAT3(140.0f, 230.0f, 0.0f), 
+			XMFLOAT3(140.0f, 230.0f, 0.0f),
 			s_ShadowMapResolution,
 			s_ShadowDistance,
 			{s_ShadowMapNear, s_ShadowMapFar},
@@ -235,7 +191,7 @@ bool DemoGame::Initialize() {
 
 			GameObject::RenderProps goRenderProps {};
 			goRenderProps.pbrPSO = m_PBR_PSO.get();
-			goRenderProps.outlinePSO = m_Outline_PSO.get();
+			//goRenderProps.outlinePSO = m_Outline_PSO.get();
 
 			goRenderProps.pbrMatName = L"stonewall";
 			goParams.translation = XMFLOAT3(0.0f, 3.0f, 0.0f);
@@ -331,9 +287,17 @@ bool DemoGame::Initialize() {
 	}
 
 	// Wait for loading operations to complete before rendering the first frame
-	copyCommandQueue.FlushWait();  
+	copyCommandQueue.FlushWait();
+}
 
-	return true;
+uint32_t DemoGame::Run() {
+	m_Window->Show();
+
+	// Starts Windows msg loop
+	// OnUpdate() called on WM_PAINT message
+	uint32_t retCode = Application::Get().Run();
+
+	return retCode;
 }
 
 void DemoGame::OnResize(const ResizeEventArgs& e) {
@@ -348,8 +312,9 @@ void DemoGame::OnResize(const ResizeEventArgs& e) {
 
 	m_ScreenViewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_WindowWidth), static_cast<float>(m_WindowHeight));
 	m_HDR_MSAA_RT.Resize(m_WindowWidth, m_WindowHeight);
-	m_MSAAResolveDstRT.Resize(m_WindowWidth, m_WindowHeight);
-	m_PostProcessOutputRT.Resize(m_WindowWidth, m_WindowHeight);
+	//m_MSAAResolveDstRT.Resize(m_WindowWidth, m_WindowHeight);
+	//m_PostProcessOutputRT.Resize(m_WindowWidth, m_WindowHeight);
+	m_PostProcessRTs.Resize(m_WindowWidth, m_WindowHeight);
 
 	m_BloomEffect->ResizeRenderTargets(m_WindowWidth, m_WindowHeight);
 
@@ -372,11 +337,11 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 	// m_SwapChain->WaitForSwapChain();
 
 	// Update the camera transform if ImGui is not showing, unless right click is held
-	if(!EditorGui::Get().GetUIVisibilityState() || m_IsRightClickPressed) {
-		float speedMultipler = m_IsShiftPressed ? 32.0f : 8.0f;
+	if(!EditorGui::Get().GetUIVisibilityState() || m_RightClickPressed) {
+		float speedMultipler = m_LeftShiftPressed ? 32.0f : 8.0f;
 		
 		// extra slow movement if using left or right click
-		if(m_IsLeftClickPressed || m_IsRightClickPressed) {
+		if(m_LeftControlPressed) {
 			speedMultipler *= 0.05f;
 		}
 		
@@ -420,20 +385,22 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 
 	/// MSAA resolve
 	auto& swapChainRT = m_SwapChain->GetRenderTarget();
-	{
-		auto  msaaResolveDstTexture = m_MSAAResolveDstRT.GetTexture(AttachmentPoint::Color0);
-		auto  msaaHDRRenderTexture = m_HDR_MSAA_RT.GetTexture(AttachmentPoint::Color0);
-
-		// Resolve the MSAA render target to the swapchain's backbuffer
-		directCommandList->ResolveSubresource(msaaResolveDstTexture, msaaHDRRenderTexture);
-	}
+	// Resolve the MSAA render target to the swapchain's backbuffer
+	directCommandList->ResolveSubresource(
+		m_PostProcessRTs.RTs[0].GetTexture(AttachmentPoint::Color0),
+		m_HDR_MSAA_RT.GetTexture(AttachmentPoint::Color0)
+	);
 
 	/// Post Processing
 	{
-		auto intermediatePostProcessTexture = m_PostProcessOutputRT.GetTexture(AttachmentPoint::Color0);
-		directCommandList->ClearTexture(intermediatePostProcessTexture, Colors::DebugMagenta);
-
-		m_BloomEffect->Render(*directCommandList, m_MSAAResolveDstRT, m_PostProcessOutputRT);
+		directCommandList->ClearTexture(m_PostProcessRTs.RTs[1].GetTexture(AttachmentPoint::Color0), Colors::DebugMagenta);
+		m_BloomEffect->Render(*directCommandList, m_PostProcessRTs.RTs[0], m_PostProcessRTs.RTs[1]);
+		
+		/// TODO: come up with something less silly, we need some more logic in PostProcessRenderTargets
+		RenderTarget* nextPostProcessRT = &m_PostProcessRTs.RTs[1];
+		if(m_OutlineEffect->Render(*directCommandList, e, *m_DemoScene, m_PostProcessRTs.RTs[1], m_PostProcessRTs.RTs[0])) {
+			nextPostProcessRT = &m_PostProcessRTs.RTs[0];
+		};
 
 		/// TODO: move this to a tonemapping PSO class
 		// Tonemapping
@@ -442,7 +409,7 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 		directCommandList->SetViewport(swapChainRT.GetViewport());
 		directCommandList->SetRenderTarget(swapChainRT);
 		directCommandList->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		directCommandList->SetShaderResourceView(0, 0, intermediatePostProcessTexture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		directCommandList->SetShaderResourceView(0, 0, nextPostProcessRT->GetTexture(AttachmentPoint::Color0), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		// non indexed full screen render (see ScreenRender vertex shader)
 		directCommandList->Draw(3);
 	}
@@ -457,7 +424,7 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 
 void DemoGame::OnMouseMove(const MouseMotionEventArgs& e) {
 	// Record mouse rotations only if ImGui is closed or right click is held down
-	if(!EditorGui::Get().GetUIVisibilityState() || m_IsRightClickPressed) {
+	if(!EditorGui::Get().GetUIVisibilityState() || m_RightClickPressed) {
 		m_Pitch -= e.DeltaY * sk_MouseSpeed;
 		m_Pitch = std::clamp(m_Pitch, -90.0f, 90.0f);
 		m_Yaw -= e.DeltaX * sk_MouseSpeed;
@@ -466,21 +433,14 @@ void DemoGame::OnMouseMove(const MouseMotionEventArgs& e) {
 
 void DemoGame::OnMouseButtonPressed(const MouseButtonEventArgs& e) {
 	if(e.Button == MouseButtonEventArgs::Left) {
-		m_IsLeftClickPressed = true;
-		m_Forward = 1.0f;
+		m_LeftClickPressed = true;
 
 		// Lock cursor back to client when left click is pressed,
 		// this will be ignored if user presses outside of window or cursor is already locked
 		Application::Get().LockCursorToClientArea(m_Window->GetWindowHandle(), true);
 	}
 	else if(e.Button == MouseButtonEventArgs::Right) {
-		m_IsRightClickPressed = true;
-
-		// Holding right click moves camera back,
-		// disabled for ImGui because right click is held to enable camera movement
-		if(!EditorGui::Get().GetUIVisibilityState()) {
-			m_Forward = -1.0f;
-		}
+		m_RightClickPressed = true;
 	}
 }
 
@@ -488,11 +448,11 @@ void DemoGame::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 	m_DemoScene->OnMouseButtonReleased(e);
 
 	if(e.Button == MouseButtonEventArgs::Left) {
-		m_IsLeftClickPressed = false;
+		m_LeftClickPressed = false;
 		m_Forward = 0.0f;
 	}
 	else if(e.Button == MouseButtonEventArgs::Right) {
-		m_IsRightClickPressed = false;
+		m_RightClickPressed = false;
 		m_Forward = 0.0f;
 	}
 }
@@ -501,57 +461,61 @@ void DemoGame::OnKeyPressed(const KeyEventArgs& e) {
 	m_DemoScene->OnKeyPressed(e);
 
 	switch(e.Key) {
-	case KeyCode::Up:
-	case KeyCode::W:
-		m_Forward = 1.0f;
-		break;
+		case KeyCode::Up:
+		case KeyCode::W:
+			m_Forward = 1.0f;
+			break;
 
-	case KeyCode::Left:
-	case KeyCode::A:
-		m_Left = 1.0f;
-		break;
+		case KeyCode::Left:
+		case KeyCode::A:
+			m_Left = 1.0f;
+			break;
 
-	case KeyCode::Down:
-	case KeyCode::S:
-		m_Backward = 1.0f;
-		break;
+		case KeyCode::Down:
+		case KeyCode::S:
+			m_Backward = 1.0f;
+			break;
 
-	case KeyCode::Right:
-	case KeyCode::D:
-		m_Right = 1.0f;
-		break;
+		case KeyCode::Right:
+		case KeyCode::D:
+			m_Right = 1.0f;
+			break;
 
-	case KeyCode::Q:
-		m_Up = 1.0f;
-		break;
+		case KeyCode::Q:
+			m_Up = 1.0f;
+			break;
 
-	case KeyCode::E:
-		m_Down = 1.0f;
-		break;
+		case KeyCode::E:
+			m_Down = 1.0f;
+			break;
 
-	case KeyCode::F:
-		EditorGui::Get().SetPickerState(true);
-		break;
+		case KeyCode::F:
+			EditorGui::Get().SetPickerState(true);
+			break;
 
-	case KeyCode::Escape:
-		if(!Application::Get().GetCursorClientAreaLockState()) {
-			Application::Get().Quit();
+		case KeyCode::Escape:
+			if(!Application::Get().GetCursorClientAreaLockState()) {
+				Application::Get().Quit();
+			}
+
+			Application::Get().LockCursorToClientArea(m_Window->GetWindowHandle(), false);
+			break;
+
+		case KeyCode::F11: {
+			m_Window->ToggleFullscreen();
+			break;
 		}
+		case KeyCode::V:
+			m_SwapChain->ToggleVSync();
+			break;
 
-		Application::Get().LockCursorToClientArea(m_Window->GetWindowHandle(), false);
-		break;
+		case KeyCode::ShiftKey:
+			m_LeftShiftPressed = true;
+			break;
 
-	case KeyCode::F11: {
-		m_Window->ToggleFullscreen();
-		break;
-	}
-	case KeyCode::V:
-		m_SwapChain->ToggleVSync();
-		break;
-
-	case KeyCode::ShiftKey:
-		m_IsShiftPressed = true;
-		break;
+		case KeyCode::ControlKey:
+			m_LeftControlPressed = true;
+			break;
 	}
 }
 
@@ -559,45 +523,49 @@ void DemoGame::OnKeyReleased(const KeyEventArgs& e) {
 	m_DemoScene->OnKeyReleased(e);
 
 	switch(e.Key) {
-	case KeyCode::Up:
-	case KeyCode::W:
-		m_Forward = 0.0f;
-		break;
+		case KeyCode::Up:
+		case KeyCode::W:
+			m_Forward = 0.0f;
+			break;
 
-	case KeyCode::Left:
-	case KeyCode::A:
-		m_Left = 0.0f;
-		break;
+		case KeyCode::Left:
+		case KeyCode::A:
+			m_Left = 0.0f;
+			break;
 
-	case KeyCode::Down:
-	case KeyCode::S:
-		m_Backward = 0.0f;
-		break;
+		case KeyCode::Down:
+		case KeyCode::S:
+			m_Backward = 0.0f;
+			break;
 
-	case KeyCode::Right:
-	case KeyCode::D:
-		m_Right = 0.0f;
-		break;
+		case KeyCode::Right:
+		case KeyCode::D:
+			m_Right = 0.0f;
+			break;
 
-	case KeyCode::Q:
-		m_Up = 0.0f;
-		break;
+		case KeyCode::Q:
+			m_Up = 0.0f;
+			break;
 
-	case KeyCode::E:
-		m_Down = 0.0f;
-		break;
+		case KeyCode::E:
+			m_Down = 0.0f;
+			break;
 
-	case KeyCode::F1: 
-		EditorGui::Get().ToggleDebugWindowState();
-		break;
+		case KeyCode::F1: 
+			EditorGui::Get().ToggleDebugWindowState();
+			break;
 
-	case KeyCode::F:
-		EditorGui::Get().SetPickerState(false);
-		break;
+		case KeyCode::F:
+			EditorGui::Get().SetPickerState(false);
+			break;
 
-	case KeyCode::ShiftKey:
-		m_IsShiftPressed = false;
-		break;
+		case KeyCode::ShiftKey:
+			m_LeftShiftPressed = false;
+			break;
+
+		case KeyCode::ControlKey:
+			m_LeftControlPressed = false;
+			break;
 	}
 }
 

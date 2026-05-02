@@ -59,7 +59,6 @@ public:
 
 		// PSOs are owned by DemoGame
 		PBRObjectPSO* pbrPSO {};
-		OutlinePSO* outlinePSO {};
 	};
 
 	// NOTE: copy command list must still be executed after GameObject, this is to keep flexibility to batch copy commands together
@@ -71,8 +70,9 @@ public:
 	// Initialize with mesh loaded from file
 	GameObject(CommandList& copyCommandList, const EntityParams& params, RenderProps renderProps, const std::wstring& meshFilePath);
 
-	void Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene & scene);
-	void RenderOutline(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene);
+	void Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene);
+
+	void RenderOutline(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, OutlinePSO* outlinePSO) const;
 
 	void RenderToDirectionalShadowMap(CommandList& directCommandList, const DirectionalLight& directionalLight);
 
@@ -122,6 +122,7 @@ private:
 
 	/// Things that should be in some sort of component system:
 	PBRObjectPSO::VertexProps m_PBRVertexCB {};
+	PBRObjectPSO::LightProps m_PBRLightCB {};
 	RenderProps m_RenderProps {};
 	bool mb_Outline {};
 	///

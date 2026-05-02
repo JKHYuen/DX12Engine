@@ -72,14 +72,16 @@ BloomPSO::BloomPSO(Device& device, const RenderTarget& renderTarget) {
 		bloomPipelineStateStream.RasterizerDesc = rasterizerDesc;
 
 		device.CreatePipelineState(bloomPipelineStateStream, m_BloomPSO);
-	
+
 		// PSO for upsampling
 		// Additive blend
 		blendDesc.RenderTarget[AttachmentPoint::Color0].BlendEnable = TRUE;
+		blendDesc.RenderTarget[AttachmentPoint::Color0].SrcBlend = D3D12_BLEND_ONE;
 		blendDesc.RenderTarget[AttachmentPoint::Color0].DestBlend = D3D12_BLEND_ONE;
 		blendDesc.RenderTarget[AttachmentPoint::Color0].BlendOp = D3D12_BLEND_OP_ADD;
-		blendDesc.RenderTarget[AttachmentPoint::Color0].DestBlendAlpha = D3D12_BLEND_ONE;
-		blendDesc.RenderTarget[AttachmentPoint::Color0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+		//blendDesc.RenderTarget[AttachmentPoint::Color0].SrcBlendAlpha = D3D12_BLEND_ONE;
+		//blendDesc.RenderTarget[AttachmentPoint::Color0].DestBlendAlpha = D3D12_BLEND_ONE;
+		//blendDesc.RenderTarget[AttachmentPoint::Color0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
 		bloomPipelineStateStream.BlendDesc = blendDesc;
 
 		device.CreatePipelineState(bloomPipelineStateStream, m_BloomAdditivePSO);

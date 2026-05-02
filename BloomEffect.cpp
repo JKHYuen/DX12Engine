@@ -47,6 +47,7 @@ BloomEffect::BloomEffect(Device& device, const RenderTarget& screenRenderTarget,
 		}
 	}
 
+	/// TODO: this doesn't work for multiple instances of bloom (currently using BloomEffect for outlining as well)
 	// Create Debug SRV
 	EditorGui::Get().RegisterImageSRV(device, m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0), &m_SRVDesc, EditorGui::GuiSRVIndex::BloomPrefilter);
 }
@@ -64,7 +65,7 @@ void BloomEffect::CreateSamplingRenderTarget(size_t idx, uint32_t textureWidth, 
 	samplingTexture->CreateShaderResourceView(m_SRVDesc);
 }
 
-void BloomEffect::Render(CommandList& directCommandList, const RenderTarget& inputRenderTarget, const RenderTarget& outputRenderTarget) {
+void BloomEffect::Render(CommandList& directCommandList, const RenderTarget& inputRenderTarget, const RenderTarget& outputRenderTarget, const RenderTarget* blendRenderTarget) {
 	m_PSO->SetPipelineState(directCommandList);
 
 	// First downsample + prefilter
@@ -123,8 +124,14 @@ void BloomEffect::Render(CommandList& directCommandList, const RenderTarget& inp
 	directCommandList.SetGraphicsDynamicConstantBuffer(BloomPSO::BloomRootParameters::BloomCB, bloomProps);
 	directCommandList.SetRenderTarget(outputRenderTarget);
 	directCommandList.SetViewport(outputRenderTarget.GetViewport());
+
 	directCommandList.SetShaderResourceView(BloomPSO::BloomRootParameters::Textures, 0, m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0));
-	directCommandList.SetShaderResourceView(BloomPSO::BloomRootParameters::Textures, 1, inputRenderTarget.GetTexture(AttachmentPoint::Color0), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	directCommandList.SetShaderResourceView(
+		BloomPSO::BloomRootParameters::Textures, 1, 
+		(blendRenderTarget == nullptr) ? 
+			inputRenderTarget.GetTexture(AttachmentPoint::Color0) : blendRenderTarget->GetTexture(AttachmentPoint::Color0),
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+	);
 
 	directCommandList.Draw(3);
 }

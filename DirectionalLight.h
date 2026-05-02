@@ -25,7 +25,7 @@ public:
     // 
     // Note: eulerDir is in radians
     struct DirectionalLightParams {
-        std::shared_ptr<RootSignature> depthRenderRootSignature;
+        std::shared_ptr<RootSignature> objectRootSignature;
         CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT depthRenderInputLayout;
         XMFLOAT3 color;
         XMFLOAT3 eulerDir;
@@ -100,6 +100,6 @@ private:
 
     /// TODO: these members can be static
     ComPtr<ID3D12PipelineState> m_DepthRenderPSO;
-    std::shared_ptr<RootSignature> m_DepthRenderRootSignature;
+    std::shared_ptr<RootSignature> m_ObjectRootSignature;
 };
 

@@ -9,7 +9,8 @@
 #include <DirectXMath.h>
 #include <wrl/client.h>
 #include <memory>
-#include <vector>
+
+#include "PBRObjectPSO.h"
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -20,32 +21,16 @@ class CommandList;
 
 class OutlinePSO {
 public:
-	OutlinePSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRAY rtvFormats, DXGI_FORMAT depthFormat);
+	OutlinePSO(Device& device, D3D12_RT_FORMAT_ARRAY rtvFormats, DXGI_FORMAT depthFormat, std::shared_ptr<RootSignature> objectRootSignature);
 
-	enum OutlineRootParameters {
-		VertexCB,         // ConstantBuffer<Mat> VertexCB		 : register(b0);
-		MaterialCB,       // ConstantBuffer<Material> MaterialCB : register(b0, space1);
-		NumOutlineRootParameters
-	};
-
-	struct alignas(16) VertexProps {
-		XMFLOAT4X4 SRT;
-		XMFLOAT4X4 MVP;
-		XMFLOAT4   screenParams;
-	};
-
-	struct alignas(16) MaterialProps {
-		XMFLOAT4   outlineColor;
-	};
-
-	std::shared_ptr<RootSignature> GetRootSignature() const { return m_RootSignature; }
+	std::shared_ptr<RootSignature> GetRootSignature() const { return m_ObjectRootSignature; }
 
 	void SetPipelineState(CommandList& directCommandList) const;
 
-	void UpdateResources(CommandList& directCommandList, VertexProps vertexProps, MaterialProps materialProps);
+	void UpdateResources(CommandList& directCommandList, PBRObjectPSO::VertexProps vertexProps, PBRObjectPSO::LightProps lightProps);
 
 private:
-	std::shared_ptr<RootSignature> m_RootSignature;
+	std::shared_ptr<RootSignature> m_ObjectRootSignature;
 	ComPtr<ID3D12PipelineState> m_D3d12PipelineState;
 };
 

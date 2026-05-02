@@ -13,6 +13,9 @@ class Scene;
 class GameObject;
 
 class Picker {
+
+	friend class EditorGui;
+
 public:
 	Picker() = default;
 
@@ -20,7 +23,7 @@ public:
 	// Only checks GameObject type and assumes it has a valid AABB
 	GameObject* MouseRaycast(Scene& scene, int mouseX, int mouseY, int windowWidth, int windowHeight);
 
-	GameObject* GetPickedObject() const { return m_PickedObject; };
+	const GameObject* GetPickedObject() const { return m_PickedObject; };
 	void ClearPickedObject();
 
 private:

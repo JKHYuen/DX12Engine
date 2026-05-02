@@ -32,6 +32,7 @@ void RenderTarget::Resize(DirectX::XMUINT2 size) {
         if(texture) texture->Resize(m_Size.x, m_Size.y);
     }
 }
+
 void RenderTarget::Resize(uint32_t width, uint32_t height) {
     Resize(XMUINT2(width, height));
 }

@@ -10,19 +10,17 @@ class BloomPSO;
 class CommandList;
 
 class BloomEffect {
+
+	friend class EditorGui;
+
 public:
 	BloomEffect(Device& device, const RenderTarget& screenRenderTarget, BloomPSO* pso, int maxIterations = 16, float intensity = 0.5f, float threshold = 80.0f, float softThreshold = 0.9f);
 
-	void Render(CommandList& directCommandList, const RenderTarget& inputRenderTarget, const RenderTarget& outputRenderTarget);
+	// "blendRenderTarget" is an optional render target if we want a texture other than inputRenderTarget to be blended with on the last render pass.
+	// (Last render pass uses outputRenderTarget as render target and adds m_SamplingRenderTargets[0] and blendRenderTarget/inputRenderTarget together with intensity multiplier to apply bloom)
+	void Render(CommandList& directCommandList, const RenderTarget& inputRenderTarget, const RenderTarget& outputRenderTarget, const RenderTarget* blendRenderTarget = nullptr);
 
 	void ResizeRenderTargets(uint32_t width, uint32_t height);
-
-	float GetIntensity() const        { return m_Intensity; }
-	void  SetIntensity(float val)     { m_Intensity = val; }
-	float GetThreshold() const        { return m_Threshold; }
-	void  SetThreshold(float val)     { m_Threshold = val; }
-	float GetSoftThreshold() const    { return m_SoftThreshold; }
-	void  SetSoftThreshold(float val) { m_SoftThreshold = val; }
 
 private:
 	float m_Intensity;

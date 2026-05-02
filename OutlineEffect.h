@@ -6,19 +6,25 @@ class Device;
 class OutlinePSO;
 class BloomPSO;
 class BloomEffect;
+class GameObject;
 class CommandList;
+class UpdateEventArgs;
+class Scene;
 
 class OutlineEffect {
 public:
-	OutlineEffect(Device& device, const RenderTarget& screenRenderTarget, OutlinePSO* outlinePSO, BloomEffect* bloomRenderPass);
+	OutlineEffect(Device& device, const RenderTarget& screenRenderTarget, OutlinePSO* outlinePSO, BloomPSO* bloomPSO);
 
-	void Render(CommandList& directCommandList, const RenderTarget& inputRenderTarget, const RenderTarget& outputRenderTarget);
+	bool Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, const RenderTarget& blendRenderTarget, const RenderTarget& outputRenderTarget);
+
+	void Resize(uint32_t width, uint32_t height);
 
 private:
-	OutlinePSO* m_OutlinePSO;
-	BloomEffect* m_BloomEffect;
+	std::unique_ptr<BloomEffect> m_BloomEffect;
 
-	// Intermediate texture to draw blurred outline to, this will be overlayed onto the output render target
+	OutlinePSO* m_OutlinePSO;
+
+	// Intermediate texture to draw outline, this will be blurred and overlayed onto the output render target
 	RenderTarget m_OutlineRT;
 };
 

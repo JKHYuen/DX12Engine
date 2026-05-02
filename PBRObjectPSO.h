@@ -76,9 +76,10 @@ public:
 	};
 
 	struct alignas(16) LightProps {
-		XMFLOAT4   Time; // x: time, y: delta time
-		XMFLOAT4   dirLight;
-		XMFLOAT4   dirLightColor;
+		XMFLOAT4 Time; // x: time, y: delta time
+		XMFLOAT4 dirLight;
+		XMFLOAT4 dirLightColor;
+		XMFLOAT4 outlineColor;
 	};
 
 	std::shared_ptr<RootSignature> GetRootSignature() const {

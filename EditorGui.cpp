@@ -406,18 +406,18 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 		// Bloom
 		if(ImGui::CollapsingHeader("Bloom")) {
 			static BloomEffect* bloomPass = game.m_BloomEffect.get();
-			static float s_BloomIntensity = bloomPass->GetIntensity();
-			static float s_Threshold      = bloomPass->GetThreshold();
-			static float s_SoftThreshold  = bloomPass->GetSoftThreshold();
+			static float s_BloomIntensity = bloomPass->m_Intensity;
+			static float s_Threshold      = bloomPass->m_Threshold;
+			static float s_SoftThreshold  = bloomPass->m_SoftThreshold;
 
 			if(ImGui::DragFloat("Intensity", &s_BloomIntensity, 0.01f, 0.0f, 10.0f, "%.2f", kSliderFlags)) {
-				bloomPass->SetIntensity(s_BloomIntensity);
+				bloomPass->m_Intensity = s_BloomIntensity;
 			}
 			if(ImGui::DragFloat("Theshold", &s_Threshold, 0.01f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
-				bloomPass->SetThreshold(s_Threshold);
+				bloomPass->m_Threshold = s_Threshold;
 			}
 			if(ImGui::DragFloat("Soft Theshold", &s_SoftThreshold, 0.01f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
-				bloomPass->SetSoftThreshold(s_SoftThreshold);
+				bloomPass->m_SoftThreshold = s_SoftThreshold;
 			}
 
 			// Bloom debug view
@@ -442,7 +442,7 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 }
 
 void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
-	GameObject* picked = scene.m_Picker->GetPickedObject();
+	GameObject* picked = scene.m_Picker->m_PickedObject;
 	if(!sb_ObjectInspectorState) return;
 
 	static const ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;

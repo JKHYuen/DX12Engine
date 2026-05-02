@@ -33,6 +33,7 @@ public:
 	const DirectionalLight& GetDirLight() const { return m_DirectionalLight; }
 
 	const Skybox& GetSkybox() const { return m_Skybox; }
+	const Picker* const GetPicker() const { return m_Picker.get(); }
 
 	void ComputeSkyboxIBLs(CommandList& directCommandList);
 

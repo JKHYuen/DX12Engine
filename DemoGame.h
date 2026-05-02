@@ -4,11 +4,13 @@
 #include "Camera.h"
 #include "Scene.h"
 #include "RenderTarget.h"
+#include "Texture.h"
 #include "IGame.h"
 
-#include <DirectXMath.h>
 #include <memory>
+#include <format>
 #include <wrl/client.h>
+#include <DirectXMath.h>
 
 class CommandList;
 class RootSignature;
@@ -35,7 +37,6 @@ public:
 
     // Called by main
     uint32_t Run()       override;
-    bool Initialize()    override;
 
     void OnUpdate(const UpdateEventArgs & e)                  override;
     void OnResize(const ResizeEventArgs & e)                  override;
@@ -47,6 +48,41 @@ public:
     void OnMouseButtonReleased(const MouseButtonEventArgs& e) override;
 
 private:
+    /// TODO: Add some convenient way to get next set of RTs, currently manually indexing
+    // An array of 2 render targets used to chain post processing effects.
+    // This is needed because post processing effects often need to read and write to the same textures,
+    // this adds a buffer so it is allowed by DX
+    struct PostProcessRenderTargets {
+        PostProcessRenderTargets() = default;
+        PostProcessRenderTargets(Device& device, DXGI_FORMAT format, uint32_t width, uint32_t height) {
+            auto textureDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+                format, width, height, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
+            );
+
+            D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc {};
+            srvDesc.Format = format;
+            srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+            srvDesc.Texture2D.MostDetailedMip = 0;
+            srvDesc.Texture2D.MipLevels = 1;
+
+            for(int i = 0; i < 2; i++) {
+                auto texture = std::make_shared<Texture>(device, textureDesc, nullptr, true);
+                texture->SetName(std::format(L"Post Process Render Target {}", i));
+                RTs[i].AttachTexture(AttachmentPoint::Color0, texture);
+                texture->CreateShaderResourceView(srvDesc);
+            }
+        }
+
+        void Resize(uint32_t width, uint32_t height) {
+            RTs[0].Resize(width, height);
+            RTs[1].Resize(width, height);
+        }
+
+        // Non multisampled floating point render textures
+        RenderTarget RTs[2] {};
+    } m_PostProcessRTs {};
+
     void OnRender(const UpdateEventArgs& e);
     
     // Debug window, this shouldn't be implemented in this class if it ever becomes a real editor UI
@@ -56,9 +92,9 @@ private:
     std::shared_ptr<Window>    m_Window;
     std::shared_ptr<SwapChain> m_SwapChain;
 
-    RenderTarget m_HDR_MSAA_RT;
-    RenderTarget m_MSAAResolveDstRT;    // destination of MSAA resolve
-    RenderTarget m_PostProcessOutputRT; // Intermediate render target between post process passes
+    RenderTarget m_HDR_MSAA_RT {};
+    //RenderTarget m_MSAAResolveDstRT {};    // destination of MSAA resolve
+    //RenderTarget m_PostProcessOutputRT {}; // Intermediate render target between post process passes
 
     /// TODO: figure out more generalized PSO loading system
     std::unique_ptr<PBRObjectPSO> m_PBR_PSO;
@@ -83,26 +119,27 @@ private:
     std::unique_ptr<Scene> m_DemoScene;
 
     // Camera Controller
-    float m_Forward;
-    float m_Backward;
-    float m_Left;
-    float m_Right;
-    float m_Up;
-    float m_Down;
+    float m_Forward {};
+    float m_Backward {};
+    float m_Left {};
+    float m_Right {};
+    float m_Up {};
+    float m_Down {};
 
-    float m_Pitch;
-    float m_Yaw;
+    float m_Pitch {};
+    float m_Yaw {};
 
     // A better input system would not need these variables
-    bool m_IsShiftPressed;
-    bool m_IsLeftClickPressed;
-    bool m_IsRightClickPressed;
+    bool m_LeftShiftPressed {};
+    bool m_LeftControlPressed {};
+    bool m_LeftClickPressed {};
+    bool m_RightClickPressed {};
 
     int  m_WindowWidth;
     int  m_WindowHeight;
     bool m_IsVsync;
 
-    int m_CurrentAvgFPS;
+    int m_CurrentAvgFPS {};
     static const int sk_frameTimeSamples = 128;
     double m_frameTimeHistory[sk_frameTimeSamples] = {};
 };

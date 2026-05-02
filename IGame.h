@@ -13,8 +13,6 @@ public:
 
     virtual ~IGame() = default;
 
-    // Load content required for the demo.
-    virtual bool Initialize() = 0;
     // Start game loop, return error code
     virtual uint32_t Run() = 0;
 

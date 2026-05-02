@@ -18,7 +18,7 @@ using namespace Microsoft::WRL;
 
 DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params)
     : m_Device(device)
-    , m_DepthRenderRootSignature(params.depthRenderRootSignature)
+    , m_ObjectRootSignature(params.objectRootSignature)
     , m_ShadowBias(params.shadowBias)
     , m_Color(XMFLOAT4(params.color.x, params.color.y, params.color.z, 1.0f))
     , m_ViewPort(D3D12_VIEWPORT(0.0f, 0.0f, (float)params.shadowMapResolution, (float)params.shadowMapResolution, 0.0f, 1.0f))
@@ -69,7 +69,7 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
     CD3DX12_RASTERIZER_DESC rasterizerDesc(D3D12_DEFAULT);
     rasterizerDesc.CullMode = D3D12_CULL_MODE_FRONT;
 
-    shadowDepthPipelineStateStream.pRootSignature = m_DepthRenderRootSignature->GetD3D12RootSignature().Get();
+    shadowDepthPipelineStateStream.pRootSignature = m_ObjectRootSignature->GetD3D12RootSignature().Get();
     shadowDepthPipelineStateStream.InputLayout = params.depthRenderInputLayout;
     shadowDepthPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
     shadowDepthPipelineStateStream.VS = AssetImporter::GetCompiledShaderFromFile(L"PBR_VS.cso");
@@ -130,7 +130,7 @@ void DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget(CommandList& d
     directCommandList.SetRenderTarget(m_DirectionalShadowMap);
 
     directCommandList.SetPipelineState(m_DepthRenderPSO);
-    directCommandList.SetGraphicsRootSignature(m_DepthRenderRootSignature);
+    directCommandList.SetGraphicsRootSignature(m_ObjectRootSignature);
 }
 
 void DirectionalLight::RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, PBRObjectPSO::VertexProps vertexProps) const {

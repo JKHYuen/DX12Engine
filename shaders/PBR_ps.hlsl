@@ -14,6 +14,7 @@ cbuffer LightCB : register(b1) {
     float4 Time;
     float4 DirLight; // vector of directional light
     float4 DirLightColor;
+    float4 OutlineColor;
 };
 
 Texture2D AlbedoTex                   : register(t0);

@@ -2,38 +2,81 @@
 #include "OutlinePSO.h"
 #include "BloomEffect.h"
 #include "RenderTarget.h"
+#include "GameObject.h"
+#include "CommandList.h"
 #include "Texture.h"
+#include "Scene.h"
+#include "Colors.h"
 #include "d3dx12.h"
 
-OutlineEffect::OutlineEffect(Device& device, const RenderTarget& screenRenderTarget, OutlinePSO* outlinePSO, BloomEffect* bloomRenderPass)
+OutlineEffect::OutlineEffect(Device& device, const RenderTarget& screenRenderTarget, OutlinePSO* outlinePSO, BloomPSO* bloomPSO)
 	: m_OutlinePSO(outlinePSO)
-	, m_BloomEffect(bloomRenderPass) 
 {
-	auto outlineTextureDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-		screenRenderTarget.GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0],
-		screenRenderTarget.GetTexture(AttachmentPoint::Color0)->GetWidth(),
-		screenRenderTarget.GetTexture(AttachmentPoint::Color0)->GetHeight(),
-		1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
-	);
+	uint32_t outputWidth = screenRenderTarget.GetTexture(AttachmentPoint::Color0)->GetWidth();
+	uint32_t outputHeight = screenRenderTarget.GetTexture(AttachmentPoint::Color0)->GetHeight();
 
-	auto outlineTexture = std::make_shared<Texture>(device, outlineTextureDesc, nullptr, true); // RTVs created here
-	outlineTexture->SetName(L"Outline Texture");
-	m_OutlineRT.AttachTexture(AttachmentPoint::Color0, outlineTexture);
+	// Color texture for outline RT
+	{
+		auto outlineTextureDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+			screenRenderTarget.GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0],
+			outputWidth, outputHeight,
+			1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
+		);
 
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc {};
-	srvDesc.Format = screenRenderTarget.GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0];
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.MipLevels = 1;
+		auto outlineTexture = std::make_shared<Texture>(device, outlineTextureDesc, nullptr, true); // RTVs created here
+		outlineTexture->SetName(L"Outline Texture");
+		m_OutlineRT.AttachTexture(AttachmentPoint::Color0, outlineTexture);
 
-	outlineTexture->CreateShaderResourceView(srvDesc);
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc {};
+		srvDesc.Format = screenRenderTarget.GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0];
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		srvDesc.Texture2D.MostDetailedMip = 0;
+		srvDesc.Texture2D.MipLevels = 1;
+		outlineTexture->CreateShaderResourceView(srvDesc);
+	}
 
-	/// Is this allowed?
-	m_OutlineRT.AttachTexture(AttachmentPoint::DepthStencil, screenRenderTarget.GetTexture(AttachmentPoint::DepthStencil));
+	// Depth stencil texture for outline RT
+	{
+		auto depthStencilDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+			screenRenderTarget.GetDepthStencilFormat(), outputWidth, outputHeight, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
+		);
+
+		D3D12_CLEAR_VALUE depthClearValue;
+		depthClearValue.Format = depthStencilDesc.Format;
+		depthClearValue.DepthStencil = { 1.0f, 0 };
+
+		auto depthStencilTexture = std::make_shared<Texture>(device, depthStencilDesc, &depthClearValue);
+		depthStencilTexture->SetName(L"Outline Depth Stencil Texture");
+
+		m_OutlineRT.AttachTexture(AttachmentPoint::DepthStencil, depthStencilTexture);
+	}
+	
+	m_BloomEffect = std::make_unique<BloomEffect>(device, screenRenderTarget, bloomPSO, 2, 0.1f, 1.0f, 0.9f);
 }
 
-void OutlineEffect::Render(CommandList& directCommandList, const RenderTarget& screenRenderTarget, const RenderTarget& outputRenderTarget) {
+void OutlineEffect::Resize(uint32_t width, uint32_t height) {
+	/// TODO:
+}
 
+bool OutlineEffect::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, const RenderTarget& blendRenderTarget, const RenderTarget& outputRenderTarget) {
+	/// TODO: support outlining multiple objects
+	const GameObject* outlineObject = scene.GetPicker()->GetPickedObject();
+	if(outlineObject == nullptr) return false;
+
+	m_OutlinePSO->SetPipelineState(directCommandList);
+	directCommandList.SetViewport(m_OutlineRT.GetViewport());
+	directCommandList.SetRenderTarget(m_OutlineRT);
+	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	directCommandList.GetD3D12CommandList()->OMSetStencilRef(1);
+
+	directCommandList.ClearTexture(m_OutlineRT.GetTexture(AttachmentPoint::Color0), Colors::Clear);
+
+	outlineObject->RenderOutline(directCommandList, e, scene, m_OutlinePSO);
+
+	m_BloomEffect->Render(directCommandList, m_OutlineRT, outputRenderTarget, &blendRenderTarget);
+
+	return true;
 }
 

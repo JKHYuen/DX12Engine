@@ -80,7 +80,6 @@ void Scene::Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, Comman
 	// Render scene objects
 	// All game objects use the same PSO/root sig right now
 	for(auto& o : m_SceneObjects) {
-
 		/// TODO: TEMP
 		if(s_ChangeSkybox) {
 			o.UpdateIBLShaderResources(*this);
@@ -92,11 +91,6 @@ void Scene::Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, Comman
 
 	/// TODO: TEMP
 	s_ChangeSkybox = false;
-
-	for(auto& o : m_SceneObjects) {
-		o.RenderOutline(directCommandList, e, *this);
-	}
-
 }
 
 void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
@@ -107,7 +101,7 @@ void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 	if(e.Button == MouseButtonEventArgs::Left) {
 		if(EditorGui::Get().GetUIVisibilityState() && !ImGui::GetIO().WantCaptureMouse) {
 			// Unhighlight already highlighted object if there is one
-			if(GameObject* go = m_Picker->GetPickedObject()) {
+			if(const GameObject* go = m_Picker->GetPickedObject()) {
 				m_Picker->ClearPickedObject();
 			}
 			// Highlight new object
@@ -118,7 +112,7 @@ void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 
 		// Unpick object if mouse clicked and editor UI is not open
 		if(!EditorGui::Get().GetUIVisibilityState()) {
-			if(GameObject* go = m_Picker->GetPickedObject()) {
+			if(const GameObject* go = m_Picker->GetPickedObject()) {
 				m_Picker->ClearPickedObject();
 			}
 		}
@@ -129,7 +123,7 @@ void Scene::OnKeyPressed(const KeyEventArgs& e) {}
 
 void Scene::OnKeyReleased(const KeyEventArgs& e) {
 	if(e.Key == KeyCode::X) {
-		if(GameObject* go = m_Picker->GetPickedObject()) {
+		if(const GameObject* go = m_Picker->GetPickedObject()) {
 			m_Picker->ClearPickedObject();
 		}
 	}

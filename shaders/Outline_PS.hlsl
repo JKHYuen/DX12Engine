@@ -1,6 +1,9 @@
 
-cbuffer MaterialCB : register(b0, space1) {
-    float4 outlineColor;
+cbuffer LightCB : register(b1) {
+    float4 Time;
+    float4 DirLight; // vector of directional light
+    float4 DirLightColor;
+    float4 OutlineColor;
 };
 
 struct PixelInputType {
@@ -8,5 +11,5 @@ struct PixelInputType {
 };
 
 float4 main() : SV_TARGET {
-    return outlineColor;
+    return OutlineColor;
 }

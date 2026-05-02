@@ -485,14 +485,6 @@
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/Zi /Fd compiled_shaders\pdbs\ %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/Zi /Fd compiled_shaders\pdbs\ %(AdditionalOptions)</AdditionalOptions>
     </FxCompile>
-    <FxCompile Include="shaders\Outline_VS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/Zi /Fd compiled_shaders\pdbs\ %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/Zi /Fd compiled_shaders\pdbs\ %(AdditionalOptions)</AdditionalOptions>
-    </FxCompile>
     <FxCompile Include="shaders\ConvoluteCubeMap_PS.hlsl">
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/Zi /Fd compiled_shaders\pdbs\ %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/Zi /Fd compiled_shaders\pdbs\ %(AdditionalOptions)</AdditionalOptions>

@@ -40,7 +40,7 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
 
     auto shadowMapDepthTexture = std::make_shared<Texture>(m_Device, shadowMapDesc, &depthClearValue);
     shadowMapDepthTexture->SetName(L"Directional Light Shadow Map");
-    m_DirectionalShadowMap.AttachTexture(AttachmentPoint::DepthStencil, shadowMapDepthTexture);
+    m_DirectionalShadowMapRT.AttachTexture(AttachmentPoint::DepthStencil, shadowMapDepthTexture);
 
     // Initialize ImGui SRV for debug
     {
@@ -74,13 +74,9 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
     shadowDepthPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
     shadowDepthPipelineStateStream.VS = AssetImporter::GetCompiledShaderFromFile(L"PBR_VS.cso");
     shadowDepthPipelineStateStream.Rasterizer = rasterizerDesc;
-    shadowDepthPipelineStateStream.DSVFormat = m_DirectionalShadowMap.GetDepthStencilFormat();
+    shadowDepthPipelineStateStream.DSVFormat = m_DirectionalShadowMapRT.GetDepthStencilFormat();
 
     m_Device.CreatePipelineState(shadowDepthPipelineStateStream, m_DepthRenderPSO);
-}
-
-void DirectionalLight::SetColor(float red, float green, float blue) {
-    m_Color = XMFLOAT4(red, green, blue, 1.0f);
 }
 
 void DirectionalLight::SetEulerAngles(float rotX, float rotY, float rotZ) {
@@ -125,9 +121,9 @@ void DirectionalLight::SetShadowRenderDistance(float distance) {
 }
 
 void DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget(CommandList& directCommandList) const {
-    directCommandList.ClearDepthStencilTexture(m_DirectionalShadowMap.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
+    directCommandList.ClearDepthStencilTexture(m_DirectionalShadowMapRT.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
     directCommandList.SetViewport(m_ViewPort);
-    directCommandList.SetRenderTarget(m_DirectionalShadowMap);
+    directCommandList.SetRenderTarget(m_DirectionalShadowMapRT);
 
     directCommandList.SetPipelineState(m_DepthRenderPSO);
     directCommandList.SetGraphicsRootSignature(m_ObjectRootSignature);

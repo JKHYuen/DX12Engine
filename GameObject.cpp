@@ -69,9 +69,9 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 	m_RenderProps.pbrPSO->SetPipelineState(directCommandList);
 
 	XMFLOAT4X4 v = scene.GetDirLight().GetViewMatrix();
-	XMFLOAT4X4 o = scene.GetDirLight().GetOrthoMatrix();
+	XMFLOAT4X4 p = scene.GetDirLight().GetOrthoMatrix();
 	XMMATRIX directionalLightViewMat = XMLoadFloat4x4(&v);
-	XMMATRIX directionalLightOrthoMat = XMLoadFloat4x4(&o);
+	XMMATRIX directionalLightOrthoMat = XMLoadFloat4x4(&p);
 
 	{
 		XMStoreFloat4x4(&m_PBRVertexCB.SRT, XMLoadFloat4x4(&m_ScaleMat) * XMLoadFloat4x4(&m_RotationMat) * XMLoadFloat4x4(&m_TranslationMat));
@@ -88,7 +88,6 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 		m_PBRLightCB.Time = { (float)e.Time, (float)e.DeltaTime, 0.0f, 0.0f };
 		m_PBRLightCB.dirLight = scene.GetDirLight().GetNormDirectionVector();
 		m_PBRLightCB.dirLightColor = scene.GetDirLight().GetColor();
-		m_PBRLightCB.outlineColor = XMFLOAT4{}; // unused in this shader
 	}
 
 	PBRObjectPSO::MaterialProps materialProps {};
@@ -116,10 +115,7 @@ void GameObject::RenderSilhouette(CommandList& directCommandList, const UpdateEv
 		}
 	}
 
-	PBRObjectPSO::LightProps props = m_PBRLightCB;
-	props.outlineColor = XMFLOAT4{ 10.0f, 10.0f, 0.0f, 1.0f };
-
-	outlinePSO->UpdateResources(directCommandList, m_PBRVertexCB, props);
+	outlinePSO->UpdateResources(directCommandList, m_PBRVertexCB);
 	m_Mesh->Draw(directCommandList);
 }
 

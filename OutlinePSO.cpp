@@ -16,7 +16,7 @@ OutlinePSO::OutlinePSO(Device& device, D3D12_RT_FORMAT_ARRAY rtvFormats, DXGI_FO
 	: m_ObjectRootSignature(objectRootSignature)
 {
 	CD3DX12_RASTERIZER_DESC rasterDesc { D3D12_DEFAULT };
-	rasterDesc.CullMode = D3D12_CULL_MODE_BACK;
+	rasterDesc.CullMode = D3D12_CULL_MODE_NONE;
 
 	CD3DX12_DEPTH_STENCIL_DESC depthStencilDesc { D3D12_DEFAULT };
 
@@ -50,7 +50,6 @@ void OutlinePSO::SetPipelineState(CommandList& directCommandList) const {
 	directCommandList.SetGraphicsRootSignature(m_ObjectRootSignature);
 }
 
-void OutlinePSO::UpdateResources(CommandList& directCommandList, PBRObjectPSO::VertexProps vertexProps, PBRObjectPSO::LightProps lightProps) {
+void OutlinePSO::UpdateResources(CommandList& directCommandList, PBRObjectPSO::VertexProps vertexProps) {
 	directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::VertexCB, vertexProps);
-	directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::LightCB, lightProps);
 }

@@ -79,7 +79,6 @@ public:
 		XMFLOAT4 Time; // x: time, y: delta time
 		XMFLOAT4 dirLight;
 		XMFLOAT4 dirLightColor;
-		XMFLOAT4 outlineColor;
 	};
 
 	std::shared_ptr<RootSignature> GetRootSignature() const {
@@ -87,8 +86,6 @@ public:
 	}
 		
 	void SetPipelineState(CommandList& directCommandList) const;
-
-	void SetStencilWritePipelineState(CommandList& directCommandList) const;
 
 	void UpdateResources(CommandList& directCommandList, const std::vector<std::shared_ptr<Texture>>& pbrTextures, VertexProps vertexProps, MaterialProps materialProps, LightProps lightProps);
 

@@ -36,6 +36,7 @@ public:
 	};
 
 	struct alignas(16) BloomProps {
+		XMFLOAT4 colorMultiply;
 		XMFLOAT4 filter;
 		float boxSampleDelta;
 		float intensity;

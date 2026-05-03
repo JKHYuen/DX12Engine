@@ -65,12 +65,13 @@ void BloomEffect::CreateSamplingRenderTarget(size_t idx, uint32_t textureWidth, 
 	samplingTexture->CreateShaderResourceView(m_SRVDesc);
 }
 
-void BloomEffect::Render(CommandList& directCommandList, const RenderTarget& inputRenderTarget, const RenderTarget& outputRenderTarget, const RenderTarget* blendRenderTarget, bool b_MaskOutInput) {
+void BloomEffect::Render(CommandList& directCommandList, const RenderTarget& inputRenderTarget, const RenderTarget& outputRenderTarget, XMFLOAT4 colorMultiply, const RenderTarget* blendRenderTarget, bool b_MaskOutInput) {
 	m_PSO->SetPipelineState(directCommandList);
 
 	// First downsample + prefilter
 	BloomPSO::BloomProps bloomProps {};
 	float knee = m_Threshold * m_SoftThreshold;
+	bloomProps.colorMultiply = colorMultiply;
 	bloomProps.filter         = { m_Threshold, m_Threshold - knee, 2.0f * knee, 0.25f / (knee + 0.00001f) };
 	bloomProps.boxSampleDelta = 1.0f;
 	bloomProps.intensity      = m_Intensity;

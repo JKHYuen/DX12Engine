@@ -1,4 +1,5 @@
 cbuffer MaterialParamBuffer : register(b0, space0) {
+    float4 colorMultiply;
     float4 filter;
     float boxSampleDelta;
     float intensity;
@@ -57,8 +58,8 @@ float4 main(PixelInputType i) : SV_TARGET {
         color = screenTexture.Sample(clampSampler, i.uv).rgb;
         // low effort masking with red channel,
         // mask texture will have color for outline effect (for techinical reasons), so technically outlines must have a red component that's not zero
-        float mask = maskTexture.Sample(clampSampler, i.uv).r == 0 ? 1.0 : 0.0; 
-        color.rgb += intensity * SampleBox(i.uv, 0.5) * mask;
+        float mask = step(maskTexture.Sample(clampSampler, i.uv).r, 0.0);
+        color.rgb += intensity * SampleBox(i.uv, 0.5) * (mask * colorMultiply.rgb);
     }
     
     return float4(color, 1.0);

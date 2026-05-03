@@ -3,7 +3,10 @@
 // Implementation based on: https://catlikecoding.com/unity/tutorials/advanced-rendering/bloom/
 
 #include <vector>
+#include <DirectXMath.h>
 #include "RenderTarget.h"
+
+using namespace DirectX;
 
 class Device;
 class BloomPSO;
@@ -18,7 +21,7 @@ public:
 
 	// "blendRenderTarget" is an optional render target if we want a texture other than inputRenderTarget to be blended with on the last render pass.
 	// (Last render pass uses outputRenderTarget as render target and adds m_SamplingRenderTargets[0] and blendRenderTarget/inputRenderTarget together with intensity multiplier to apply bloom)
-	void Render(CommandList& directCommandList, const RenderTarget& inputRenderTarget, const RenderTarget& outputRenderTarget, const RenderTarget* blendRenderTarget = nullptr, bool b_MaskOutInput = false);
+	void Render(CommandList& directCommandList, const RenderTarget& inputRenderTarget, const RenderTarget& outputRenderTarget, XMFLOAT4 colorMultiply = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), const RenderTarget* blendRenderTarget = nullptr, bool b_MaskOutInput = false);
 
 	void ResizeRenderTargets(uint32_t width, uint32_t height);
 

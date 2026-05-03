@@ -1,15 +1,9 @@
-
-cbuffer LightCB : register(b1) {
-    float4 Time;
-    float4 DirLight; // vector of directional light
-    float4 DirLightColor;
-    float4 OutlineColor;
-};
-
+// Very simple one color render for masking (can't use depth, we need this in colo rbuffer to for bloom pass)
 struct PixelInputType {
     float4 position : SV_POSITION;
 };
 
 float4 main() : SV_TARGET {
-    return OutlineColor;
+    // This needs to be white, outline is colored by multiplication after bloom pass
+    return float4(1.0, 1.0, 1.0, 1.0);
 }

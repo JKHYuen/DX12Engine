@@ -43,7 +43,7 @@ public:
     DirectionalLight& operator=(DirectionalLight&&)      = delete;
 
     XMFLOAT4 GetColor() const { return m_Color; }
-    void SetColor(float r, float g, float b);
+    void SetColor(float r, float g, float b) { m_Color = XMFLOAT4(r, g, b, 1.0f); }
 
     XMFLOAT3 GetPosition() const { return m_Position; }
 
@@ -70,7 +70,7 @@ public:
     void SetShadowNearFarZ(XMFLOAT2 nearFarZ);
     void SetShadowRenderDistance(float distance);
 
-    std::shared_ptr<Texture> GetShadowMapTexture() const { return m_DirectionalShadowMap.GetTexture(AttachmentPoint::DepthStencil); }
+    std::shared_ptr<Texture> GetShadowMapTexture() const { return m_DirectionalShadowMapRT.GetTexture(AttachmentPoint::DepthStencil); }
     
     void SetShadowDepthPipelineStateAndRenderTarget(CommandList& directCommandList) const;
     void RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, PBRObjectPSO::VertexProps vertexProps) const;
@@ -95,7 +95,7 @@ private:
     XMFLOAT4X4 m_LightViewMatrix;
     D3D12_VIEWPORT m_ViewPort;
 
-    RenderTarget m_DirectionalShadowMap;
+    RenderTarget m_DirectionalShadowMapRT;
     ///
 
     /// TODO: these members can be static

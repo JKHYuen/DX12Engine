@@ -27,6 +27,7 @@ Texture2D DirectionalShadowMap        : register(t6);
 // TODO: directional shadow map should use border sampler (?)
 SamplerState AnisoWrapSampler          : register(s0);
 SamplerState TrilinearClampSampler     : register(s1); // for BRDF lut and directional shadow map
+SamplerComparisonState TrilinearBorderSampler    : register(s2); 
 
 struct PixelInputType {
     float4 position                     : SV_POSITION;
@@ -270,7 +271,7 @@ float4 main(PixelInputType i) : SV_TARGET {
 // Calculate Shadow
 //
     // Calculate the projected texture coordinates.
-    // use screen coord of vertex position with directional light's view/projection, rescaled tp [0,1]
+    // use screen coord of vertex position with directional light's view/projection, rescaled to [0,1]
     float3 normalizedDirectionalLightViewPos = (i.directionalLightViewPosition.xyz / i.directionalLightViewPosition.w);
     float2 projectTexCoord = float2(normalizedDirectionalLightViewPos.x, -normalizedDirectionalLightViewPos.y) * 0.5 + 0.5;
     float lightDepthValue = normalizedDirectionalLightViewPos.z;
@@ -284,16 +285,15 @@ float4 main(PixelInputType i) : SV_TARGET {
         
     // Shadowmap with basic PCF multisampling
     float shadowFactor = 0.0; // 0: in shadow, 1: not in shadow
-    
-    float width, height, numOfLevels;
-    DirectionalShadowMap.GetDimensions(0, width, height, numOfLevels);
-    float2 texelSize = 1.0 / width;
-    
+    //float width, height, numOfLevels;
+    //DirectionalShadowMap.GetDimensions(0, width, height, numOfLevels);
+    //float2 texelSize = 1.0 / width;
     for (int x = -1; x <= 1; x++) {
         for (int y = -1; y <= 1; y++) {
-            // TODO: use border sampler
-            float pcfDepth = DirectionalShadowMap.Sample(TrilinearClampSampler, projectTexCoord + float2(x, y) * texelSize).r;
-            shadowFactor += lightDepthValue > pcfDepth ? 0.0 : 1.0;
+            //float pcfDepth = DirectionalShadowMap.Sample(TrilinearClampSampler, projectTexCoord + float2(x, y) * texelSize).r;
+            //shadowFactor += lightDepthValue > pcfDepth ? 0.0 : 1.0;
+            
+            shadowFactor += DirectionalShadowMap.SampleCmpLevelZero(TrilinearBorderSampler, projectTexCoord, lightDepthValue, float2(x, y));
         }
     }
     shadowFactor /= 9.0;

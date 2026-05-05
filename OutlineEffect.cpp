@@ -25,7 +25,7 @@ OutlineEffect::OutlineEffect(Device& device, const RenderTarget& screenRenderTar
 
 		auto outlineTexture = std::make_shared<Texture>(device, outlineTextureDesc, nullptr, true); // RTVs created here
 		outlineTexture->SetName(L"Outline Texture");
-		m_OutlineRT.AttachTexture(AttachmentPoint::Color0, outlineTexture);
+		m_OutlineSilhouetteRT.AttachTexture(AttachmentPoint::Color0, outlineTexture);
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc {};
 		srvDesc.Format = screenRenderTarget.GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0];
@@ -41,7 +41,7 @@ OutlineEffect::OutlineEffect(Device& device, const RenderTarget& screenRenderTar
 
 void OutlineEffect::Resize(uint32_t width, uint32_t height) {
 	m_BloomEffect->ResizeRenderTargets(width, height);
-	m_OutlineRT.Resize(width, height);
+	m_OutlineSilhouetteRT.Resize(width, height);
 }
 
 bool OutlineEffect::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, const RenderTarget& blendRenderTarget, const RenderTarget& outputRenderTarget) {
@@ -50,17 +50,17 @@ bool OutlineEffect::Render(CommandList& directCommandList, const UpdateEventArgs
 	if(outlineObject == nullptr) return false;
 
 	m_OutlinePSO->SetPipelineState(directCommandList);
-	directCommandList.SetViewport(m_OutlineRT.GetViewport());
-	directCommandList.SetRenderTarget(m_OutlineRT);
+	directCommandList.SetViewport(m_OutlineSilhouetteRT.GetViewport());
+	directCommandList.SetRenderTarget(m_OutlineSilhouetteRT);
 	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	directCommandList.ClearTexture(m_OutlineRT.GetTexture(AttachmentPoint::Color0), Colors::Clear);
+	directCommandList.ClearTexture(m_OutlineSilhouetteRT.GetTexture(AttachmentPoint::Color0), Colors::Clear);
 
 	// Render object silhouette to intermediate RT
 	outlineObject->RenderSilhouette(directCommandList, e, scene, m_OutlinePSO);
 
 	// Bloom (blur) silhoutte
-	m_BloomEffect->Render(directCommandList, m_OutlineRT, outputRenderTarget, XMFLOAT4 { 10.0f, 10.0f, 0.0f, 1.0f }, & blendRenderTarget, true);
+	m_BloomEffect->Render(directCommandList, m_OutlineSilhouetteRT, outputRenderTarget, XMFLOAT4 { 10.0f, 10.0f, 0.0f, 1.0f }, & blendRenderTarget, true);
 
 	return true;
 }

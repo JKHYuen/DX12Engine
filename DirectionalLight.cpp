@@ -22,11 +22,11 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
     , m_ShadowBias(params.shadowBias)
     , m_Color(XMFLOAT4(params.color.x, params.color.y, params.color.z, 1.0f))
     , m_ViewPort(D3D12_VIEWPORT(0.0f, 0.0f, (float)params.shadowMapResolution, (float)params.shadowMapResolution, 0.0f, 1.0f))
-    , m_LightDistance(params.shadowNearFarZ.y - 50) // random heuristic
+    , m_LightDistance(params.shadowNearFarZ.y * 0.7f) // random heuristic
     , m_ShadowRenderDistance(params.shadowRenderDistance)
     , m_ShadowNearFarZ(params.shadowNearFarZ)
 {
-    XMStoreFloat4x4(&m_LightOrthoMatrix, XMMatrixOrthographicLH(params.shadowRenderDistance, params.shadowRenderDistance, m_ShadowNearFarZ.x, m_ShadowNearFarZ.y));
+    XMStoreFloat4x4(&m_LightOrthoMatrix, XMMatrixOrthographicLH(m_ShadowRenderDistance, m_ShadowRenderDistance, m_ShadowNearFarZ.x, m_ShadowNearFarZ.y));
     SetEulerAngles(params.eulerDir.x, params.eulerDir.y, params.eulerDir.z);
 
     // Create directional light shadow map
@@ -67,7 +67,7 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
     } shadowDepthPipelineStateStream;
 
     CD3DX12_RASTERIZER_DESC rasterizerDesc(D3D12_DEFAULT);
-    rasterizerDesc.CullMode = D3D12_CULL_MODE_FRONT;
+    //rasterizerDesc.CullMode = D3D12_CULL_MODE_FRONT;
 
     shadowDepthPipelineStateStream.pRootSignature = m_ObjectRootSignature->GetD3D12RootSignature().Get();
     shadowDepthPipelineStateStream.InputLayout = params.depthRenderInputLayout;
@@ -113,11 +113,13 @@ void DirectionalLight::SetQuaternionAngle(XMVECTOR rotationQuaternion) {
 }
 
 void DirectionalLight::SetShadowNearFarZ(XMFLOAT2 nearFarZ) {
-    XMStoreFloat4x4(&m_LightOrthoMatrix, XMMatrixOrthographicLH(m_ShadowRenderDistance, m_ShadowRenderDistance, nearFarZ.x, nearFarZ.y));
+    m_ShadowNearFarZ = nearFarZ;
+    XMStoreFloat4x4(&m_LightOrthoMatrix, XMMatrixOrthographicLH(m_ShadowRenderDistance, m_ShadowRenderDistance, m_ShadowNearFarZ.x, m_ShadowNearFarZ.y));
 }
 
 void DirectionalLight::SetShadowRenderDistance(float distance) {
-    XMStoreFloat4x4(&m_LightOrthoMatrix, XMMatrixOrthographicLH(distance, distance, m_ShadowNearFarZ.x, m_ShadowNearFarZ.y));
+    m_ShadowRenderDistance = distance;
+    XMStoreFloat4x4(&m_LightOrthoMatrix, XMMatrixOrthographicLH(m_ShadowRenderDistance, m_ShadowRenderDistance, m_ShadowNearFarZ.x, m_ShadowNearFarZ.y));
 }
 
 void DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget(CommandList& directCommandList) const {

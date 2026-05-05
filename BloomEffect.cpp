@@ -71,7 +71,7 @@ void BloomEffect::Render(CommandList& directCommandList, const RenderTarget& inp
 	// First downsample + prefilter
 	BloomPSO::BloomProps bloomProps {};
 	float knee = m_Threshold * m_SoftThreshold;
-	bloomProps.colorMultiply = colorMultiply;
+	bloomProps.colorMultiply  = colorMultiply;
 	bloomProps.filter         = { m_Threshold, m_Threshold - knee, 2.0f * knee, 0.25f / (knee + 0.00001f) };
 	bloomProps.boxSampleDelta = 1.0f;
 	bloomProps.intensity      = m_Intensity;

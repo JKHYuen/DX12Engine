@@ -48,6 +48,8 @@ public:
 	struct RenderProps {
 		std::wstring pbrMatName {};
 
+		bool isShadowCaster = true;
+
 		float heightMapMagnitude = 0.0f;
 
 		float parallaxMagnitude = 0.0f;

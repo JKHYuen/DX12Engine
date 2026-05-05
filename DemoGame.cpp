@@ -57,7 +57,7 @@ namespace {
 	int   s_ShadowMapResolution = 4096;
 	float s_ShadowMapNear       = 0.1f;
 	float s_ShadowMapFar        = 150.0f;
-	float s_ShadowDistance      = 50.0f;
+	float s_ShadowDistance      = 35.0f;
 	float s_ShadowBias          = 0.001f;
 
 	float s_DefaultFOV = 45.0f;
@@ -231,6 +231,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 			goRenderProps.heightMapMagnitude = 0.0f;
 			goRenderProps.parallaxMagnitude = 0.005f;
 			goRenderProps.useParallaxShadow = true;
+			goRenderProps.isShadowCaster = false;
 			m_DemoScene->AddGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetQuadPrimitive());
 
 			copyCommandQueue.ExecuteCommandList(copyCommandList);

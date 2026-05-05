@@ -25,6 +25,6 @@ private:
 	OutlinePSO* m_OutlinePSO;
 
 	// Intermediate texture to draw outline, this will be blurred and overlayed onto the output render target
-	RenderTarget m_OutlineRT;
+	RenderTarget m_OutlineSilhouetteRT;
 };
 

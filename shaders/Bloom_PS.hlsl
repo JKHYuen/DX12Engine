@@ -56,9 +56,8 @@ float4 main(PixelInputType i) : SV_TARGET {
     // Use final upsample + bloom addition pass
     else {
         color = screenTexture.Sample(clampSampler, i.uv).rgb;
-        // low effort masking with red channel,
-        // mask texture will have color for outline effect (for techinical reasons), so technically outlines must have a red component that's not zero
-        float mask = step(maskTexture.Sample(clampSampler, i.uv).r, 0.0);
+        // mask texture (e.g. used for object silhouettes in outline effect)
+        float mask = step(maskTexture.Sample(clampSampler, i.uv).a, 0.0);
         color.rgb += intensity * SampleBox(i.uv, 0.5) * (mask * colorMultiply.rgb);
     }
     

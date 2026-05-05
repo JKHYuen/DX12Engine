@@ -122,6 +122,8 @@ void GameObject::RenderSilhouette(CommandList& directCommandList, const UpdateEv
 // we can use a dirty flag to only update SRT when neccesary
 // assume we are in right rendering pipeline (see DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget)
 void GameObject::RenderToDirectionalShadowMap(CommandList& directCommandList, const DirectionalLight& directionalLight) {
+	if(!m_RenderProps.isShadowCaster) return;
+
 	// Set all but MaterialTex to null SRVs (we need MaterialTex for height map)
 	for(int i = 0; i < PBRObjectPSO::TextureIndex::NumTextures; i++) {
 		if(i != PBRObjectPSO::TextureIndex::MaterialTex) {

@@ -307,7 +307,8 @@ float4 main(PixelInputType i) : SV_TARGET {
         /// TODO: make power factor tweakable
         // Power factor added as a hacky way to make shadows more visible
         float parallaxSelfShadowFactor = pow(CalcParallaxSoftShadowMultiplier(mul(L, TBN), i.uv, 1.0 - MaterialTex.Sample(AnisoWrapSampler, i.uv).a), 16.0);
-        shadowFactor *= parallaxSelfShadowFactor;
+        // pow above causes invalid values sometimes (blows up bloom effect), saturate ensures valid values
+        shadowFactor *= saturate(parallaxSelfShadowFactor);
     }
     
     return float4(ambient + Lo * shadowFactor, 1);

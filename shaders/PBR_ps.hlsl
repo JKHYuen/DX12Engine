@@ -25,9 +25,9 @@ Texture2D BRDFLut                     : register(t5);
 Texture2D DirectionalShadowMap        : register(t6);
 
 // TODO: directional shadow map should use border sampler (?)
-SamplerState AnisoWrapSampler          : register(s0);
-SamplerState TrilinearClampSampler     : register(s1); // for BRDF lut and directional shadow map
-SamplerComparisonState TrilinearBorderSampler    : register(s2); 
+SamplerState AnisoWrapSampler                 : register(s0);
+SamplerState TrilinearClampSampler            : register(s1); // for BRDF lut
+SamplerComparisonState TrilinearBorderSampler : register(s2); // for directional shadow map
 
 struct PixelInputType {
     float4 position                     : SV_POSITION;
@@ -276,13 +276,11 @@ float4 main(PixelInputType i) : SV_TARGET {
     float2 projectTexCoord = float2(normalizedDirectionalLightViewPos.x, -normalizedDirectionalLightViewPos.y) * 0.5 + 0.5;
     float lightDepthValue = normalizedDirectionalLightViewPos.z;
         
+    /// TODO: apply bias
     // Adaptive shadow bias
     //float shadowBias = max(0.05 * (1.0 - dot(normal, -lightDirection)), 0.005);
-    
-    // apply bias
     //lightDepthValue = lightDepthValue - shadowBias;
-    lightDepthValue = lightDepthValue - 0.001;
-        
+    
     // Shadowmap with basic PCF multisampling
     float shadowFactor = 0.0; // 0: in shadow, 1: not in shadow
     //float width, height, numOfLevels;
@@ -307,7 +305,8 @@ float4 main(PixelInputType i) : SV_TARGET {
         /// TODO: make power factor tweakable
         // Power factor added as a hacky way to make shadows more visible
         float parallaxSelfShadowFactor = pow(CalcParallaxSoftShadowMultiplier(mul(L, TBN), i.uv, 1.0 - MaterialTex.Sample(AnisoWrapSampler, i.uv).a), 16.0);
-        // pow above causes invalid values sometimes (blows up bloom effect), saturate ensures valid values
+        // Note: pow above causes invalid values sometimes (blows up bloom effect), this seems to only happen on specific materials
+        // saturate() ensures valid values
         shadowFactor *= saturate(parallaxSelfShadowFactor);
     }
     

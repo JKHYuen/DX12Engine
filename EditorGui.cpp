@@ -134,12 +134,62 @@ EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWN
 	/// TODO: test this on 1080p monitor
 	//// Source: https://github.com/ocornut/imgui/blob/master/examples/example_win32_directx11/main.cpp#L34
 	ImGui_ImplWin32_EnableDpiAwareness();
-	float main_scale = ImGui_ImplWin32_GetDpiScaleForMonitor(::MonitorFromPoint(POINT { 0, 0 }, MONITOR_DEFAULTTOPRIMARY)) * 0.8f;
+	// Arbitrary multiplier added
+	float main_scale = ImGui_ImplWin32_GetDpiScaleForMonitor(::MonitorFromPoint(POINT { 0, 0 }, MONITOR_DEFAULTTOPRIMARY)) * 0.9f; 
 	ImGuiStyle& style = ImGui::GetStyle();
 	// Bake a fixed style scale. (until we have a solution for dynamic style scaling, changing this requires resetting Style + calling this again)
 	style.ScaleAllSizes(main_scale);     
 	// Set initial font scale. (in docking branch: using io.ConfigDpiScaleFonts=true automatically overrides this for every window depending on the current monitor)
 	style.FontScaleDpi = main_scale;
+
+	// Custom Theme
+	style.WindowMinSize     = ImVec2(160, 20);
+	style.FramePadding      = ImVec2(4, 4);
+	style.ItemSpacing       = ImVec2(7, 5);
+	style.ItemInnerSpacing  = ImVec2(7, 4);
+	style.WindowRounding    = 3.0f;
+	style.FrameRounding     = 2.0f;
+	style.IndentSpacing     = 6.0f;
+	style.ItemInnerSpacing  = ImVec2(2, 4);
+	style.ColumnsMinSpacing = 50.0f;
+	style.ScrollbarSize     = 12.0f;
+	style.ScrollbarRounding = 16.0f;
+
+	ImVec4 accentColor1   = ImVec4(0.1f, 0.13f, 0.2f, 1.0f);
+	ImVec4 accentColor1_h = ImVec4(0.12f, 0.15f, 0.22f, 1.0f);
+	ImVec4 accentColor3   = ImVec4(0.15f, 0.18f, 0.25f, 1.0f);
+	ImVec4 accentColor3_h = ImVec4(0.17f, 0.20f, 0.27f, 1.0f);
+	//style.Colors[ImGuiCol_WindowBg]             = accentColor1;
+	//style.Colors[ImGuiCol_Border]               = ImVec4(0.31f, 0.31f, 1.00f, 0.00f);
+	//style.Colors[ImGuiCol_BorderShadow]         = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+	style.Colors[ImGuiCol_FrameBg]              = ImVec4(0.1f, 0.1f, 0.11f, 1.0f);
+	style.Colors[ImGuiCol_FrameBgHovered]       = accentColor1_h;
+	style.Colors[ImGuiCol_FrameBgActive]        = accentColor1;
+	//style.Colors[ImGuiCol_TitleBg]              = accentColor1_h;
+	//style.Colors[ImGuiCol_TitleBgCollapsed]     = ImVec4(0.20f, 0.22f, 0.27f, 0.75f);
+	style.Colors[ImGuiCol_TitleBgActive]        = accentColor1;
+	//style.Colors[ImGuiCol_MenuBarBg]            = ImVec4(0.20f, 0.22f, 0.27f, 0.47f);
+	//style.Colors[ImGuiCol_ScrollbarBg]          = ImVec4(0.20f, 0.22f, 0.27f, 1.00f);
+	//style.Colors[ImGuiCol_ScrollbarGrab]        = ImVec4(0.09f, 0.15f, 0.16f, 1.00f);
+	//style.Colors[ImGuiCol_ScrollbarGrabHovered] = accentColor1_h;
+	//style.Colors[ImGuiCol_ScrollbarGrabActive]  = accentColor1;
+	//style.Colors[ImGuiCol_CheckMark]            = accentColor1;
+	//style.Colors[ImGuiCol_SliderGrab]           = ImVec4(0.47f, 0.77f, 0.83f, 0.14f);
+	style.Colors[ImGuiCol_SliderGrabActive]     = accentColor1;
+	//style.Colors[ImGuiCol_Button]               = ImVec4(0.47f, 0.77f, 0.83f, 0.14f);
+	//style.Colors[ImGuiCol_ButtonHovered]        = accentColor1;
+	//style.Colors[ImGuiCol_ButtonActive]         = accentColor1;
+	style.Colors[ImGuiCol_Header]               = accentColor3;
+	style.Colors[ImGuiCol_HeaderHovered]        = accentColor3_h;
+	style.Colors[ImGuiCol_HeaderActive]         = accentColor3_h;
+	//style.Colors[ImGuiCol_Separator]            = ImVec4(0.14f, 0.16f, 0.19f, 1.00f);
+	style.Colors[ImGuiCol_SeparatorHovered]     = accentColor1_h;
+	style.Colors[ImGuiCol_SeparatorActive]      = accentColor1;
+	//style.Colors[ImGuiCol_ResizeGrip]           = ImVec4(0.47f, 0.77f, 0.83f, 0.04f);
+	style.Colors[ImGuiCol_ResizeGripHovered]    = accentColor1_h;
+	style.Colors[ImGuiCol_ResizeGripActive]     = accentColor1;
+	//style.Colors[ImGuiCol_TextSelectedBg]       = ImVec4(0.92f, 0.18f, 0.29f, 0.43f);
+	//style.Colors[ImGuiCol_PopupBg]              = ImVec4(0.20f, 0.22f, 0.27f, 0.9f);
 }
 
 EditorGui& EditorGui::Create(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWND hwnd) {

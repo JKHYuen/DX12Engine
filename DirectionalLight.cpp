@@ -67,7 +67,7 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
     } shadowDepthPipelineStateStream;
 
     CD3DX12_RASTERIZER_DESC rasterizerDesc(D3D12_DEFAULT);
-    //rasterizerDesc.CullMode = D3D12_CULL_MODE_FRONT;
+    rasterizerDesc.CullMode = D3D12_CULL_MODE_FRONT;
 
     shadowDepthPipelineStateStream.pRootSignature = m_ObjectRootSignature->GetD3D12RootSignature().Get();
     shadowDepthPipelineStateStream.InputLayout = params.depthRenderInputLayout;

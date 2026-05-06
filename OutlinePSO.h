@@ -21,7 +21,7 @@ class CommandList;
 
 class OutlinePSO {
 public:
-	OutlinePSO(Device& device, D3D12_RT_FORMAT_ARRAY rtvFormats, DXGI_FORMAT depthFormat, std::shared_ptr<RootSignature> objectRootSignature);
+	OutlinePSO(Device& device, D3D12_RT_FORMAT_ARRAY rtvFormats, std::shared_ptr<RootSignature> objectRootSignature);
 
 	void SetPipelineState(CommandList& directCommandList) const;
 

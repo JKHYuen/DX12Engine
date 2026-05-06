@@ -33,7 +33,7 @@ class DemoGame : public IGame {
     friend class EditorGui;
 
 public:
-    DemoGame(const std::wstring& name, uint32_t width, uint32_t height, bool vSync = false);
+    DemoGame(const std::wstring& name, uint32_t width, uint32_t height, bool vSync = false, bool isFullScreen = true);
 
     // Called by main
     uint32_t Run()       override;

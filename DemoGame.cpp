@@ -69,7 +69,7 @@ namespace {
 	float s_ZFar  = 1000.0f;
 }
 
-DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t windowHeight, bool vSync)
+DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t windowHeight, bool vSync, bool isFullScreen)
 	: m_DefaultScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX))
 	, m_ScreenViewport(CD3DX12_VIEWPORT(0.0f, 0.0f, (float)windowWidth, (float)windowHeight))
 	, m_WindowWidth(windowWidth)
@@ -137,7 +137,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	m_IBL_PSO = std::make_unique<ImageBasedLightingPSO>(*m_Device, m_HDR_MSAA_RT);
 
 	m_Bloom_PSO = std::make_unique<BloomPSO>(*m_Device, m_HDR_MSAA_RT);
-	m_Outline_PSO = std::make_unique<OutlinePSO>(*m_Device, m_HDR_MSAA_RT.GetRenderTargetFormats(), m_HDR_MSAA_RT.GetDepthStencilFormat(), m_PBR_PSO.get()->GetRootSignature());
+	m_Outline_PSO = std::make_unique<OutlinePSO>(*m_Device, m_HDR_MSAA_RT.GetRenderTargetFormats(), m_PBR_PSO.get()->GetRootSignature());
 	///
 
 	m_BloomEffect = std::make_unique<BloomEffect>(*m_Device, m_HDR_MSAA_RT, m_Bloom_PSO.get());
@@ -290,6 +290,9 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 
 	// Wait for loading operations to complete before rendering the first frame
 	copyCommandQueue.FlushWait();
+
+	// Wait for all resizable elements to be created before setting to fullscreen (OnResize will subsuquently be called)
+	if(isFullScreen) m_Window->SetFullscreen(true);
 }
 
 uint32_t DemoGame::Run() {

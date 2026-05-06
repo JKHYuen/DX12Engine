@@ -12,13 +12,11 @@
 using namespace DirectX;
 using namespace Microsoft::WRL;
 
-OutlinePSO::OutlinePSO(Device& device, D3D12_RT_FORMAT_ARRAY rtvFormats, DXGI_FORMAT depthFormat, std::shared_ptr<RootSignature> objectRootSignature)
+OutlinePSO::OutlinePSO(Device& device, D3D12_RT_FORMAT_ARRAY rtvFormats, std::shared_ptr<RootSignature> objectRootSignature)
 	: m_ObjectRootSignature(objectRootSignature)
 {
 	CD3DX12_RASTERIZER_DESC rasterDesc { D3D12_DEFAULT };
 	rasterDesc.CullMode = D3D12_CULL_MODE_NONE;
-
-	CD3DX12_DEPTH_STENCIL_DESC depthStencilDesc { D3D12_DEFAULT };
 
 	struct OutlinePipelineStateStream {
 		CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
@@ -26,8 +24,6 @@ OutlinePSO::OutlinePSO(Device& device, D3D12_RT_FORMAT_ARRAY rtvFormats, DXGI_FO
 		CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
 		CD3DX12_PIPELINE_STATE_STREAM_VS VS;
 		CD3DX12_PIPELINE_STATE_STREAM_PS PS;
-		CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL DepthStencilDesc;
-		CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
 		CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
 		CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER RasterDesc;
 	} outlinePipelineStateStream;
@@ -37,8 +33,6 @@ OutlinePSO::OutlinePSO(Device& device, D3D12_RT_FORMAT_ARRAY rtvFormats, DXGI_FO
 	outlinePipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	outlinePipelineStateStream.VS = AssetImporter::GetCompiledShaderFromFile(L"PBR_VS.cso");
 	outlinePipelineStateStream.PS = AssetImporter::GetCompiledShaderFromFile(L"Outline_PS.cso");
-	outlinePipelineStateStream.DepthStencilDesc = depthStencilDesc;
-	outlinePipelineStateStream.DSVFormat = depthFormat;
 	outlinePipelineStateStream.RTVFormats = rtvFormats;
 	outlinePipelineStateStream.RasterDesc = rasterDesc;
 

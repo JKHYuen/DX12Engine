@@ -139,18 +139,19 @@ EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWN
 	ImGuiStyle& style = ImGui::GetStyle();
 	// Bake a fixed style scale. (until we have a solution for dynamic style scaling, changing this requires resetting Style + calling this again)
 	style.ScaleAllSizes(main_scale);     
+	//style.FontScaleMain = main_scale;
 	// Set initial font scale. (in docking branch: using io.ConfigDpiScaleFonts=true automatically overrides this for every window depending on the current monitor)
 	style.FontScaleDpi = main_scale;
 
 	// Custom Theme
 	style.WindowMinSize     = ImVec2(160, 20);
-	style.FramePadding      = ImVec2(4, 4);
+	style.FramePadding      = ImVec2(4, 5);
 	style.ItemSpacing       = ImVec2(7, 5);
 	style.ItemInnerSpacing  = ImVec2(7, 4);
 	style.WindowRounding    = 3.0f;
 	style.FrameRounding     = 2.0f;
 	style.IndentSpacing     = 6.0f;
-	style.ItemInnerSpacing  = ImVec2(2, 4);
+	style.ItemInnerSpacing  = ImVec2(4, 4);
 	style.ColumnsMinSpacing = 50.0f;
 	style.ScrollbarSize     = 12.0f;
 	style.ScrollbarRounding = 16.0f;
@@ -280,7 +281,7 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 		ImGui::Begin("DX12 Engine", &b_CurrentDebugWindowState, ImGuiWindowFlags_NoCollapse);
 		sb_ShowDebugWindow = b_CurrentDebugWindowState;
 
-		// Exit button
+		// Exit button / Font scaler
 		{
 			ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(0.0f, 0.6f, 0.6f));
 			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor::HSV(0.0f, 0.7f, 0.7f));
@@ -289,6 +290,10 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 				Application::Get().Quit();
 			}
 			ImGui::PopStyleColor(3);
+
+			ImGui::SameLine();
+			ImGuiStyle& style = ImGui::GetStyle();
+			ImGui::DragFloat("UI Scale", &style.FontScaleDpi, 0.02f, 0.5f, 4.0f, "%.2fx");
 		}
 
 		// Performance Graph 
@@ -574,17 +579,24 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 				picked->SetScale(s_ObjScale[0], s_ObjScale[1], s_ObjScale[2]);
 			}
 			ImGui::SameLine();
-			if(ImGui::Button("+##+Scale")) {
-				picked->Scale(1.1f, 1.1f, 1.1f);
+
+			/// Extremely hacky way to add a uniform scale drag, can't think of another way right now
+			ImGui::PushItemWidth(30);
+			static float _ {};
+			static float lastMousePos {};
+			if(ImGui::DragFloat("##ScaleDrag", &_, 0.001f, 0.0f, 1.0f, "<->", ImGuiSliderFlags_WrapAround)) {
+				if(ImGui::GetMousePos().x > lastMousePos) {
+					picked->Scale(1.05f, 1.05f, 1.05f);
+				}
+				else {
+					picked->Scale(0.95f, 0.95f, 0.95f);
+				}
 				XMFLOAT3 scale = picked->GetScale();
-				memcpy(s_ObjScale, &scale, sizeof(float) * 3);
+             	memcpy(s_ObjScale, &scale, sizeof(float) * 3);
+
+				lastMousePos = ImGui::GetMousePos().x;
 			}
-			ImGui::SameLine();
-			if(ImGui::Button("-##-Scale")) {
-				picked->Scale(0.9f, 0.9f, 0.9f);
-				XMFLOAT3 scale = picked->GetScale();
-				memcpy(s_ObjScale, &scale, sizeof(float) * 3);
-			}
+			ImGui::PopItemWidth();
 		}
 
 		{
@@ -592,15 +604,24 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 				picked->m_RenderProps.uvScale = { s_UVScale[0], s_UVScale[1] };
 			}
 			ImGui::SameLine();
-			if(ImGui::Button("+##+UVScale")) {
-				s_UVScale[0] = picked->m_RenderProps.uvScale.x += 1.0f;
-				s_UVScale[1] = picked->m_RenderProps.uvScale.y += 1.0f;
+
+			/// Extremely hacky way to add a uniform scale drag, can't think of another way right now
+			ImGui::PushItemWidth(30);
+			static float _ {};
+			static float lastMousePos {};
+			if(ImGui::DragFloat("##UVScaleDrag", &_, 0.001f, 0.0f, 1.0f, "<->", ImGuiSliderFlags_WrapAround)) {
+				if(ImGui::GetMousePos().x > lastMousePos) {
+					s_UVScale[0] = picked->m_RenderProps.uvScale.x += 0.05f;
+					s_UVScale[1] = picked->m_RenderProps.uvScale.y += 0.05f;
+				}
+				else {
+					s_UVScale[0] = picked->m_RenderProps.uvScale.x -= 0.05f;
+					s_UVScale[1] = picked->m_RenderProps.uvScale.y -= 0.05f;
+				}
+
+				lastMousePos = ImGui::GetMousePos().x;
 			}
-			ImGui::SameLine();
-			if(ImGui::Button("-##-UVScale")) {
-				s_UVScale[0] = picked->m_RenderProps.uvScale.x -= 1.0f;
-				s_UVScale[1] = picked->m_RenderProps.uvScale.y -= 1.0f;
-			}
+			ImGui::PopItemWidth();
 		}
 
 		if(ImGui::DragFloat("Height Map Magnitude", &s_HeightMapMagnitude, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {

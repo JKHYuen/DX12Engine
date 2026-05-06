@@ -175,8 +175,8 @@ EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWN
 	//style.Colors[ImGuiCol_ScrollbarGrabHovered] = accentColor1_h;
 	//style.Colors[ImGuiCol_ScrollbarGrabActive]  = accentColor1;
 	//style.Colors[ImGuiCol_CheckMark]            = accentColor1;
-	//style.Colors[ImGuiCol_SliderGrab]           = ImVec4(0.47f, 0.77f, 0.83f, 0.14f);
-	style.Colors[ImGuiCol_SliderGrabActive]     = accentColor1;
+	style.Colors[ImGuiCol_SliderGrab]            = accentColor3;
+	//style.Colors[ImGuiCol_SliderGrabActive]      = accentColor3;
 	//style.Colors[ImGuiCol_Button]               = ImVec4(0.47f, 0.77f, 0.83f, 0.14f);
 	//style.Colors[ImGuiCol_ButtonHovered]        = accentColor1;
 	//style.Colors[ImGuiCol_ButtonActive]         = accentColor1;
@@ -506,7 +506,7 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 			//	bloomPass->m_SoftThreshold = s_SoftThreshold;
 			//}
 			static float col[3];
-			if(ImGui::ColorEdit3("Test", col, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float)) {
+			if(ImGui::ColorEdit3("Test", col, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoPicker)) {
 
 			}
 		}

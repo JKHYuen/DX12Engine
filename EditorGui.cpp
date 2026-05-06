@@ -78,6 +78,15 @@ namespace {
 
 	// Stores all created GuiDescriptorAllocations created by "AllocateImageSRV()". Indices are enum "GuiSRVIndex".
 	std::vector<EditorGui::GuiDescriptorAllocation> s_ImageSRVs { EditorGui::GuiSRVIndex::NumGuiSRVIndex };
+
+	void ImGuiHDRColorEdit3Preview(std::string_view s, float col[3], ImGuiColorEditFlags flags) {
+		ImGui::SameLine();
+		// Normalize HDR values to estimate of color for preview box
+		float colMax = std::max(col[0], std::max(col[1], col[2]));
+		ImVec4 buttonCol(col[0] / colMax, col[1] / colMax, col[2] / colMax, 1.0f);
+		if(ImGui::ColorButton(s.data(), buttonCol, flags));
+	}
+
 }
 
 EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWND hwnd) {
@@ -255,6 +264,8 @@ void EditorGui::Render(CommandList& directCommandList) {
 
 void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& game) {
 	static const ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
+	// HDR color picker is WIP in ImGui, color picker disabled since it doesn't support HDR. We will render preview box manually since the values need to be normalized.
+	static const ImGuiColorEditFlags kHDRColorEditFlags = ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoSmallPreview;
 
 	struct ScrollingBuffer {
 		int MaxSize;
@@ -309,12 +320,13 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 		// Graph data update rate based on s_GraphUpdateRate, default: 60hz
 		// This is to throttle the rate ScrollingBuffer records data so we don't need a huge buffer for high frame rates over a big time scale
 		{
-			static ScrollingBuffer s_FPSGraphBuffer;
+			static ScrollingBuffer s_FPSGraphBuffer {};
 
 			// Save axis extents for update ticks faster than s_GraphUpdateRate
 			static std::pair xCurrentAxisExtents = { 0.0, 1.0 };
 			static std::pair yCurrentAxisExtents = { 0.0, 1.0 };
 
+			// 60 times a second is probably overkill, note that time scale at 1 second doesn't render properly at 30 times a second
 			static const float s_GraphUpdateRate = 1.0f / 60.0f;
 			static float s_UpdateTimer = s_GraphUpdateRate;
 			s_UpdateTimer -= ImGui::GetIO().DeltaTime;
@@ -336,10 +348,13 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 				);
 
 				// Update axis extents
+				// We don't use ImPlot autofit because it doesn't leave headroom
 				if(s_UpdateTimer == s_GraphUpdateRate) {
-					ImPlot::SetupAxisLimits(ImAxis_X1, ImGui::GetTime() - timeScale, ImGui::GetTime(), ImGuiCond_Always);
-					xCurrentAxisExtents.first = ImGui::GetTime() - timeScale;
-					xCurrentAxisExtents.second = ImGui::GetTime();
+					float newXMin = ImGui::GetTime() - timeScale;
+					float newXMax = ImGui::GetTime();
+					ImPlot::SetupAxisLimits(ImAxis_X1, newXMin, newXMax, ImGuiCond_Always);
+					xCurrentAxisExtents.first = newXMin;
+					xCurrentAxisExtents.second = newXMax;
 
 					if(game.m_CurrentAvgFPS >= yCurrentAxisExtents.second || game.m_CurrentAvgFPS * 2.0f <= yCurrentAxisExtents.second) {
 						float newYMax = std::max(120.0f, game.m_CurrentAvgFPS * 1.5f);
@@ -352,9 +367,11 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 					ImPlot::SetupAxisLimits(ImAxis_Y1, 0, yCurrentAxisExtents.second, ImGuiCond_Always);
 				}
 
-				ImPlot::PlotLine("FPS", s_FPSGraphBuffer.tData.data(), s_FPSGraphBuffer.frameTimeData.data(), s_FPSGraphBuffer.tData.size());
-
+				static ImPlotSpec s_Spec {};
+				s_Spec.Offset = s_FPSGraphBuffer.Offset;
+				ImPlot::PlotLine("FPS", s_FPSGraphBuffer.tData.data(), s_FPSGraphBuffer.frameTimeData.data(), s_FPSGraphBuffer.tData.size(), s_Spec);
 				ImPlot::EndPlot();
+
 				ImGui::SliderInt("Time Scale", &timeScale, 1, 30, "%ds");
 			}
 		}
@@ -435,9 +452,10 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 				sceneLight.SetEulerAngles(s_SceneDirLightEulerAngle[0], s_SceneDirLightEulerAngle[1], 0.0f);
 			}
 
-			if(ImGui::DragFloat3("Light Color", s_SceneDirLightColor, 0.1f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
+			if(ImGui::ColorEdit3("Light Color", s_SceneDirLightColor, kHDRColorEditFlags)) {
 				sceneLight.SetColor(s_SceneDirLightColor[0], s_SceneDirLightColor[1], s_SceneDirLightColor[2]);
 			}
+			ImGuiHDRColorEdit3Preview("##Light Color", s_SceneDirLightColor, kHDRColorEditFlags);
 
 			if(ImGui::DragFloat2("Shadow Near/Far Z", s_ShadowNearFarZ, 0.1f, 0.1f, 10000.0f, "%.2f", kSliderFlags)) {
 				sceneLight.SetShadowNearFarZ({ s_ShadowNearFarZ[0], s_ShadowNearFarZ[1] });
@@ -496,6 +514,7 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 		}
 
 		if(ImGui::CollapsingHeader("Picker Outline", ImGuiTreeNodeFlags_DefaultOpen)) {
+			static float s_OutlineCol[3];
 			//if(ImGui::DragFloat("Intensity##Picker", &s_BloomIntensity, 0.01f, 0.0f, 10.0f, "%.2f", kSliderFlags)) {
 			//	bloomPass->m_Intensity = s_BloomIntensity;
 			//}
@@ -505,10 +524,10 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 			//if(ImGui::DragFloat("Soft Theshold##Picker", &s_SoftThreshold, 0.01f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
 			//	bloomPass->m_SoftThreshold = s_SoftThreshold;
 			//}
-			static float col[3];
-			if(ImGui::ColorEdit3("Test", col, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoPicker)) {
+			if(ImGui::ColorEdit3("Outline Color", s_OutlineCol, kHDRColorEditFlags)) {
 
 			}
+			ImGuiHDRColorEdit3Preview("##OutlineColor", s_OutlineCol, kHDRColorEditFlags);
 		}
 
 		/// Main Engine UI Window End

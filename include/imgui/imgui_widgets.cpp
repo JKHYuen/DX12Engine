@@ -2696,7 +2696,7 @@ static bool TempInputIsClampEnabled(ImGuiSliderFlags flags, ImGuiDataType data_t
 }
 
 
-/// PATCH for mouse periodic boundaries 
+/// KHY: PATCH for mouse periodic boundaries 
 /// source: https://github.com/ocornut/imgui/issues/228#issuecomment-1723778093
 // When multi-viewports are disabled: wrap in main viewport.
 // When multi-viewports are enabled: wrap in monitor.
@@ -2749,9 +2749,11 @@ bool ImGui::DragScalar(const char* label, ImGuiDataType data_type, void* p_data,
     const float w = CalcItemWidth();
     const ImU32 color_marker = (g.NextItemData.HasFlags & ImGuiNextItemDataFlags_HasColorMarker) ? g.NextItemData.ColorMarker : 0;
 
+    /// KHY: PATCH 
     // https://github.com/ocornut/imgui/issues/228#issuecomment-1723778093
     if(g.ActiveId == id)
         WrapMousePos(1 << ImGuiAxis_X);
+    /// PATCH END
 
     const ImVec2 label_size = CalcTextSize(label, NULL, true);
     const ImRect frame_bb(window->DC.CursorPos, window->DC.CursorPos + ImVec2(w, label_size.y + style.FramePadding.y * 2.0f));

@@ -10,13 +10,14 @@
 
 #include <format>
 
-BloomEffect::BloomEffect(Device& device, const RenderTarget& screenRenderTarget, BloomPSO* pso, int maxIterations, float intensity, float threshold, float softThreshold) :
+BloomEffect::BloomEffect(Device& device, const RenderTarget& screenRenderTarget, BloomPSO* pso, int maxIterations, float intensity, float threshold, float softThreshold, XMFLOAT4 colorMultiply) :
 	m_TextureFormat     { screenRenderTarget.GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0] },
 	m_MaxIterationCount { maxIterations },
 	m_IterationCount    { maxIterations },
 	m_Intensity         { intensity },
 	m_Threshold         { threshold },
 	m_SoftThreshold     { softThreshold },
+	m_ColorMultiply     { colorMultiply },
 	m_PSO               { pso },
 	m_Device            { device }
 {
@@ -65,13 +66,13 @@ void BloomEffect::CreateSamplingRenderTarget(size_t idx, uint32_t textureWidth, 
 	samplingTexture->CreateShaderResourceView(m_SRVDesc);
 }
 
-void BloomEffect::Render(CommandList& directCommandList, const RenderTarget& inputRenderTarget, const RenderTarget& outputRenderTarget, XMFLOAT4 colorMultiply, const RenderTarget* blendRenderTarget, bool b_MaskOutInput) {
+void BloomEffect::Render(CommandList& directCommandList, const RenderTarget& inputRenderTarget, const RenderTarget& outputRenderTarget, const RenderTarget* blendRenderTarget, bool b_MaskOutInput) {
 	m_PSO->SetPipelineState(directCommandList);
 
 	// First downsample + prefilter
 	BloomPSO::BloomProps bloomProps {};
 	float knee = m_Threshold * m_SoftThreshold;
-	bloomProps.colorMultiply  = colorMultiply;
+	bloomProps.colorMultiply  = m_ColorMultiply;
 	bloomProps.filter         = { m_Threshold, m_Threshold - knee, 2.0f * knee, 0.25f / (knee + 0.00001f) };
 	bloomProps.boxSampleDelta = 1.0f;
 	bloomProps.intensity      = m_Intensity;

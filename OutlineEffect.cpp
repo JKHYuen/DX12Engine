@@ -36,7 +36,7 @@ OutlineEffect::OutlineEffect(Device& device, const RenderTarget& screenRenderTar
 		outlineTexture->CreateShaderResourceView(srvDesc);
 	}
 	
-	m_BloomEffect = std::make_unique<BloomEffect>(device, screenRenderTarget, bloomPSO, 2, 1.0f, 1.0f, 0.9f);
+	m_BloomEffect = std::make_unique<BloomEffect>(device, screenRenderTarget, bloomPSO, 2, 1.0f, 1.0f, 1.5f, XMFLOAT4 { 15.0f, 10.0f, 0.0f, 1.0f });
 }
 
 void OutlineEffect::Resize(uint32_t width, uint32_t height) {
@@ -45,6 +45,8 @@ void OutlineEffect::Resize(uint32_t width, uint32_t height) {
 }
 
 bool OutlineEffect::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, const RenderTarget& blendRenderTarget, const RenderTarget& outputRenderTarget) {
+	if(mb_DisableEffect) return false;
+
 	/// TODO: support outlining multiple objects
 	const GameObject* outlineObject = scene.GetPicker()->GetPickedObject();
 	if(outlineObject == nullptr) return false;
@@ -60,7 +62,7 @@ bool OutlineEffect::Render(CommandList& directCommandList, const UpdateEventArgs
 	outlineObject->RenderSilhouette(directCommandList, e, scene, m_OutlinePSO);
 
 	// Bloom (blur) silhoutte
-	m_BloomEffect->Render(directCommandList, m_OutlineSilhouetteRT, outputRenderTarget, XMFLOAT4 { 10.0f, 10.0f, 0.0f, 1.0f }, & blendRenderTarget, true);
+	m_BloomEffect->Render(directCommandList, m_OutlineSilhouetteRT, outputRenderTarget, & blendRenderTarget, true);
 
 	return true;
 }

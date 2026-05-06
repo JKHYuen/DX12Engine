@@ -26,6 +26,7 @@
 #include "Application.h"
 #include "DemoGame.h"
 #include "BloomEffect.h"
+#include "OutlineEffect.h"
 
 #include <wrl/client.h>
 
@@ -84,7 +85,7 @@ namespace {
 		// Normalize HDR values to estimate of color for preview box
 		float colMax = std::max(col[0], std::max(col[1], col[2]));
 		ImVec4 buttonCol(col[0] / colMax, col[1] / colMax, col[2] / colMax, 1.0f);
-		if(ImGui::ColorButton(s.data(), buttonCol, flags));
+		ImGui::ColorButton(s.data(), buttonCol, flags);
 	}
 
 }
@@ -164,6 +165,7 @@ EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWN
 	style.ColumnsMinSpacing = 50.0f;
 	style.ScrollbarSize     = 12.0f;
 	style.ScrollbarRounding = 16.0f;
+	style.WindowBorderSize  = 0.0f;
 
 	ImVec4 accentColor1   = ImVec4(0.1f, 0.13f, 0.2f, 1.0f);
 	ImVec4 accentColor1_h = ImVec4(0.12f, 0.15f, 0.22f, 1.0f);
@@ -350,8 +352,8 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 				// Update axis extents
 				// We don't use ImPlot autofit because it doesn't leave headroom
 				if(s_UpdateTimer == s_GraphUpdateRate) {
-					float newXMin = ImGui::GetTime() - timeScale;
-					float newXMax = ImGui::GetTime();
+					double newXMin = ImGui::GetTime() - timeScale;
+					double newXMax = ImGui::GetTime();
 					ImPlot::SetupAxisLimits(ImAxis_X1, newXMin, newXMax, ImGuiCond_Always);
 					xCurrentAxisExtents.first = newXMin;
 					xCurrentAxisExtents.second = newXMax;
@@ -369,7 +371,7 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 
 				static ImPlotSpec s_Spec {};
 				s_Spec.Offset = s_FPSGraphBuffer.Offset;
-				ImPlot::PlotLine("FPS", s_FPSGraphBuffer.tData.data(), s_FPSGraphBuffer.frameTimeData.data(), s_FPSGraphBuffer.tData.size(), s_Spec);
+				ImPlot::PlotLine("FPS", s_FPSGraphBuffer.tData.data(), s_FPSGraphBuffer.frameTimeData.data(), (int)s_FPSGraphBuffer.tData.size(), s_Spec);
 				ImPlot::EndPlot();
 
 				ImGui::SliderInt("Time Scale", &timeScale, 1, 30, "%ds");
@@ -483,19 +485,10 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 		// Bloom
 		if(ImGui::CollapsingHeader("Bloom", ImGuiTreeNodeFlags_DefaultOpen)) {
 			static BloomEffect* bloomPass = game.m_BloomEffect.get();
-			static float s_BloomIntensity = bloomPass->m_Intensity;
-			static float s_Threshold      = bloomPass->m_Threshold;
-			static float s_SoftThreshold  = bloomPass->m_SoftThreshold;
 
-			if(ImGui::DragFloat("Intensity", &s_BloomIntensity, 0.01f, 0.0f, 10.0f, "%.2f", kSliderFlags)) {
-				bloomPass->m_Intensity = s_BloomIntensity;
-			}
-			if(ImGui::DragFloat("Theshold", &s_Threshold, 0.01f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
-				bloomPass->m_Threshold = s_Threshold;
-			}
-			if(ImGui::DragFloat("Soft Theshold", &s_SoftThreshold, 0.01f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
-				bloomPass->m_SoftThreshold = s_SoftThreshold;
-			}
+			ImGui::DragFloat("Intensity", &bloomPass->m_Intensity, 0.01f, 0.0f, 10.0f, "%.2f", kSliderFlags);
+			ImGui::DragFloat("Theshold", &bloomPass->m_Threshold, 0.01f, 0.0f, 100.0f, "%.2f", kSliderFlags);
+			ImGui::DragFloat("Soft Theshold", &bloomPass->m_SoftThreshold, 0.01f, 0.0f, 100.0f, "%.2f", kSliderFlags);
 
 			// Bloom debug view
 			// Need ImVec4(0.0f, 0.0f, 0.0f, 1.0f) background color, else some textures are see through for some reason
@@ -514,20 +507,24 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 		}
 
 		if(ImGui::CollapsingHeader("Picker Outline", ImGuiTreeNodeFlags_DefaultOpen)) {
+			static BloomEffect* pickerBloomEffect = game.m_OutlineEffect->m_BloomEffect.get();
 			static float s_OutlineCol[3];
-			//if(ImGui::DragFloat("Intensity##Picker", &s_BloomIntensity, 0.01f, 0.0f, 10.0f, "%.2f", kSliderFlags)) {
-			//	bloomPass->m_Intensity = s_BloomIntensity;
-			//}
-			//if(ImGui::DragFloat("Theshold##Picker", &s_Threshold, 0.01f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
-			//	bloomPass->m_Threshold = s_Threshold;
-			//}
-			//if(ImGui::DragFloat("Soft Theshold##Picker", &s_SoftThreshold, 0.01f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
-			//	bloomPass->m_SoftThreshold = s_SoftThreshold;
-			//}
-			if(ImGui::ColorEdit3("Outline Color", s_OutlineCol, kHDRColorEditFlags)) {
+			static bool b_PickerInit = false;
+			if(!b_PickerInit) {
+				b_PickerInit = true;
+				memcpy(s_OutlineCol, &pickerBloomEffect->m_ColorMultiply, sizeof(float) * 3);
+			}
 
+			ImGui::Checkbox("Disable Outline", &game.m_OutlineEffect->mb_DisableEffect);
+
+			if(ImGui::ColorEdit3("Outline Color", s_OutlineCol, kHDRColorEditFlags)) {
+				pickerBloomEffect->SetColorMultiply(s_OutlineCol[0], s_OutlineCol[1], s_OutlineCol[2]);
 			}
 			ImGuiHDRColorEdit3Preview("##OutlineColor", s_OutlineCol, kHDRColorEditFlags);
+
+			ImGui::DragFloat("Intensity##Picker", &pickerBloomEffect->m_Intensity, 0.01f, 0.0f, 10.0f, "%.2f", kSliderFlags);
+			ImGui::DragFloat("Theshold##Picker", &pickerBloomEffect->m_Threshold, 0.01f, 0.0f, 100.0f, "%.2f", kSliderFlags);
+			ImGui::DragFloat("Soft Theshold##Picker", &pickerBloomEffect->m_SoftThreshold, 0.01f, 0.0f, 100.0f, "%.2f", kSliderFlags);
 		}
 
 		/// Main Engine UI Window End
@@ -578,6 +575,8 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 		s_MaxParallaxLayers  = picked->m_RenderProps.maxParallaxLayers;
 	}
 	s_LastPickedObject = picked;
+
+	ImGui::SetNextWindowPos({ (float)scene.m_GameWindowWidth * 0.8f, (float)scene.m_GameWindowHeight * 0.05f }, ImGuiCond_Once);
 
 	ImGui::Begin(s_ObjectName.c_str(), &sb_ObjectInspectorState, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
 	if(!sb_ObjectInspectorState) {

@@ -12,6 +12,9 @@ class UpdateEventArgs;
 class Scene;
 
 class OutlineEffect {
+
+	friend class EditorGui;
+
 public:
 	OutlineEffect(Device& device, const RenderTarget& screenRenderTarget, OutlinePSO* outlinePSO, BloomPSO* bloomPSO);
 
@@ -26,5 +29,8 @@ private:
 
 	// Intermediate texture to draw outline, this will be blurred and overlayed onto the output render target
 	RenderTarget m_OutlineSilhouetteRT;
+
+	// Currently only used by Debug UI
+	bool mb_DisableEffect = false;
 };
 

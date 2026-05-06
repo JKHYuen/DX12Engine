@@ -17,18 +17,21 @@ class BloomEffect {
 	friend class EditorGui;
 
 public:
-	BloomEffect(Device& device, const RenderTarget& screenRenderTarget, BloomPSO* pso, int maxIterations = 16, float intensity = 0.5f, float threshold = 80.0f, float softThreshold = 0.9f);
+	BloomEffect(Device& device, const RenderTarget& screenRenderTarget, BloomPSO* pso, int maxIterations = 16, float intensity = 0.5f, float threshold = 80.0f, float softThreshold = 0.9f, XMFLOAT4 colorMultiply = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 
 	// "blendRenderTarget" is an optional render target if we want a texture other than inputRenderTarget to be blended with on the last render pass.
 	// (Last render pass uses outputRenderTarget as render target and adds m_SamplingRenderTargets[0] and blendRenderTarget/inputRenderTarget together with intensity multiplier to apply bloom)
-	void Render(CommandList& directCommandList, const RenderTarget& inputRenderTarget, const RenderTarget& outputRenderTarget, XMFLOAT4 colorMultiply = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), const RenderTarget* blendRenderTarget = nullptr, bool b_MaskOutInput = false);
+	void Render(CommandList& directCommandList, const RenderTarget& inputRenderTarget, const RenderTarget& outputRenderTarget, const RenderTarget* blendRenderTarget = nullptr, bool b_MaskOutInput = false);
 
 	void ResizeRenderTargets(uint32_t width, uint32_t height);
+
+	void SetColorMultiply(float r, float g, float b) { m_ColorMultiply = { r, g, b, 1.0f }; }
 
 private:
 	float m_Intensity;
 	float m_Threshold;
 	float m_SoftThreshold;
+	XMFLOAT4 m_ColorMultiply;
 
 	// Creates new render target at index idx in m_SamplingRenderTargets, SRV and RTV created as well
 	void CreateSamplingRenderTarget(size_t idx, uint32_t textureWidth, uint32_t textureHeight);

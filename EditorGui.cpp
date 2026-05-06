@@ -148,7 +148,7 @@ EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWN
 	style.FramePadding      = ImVec2(4, 5);
 	style.ItemSpacing       = ImVec2(7, 5);
 	style.ItemInnerSpacing  = ImVec2(7, 4);
-	style.WindowRounding    = 3.0f;
+	style.WindowRounding    = 5.0f;
 	style.FrameRounding     = 2.0f;
 	style.IndentSpacing     = 6.0f;
 	style.ItemInnerSpacing  = ImVec2(4, 4);
@@ -259,17 +259,26 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 	struct ScrollingBuffer {
 		int MaxSize;
 		int Offset;
-		ImVector<ImVec2> Data;
+
+		// These are kept seperate for easier use with ImPlot
+		std::vector<float> tData;
+		std::vector<float> frameTimeData;
+
 		ScrollingBuffer(int max_size = 2000) {
 			MaxSize = max_size;
 			Offset = 0;
-			Data.reserve(MaxSize);
+			tData.reserve(MaxSize);
+			frameTimeData.reserve(MaxSize);
 		}
+
 		void AddPoint(float x, float y) {
-			if(Data.size() < MaxSize)
-				Data.push_back(ImVec2(x, y));
+			if(tData.size() < MaxSize) {
+				tData.push_back(x);
+				frameTimeData.push_back(y);
+			}
 			else {
-				Data[Offset] = ImVec2(x, y);
+				tData[Offset] = x;
+				frameTimeData[Offset] = y;
 				Offset = (Offset + 1) % MaxSize;
 			}
 		}
@@ -302,20 +311,16 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 		{
 			static ScrollingBuffer s_FPSGraphBuffer;
 
-			if(s_FPSGraphBuffer.Data.size() == 0) {
-				s_FPSGraphBuffer.AddPoint((float)ImGui::GetTime(), (float)game.m_CurrentAvgFPS);
-			}
-
 			// Save axis extents for update ticks faster than s_GraphUpdateRate
 			static std::pair xCurrentAxisExtents = { 0.0, 1.0 };
 			static std::pair yCurrentAxisExtents = { 0.0, 1.0 };
 
 			static const float s_GraphUpdateRate = 1.0f / 60.0f;
-			static float s_Timer = s_GraphUpdateRate;
-			s_Timer -= ImGui::GetIO().DeltaTime;
-			if(s_Timer <= 0) {
+			static float s_UpdateTimer = s_GraphUpdateRate;
+			s_UpdateTimer -= ImGui::GetIO().DeltaTime;
+			if(s_UpdateTimer <= 0) {
 				s_FPSGraphBuffer.AddPoint((float)ImGui::GetTime(), (float)game.m_CurrentAvgFPS);
-				s_Timer = s_GraphUpdateRate;
+				s_UpdateTimer = s_GraphUpdateRate;
 			}
 
 			ImGui::Text("FPS: %d", game.m_CurrentAvgFPS);
@@ -331,7 +336,7 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 				);
 
 				// Update axis extents
-				if(s_Timer == s_GraphUpdateRate) {
+				if(s_UpdateTimer == s_GraphUpdateRate) {
 					ImPlot::SetupAxisLimits(ImAxis_X1, ImGui::GetTime() - timeScale, ImGui::GetTime(), ImGuiCond_Always);
 					xCurrentAxisExtents.first = ImGui::GetTime() - timeScale;
 					xCurrentAxisExtents.second = ImGui::GetTime();
@@ -347,78 +352,22 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 					ImPlot::SetupAxisLimits(ImAxis_Y1, 0, yCurrentAxisExtents.second, ImGuiCond_Always);
 				}
 
-				ImPlot::PlotLine("FPS", &s_FPSGraphBuffer.Data[0].x, &s_FPSGraphBuffer.Data[0].y,
-					s_FPSGraphBuffer.Data.size(), 0, s_FPSGraphBuffer.Offset, 2 * sizeof(float)
-				);
+				ImPlot::PlotLine("FPS", s_FPSGraphBuffer.tData.data(), s_FPSGraphBuffer.frameTimeData.data(), s_FPSGraphBuffer.tData.size());
 
 				ImPlot::EndPlot();
-
 				ImGui::SliderInt("Time Scale", &timeScale, 1, 30, "%ds");
 			}
 		}
-
+		ImGui::Spacing();
+		
 		// FOV Slider
 		float fov = scene.m_MainCamera.Get_FoV();
 		ImGui::SliderFloat("FOV", &fov, 12.0f, 90.0f);
 		scene.m_MainCamera.Set_FoV(fov);
-
-		// Directional Light
-		if(ImGui::CollapsingHeader("Directional Light")) {
-			static DirectionalLight& sceneLight = scene.m_DirectionalLight;
-			static float s_SceneDirLightEulerAngle[2];
-			static float s_SceneDirLightColor[3];
-			static float s_ShadowNearFarZ[2];
-			static float s_ShadowRenderDistance;
-
-			static bool sb_DirInit = false;
-			if(!sb_DirInit) {
-				sb_DirInit = true;
-
-				XMFLOAT3 startingDirAngles = sceneLight.GetEulerAngles();
-				memcpy(s_SceneDirLightEulerAngle, &startingDirAngles, sizeof(float) * 2);
-
-				XMFLOAT4 startingSceneLightColor = sceneLight.GetColor();
-				memcpy(s_SceneDirLightColor, &startingSceneLightColor, sizeof(float) * 3);
-
-				XMFLOAT2 nearFarZ = sceneLight.GetShadowNearFarZ();
-				memcpy(s_ShadowNearFarZ, &nearFarZ, sizeof(float) * 2);
-
-				s_ShadowRenderDistance = sceneLight.GetShadowRenderDistance();
-			}
-
-			if(ImGui::DragFloat2("[x, y]", s_SceneDirLightEulerAngle, 0.1f, 0.0f, 360.0f, "%.2f", kSliderFlags | ImGuiSliderFlags_WrapAround)) {
-				sceneLight.SetEulerAngles(s_SceneDirLightEulerAngle[0], s_SceneDirLightEulerAngle[1], 0.0f);
-			}
-
-			if(ImGui::DragFloat3("Directional Light Color", s_SceneDirLightColor, 0.1f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
-				sceneLight.SetColor(s_SceneDirLightColor[0], s_SceneDirLightColor[1], s_SceneDirLightColor[2]);
-			}
-
-			if(ImGui::DragFloat2("Shadow Near/Far Z", s_ShadowNearFarZ, 0.1f, 0.1f, 10000.0f, "%.2f", kSliderFlags)) {
-				sceneLight.SetShadowNearFarZ({ s_ShadowNearFarZ[0], s_ShadowNearFarZ[1] });
-			}
-
-			if(ImGui::DragFloat("Shadow Render Distance", &s_ShadowRenderDistance, 0.1f, 0.1f, 10000.0f, "%.2f", kSliderFlags)) {
-				sceneLight.SetShadowRenderDistance(s_ShadowRenderDistance);
-			}
-
-			// Shadow debug
-			if(ImGui::TreeNode("Shadow Debug")) {
-				static float s_ImageScale = 0.25f;
-				ImGui::SliderFloat("##Directional Shadow Map Texture Scale", &s_ImageScale, 0.0, 1.0, "%.2fx");
-				ImVec2 imageSize = ImVec2(1920.0f * s_ImageScale, 1080.0f * s_ImageScale);
-
-				// Directional shadow map debug view
-				ImGui::ImageWithBg(
-					(ImTextureID)GetImageSRVAllocation(EditorGui::GuiSRVIndex::DirectionalShadowMap).gpuHandle.ptr,
-					imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
-				);
-				ImGui::TreePop();
-			}
-		}
+		ImGui::Spacing();
 
 		// Skybox Selector
-		{
+		if(ImGui::CollapsingHeader("Skybox", ImGuiTreeNodeFlags_DefaultOpen)) {
 			static std::wstring_view s_SelectedSkybox = scene.m_Skybox.GetTextureName();
 			if(ImGui::BeginTable("Skybox Table", 3, ImGuiTableFlags_Borders)) {
 				for(auto& s : game.m_SkyboxNames) {
@@ -458,8 +407,63 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 			}
 		}
 
+		// Directional Light
+		if(ImGui::CollapsingHeader("Directional Light", ImGuiTreeNodeFlags_DefaultOpen)) {
+			static DirectionalLight& sceneLight = scene.m_DirectionalLight;
+			static float s_SceneDirLightEulerAngle[2];
+			static float s_SceneDirLightColor[3];
+			static float s_ShadowNearFarZ[2];
+			static float s_ShadowRenderDistance;
+
+			static bool sb_DirInit = false;
+			if(!sb_DirInit) {
+				sb_DirInit = true;
+
+				XMFLOAT3 startingDirAngles = sceneLight.GetEulerAngles();
+				memcpy(s_SceneDirLightEulerAngle, &startingDirAngles, sizeof(float) * 2);
+
+				XMFLOAT4 startingSceneLightColor = sceneLight.GetColor();
+				memcpy(s_SceneDirLightColor, &startingSceneLightColor, sizeof(float) * 3);
+
+				XMFLOAT2 nearFarZ = sceneLight.GetShadowNearFarZ();
+				memcpy(s_ShadowNearFarZ, &nearFarZ, sizeof(float) * 2);
+
+				s_ShadowRenderDistance = sceneLight.GetShadowRenderDistance();
+			}
+
+			if(ImGui::DragFloat2("Direction", s_SceneDirLightEulerAngle, 0.1f, 0.0f, 360.0f, "%.2f", kSliderFlags | ImGuiSliderFlags_WrapAround)) {
+				sceneLight.SetEulerAngles(s_SceneDirLightEulerAngle[0], s_SceneDirLightEulerAngle[1], 0.0f);
+			}
+
+			if(ImGui::DragFloat3("Light Color", s_SceneDirLightColor, 0.1f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
+				sceneLight.SetColor(s_SceneDirLightColor[0], s_SceneDirLightColor[1], s_SceneDirLightColor[2]);
+			}
+
+			if(ImGui::DragFloat2("Shadow Near/Far Z", s_ShadowNearFarZ, 0.1f, 0.1f, 10000.0f, "%.2f", kSliderFlags)) {
+				sceneLight.SetShadowNearFarZ({ s_ShadowNearFarZ[0], s_ShadowNearFarZ[1] });
+			}
+
+			if(ImGui::DragFloat("Shadow Render Distance", &s_ShadowRenderDistance, 0.1f, 0.1f, 10000.0f, "%.2f", kSliderFlags)) {
+				sceneLight.SetShadowRenderDistance(s_ShadowRenderDistance);
+			}
+
+			// Shadow debug
+			if(ImGui::TreeNode("Shadow Debug")) {
+				static float s_ImageScale = 0.25f;
+				ImGui::SliderFloat("##Directional Shadow Map Texture Scale", &s_ImageScale, 0.0, 1.0, "%.2fx");
+				ImVec2 imageSize = ImVec2(1920.0f * s_ImageScale, 1080.0f * s_ImageScale);
+
+				// Directional shadow map debug view
+				ImGui::ImageWithBg(
+					(ImTextureID)GetImageSRVAllocation(EditorGui::GuiSRVIndex::DirectionalShadowMap).gpuHandle.ptr,
+					imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
+				);
+				ImGui::TreePop();
+			}
+		}
+
 		// Bloom
-		if(ImGui::CollapsingHeader("Bloom")) {
+		if(ImGui::CollapsingHeader("Bloom", ImGuiTreeNodeFlags_DefaultOpen)) {
 			static BloomEffect* bloomPass = game.m_BloomEffect.get();
 			static float s_BloomIntensity = bloomPass->m_Intensity;
 			static float s_Threshold      = bloomPass->m_Threshold;
@@ -488,6 +492,22 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 					imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
 				);
 				ImGui::TreePop();
+			}
+		}
+
+		if(ImGui::CollapsingHeader("Picker Outline", ImGuiTreeNodeFlags_DefaultOpen)) {
+			//if(ImGui::DragFloat("Intensity##Picker", &s_BloomIntensity, 0.01f, 0.0f, 10.0f, "%.2f", kSliderFlags)) {
+			//	bloomPass->m_Intensity = s_BloomIntensity;
+			//}
+			//if(ImGui::DragFloat("Theshold##Picker", &s_Threshold, 0.01f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
+			//	bloomPass->m_Threshold = s_Threshold;
+			//}
+			//if(ImGui::DragFloat("Soft Theshold##Picker", &s_SoftThreshold, 0.01f, 0.0f, 100.0f, "%.2f", kSliderFlags)) {
+			//	bloomPass->m_SoftThreshold = s_SoftThreshold;
+			//}
+			static float col[3];
+			if(ImGui::ColorEdit3("Test", col, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float)) {
+
 			}
 		}
 
@@ -547,106 +567,107 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 		return;
 	}
 
-	{
-		if(ImGui::BeginTable("PBR Material Table", 4, ImGuiTableFlags_Borders)) {
-			for(const auto& s : scene.m_MaterialNames) {
-				ImGui::TableNextColumn();
+	ImGui::SeparatorText("PBR Material");
+	if(ImGui::BeginTable("PBR Material Table", 4, ImGuiTableFlags_Borders)) {
+		for(const auto& s : scene.m_MaterialNames) {
+			ImGui::TableNextColumn();
 
-				if(ImGui::Selectable(StringConvert::WideString_To_String(s).c_str(), s == s_SelectedMat)) {
-					auto& copyCommandQueue = device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
-					auto copyCommandList = copyCommandQueue.GetCommandList();
+			if(ImGui::Selectable(StringConvert::WideString_To_String(s).c_str(), s == s_SelectedMat)) {
+				auto& copyCommandQueue = device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
+				auto copyCommandList = copyCommandQueue.GetCommandList();
 
-					picked->UpdatePBRShaderResources(*copyCommandList, s);
+				picked->UpdatePBRShaderResources(*copyCommandList, s);
 
-					copyCommandQueue.ExecuteCommandList(copyCommandList);
-					copyCommandQueue.FlushWait();
-					s_SelectedMat = s;
-				};
-			}
-			ImGui::EndTable();
+				copyCommandQueue.ExecuteCommandList(copyCommandList);
+				copyCommandQueue.FlushWait();
+				s_SelectedMat = s;
+			};
 		}
-
-		if(ImGui::DragFloat3("Position", s_ObjTranslation, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
-			picked->SetTranslation(s_ObjTranslation[0], s_ObjTranslation[1], s_ObjTranslation[2]);
-		}
-
-		if(ImGui::DragFloat3("Rotation", s_ObjEulerAngles, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
-			picked->SetEulerRotation(s_ObjEulerAngles[0], s_ObjEulerAngles[1], s_ObjEulerAngles[2]);
-		}
-
-		{
-			if(ImGui::DragFloat3("Scale", s_ObjScale, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
-				picked->SetScale(s_ObjScale[0], s_ObjScale[1], s_ObjScale[2]);
-			}
-			ImGui::SameLine();
-
-			/// Extremely hacky way to add a uniform scale drag, can't think of another way right now
-			ImGui::PushItemWidth(30);
-			static float _ {};
-			static float lastMousePos {};
-			if(ImGui::DragFloat("##ScaleDrag", &_, 0.001f, 0.0f, 1.0f, "<->", ImGuiSliderFlags_WrapAround)) {
-				if(ImGui::GetMousePos().x > lastMousePos) {
-					picked->Scale(1.05f, 1.05f, 1.05f);
-				}
-				else {
-					picked->Scale(0.95f, 0.95f, 0.95f);
-				}
-				XMFLOAT3 scale = picked->GetScale();
-             	memcpy(s_ObjScale, &scale, sizeof(float) * 3);
-
-				lastMousePos = ImGui::GetMousePos().x;
-			}
-			ImGui::PopItemWidth();
-		}
-
-		{
-			if(ImGui::DragFloat2("UV Scale", s_UVScale, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
-				picked->m_RenderProps.uvScale = { s_UVScale[0], s_UVScale[1] };
-			}
-			ImGui::SameLine();
-
-			/// Extremely hacky way to add a uniform scale drag, can't think of another way right now
-			ImGui::PushItemWidth(30);
-			static float _ {};
-			static float lastMousePos {};
-			if(ImGui::DragFloat("##UVScaleDrag", &_, 0.001f, 0.0f, 1.0f, "<->", ImGuiSliderFlags_WrapAround)) {
-				if(ImGui::GetMousePos().x > lastMousePos) {
-					s_UVScale[0] = picked->m_RenderProps.uvScale.x += 0.05f;
-					s_UVScale[1] = picked->m_RenderProps.uvScale.y += 0.05f;
-				}
-				else {
-					s_UVScale[0] = picked->m_RenderProps.uvScale.x -= 0.05f;
-					s_UVScale[1] = picked->m_RenderProps.uvScale.y -= 0.05f;
-				}
-
-				lastMousePos = ImGui::GetMousePos().x;
-			}
-			ImGui::PopItemWidth();
-		}
-
-		if(ImGui::DragFloat("Height Map Magnitude", &s_HeightMapMagnitude, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
-			picked->m_RenderProps.heightMapMagnitude = s_HeightMapMagnitude;
-		}
-
-		// Parallax Occlusion Mapping
-		{
-			if(ImGui::DragFloat("Parallax Magnitude", &s_ParallaxMagnitude, 0.001f, 0.0f, 1.0f, "%.3f", kSliderFlags)) {
-				picked->m_RenderProps.parallaxMagnitude = s_ParallaxMagnitude;
-			}
-
-			if(ImGui::Checkbox("Enable Parallax Self Shadows", &s_UseParallaxShadows)) {
-				picked->m_RenderProps.useParallaxShadow = s_UseParallaxShadows;
-			}
-
-			if(ImGui::DragInt("Min Parallax Layers", &s_MinParallaxLayers, 1.0f, 0, 100, "%d", kSliderFlags)) {
-				picked->m_RenderProps.minParallaxLayers = s_MinParallaxLayers;
-			}
-			if(ImGui::DragInt("Max Parallax Layers", &s_MaxParallaxLayers, 1.0f, 0, 100, "%d", kSliderFlags)) {
-				picked->m_RenderProps.maxParallaxLayers = s_MaxParallaxLayers;
-			}
-		}
-
-		/// Object Inspector Window End
-		ImGui::End();
+		ImGui::EndTable();
 	}
+
+	ImGui::SeparatorText("Transform");
+	if(ImGui::DragFloat3("Position", s_ObjTranslation, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
+		picked->SetTranslation(s_ObjTranslation[0], s_ObjTranslation[1], s_ObjTranslation[2]);
+	}
+
+	if(ImGui::DragFloat3("Rotation", s_ObjEulerAngles, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
+		picked->SetEulerRotation(s_ObjEulerAngles[0], s_ObjEulerAngles[1], s_ObjEulerAngles[2]);
+	}
+
+	{
+		if(ImGui::DragFloat3("Scale", s_ObjScale, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
+			picked->SetScale(s_ObjScale[0], s_ObjScale[1], s_ObjScale[2]);
+		}
+		ImGui::SameLine();
+
+		/// Extremely hacky way to add a uniform scale drag, can't think of another way right now
+		ImGui::PushItemWidth(30);
+		static float _ {};
+		static float lastMousePos {};
+		if(ImGui::DragFloat("##ScaleDrag", &_, 0.001f, 0.0f, 1.0f, "<->", ImGuiSliderFlags_WrapAround)) {
+			if(ImGui::GetMousePos().x > lastMousePos) {
+				picked->Scale(1.05f, 1.05f, 1.05f);
+			}
+			else {
+				picked->Scale(0.95f, 0.95f, 0.95f);
+			}
+			XMFLOAT3 scale = picked->GetScale();
+            memcpy(s_ObjScale, &scale, sizeof(float) * 3);
+
+			lastMousePos = ImGui::GetMousePos().x;
+		}
+		ImGui::PopItemWidth();
+	}
+
+	ImGui::SeparatorText("Shader Properties");
+	{
+		if(ImGui::DragFloat2("UV Scale", s_UVScale, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
+			picked->m_RenderProps.uvScale = { s_UVScale[0], s_UVScale[1] };
+		}
+		ImGui::SameLine();
+
+		/// Extremely hacky way to add a uniform scale drag, can't think of another way right now
+		ImGui::PushItemWidth(30);
+		static float _ {};
+		static float lastMousePos {};
+		if(ImGui::DragFloat("##UVScaleDrag", &_, 0.001f, 0.0f, 1.0f, "<->", ImGuiSliderFlags_WrapAround)) {
+			if(ImGui::GetMousePos().x > lastMousePos) {
+				s_UVScale[0] = picked->m_RenderProps.uvScale.x += 0.05f;
+				s_UVScale[1] = picked->m_RenderProps.uvScale.y += 0.05f;
+			}
+			else {
+				s_UVScale[0] = picked->m_RenderProps.uvScale.x -= 0.05f;
+				s_UVScale[1] = picked->m_RenderProps.uvScale.y -= 0.05f;
+			}
+
+			lastMousePos = ImGui::GetMousePos().x;
+		}
+		ImGui::PopItemWidth();
+	}
+
+	if(ImGui::DragFloat("Height Map Magnitude", &s_HeightMapMagnitude, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
+		picked->m_RenderProps.heightMapMagnitude = s_HeightMapMagnitude;
+	}
+
+	// Parallax Occlusion Mapping
+	{
+		if(ImGui::DragFloat("Parallax Magnitude", &s_ParallaxMagnitude, 0.001f, 0.0f, 1.0f, "%.3f", kSliderFlags)) {
+			picked->m_RenderProps.parallaxMagnitude = s_ParallaxMagnitude;
+		}
+
+		if(ImGui::Checkbox("Enable Parallax Self Shadows", &s_UseParallaxShadows)) {
+			picked->m_RenderProps.useParallaxShadow = s_UseParallaxShadows;
+		}
+
+		if(ImGui::DragInt("Min Parallax Layers", &s_MinParallaxLayers, 1.0f, 0, 100, "%d", kSliderFlags)) {
+			picked->m_RenderProps.minParallaxLayers = s_MinParallaxLayers;
+		}
+		if(ImGui::DragInt("Max Parallax Layers", &s_MaxParallaxLayers, 1.0f, 0, 100, "%d", kSliderFlags)) {
+			picked->m_RenderProps.maxParallaxLayers = s_MaxParallaxLayers;
+		}
+	}
+
+	/// Object Inspector Window End
+	ImGui::End();
 }

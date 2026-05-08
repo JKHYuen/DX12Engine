@@ -73,7 +73,9 @@ public:
     std::shared_ptr<Texture> GetShadowMapTexture() const { return m_DirectionalShadowMapRT.GetTexture(AttachmentPoint::DepthStencil); }
     
     void SetShadowDepthPipelineStateAndRenderTarget(CommandList& directCommandList) const;
-    void RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, PBRObjectPSO::VertexProps vertexProps) const;
+
+    // pass vertexProps by value to copy and edit MVP to render from light's perspective
+    void RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, PBRObjectPSO::VertexProps vertexProps, const PBRObjectPSO::TessellationProps& tessProps) const;
 
 private:
     Device& m_Device;

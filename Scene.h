@@ -52,10 +52,13 @@ public:
 	void Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, CommandList& directCommandList, const UpdateEventArgs& e);
 
 	// For object picking
-	void SetGameWindowSize(int width, int height) { 
+	void SetGameWindowSize(uint32_t width, uint32_t height) {
 		m_GameWindowWidth = width;
 		m_GameWindowHeight = height;
 	};
+
+	uint32_t GetGameWindowWidth() const { return m_GameWindowWidth; }
+	uint32_t GetGameWindowHeight() const { return m_GameWindowHeight; }
 
 	// keep this public out of convenience for now
 	Camera m_MainCamera;
@@ -76,8 +79,8 @@ private:
 	Device& m_Device;
 
 	// For object picking
-	int m_GameWindowWidth;
-	int m_GameWindowHeight;
+	uint32_t m_GameWindowWidth;
+	uint32_t m_GameWindowHeight;
 	//
 
 	std::unique_ptr<Picker> m_Picker {};

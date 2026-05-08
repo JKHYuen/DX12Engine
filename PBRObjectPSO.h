@@ -25,9 +25,10 @@ public:
 	PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRAY rtvFormat, DXGI_FORMAT depthFormat);
 
 	enum PBRRootParameters {
-		VertexCB,         // ConstantBuffer<VertexProps>   VertexCB	  : register(b0);
-		MaterialCB,       // ConstantBuffer<MaterialProps> MaterialCB : register(b0, space1);
-		LightCB,          // ConstantBuffer<LightProps>    LightCB    : register(b1);
+		VertexCB,         // ConstantBuffer<VertexProps>   VertexCB	      : register(b0);
+		MaterialCB,       // ConstantBuffer<MaterialProps> MaterialCB     : register(b0, space1);
+		LightCB,          // ConstantBuffer<LightProps>    LightCB        : register(b1);
+		TessellationCB,   // ConstantBuffer<LightProps>    TessellationCB : register(b2);
 
 		Textures,         // Texture2D AlbedoTex		 : register(t0);
 						  // Texture2D NormalTex		 : register(t1);
@@ -56,11 +57,20 @@ public:
 	struct alignas(16) VertexProps {
 		XMFLOAT4X4 SRT;
 		XMFLOAT4X4 MVP;
-		XMFLOAT4X4 directionalLightMVP;
 		XMFLOAT4   cameraPosition;
+		XMFLOAT4X4 directionalLightMVP;
 		XMFLOAT2   uvScale;
 		float      heightMapMagnitude;
 		float      pad1;
+	};
+
+	struct alignas(16) TessellationProps {
+		XMFLOAT4   cameraPosition;
+		XMFLOAT4X4 SRT;
+		XMFLOAT4   cullingPlanes[4];
+		float      cullBias;
+		XMFLOAT2   screenDimensions;
+		float      tessellationMagnitude;
 	};
 
 	struct alignas(16) MaterialProps {
@@ -87,7 +97,7 @@ public:
 		
 	void SetPipelineState(CommandList& directCommandList) const;
 
-	void UpdateResources(CommandList& directCommandList, const std::vector<std::shared_ptr<Texture>>& pbrTextures, VertexProps vertexProps, MaterialProps materialProps, LightProps lightProps);
+	void UpdateResources(CommandList& directCommandList, const std::vector<std::shared_ptr<Texture>>& pbrTextures, const VertexProps& vertexProps, const TessellationProps& tessProps, const MaterialProps& materialProps, const LightProps& lightProp);
 
 private:
 	std::shared_ptr<RootSignature> m_RootSignature;

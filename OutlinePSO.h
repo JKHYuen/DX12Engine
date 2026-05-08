@@ -25,7 +25,7 @@ public:
 
 	void SetPipelineState(CommandList& directCommandList) const;
 
-	void UpdateResources(CommandList& directCommandList, PBRObjectPSO::VertexProps vertexProps);
+	void UpdateResources(CommandList& directCommandList, const PBRObjectPSO::VertexProps& vertexProps, const PBRObjectPSO::TessellationProps& tessProps);
 
 private:
 	std::shared_ptr<RootSignature> m_ObjectRootSignature;

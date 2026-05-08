@@ -70,7 +70,7 @@ public:
 
 	/// TODO: UNFINSIHED
 	// Initialize with mesh loaded from file
-	GameObject(CommandList& copyCommandList, const EntityParams& params, RenderProps renderProps, const std::wstring& meshFilePath);
+	GameObject(CommandList& copyCommandList, const EntityParams& params, const RenderProps& renderProps, const std::wstring& meshFilePath);
 
 	void Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene);
 
@@ -121,6 +121,8 @@ private:
 	/// Things that should be in some sort of component system:
 	PBRObjectPSO::VertexProps m_PBRVertexCB {};
 	PBRObjectPSO::LightProps m_PBRLightCB {};
+	PBRObjectPSO::TessellationProps m_TessellationProps {};
+
 	RenderProps m_RenderProps {};
 	///
 };

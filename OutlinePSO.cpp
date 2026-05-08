@@ -23,6 +23,8 @@ OutlinePSO::OutlinePSO(Device& device, D3D12_RT_FORMAT_ARRAY rtvFormats, std::sh
 		CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT InputLayout;
 		CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
 		CD3DX12_PIPELINE_STATE_STREAM_VS VS;
+		CD3DX12_PIPELINE_STATE_STREAM_HS HS;
+		CD3DX12_PIPELINE_STATE_STREAM_DS DS;
 		CD3DX12_PIPELINE_STATE_STREAM_PS PS;
 		CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
 		CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER RasterDesc;
@@ -30,8 +32,10 @@ OutlinePSO::OutlinePSO(Device& device, D3D12_RT_FORMAT_ARRAY rtvFormats, std::sh
 
 	outlinePipelineStateStream.pRootSignature = m_ObjectRootSignature->GetD3D12RootSignature().Get();
 	outlinePipelineStateStream.InputLayout = VertexInput::Get_POS_NORM_TAN_BIT_UV_InputLayout();
-	outlinePipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	outlinePipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
 	outlinePipelineStateStream.VS = AssetImporter::GetCompiledShaderFromFile(L"PBR_VS.cso");
+	outlinePipelineStateStream.HS = AssetImporter::GetCompiledShaderFromFile(L"PBR_HS.cso");
+	outlinePipelineStateStream.DS = AssetImporter::GetCompiledShaderFromFile(L"PBR_DS.cso");
 	outlinePipelineStateStream.PS = AssetImporter::GetCompiledShaderFromFile(L"Outline_PS.cso");
 	outlinePipelineStateStream.RTVFormats = rtvFormats;
 	outlinePipelineStateStream.RasterDesc = rasterDesc;
@@ -44,6 +48,7 @@ void OutlinePSO::SetPipelineState(CommandList& directCommandList) const {
 	directCommandList.SetGraphicsRootSignature(m_ObjectRootSignature);
 }
 
-void OutlinePSO::UpdateResources(CommandList& directCommandList, PBRObjectPSO::VertexProps vertexProps) {
+void OutlinePSO::UpdateResources(CommandList& directCommandList, const PBRObjectPSO::VertexProps& vertexProps, const PBRObjectPSO::TessellationProps& tessProps) {
 	directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::VertexCB, vertexProps);
+	directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::TessellationCB, tessProps);
 }

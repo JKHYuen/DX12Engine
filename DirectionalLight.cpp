@@ -62,6 +62,8 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
         CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT          InputLayout;
         CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY    PrimitiveTopologyType;
         CD3DX12_PIPELINE_STATE_STREAM_VS                    VS;
+        CD3DX12_PIPELINE_STATE_STREAM_HS                    HS;
+        CD3DX12_PIPELINE_STATE_STREAM_DS                    DS;
         CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER            Rasterizer;
         CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT  DSVFormat;
     } shadowDepthPipelineStateStream;
@@ -71,8 +73,10 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
 
     shadowDepthPipelineStateStream.pRootSignature = m_ObjectRootSignature->GetD3D12RootSignature().Get();
     shadowDepthPipelineStateStream.InputLayout = params.depthRenderInputLayout;
-    shadowDepthPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    shadowDepthPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
     shadowDepthPipelineStateStream.VS = AssetImporter::GetCompiledShaderFromFile(L"PBR_VS.cso");
+    shadowDepthPipelineStateStream.HS = AssetImporter::GetCompiledShaderFromFile(L"PBR_HS.cso");
+    shadowDepthPipelineStateStream.DS = AssetImporter::GetCompiledShaderFromFile(L"PBR_DS.cso");
     shadowDepthPipelineStateStream.Rasterizer = rasterizerDesc;
     shadowDepthPipelineStateStream.DSVFormat = m_DirectionalShadowMapRT.GetDepthStencilFormat();
 
@@ -126,16 +130,18 @@ void DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget(CommandList& d
     directCommandList.ClearDepthStencilTexture(m_DirectionalShadowMapRT.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
     directCommandList.SetViewport(m_ViewPort);
     directCommandList.SetRenderTarget(m_DirectionalShadowMapRT);
+    directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 
     directCommandList.SetPipelineState(m_DepthRenderPSO);
     directCommandList.SetGraphicsRootSignature(m_ObjectRootSignature);
 }
 
-void DirectionalLight::RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, PBRObjectPSO::VertexProps vertexProps) const {
+void DirectionalLight::RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, PBRObjectPSO::VertexProps vertexProps, const PBRObjectPSO::TessellationProps& tessProps) const {
     // Use directional light view/proj matrix and all other copied values from vertexProps
     XMStoreFloat4x4(&vertexProps.MVP, XMLoadFloat4x4(&vertexProps.SRT) * XMLoadFloat4x4(&m_LightViewMatrix) * XMLoadFloat4x4(&m_LightOrthoMatrix));
 
     directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::PBRRootParameters::VertexCB, vertexProps);
+    directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::PBRRootParameters::TessellationCB, tessProps);
     mesh.Draw(directCommandList);
 }
 

@@ -54,7 +54,7 @@ bool OutlineEffect::Render(CommandList& directCommandList, const UpdateEventArgs
 	m_OutlinePSO->SetPipelineState(directCommandList);
 	directCommandList.SetViewport(m_OutlineSilhouetteRT.GetViewport());
 	directCommandList.SetRenderTarget(m_OutlineSilhouetteRT);
-	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 
 	directCommandList.ClearTexture(m_OutlineSilhouetteRT.GetTexture(AttachmentPoint::Color0), Colors::Clear);
 

@@ -306,8 +306,8 @@ uint32_t DemoGame::Run() {
 }
 
 void DemoGame::OnResize(const ResizeEventArgs& e) {
-	m_WindowWidth = std::max(1, e.Width);
-	m_WindowHeight = std::max(1, e.Height);
+	m_WindowWidth = std::max(1u, e.Width);
+	m_WindowHeight = std::max(1u, e.Height);
 
 	m_SwapChain->Resize(m_WindowWidth, m_WindowHeight);
 

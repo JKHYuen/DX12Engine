@@ -133,8 +133,8 @@ private:
     bool m_LeftClickPressed {};
     bool m_RightClickPressed {};
 
-    int  m_WindowWidth;
-    int  m_WindowHeight;
+    uint32_t m_WindowWidth;
+    uint32_t m_WindowHeight;
     bool m_IsVsync;
 
     int m_CurrentAvgFPS {};

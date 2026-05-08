@@ -414,6 +414,8 @@
     <FxCompile Include="shaders\ConvoluteCubeMap_PS.hlsl" />
     <FxCompile Include="shaders\Outline_PS.hlsl" />
     <FxCompile Include="shaders\Bloom_PS.hlsl" />
+    <FxCompile Include="shaders\PBR_DS.hlsl" />
+    <FxCompile Include="shaders\PBR_HS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\assimp\Assimp.sln" />

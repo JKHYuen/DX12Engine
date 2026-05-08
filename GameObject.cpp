@@ -61,11 +61,12 @@ void GameObject::UpdateIBLShaderResources(const Scene& scene) {
 }
 
 /// TODO: load from file with meshFileName
-GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params, RenderProps renderProps, const std::wstring& meshFilePath) {
+GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params, const RenderProps& renderProps, const std::wstring& meshFilePath) {
 
 }
 
 void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene) {
+	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 	m_RenderProps.pbrPSO->SetPipelineState(directCommandList);
 
 	XMFLOAT4X4 v = scene.GetDirLight().GetViewMatrix();
@@ -73,6 +74,7 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 	XMMATRIX directionalLightViewMat = XMLoadFloat4x4(&v);
 	XMMATRIX directionalLightOrthoMat = XMLoadFloat4x4(&p);
 
+	// Vertex Props
 	{
 		XMStoreFloat4x4(&m_PBRVertexCB.SRT, XMLoadFloat4x4(&m_ScaleMat) * XMLoadFloat4x4(&m_RotationMat) * XMLoadFloat4x4(&m_TranslationMat));
 		XMStoreFloat4x4(&m_PBRVertexCB.MVP, XMLoadFloat4x4(&m_PBRVertexCB.SRT) * scene.m_MainCamera.Get_ViewMatrix() * scene.m_MainCamera.Get_ProjectionMatrix());
@@ -84,6 +86,17 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 		m_PBRVertexCB.heightMapMagnitude = m_RenderProps.heightMapMagnitude;
 	}
 
+	// Tessellation Props
+	{
+		XMStoreFloat4(&m_TessellationProps.cameraPosition, scene.m_MainCamera.Get_Translation());
+		m_TessellationProps.SRT = m_PBRVertexCB.SRT;
+		//m_TessellationProps.cullingPlanes[4] = ;
+		//m_TessellationProps.cullBias = ;
+		m_TessellationProps.screenDimensions = { (float)scene.GetGameWindowWidth() , (float)scene.GetGameWindowHeight() };
+		m_TessellationProps.tessellationMagnitude = 1.0f;
+	}
+
+	// Light Props
 	{
 		m_PBRLightCB.Time = { (float)e.Time, (float)e.DeltaTime, 0.0f, 0.0f };
 		m_PBRLightCB.dirLight = scene.GetDirLight().GetNormDirectionVector();
@@ -99,7 +112,7 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 		materialProps.parallaxMagnitude     = m_RenderProps.parallaxMagnitude;
 	}
 
-	m_RenderProps.pbrPSO->UpdateResources(directCommandList, m_TextureResources, m_PBRVertexCB, materialProps, m_PBRLightCB);
+	m_RenderProps.pbrPSO->UpdateResources(directCommandList, m_TextureResources, m_PBRVertexCB, m_TessellationProps, materialProps, m_PBRLightCB);
 
 	m_Mesh->Draw(directCommandList);
 }
@@ -115,7 +128,7 @@ void GameObject::RenderSilhouette(CommandList& directCommandList, const UpdateEv
 		}
 	}
 
-	outlinePSO->UpdateResources(directCommandList, m_PBRVertexCB);
+	outlinePSO->UpdateResources(directCommandList, m_PBRVertexCB, m_TessellationProps);
 	m_Mesh->Draw(directCommandList);
 }
 
@@ -134,7 +147,7 @@ void GameObject::RenderToDirectionalShadowMap(CommandList& directCommandList, co
 		}
 	}
 
-	directionalLight.RenderObjectToDepth(directCommandList, *m_Mesh, m_PBRVertexCB);
+	directionalLight.RenderObjectToDepth(directCommandList, *m_Mesh, m_PBRVertexCB, m_TessellationProps);
 }
 
 void GameObject::Translate(float x, float y, float z) {

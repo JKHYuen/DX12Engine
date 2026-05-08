@@ -64,8 +64,6 @@ std::shared_ptr<Material> Mesh::GetMaterial() const {
 }
 
 void Mesh::Draw(CommandList& commandList, uint32_t instanceCount, uint32_t startInstance) {
-    commandList.SetPrimitiveTopology(GetPrimitiveTopology());
-
     for(auto vertexBuffer : m_VertexBuffers) {
         commandList.SetVertexBuffer(vertexBuffer.first, vertexBuffer.second);
     }

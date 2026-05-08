@@ -1,5 +1,10 @@
 // Cook-Torrance PBR based on https://learnopengl.com/PBR/Theory
 
+#define PI 3.14159265359f
+
+// Must change cubemap gen LOD count if this value is changed
+#define MAX_REFLECTION_LOD 9.0
+
 cbuffer MaterialCB : register(b0, space1) {
     float UseParallaxShadow;
     float MinParallaxLayers;
@@ -40,11 +45,6 @@ struct PixelInputType {
     float4 directionalLightViewPosition : TEXCOORD3;
     float3 tangentViewDirection         : TEXCOORD4;
 };
-
-static const float PI = 3.14159265359;
-
-// Must change cubemap gen LOD count if this value is changed
-static const float MAX_REFLECTION_LOD = 9.0;
 
 // Normal distribution function
 float DistributionGGX(float3 N, float3 H, float roughness) {

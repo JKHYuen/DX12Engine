@@ -1,6 +1,6 @@
+
 Texture2D MaterialTex         : register(t2); // alpha channel is height map
 SamplerState AnisoWrapSampler : register(s0);
-
 
 cbuffer VertexCB : register(b0, space0) {
     matrix SRT;
@@ -78,10 +78,11 @@ PixelInputType main(
     o.bitangent = normalize(mul((float3x3) SRT, bitangent));
     o.normal    = normalize(mul((float3x3) SRT, normal));
     
-    // For parallax mapping only
+    /// For parallax mapping only
     float3x3 TBN = float3x3(o.tangent, o.bitangent, o.normal);
-    o.tangentViewDirection = normalize(mul(TBN, cameraPosition.xyz - o.worldPosition.xyz));
-    //
+    // don't normalize here, not sure why; will be normalized in pixel shader
+    o.tangentViewDirection = mul(TBN, cameraPosition.xyz - o.worldPosition.xyz);
+    ///
     
     o.directionalLightViewPosition = mul(directionalLightMVP, vertexPosition);
     

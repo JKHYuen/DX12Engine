@@ -32,10 +32,11 @@ struct DomainInputType {
     float2 uv        : TEXCOORD0;
 };
 
+#if defined(TESS_MODE_EDGE)
 // Edge tessellation based on: https://catlikecoding.com/unity/tutorials/advanced-rendering/tessellation/
 // Note: Distance based tessellation can be improved by adding min and max distance with interpolation between these values
 float CalcTessellationFactor(float3 vertexPosition1, float3 vertexPosition2) {
-    /// TODO: check if this is right
+    /// TODO: check if this is right, removes one sqrt
     //float3 viewDistVec = cameraPosition - ((vertexPosition1 + vertexPosition2) * 0.5);
     //float viewDistSquard = dot(viewDistVec, viewDistVec);
     //float3 edgeLengthVec = vertexPosition1 - vertexPosition2;
@@ -46,6 +47,7 @@ float CalcTessellationFactor(float3 vertexPosition1, float3 vertexPosition2) {
     float edgeLength   = distance(vertexPosition1, vertexPosition2);
     return (edgeLength * screenDimensions.y) / (viewDistance * tessellationMagnitude);
 }
+#endif
 
 //bool TriangleIsBelowClipPlane(float3 p0, float3 p1, float3 p2, int cullPlaneIndex) {
 //    float4 plane = cullingPlanes[cullPlaneIndex];
@@ -66,27 +68,30 @@ float CalcTessellationFactor(float3 vertexPosition1, float3 vertexPosition2) {
 
 ConstantOutputType PBRPatchConstantFunction(InputPatch<HullInputType, NUM_CONTROL_POINTS> inputPatch, uint patchId : SV_PrimitiveID) {
     ConstantOutputType output;
+    /// TODO: check matrix multiply order
     //float3 vertexPosition0 = mul(SRT, float4(inputPatch[0].position.xyz, 1.0)).xyz;
     //float3 vertexPosition1 = mul(SRT, float4(inputPatch[1].position.xyz, 1.0)).xyz;
     //float3 vertexPosition2 = mul(SRT, float4(inputPatch[2].position.xyz, 1.0)).xyz;
     
-    // TODO: Triangle Frustum culling - might not be worth doing when not tessellating (we also have object culling)
+    // TODO: Triangle Frustum culling - might only be worth it for very big objects like terrain (we also have object culling)
     //if (TriangleIsCulled(vertexPosition0, vertexPosition1, vertexPosition2)) {
     //    output.edges[0] = output.edges[1] = output.edges[2] = output.inside = 0;
     //    return output;
     //}
     
-#if defined(TESS_MODE_DISABLE)
-    output.edges[0] = output.edges[1] = output.edges[2] = output.inside = 1;
-#elif defined(TESS_MODE_UNIFORM)
+#if defined(TESS_MODE_UNIFORM)
     output.edges[0] = output.edges[1] = output.edges[2] = output.inside = tessellationMagnitude;
+    
 #elif defined(TESS_MODE_EDGE)
     output.edges[0] = CalcTessellationFactor(vertexPosition1, vertexPosition2);
     output.edges[1] = CalcTessellationFactor(vertexPosition2, vertexPosition0);
     output.edges[2] = CalcTessellationFactor(vertexPosition0, vertexPosition1);
-
-    output.inside = (output.edges[0] + output.edges[1] + output.edges[2]) / 3.0;
+    output.inside   = (output.edges[0] + output.edges[1] + output.edges[2]) / 3.0;
+    
+#else // No tessellation
+    output.edges[0] = output.edges[1] = output.edges[2] = output.inside = 1.0f;
 #endif
+    
     return output;
 }
 

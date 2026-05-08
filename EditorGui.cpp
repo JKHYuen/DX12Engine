@@ -578,6 +578,7 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 
 	ImGui::SetNextWindowPos({ (float)scene.m_GameWindowWidth * 0.8f, (float)scene.m_GameWindowHeight * 0.05f }, ImGuiCond_Once);
 
+	// sb_ObjectInspectorState var is just to make window x button work
 	ImGui::Begin(s_ObjectName.c_str(), &sb_ObjectInspectorState, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
 	if(!sb_ObjectInspectorState) {
 		scene.m_Picker->ClearPickedObject();

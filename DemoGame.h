@@ -107,8 +107,7 @@ private:
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_TonemapPSO;
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_PostprocessPSO;
 
-    D3D12_VIEWPORT m_ScreenViewport;
-    D3D12_RECT     m_DefaultScissorRect;
+    D3D12_RECT m_DefaultScissorRect;
 
     // Selectable skyboxes loaded from assets/cubemaps
     std::vector<std::wstring> m_SkyboxNames;

@@ -29,7 +29,6 @@ TextureCube<float4> PrefilterCubemap  : register(t4);
 Texture2D BRDFLut                     : register(t5);
 Texture2D DirectionalShadowMap        : register(t6);
 
-// TODO: directional shadow map should use border sampler (?)
 SamplerState AnisoWrapSampler                 : register(s0);
 SamplerState TrilinearClampSampler            : register(s1); // for BRDF lut
 SamplerComparisonState TrilinearBorderSampler : register(s2); // for directional shadow map

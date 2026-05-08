@@ -56,7 +56,7 @@ void Scene::SetSkybox(CommandList& copyCommandList, CommandList& computeCommandL
 }
 /// END TEMP
 
-void Scene::Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, CommandList& directCommandList, const UpdateEventArgs& e) {
+void Scene::Render(const RenderTarget& targetRT, CommandList& directCommandList, const UpdateEventArgs& e) {
 	// Render depth from directional light
 	m_DirectionalLight.SetShadowDepthPipelineStateAndRenderTarget(directCommandList);
 	for(auto& o : m_SceneObjects) {
@@ -66,7 +66,7 @@ void Scene::Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, Comman
 	// Render skybox and objects with same render target
 	directCommandList.ClearTexture(targetRT.GetTexture(AttachmentPoint::Color0), Colors::DefaultBackground);
 	directCommandList.ClearDepthStencilTexture(targetRT.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL);
-	directCommandList.SetViewport(viewPort);
+	directCommandList.SetViewport(targetRT.GetViewport());
 	directCommandList.SetRenderTarget(targetRT);
 	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 

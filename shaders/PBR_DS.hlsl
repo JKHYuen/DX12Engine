@@ -29,11 +29,11 @@ struct ConstantOutputType {
 };
 
 struct DomainInputType {
-    float4 position       : POSITION;
-    float3 normal         : NORMAL;
-    float3 tangent        : TANGENT;
-    float3 bitangent      : BITANGENT;
-    float2 uv             : TEXCOORD0;
+    float4 position  : POSITION;
+    float3 normal    : NORMAL;
+    float3 tangent   : TANGENT;
+    float3 bitangent : BITANGENT;
+    float2 uv        : TEXCOORD0;
 };
 
 #define BARYCENTRIC_INTERPOLATE(fieldName) o.fieldName = \
@@ -81,6 +81,7 @@ PixelInputType main(
     // For parallax mapping only
     float3x3 TBN = float3x3(o.tangent, o.bitangent, o.normal);
     o.tangentViewDirection = normalize(mul(TBN, cameraPosition.xyz - o.worldPosition.xyz));
+    //
     
     o.directionalLightViewPosition = mul(directionalLightMVP, vertexPosition);
     

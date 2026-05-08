@@ -49,7 +49,7 @@ public:
 	void SetSkybox(CommandList& copyCommandList, CommandList& computeCommandList, const Skybox::SkyboxParams& skyboxParams);
 	/// 
 
-	void Render(const RenderTarget& targetRT, D3D12_VIEWPORT viewPort, CommandList& directCommandList, const UpdateEventArgs& e);
+	void Render(const RenderTarget& targetRT, CommandList& directCommandList, const UpdateEventArgs& e);
 
 	// For object picking
 	void SetGameWindowSize(uint32_t width, uint32_t height) {

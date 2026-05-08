@@ -1,4 +1,4 @@
-// Very simple one color render for masking (can't use depth, we need this in colo rbuffer to for bloom pass)
+// Very simple one color render for masking (can't use depth, we need this in color buffer to for bloom pass)
 struct PixelInputType {
     float4 position : SV_POSITION;
 };

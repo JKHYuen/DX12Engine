@@ -71,7 +71,6 @@ namespace {
 
 DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t windowHeight, bool vSync, bool isFullScreen)
 	: m_DefaultScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX))
-	, m_ScreenViewport(CD3DX12_VIEWPORT(0.0f, 0.0f, (float)windowWidth, (float)windowHeight))
 	, m_WindowWidth(windowWidth)
 	, m_WindowHeight(windowHeight)
 	, m_IsVsync(vSync)
@@ -313,7 +312,6 @@ void DemoGame::OnResize(const ResizeEventArgs& e) {
 	float aspectRatio = m_WindowWidth / (float)m_WindowHeight;
 	m_DemoScene->m_MainCamera.Set_Projection(m_DemoScene->m_MainCamera.Get_FoV(), aspectRatio, s_ZNear, s_ZFar);
 
-	m_ScreenViewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_WindowWidth), static_cast<float>(m_WindowHeight));
 	m_HDR_MSAA_RT.Resize(m_WindowWidth, m_WindowHeight);
 
 	m_PostProcessRTs.Resize(m_WindowWidth, m_WindowHeight);
@@ -384,7 +382,7 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 
 	/// Render Test Scene
 	// Perform HDR rendering to multisampled render target
-	m_DemoScene->Render(m_HDR_MSAA_RT, m_ScreenViewport, *directCommandList, e);
+	m_DemoScene->Render(m_HDR_MSAA_RT, *directCommandList, e);
 
 	/// MSAA resolve
 	auto& swapChainRT = m_SwapChain->GetRenderTarget();

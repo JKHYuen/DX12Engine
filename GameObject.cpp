@@ -93,7 +93,7 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 		//m_TessellationProps.cullingPlanes[4] = ;
 		//m_TessellationProps.cullBias = ;
 		m_TessellationProps.screenDimensions = { (float)scene.GetGameWindowWidth() , (float)scene.GetGameWindowHeight() };
-		m_TessellationProps.tessellationMagnitude = 1.0f;
+		m_TessellationProps.tessellationMagnitude = m_RenderProps.tessellationMagnitude;
 	}
 
 	// Light Props

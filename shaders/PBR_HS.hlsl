@@ -66,9 +66,9 @@ float CalcTessellationFactor(float3 vertexPosition1, float3 vertexPosition2) {
 
 ConstantOutputType PBRPatchConstantFunction(InputPatch<HullInputType, NUM_CONTROL_POINTS> inputPatch, uint patchId : SV_PrimitiveID) {
     ConstantOutputType output;
-    float3 vertexPosition0 = mul(SRT, float4(inputPatch[0].position.xyz, 1.0)).xyz;
-    float3 vertexPosition1 = mul(SRT, float4(inputPatch[1].position.xyz, 1.0)).xyz;
-    float3 vertexPosition2 = mul(SRT, float4(inputPatch[2].position.xyz, 1.0)).xyz;
+    //float3 vertexPosition0 = mul(SRT, float4(inputPatch[0].position.xyz, 1.0)).xyz;
+    //float3 vertexPosition1 = mul(SRT, float4(inputPatch[1].position.xyz, 1.0)).xyz;
+    //float3 vertexPosition2 = mul(SRT, float4(inputPatch[2].position.xyz, 1.0)).xyz;
     
     // TODO: Triangle Frustum culling - might not be worth doing when not tessellating (we also have object culling)
     //if (TriangleIsCulled(vertexPosition0, vertexPosition1, vertexPosition2)) {

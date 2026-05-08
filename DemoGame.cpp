@@ -192,7 +192,6 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 
 			GameObject::RenderProps goRenderProps {};
 			goRenderProps.pbrPSO = m_PBR_PSO.get();
-			//goRenderProps.outlinePSO = m_Outline_PSO.get();
 
 			goRenderProps.pbrMatName = L"stonewall";
 			goParams.translation = XMFLOAT3(0.0f, 3.0f, 0.0f);

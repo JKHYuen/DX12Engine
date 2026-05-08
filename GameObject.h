@@ -52,6 +52,8 @@ public:
 
 		float heightMapMagnitude = 0.0f;
 
+		float tessellationMagnitude = 1.0f;
+
 		float parallaxMagnitude = 0.0f;
 		bool useParallaxShadow = false;
 		int minParallaxLayers = 8;

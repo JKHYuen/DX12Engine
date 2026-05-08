@@ -638,51 +638,56 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 		ImGui::PopItemWidth();
 	}
 
-	ImGui::SeparatorText("Shader Properties");
-	{
-		if(ImGui::DragFloat2("UV Scale", s_UVScale, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
-			picked->m_RenderProps.uvScale = { s_UVScale[0], s_UVScale[1] };
-		}
-		ImGui::SameLine();
-
-		/// Extremely hacky way to add a uniform scale drag, can't think of another way right now
-		ImGui::PushItemWidth(30);
-		static float _ {};
-		static float lastMousePos {};
-		if(ImGui::DragFloat("##UVScaleDrag", &_, 0.001f, 0.0f, 1.0f, "<->", ImGuiSliderFlags_WrapAround)) {
-			if(ImGui::GetMousePos().x > lastMousePos) {
-				s_UVScale[0] = picked->m_RenderProps.uvScale.x += 0.05f;
-				s_UVScale[1] = picked->m_RenderProps.uvScale.y += 0.05f;
+	if(ImGui::CollapsingHeader("Shader Properties", ImGuiTreeNodeFlags_DefaultOpen)) {
+		{
+			if(ImGui::DragFloat2("UV Scale", s_UVScale, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
+				picked->m_RenderProps.uvScale = { s_UVScale[0], s_UVScale[1] };
 			}
-			else {
-				s_UVScale[0] = picked->m_RenderProps.uvScale.x -= 0.05f;
-				s_UVScale[1] = picked->m_RenderProps.uvScale.y -= 0.05f;
+			ImGui::SameLine();
+
+			/// Extremely hacky way to add a uniform scale drag, can't think of another way right now
+			ImGui::PushItemWidth(30);
+			static float _ {};
+			static float lastMousePos {};
+			if(ImGui::DragFloat("##UVScaleDrag", &_, 0.001f, 0.0f, 1.0f, "<->", ImGuiSliderFlags_WrapAround)) {
+				if(ImGui::GetMousePos().x > lastMousePos) {
+					s_UVScale[0] = picked->m_RenderProps.uvScale.x += 0.05f;
+					s_UVScale[1] = picked->m_RenderProps.uvScale.y += 0.05f;
+				}
+				else {
+					s_UVScale[0] = picked->m_RenderProps.uvScale.x -= 0.05f;
+					s_UVScale[1] = picked->m_RenderProps.uvScale.y -= 0.05f;
+				}
+
+				lastMousePos = ImGui::GetMousePos().x;
+			}
+			ImGui::PopItemWidth();
+		}
+
+		if(ImGui::DragFloat("Height Map Magnitude", &s_HeightMapMagnitude, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
+			picked->m_RenderProps.heightMapMagnitude = s_HeightMapMagnitude;
+		}
+
+		ImGui::SeparatorText("Tessellation");
+		if(ImGui::DragFloat("Tesselation Magnitude", &picked->m_RenderProps.tessellationMagnitude, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
+		}
+
+		ImGui::SeparatorText("Parallax Occlusion Mapping");
+		{
+			if(ImGui::DragFloat("Parallax Magnitude", &s_ParallaxMagnitude, 0.001f, 0.0f, 1.0f, "%.3f", kSliderFlags)) {
+				picked->m_RenderProps.parallaxMagnitude = s_ParallaxMagnitude;
 			}
 
-			lastMousePos = ImGui::GetMousePos().x;
-		}
-		ImGui::PopItemWidth();
-	}
+			if(ImGui::Checkbox("Enable Parallax Self Shadows", &s_UseParallaxShadows)) {
+				picked->m_RenderProps.useParallaxShadow = s_UseParallaxShadows;
+			}
 
-	if(ImGui::DragFloat("Height Map Magnitude", &s_HeightMapMagnitude, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
-		picked->m_RenderProps.heightMapMagnitude = s_HeightMapMagnitude;
-	}
-
-	// Parallax Occlusion Mapping
-	{
-		if(ImGui::DragFloat("Parallax Magnitude", &s_ParallaxMagnitude, 0.001f, 0.0f, 1.0f, "%.3f", kSliderFlags)) {
-			picked->m_RenderProps.parallaxMagnitude = s_ParallaxMagnitude;
-		}
-
-		if(ImGui::Checkbox("Enable Parallax Self Shadows", &s_UseParallaxShadows)) {
-			picked->m_RenderProps.useParallaxShadow = s_UseParallaxShadows;
-		}
-
-		if(ImGui::DragInt("Min Parallax Layers", &s_MinParallaxLayers, 1.0f, 0, 100, "%d", kSliderFlags)) {
-			picked->m_RenderProps.minParallaxLayers = s_MinParallaxLayers;
-		}
-		if(ImGui::DragInt("Max Parallax Layers", &s_MaxParallaxLayers, 1.0f, 0, 100, "%d", kSliderFlags)) {
-			picked->m_RenderProps.maxParallaxLayers = s_MaxParallaxLayers;
+			if(ImGui::DragInt("Min Parallax Layers", &s_MinParallaxLayers, 1.0f, 0, 100, "%d", kSliderFlags)) {
+				picked->m_RenderProps.minParallaxLayers = s_MinParallaxLayers;
+			}
+			if(ImGui::DragInt("Max Parallax Layers", &s_MaxParallaxLayers, 1.0f, 0, 100, "%d", kSliderFlags)) {
+				picked->m_RenderProps.maxParallaxLayers = s_MaxParallaxLayers;
+			}
 		}
 	}
 

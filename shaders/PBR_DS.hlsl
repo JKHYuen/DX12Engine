@@ -1,5 +1,6 @@
-Texture2D MaterialTex              : register(t2); // alpha channel is height map
-SamplerState TrilinearClampSampler : register(s1); // for BRDF lut and directional shadow map
+Texture2D MaterialTex         : register(t2); // alpha channel is height map
+SamplerState AnisoWrapSampler : register(s0);
+
 
 cbuffer VertexCB : register(b0, space0) {
     matrix SRT;
@@ -61,7 +62,8 @@ PixelInputType main(
     
     // Vertex displacement
     if (heightMapMagnitude != 0) {
-        float displacement = MaterialTex.SampleLevel(TrilinearClampSampler, o.uv, 0).a;
+        float displacement = MaterialTex.SampleLevel(AnisoWrapSampler, o.uv, 0).a;
+        
         // should substract "displacement" by 0.5 so vertices can be displaced both directions
         // omitted this here to be consistent with parallax occulsion mapping
         vertexPosition.xyz += normal * displacement * heightMapMagnitude;

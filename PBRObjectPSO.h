@@ -20,6 +20,43 @@ class RenderTarget;
 class CommandList;
 class Texture;
 
+struct alignas(16) PBRVertexProps {
+	XMFLOAT4X4 SRT;
+	XMFLOAT4X4 MVP;
+	XMFLOAT4   cameraPosition;
+	XMFLOAT4X4 directionalLightMVP;
+	XMFLOAT2   uvScale;
+	float      heightMapMagnitude;
+	float      pad1;
+};
+
+struct alignas(16) PBRTessellationProps {
+	XMFLOAT4   cameraPosition;
+	XMFLOAT4X4 SRT;
+	XMFLOAT4   cullingPlanes[4];
+	float      cullBias;
+	XMFLOAT2   screenDimensions;
+	float      tessellationMagnitude;
+};
+
+struct alignas(16) PBRMaterialProps {
+	float useParallaxShadow;
+	float minParallaxLayers;
+	float maxParallaxLayers;
+	float directionalShadowBias;
+
+	float parallaxMagnitude;
+	float pad1;
+	float pad2;
+	float pad3;
+};
+
+struct alignas(16) PBRLightProps {
+	XMFLOAT4 Time; // x: time, y: delta time
+	XMFLOAT4 dirLight;
+	XMFLOAT4 dirLightColor;
+};
+
 class PBRObjectPSO {
 public:
 	PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRAY rtvFormat, DXGI_FORMAT depthFormat);
@@ -54,53 +91,55 @@ public:
 		NumTextures
 	};
 
-	struct alignas(16) VertexProps {
-		XMFLOAT4X4 SRT;
-		XMFLOAT4X4 MVP;
-		XMFLOAT4   cameraPosition;
-		XMFLOAT4X4 directionalLightMVP;
-		XMFLOAT2   uvScale;
-		float      heightMapMagnitude;
-		float      pad1;
-	};
+	//struct alignas(16) VertexProps {
+	//	XMFLOAT4X4 SRT;
+	//	XMFLOAT4X4 MVP;
+	//	XMFLOAT4   cameraPosition;
+	//	XMFLOAT4X4 directionalLightMVP;
+	//	XMFLOAT2   uvScale;
+	//	float      heightMapMagnitude;
+	//	float      pad1;
+	//};
 
-	struct alignas(16) TessellationProps {
-		XMFLOAT4   cameraPosition;
-		XMFLOAT4X4 SRT;
-		XMFLOAT4   cullingPlanes[4];
-		float      cullBias;
-		XMFLOAT2   screenDimensions;
-		float      tessellationMagnitude;
-	};
+	//struct alignas(16) TessellationProps {
+	//	XMFLOAT4   cameraPosition;
+	//	XMFLOAT4X4 SRT;
+	//	XMFLOAT4   cullingPlanes[4];
+	//	float      cullBias;
+	//	XMFLOAT2   screenDimensions;
+	//	float      tessellationMagnitude;
+	//};
 
-	struct alignas(16) MaterialProps {
-		float useParallaxShadow;
-		float minParallaxLayers;
-		float maxParallaxLayers;
-		float directionalShadowBias;
-		
-		float parallaxMagnitude;
-		float pad1;
-		float pad2;
-		float pad3;
-	};
+	//struct alignas(16) MaterialProps {
+	//	float useParallaxShadow;
+	//	float minParallaxLayers;
+	//	float maxParallaxLayers;
+	//	float directionalShadowBias;
+	//	
+	//	float parallaxMagnitude;
+	//	float pad1;
+	//	float pad2;
+	//	float pad3;
+	//};
 
-	struct alignas(16) LightProps {
-		XMFLOAT4 Time; // x: time, y: delta time
-		XMFLOAT4 dirLight;
-		XMFLOAT4 dirLightColor;
-	};
+	//struct alignas(16) LightProps {
+	//	XMFLOAT4 Time; // x: time, y: delta time
+	//	XMFLOAT4 dirLight;
+	//	XMFLOAT4 dirLightColor;
+	//};
 
 	std::shared_ptr<RootSignature> GetRootSignature() const {
 		return m_RootSignature;
 	}
 		
 	void SetPipelineState(CommandList& directCommandList) const;
+	void SetWireframePipelineState(CommandList& directCommandList) const;
 
-	void UpdateResources(CommandList& directCommandList, const std::vector<std::shared_ptr<Texture>>& pbrTextures, const VertexProps& vertexProps, const TessellationProps& tessProps, const MaterialProps& materialProps, const LightProps& lightProp);
+	void UpdateResources(CommandList& directCommandList, const std::vector<std::shared_ptr<Texture>>& pbrTextures, const PBRVertexProps& vertexProps, const PBRTessellationProps& tessProps, const PBRMaterialProps& materialProps, const PBRLightProps& lightProp);
 
 private:
 	std::shared_ptr<RootSignature> m_RootSignature;
-	ComPtr<ID3D12PipelineState> m_D3d12PipelineState;
+	ComPtr<ID3D12PipelineState> m_PipelineState;
+	ComPtr<ID3D12PipelineState> m_WireFramePipelineState;
 };
 

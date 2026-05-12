@@ -65,9 +65,13 @@ GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params,
 
 }
 
-void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene) {
+void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, bool b_WireframeRender) {
 	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
-	m_RenderProps.pbrPSO->SetPipelineState(directCommandList);
+	
+	if(b_WireframeRender)
+		m_RenderProps.pbrPSO->SetWireframePipelineState(directCommandList);
+	else
+		m_RenderProps.pbrPSO->SetPipelineState(directCommandList);
 
 	XMFLOAT4X4 v = scene.GetDirLight().GetViewMatrix();
 	XMFLOAT4X4 p = scene.GetDirLight().GetOrthoMatrix();
@@ -90,6 +94,7 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 	{
 		XMStoreFloat4(&m_TessellationProps.cameraPosition, scene.m_MainCamera.Get_Translation());
 		m_TessellationProps.SRT = m_PBRVertexCB.SRT;
+		/// TODO:
 		//m_TessellationProps.cullingPlanes[4] = ;
 		//m_TessellationProps.cullBias = ;
 		m_TessellationProps.screenDimensions = { (float)scene.GetGameWindowWidth() , (float)scene.GetGameWindowHeight() };
@@ -103,7 +108,7 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 		m_PBRLightCB.dirLightColor = scene.GetDirLight().GetColor();
 	}
 
-	PBRObjectPSO::MaterialProps materialProps {};
+	PBRMaterialProps materialProps {};
 	{
 		materialProps.useParallaxShadow     = m_RenderProps.useParallaxShadow ? 1.0f : 0.0f;
 		materialProps.minParallaxLayers     = (float)m_RenderProps.minParallaxLayers;

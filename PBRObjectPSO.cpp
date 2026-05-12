@@ -53,6 +53,7 @@ PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT
 		CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
 		CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_DESC SampleDesc;
 		CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL DepthStencilDesc;
+		CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER RasterDesc;
 	} hdrPipelineStateStream;
 
 	hdrPipelineStateStream.pRootSignature = m_RootSignature->GetD3D12RootSignature().Get();
@@ -67,16 +68,27 @@ PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT
 	hdrPipelineStateStream.SampleDesc = sampleDesc;
 	auto depthStencilDesc = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	hdrPipelineStateStream.DepthStencilDesc = depthStencilDesc;
+	CD3DX12_RASTERIZER_DESC rasterDesc { D3D12_DEFAULT };
+	hdrPipelineStateStream.RasterDesc = rasterDesc;
 
-	device.CreatePipelineState(hdrPipelineStateStream, m_D3d12PipelineState);
+	device.CreatePipelineState(hdrPipelineStateStream, m_PipelineState);
+
+	rasterDesc.FillMode = D3D12_FILL_MODE_WIREFRAME;
+	hdrPipelineStateStream.RasterDesc = rasterDesc;
+	device.CreatePipelineState(hdrPipelineStateStream, m_WireFramePipelineState);
 }
 
 void PBRObjectPSO::SetPipelineState(CommandList& directCommandList) const {
-	directCommandList.SetPipelineState(m_D3d12PipelineState);
+	directCommandList.SetPipelineState(m_PipelineState);
 	directCommandList.SetGraphicsRootSignature(m_RootSignature);
 }
 
-void PBRObjectPSO::UpdateResources(CommandList& directCommandList, const std::vector<std::shared_ptr<Texture>>& pbrTextures, const VertexProps& vertexProps, const TessellationProps& tessProps, const MaterialProps& materialProps, const LightProps& lightProps) {
+void PBRObjectPSO::SetWireframePipelineState(CommandList& directCommandList) const {
+	directCommandList.SetPipelineState(m_WireFramePipelineState);
+	directCommandList.SetGraphicsRootSignature(m_RootSignature);
+}
+
+void PBRObjectPSO::UpdateResources(CommandList& directCommandList, const std::vector<std::shared_ptr<Texture>>& pbrTextures, const PBRVertexProps& vertexProps, const PBRTessellationProps& tessProps, const PBRMaterialProps& materialProps, const PBRLightProps& lightProps) {
 	assert((pbrTextures.size() == TextureIndex::NumTextures) && "Incorrect number of PBR textures.");
 
 	// Note: may have performance increase if these are only updated when needed

@@ -320,6 +320,7 @@
     </ClCompile>
     <ClCompile Include="PBRObjectPSO.cpp" />
     <ClCompile Include="Picker.cpp" />
+    <ClCompile Include="PSOLoader.cpp" />
     <ClCompile Include="RenderTarget.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
@@ -443,6 +444,7 @@
     <ClInclude Include="PanoToCubemapPSO.h" />
     <ClInclude Include="PBRObjectPSO.h" />
     <ClInclude Include="Picker.h" />
+    <ClInclude Include="PSOLoader.h" />
     <ClInclude Include="RenderTarget.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="ResourceStateTracker.h" />

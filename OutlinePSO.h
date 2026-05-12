@@ -10,14 +10,14 @@
 #include <wrl/client.h>
 #include <memory>
 
-#include "PBRObjectPSO.h"
-
 using namespace DirectX;
 using namespace Microsoft::WRL;
 
 class Device;
 class RootSignature;
 class CommandList;
+struct PBRVertexProps;
+struct PBRTessellationProps;
 
 class OutlinePSO {
 public:
@@ -25,7 +25,7 @@ public:
 
 	void SetPipelineState(CommandList& directCommandList) const;
 
-	void UpdateResources(CommandList& directCommandList, const PBRObjectPSO::VertexProps& vertexProps, const PBRObjectPSO::TessellationProps& tessProps);
+	void UpdateResources(CommandList& directCommandList, const PBRVertexProps& vertexProps, const PBRTessellationProps& tessProps);
 
 private:
 	std::shared_ptr<RootSignature> m_ObjectRootSignature;

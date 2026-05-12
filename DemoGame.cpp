@@ -502,10 +502,11 @@ void DemoGame::OnKeyPressed(const KeyEventArgs& e) {
 			Application::Get().LockCursorToClientArea(m_Window->GetWindowHandle(), false);
 			break;
 
-		case KeyCode::F11: {
+		case KeyCode::F11: 
+		case KeyCode::End: // only because I have END key bound to my mouse, can remove if this gets in the way 
 			m_Window->ToggleFullscreen();
 			break;
-		}
+		
 		case KeyCode::V:
 			m_SwapChain->ToggleVSync();
 			break;

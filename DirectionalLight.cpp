@@ -136,7 +136,7 @@ void DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget(CommandList& d
     directCommandList.SetGraphicsRootSignature(m_ObjectRootSignature);
 }
 
-void DirectionalLight::RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, PBRObjectPSO::VertexProps vertexProps, const PBRObjectPSO::TessellationProps& tessProps) const {
+void DirectionalLight::RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, PBRVertexProps vertexProps, const PBRTessellationProps& tessProps) const {
     // Use directional light view/proj matrix and all other copied values from vertexProps
     XMStoreFloat4x4(&vertexProps.MVP, XMLoadFloat4x4(&vertexProps.SRT) * XMLoadFloat4x4(&m_LightViewMatrix) * XMLoadFloat4x4(&m_LightOrthoMatrix));
 

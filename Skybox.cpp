@@ -43,9 +43,9 @@ namespace {
 }
 
 /// TODO: TEST FUNCTION, UNUSED
-void Skybox::SetCubemap(CommandList& copyCommandList, const std::wstring& hdrTextureName) {
+void Skybox::SetCubemap(CommandList& copyCommandList, CommandList& computeCommandList, const std::wstring& hdrTextureName) {
 	m_HDRPanoTexture = copyCommandList.LoadTextureFromFile(L"assets/cubemaps/" + hdrTextureName, true);
-	copyCommandList.PanoToCubemapCompute(m_SkyCubemapTexture, m_HDRPanoTexture);
+	computeCommandList.PanoToCubemapCompute(m_SkyCubemapTexture, m_HDRPanoTexture);
 }
 
 Skybox::Skybox(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const SkyboxParams& params)

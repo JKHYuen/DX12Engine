@@ -45,7 +45,6 @@ public:
 	}
 
 	/// TODO: test
-	void SetCubemap(CommandList& copyCommandList, const std::wstring& hdrTextureName);
 	void SetSkybox(CommandList& copyCommandList, CommandList& computeCommandList, const Skybox::SkyboxParams& skyboxParams);
 	/// 
 
@@ -69,6 +68,8 @@ private:
 	///       Same size objects should at least be grouped together in separate arrays in a real engine
 	std::vector<GameObject> m_SceneObjects;
 
+	bool mb_WireframeRender = false;
+
 	// All materials used in this scene, currently just loads all material names in asset folder
 	std::vector<std::wstring> m_MaterialNames;
 
@@ -86,6 +87,6 @@ private:
 	std::unique_ptr<Picker> m_Picker {};
 
 	/// TODO: TEMP
-	bool s_ChangeSkybox = false;
+	bool mb_ChangeSkybox = false;
 };
 

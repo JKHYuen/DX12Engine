@@ -7,7 +7,6 @@
 #include <d3dx12.h>
 #include <wrl/client.h>
 
-#include "PBRObjectPSO.h"
 #include "RenderTarget.h"
 
 using namespace DirectX;
@@ -18,6 +17,8 @@ class CommandList;
 class RootSignature;
 class Mesh;
 class Device;
+struct PBRVertexProps;
+struct PBRTessellationProps;
 
 class DirectionalLight {
 public:
@@ -75,7 +76,7 @@ public:
     void SetShadowDepthPipelineStateAndRenderTarget(CommandList& directCommandList) const;
 
     // pass vertexProps by value to copy and edit MVP to render from light's perspective
-    void RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, PBRObjectPSO::VertexProps vertexProps, const PBRObjectPSO::TessellationProps& tessProps) const;
+    void RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, PBRVertexProps vertexProps, const PBRTessellationProps& tessProps) const;
 
 private:
     Device& m_Device;

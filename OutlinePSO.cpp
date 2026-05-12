@@ -48,7 +48,7 @@ void OutlinePSO::SetPipelineState(CommandList& directCommandList) const {
 	directCommandList.SetGraphicsRootSignature(m_ObjectRootSignature);
 }
 
-void OutlinePSO::UpdateResources(CommandList& directCommandList, const PBRObjectPSO::VertexProps& vertexProps, const PBRObjectPSO::TessellationProps& tessProps) {
+void OutlinePSO::UpdateResources(CommandList& directCommandList, const PBRVertexProps& vertexProps, const PBRTessellationProps& tessProps) {
 	directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::VertexCB, vertexProps);
 	directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::TessellationCB, tessProps);
 }

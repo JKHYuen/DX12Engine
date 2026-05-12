@@ -22,7 +22,7 @@ public:
 	// Loads "hdrTextureName" from file as skybox
 	Skybox(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const SkyboxParams& params);
 	
-	void SetCubemap(CommandList& copyCommandList, const std::wstring& hdrTextureName);
+	void SetCubemap(CommandList& copyCommandList, CommandList& computeCommandList, const std::wstring& hdrTextureName);
 
 	// Draw skybox
 	// Note: Render target needs to be set externally

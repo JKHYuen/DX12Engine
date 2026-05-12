@@ -30,6 +30,11 @@ class UpdateEventArgs;
 class Scene;
 class OutlinePSO;
 
+class PBRObjectPSO;
+struct PBRVertexProps;
+struct PBRLightProps;
+struct PBRTessellationProps;
+
 class GameObject {
 
 	friend class EditorGui;
@@ -74,7 +79,7 @@ public:
 	// Initialize with mesh loaded from file
 	GameObject(CommandList& copyCommandList, const EntityParams& params, const RenderProps& renderProps, const std::wstring& meshFilePath);
 
-	void Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene);
+	void Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, bool b_RenderWireframe = false);
 
 	void RenderSilhouette(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, OutlinePSO* outlinePSO) const;
 
@@ -121,9 +126,9 @@ private:
 	XMFLOAT3 m_Translation, m_EulerRotation, m_Scale;
 
 	/// Things that should be in some sort of component system:
-	PBRObjectPSO::VertexProps m_PBRVertexCB {};
-	PBRObjectPSO::LightProps m_PBRLightCB {};
-	PBRObjectPSO::TessellationProps m_TessellationProps {};
+	PBRVertexProps m_PBRVertexCB {};
+	PBRLightProps m_PBRLightCB {};
+	PBRTessellationProps m_TessellationProps {};
 
 	RenderProps m_RenderProps {};
 	///

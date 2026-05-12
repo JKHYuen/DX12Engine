@@ -45,14 +45,12 @@ void Scene::ComputeSkyboxIBLs(CommandList& directCommandList) {
 }
 
 /// TODO: TEMP
-/// UNUSED
-void Scene::SetCubemap(CommandList& copyCommandList, const std::wstring& hdrTextureName) {
-	m_Skybox.SetCubemap(copyCommandList, hdrTextureName);
-}
 
 void Scene::SetSkybox(CommandList& copyCommandList, CommandList& computeCommandList, const Skybox::SkyboxParams& skyboxParams) {
 	m_Skybox = Skybox(m_Device, copyCommandList, computeCommandList, skyboxParams);
-	s_ChangeSkybox = true;
+	//m_Skybox.SetCubemap(copyCommandList, computeCommandList, skyboxParams.hdrTextureName);
+
+	mb_ChangeSkybox = true;
 }
 /// END TEMP
 
@@ -76,16 +74,15 @@ void Scene::Render(const RenderTarget& targetRT, CommandList& directCommandList,
 	// All game objects use the same PSO/root sig right now
 	for(auto& o : m_SceneObjects) {
 		/// TODO: TEMP
-		if(s_ChangeSkybox) {
+		if(mb_ChangeSkybox) {
 			o.UpdateIBLShaderResources(*this);
 		}
 
-		// Render pipeline currently set (inside function below) for every object even though they are the same
-		o.Render(directCommandList, e, *this);
+		o.Render(directCommandList, e, *this, mb_WireframeRender);
 	}
 
 	/// TODO: TEMP
-	s_ChangeSkybox = false;
+	mb_ChangeSkybox = false;
 }
 
 void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
@@ -111,9 +108,15 @@ void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 void Scene::OnKeyPressed(const KeyEventArgs& e) {}
 
 void Scene::OnKeyReleased(const KeyEventArgs& e) {
-	if(e.Key == KeyCode::X) {
-		if(const GameObject* go = m_Picker->GetPickedObject()) {
-			m_Picker->ClearPickedObject();
-		}
+	switch(e.Key) {
+		case KeyCode::X: 
+			if(const GameObject* go = m_Picker->GetPickedObject()) {
+				m_Picker->ClearPickedObject();
+			}
+		break;
+
+		case KeyCode::F4:
+			mb_WireframeRender = !mb_WireframeRender;
+			break;
 	}
 }

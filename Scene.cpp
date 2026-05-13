@@ -92,7 +92,7 @@ void Scene::RenderBoundingBoxes(const RenderTarget& outputRT, CommandList& direc
 	directCommandList.SetRenderTarget(outputRT);
 
 	for(auto& o : m_SceneObjects) {
-		o.RenderBoundingBox(directCommandList, e, unlitPrimitivePSO, XMFLOAT4(0.0, 1.0, 0.0, 1.0));
+		o.RenderBoundingBox(directCommandList, e, unlitPrimitivePSO, *this, XMFLOAT4(0.0, 1.0, 0.0, 1.0));
 	}
 }
 

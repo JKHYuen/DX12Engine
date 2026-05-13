@@ -55,6 +55,8 @@ namespace AssetImporter {
 				}
 			}
 
+			//Logger::Log("Min: {}, {}, {}\nMax: {}, {}, {}\n\n", aiMesh.mAABB.mMin.x, aiMesh.mAABB.mMin.y, aiMesh.mAABB.mMin.z, aiMesh.mAABB.mMax.x, aiMesh.mAABB.mMax.y, aiMesh.mAABB.mMax.z);
+
 			auto vertexBuffer = commandList.CopyVertexBuffer(vertexData);
 			mesh->SetVertexBuffer(0, vertexBuffer);
 
@@ -78,9 +80,12 @@ namespace AssetImporter {
 				}
 			}
 
-			// Convert min max AABB representation to just extents
-			aiVector3D convertedAABB = (aiMesh.mAABB.mMax - aiMesh.mAABB.mMin) * 0.5f;
-			mesh->SetExtents({ convertedAABB.x, convertedAABB.y , convertedAABB.z });
+			// Convert min max AABB representation
+			aiVector3D convertedAABBExtents = (aiMesh.mAABB.mMax - aiMesh.mAABB.mMin) * 0.5f;
+			mesh->SetExtents({ convertedAABBExtents.x, convertedAABBExtents.y , convertedAABBExtents.z });
+
+			aiVector3D convertedAABBCenter = (aiMesh.mAABB.mMax + aiMesh.mAABB.mMin) * 0.5f;
+			mesh->SetCenter({ convertedAABBCenter.x, convertedAABBCenter.y, convertedAABBCenter.z });
 
 			return mesh;
 		}

@@ -23,7 +23,9 @@ public:
 	// Only checks GameObject type and assumes it has a valid AABB
 	GameObject* MouseRaycast(Scene& scene, int mouseX, int mouseY, int windowWidth, int windowHeight);
 
+	// Note: returned object not const
 	GameObject* GetPickedObject() { return m_PickedObject; };
+
 	void ClearPickedObject();
 
 private:

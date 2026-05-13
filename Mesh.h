@@ -30,6 +30,7 @@
   */
 
 #include <DirectXMath.h>       // For XMFLOAT3, XMFLOAT2
+
 #include <d3d12.h>  // For D3D12_INPUT_LAYOUT_DESC, D3D12_INPUT_ELEMENT_DESC
 #include <map>     // For std::map
 #include <memory>  // For std::shared_ptr
@@ -73,8 +74,12 @@ public:
     void                      SetMaterial(std::shared_ptr<Material> material);
     std::shared_ptr<Material> GetMaterial() const;
 
-    void SetExtents(XMFLOAT3 extents) { m_Extents = extents; };
+    /// TODO: remove this
     XMFLOAT3 GetExtents() const { return m_Extents; };
+    void SetExtents(XMFLOAT3 extents) { m_Extents = extents; };
+
+    XMFLOAT3 GetCenter() const { return m_Center; };
+    void SetCenter(XMFLOAT3 center) { m_Center = center; };
 
     /**
         * Draw the mesh to a CommandList.
@@ -90,6 +95,7 @@ private:
     std::shared_ptr<IndexBuffer> m_IndexBuffer;
     std::shared_ptr<Material>    m_Material;
 
-    // AABB extents for original mesh (*Without any transforms)
+    // AABB for original mesh (*Without any transforms)
     XMFLOAT3 m_Extents {};
+    XMFLOAT3 m_Center {};
 };

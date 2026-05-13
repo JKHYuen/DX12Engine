@@ -143,7 +143,7 @@ void GameObject::RenderSilhouette(CommandList& directCommandList, const UpdateEv
 	m_Mesh->Draw(directCommandList);
 }
 
-void GameObject::RenderBoundingBox(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPrimitivePSO* unlitPrimitivePSO, XMFLOAT4 color) {
+void GameObject::RenderBoundingBox(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPrimitivePSO* unlitPrimitivePSO, const Scene& scene, XMFLOAT4 color) {
 	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	// Set all textures to null SRVs
@@ -151,7 +151,11 @@ void GameObject::RenderBoundingBox(CommandList& directCommandList, const UpdateE
 		directCommandList.SetNullShaderResourceView(PBRObjectPSO::PBRRootParameters::Textures, i);
 	}
 
+	XMMATRIX SRT = XMMatrixScaling(2.0f * m_AABB.Extents.x, 2.0f * m_AABB.Extents.y, 2.0f * m_AABB.Extents.z) * XMMatrixRotationX(0) * XMMatrixTranslation(m_AABB.Center.x, m_AABB.Center.y, m_AABB.Center.z);
+	XMStoreFloat4x4(&m_PBRVertexCB.MVP, SRT * scene.m_MainCamera.Get_ViewMatrix() * scene.m_MainCamera.Get_ProjectionMatrix());
+
 	m_PBRVertexCB.color = color;
+
 	unlitPrimitivePSO->UpdateResources(directCommandList, m_PBRVertexCB);
 
 	directCommandList.GetCubePrimitive()->Draw(directCommandList);
@@ -190,7 +194,8 @@ void GameObject::Scale(float x, float y, float z) {
 void GameObject::SetTranslation(float x, float y, float z) {
 	m_Translation = { x, y, z };
 	XMStoreFloat4x4(&m_TranslationMat, XMMatrixTranslation(x, y, z));
-	m_AABB.Center = m_Translation;
+
+	m_AABB.Center = XMFLOAT3 { m_Translation.x + m_Mesh->GetCenter().x,  m_Translation.y + m_Mesh->GetCenter().y ,  m_Translation.z + m_Mesh->GetCenter().z };
 }
 
 void GameObject::SetEulerRotation(float x, float y, float z) {

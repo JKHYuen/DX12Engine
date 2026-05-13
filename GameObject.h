@@ -84,7 +84,7 @@ public:
 
 	void RenderSilhouette(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPSO* unlitPSO, XMFLOAT4 color);
 
-	void RenderBoundingBox(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPrimitivePSO* unlitPSO, XMFLOAT4 color);
+	void RenderBoundingBox(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPrimitivePSO* unlitPSO, const Scene& scene, XMFLOAT4 color);
 
 	void RenderToDirectionalShadowMap(CommandList& directCommandList, const DirectionalLight& directionalLight);
 

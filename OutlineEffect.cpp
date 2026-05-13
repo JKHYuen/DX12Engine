@@ -1,5 +1,5 @@
 #include "OutlineEffect.h"
-#include "OutlinePSO.h"
+#include "UnlitPSO.h"
 #include "BloomEffect.h"
 #include "RenderTarget.h"
 #include "GameObject.h"
@@ -9,8 +9,8 @@
 #include "Colors.h"
 #include "d3dx12.h"
 
-OutlineEffect::OutlineEffect(Device& device, const RenderTarget& screenRenderTarget, OutlinePSO* outlinePSO, BloomPSO* bloomPSO)
-	: m_OutlinePSO(outlinePSO)
+OutlineEffect::OutlineEffect(Device& device, const RenderTarget& screenRenderTarget, UnlitPSO* outlinePSO, BloomPSO* bloomPSO)
+	: m_UnlitPSO(outlinePSO)
 {
 	uint32_t outputWidth = screenRenderTarget.GetTexture(AttachmentPoint::Color0)->GetWidth();
 	uint32_t outputHeight = screenRenderTarget.GetTexture(AttachmentPoint::Color0)->GetHeight();
@@ -48,18 +48,17 @@ bool OutlineEffect::Render(CommandList& directCommandList, const UpdateEventArgs
 	if(mb_DisableEffect) return false;
 
 	/// TODO: support outlining multiple objects
-	const GameObject* outlineObject = scene.GetPicker()->GetPickedObject();
+	GameObject* outlineObject = scene.GetPicker()->GetPickedObject();
 	if(outlineObject == nullptr) return false;
 
-	m_OutlinePSO->SetPipelineState(directCommandList);
+	m_UnlitPSO->SetPipelineState(directCommandList);
 	directCommandList.SetViewport(m_OutlineSilhouetteRT.GetViewport());
 	directCommandList.SetRenderTarget(m_OutlineSilhouetteRT);
-	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
-
 	directCommandList.ClearTexture(m_OutlineSilhouetteRT.GetTexture(AttachmentPoint::Color0), Colors::Clear);
 
 	// Render object silhouette to intermediate RT
-	outlineObject->RenderSilhouette(directCommandList, e, scene, m_OutlinePSO);
+	// Note: unlit color has to be white, outline color added in bloom stage
+	outlineObject->RenderSilhouette(directCommandList, e, m_UnlitPSO, XMFLOAT4(1.0, 1.0, 1.0, 1.0));
 
 	// Bloom (blur) silhoutte
 	m_BloomEffect->Render(directCommandList, m_OutlineSilhouetteRT, outputRenderTarget, & blendRenderTarget, true);

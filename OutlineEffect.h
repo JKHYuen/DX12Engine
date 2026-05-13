@@ -3,7 +3,7 @@
 #include "RenderTarget.h"
 
 class Device;
-class OutlinePSO;
+class UnlitPSO;
 class BloomPSO;
 class BloomEffect;
 class GameObject;
@@ -16,7 +16,7 @@ class OutlineEffect {
 	friend class EditorGui;
 
 public:
-	OutlineEffect(Device& device, const RenderTarget& screenRenderTarget, OutlinePSO* outlinePSO, BloomPSO* bloomPSO);
+	OutlineEffect(Device& device, const RenderTarget& screenRenderTarget, UnlitPSO* outlinePSO, BloomPSO* bloomPSO);
 
 	bool Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, const RenderTarget& blendRenderTarget, const RenderTarget& outputRenderTarget);
 
@@ -25,7 +25,7 @@ public:
 private:
 	std::unique_ptr<BloomEffect> m_BloomEffect;
 
-	OutlinePSO* m_OutlinePSO;
+	UnlitPSO* m_UnlitPSO;
 
 	// Intermediate texture to draw outline, this will be blurred and overlayed onto the output render target
 	RenderTarget m_OutlineSilhouetteRT;

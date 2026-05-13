@@ -28,7 +28,8 @@
 #include "DirectionalLight.h"
 #include "GameObject.h"
 #include "PBRObjectPSO.h"
-#include "OutlinePSO.h"
+#include "UnlitPSO.h"
+#include "UnlitPrimitivePSO.h"
 #include "ImageBasedLightingPSO.h"
 #include "BloomPSO.h"
 #include "BloomEffect.h"
@@ -136,11 +137,12 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	m_IBL_PSO = std::make_unique<ImageBasedLightingPSO>(*m_Device, m_HDR_MSAA_RT);
 
 	m_Bloom_PSO = std::make_unique<BloomPSO>(*m_Device, m_HDR_MSAA_RT);
-	m_Outline_PSO = std::make_unique<OutlinePSO>(*m_Device, m_HDR_MSAA_RT.GetRenderTargetFormats(), m_PBR_PSO.get()->GetRootSignature());
+	m_Unlit_PSO = std::make_unique<UnlitPSO>(*m_Device, m_HDR_MSAA_RT.GetRenderTargetFormats(), m_PBR_PSO.get()->GetRootSignature());
+	m_UnlitPrimitive_PSO = std::make_unique<UnlitPrimitivePSO>(*m_Device, m_HDR_MSAA_RT.GetRenderTargetFormats(), m_PBR_PSO.get()->GetRootSignature());
 	///
 
 	m_BloomEffect = std::make_unique<BloomEffect>(*m_Device, m_HDR_MSAA_RT, m_Bloom_PSO.get());
-	m_OutlineEffect = std::make_unique<OutlineEffect>(*m_Device, m_HDR_MSAA_RT, m_Outline_PSO.get(), m_Bloom_PSO.get());
+	m_OutlineEffect = std::make_unique<OutlineEffect>(*m_Device, m_HDR_MSAA_RT, m_Unlit_PSO.get(), m_Bloom_PSO.get());
 
 	auto& copyCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 	// Load Assets (COPY operations)
@@ -403,6 +405,8 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 			nextInputPostProcessRT = &m_PostProcessRTs.RTs[0];
 		};
 
+		m_DemoScene->RenderBoundingBoxes(*nextInputPostProcessRT, *directCommandList, e, m_UnlitPrimitive_PSO.get());
+
 		/// TODO: move this to a tonemapping PSO class
 		// Tonemapping
 		directCommandList->SetPipelineState(m_TonemapPSO);
@@ -503,7 +507,7 @@ void DemoGame::OnKeyPressed(const KeyEventArgs& e) {
 			break;
 
 		case KeyCode::F11: 
-		case KeyCode::End: // only because I have END key bound to my mouse, can remove if this gets in the way 
+		case KeyCode::End: // only because I have End key bound to my mouse, can remove if this gets in the way 
 			m_Window->ToggleFullscreen();
 			break;
 		

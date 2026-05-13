@@ -377,14 +377,16 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 				ImGui::SliderInt("Time Scale", &timeScale, 1, 30, "%ds");
 			}
 		}
-		ImGui::Spacing();
-		
-		// FOV Slider
-		float fov = scene.m_MainCamera.Get_FoV();
-		ImGui::SliderFloat("FOV", &fov, 12.0f, 90.0f);
-		scene.m_MainCamera.Set_FoV(fov);
-		ImGui::Spacing();
 
+		if(ImGui::CollapsingHeader("View", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::Checkbox("Wireframe Render Mode",  & scene.mb_WireframeRender);
+
+			// FOV Slider
+			static float s_FOV = scene.m_MainCamera.Get_FoV();
+			ImGui::SliderFloat("FOV", &s_FOV, 12.0f, 90.0f);
+			scene.m_MainCamera.Set_FoV(s_FOV);
+		}
+		
 		// Skybox Selector
 		if(ImGui::CollapsingHeader("Skybox", ImGuiTreeNodeFlags_DefaultOpen)) {
 			static std::wstring_view s_SelectedSkybox = scene.m_Skybox.GetTextureName();

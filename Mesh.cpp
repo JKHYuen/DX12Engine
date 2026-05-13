@@ -5,15 +5,7 @@
 #include "Mesh.h"
 #include "VertexBuffer.h"
 
-Mesh::Mesh() : m_PrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST) {}
-
-void Mesh::SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY primitiveToplogy) {
-    m_PrimitiveTopology = primitiveToplogy;
-}
-
-D3D12_PRIMITIVE_TOPOLOGY Mesh::GetPrimitiveTopology() const {
-    return m_PrimitiveTopology;
-}
+Mesh::Mesh() {}
 
 void Mesh::SetVertexBuffer(uint32_t slotID, const std::shared_ptr<VertexBuffer>& vertexBuffer) {
     m_VertexBuffers[slotID] = vertexBuffer;

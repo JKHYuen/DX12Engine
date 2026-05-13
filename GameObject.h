@@ -28,7 +28,8 @@ class Texture;
 class Camera;
 class UpdateEventArgs;
 class Scene;
-class OutlinePSO;
+class UnlitPSO;
+class UnlitPrimitivePSO;
 
 class PBRObjectPSO;
 struct PBRVertexProps;
@@ -81,7 +82,9 @@ public:
 
 	void Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, bool b_RenderWireframe = false);
 
-	void RenderSilhouette(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, OutlinePSO* outlinePSO) const;
+	void RenderSilhouette(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPSO* unlitPSO, XMFLOAT4 color);
+
+	void RenderBoundingBox(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPrimitivePSO* unlitPSO, XMFLOAT4 color);
 
 	void RenderToDirectionalShadowMap(CommandList& directCommandList, const DirectionalLight& directionalLight);
 

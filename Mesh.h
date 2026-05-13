@@ -49,9 +49,6 @@ public:
     Mesh();
     ~Mesh() = default;
 
-    void                     SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY primitiveToplogy);
-    D3D12_PRIMITIVE_TOPOLOGY GetPrimitiveTopology() const;
-
     void                          SetVertexBuffer(uint32_t slotID, const std::shared_ptr<VertexBuffer>& vertexBuffer);
     std::shared_ptr<VertexBuffer> GetVertexBuffer(uint32_t slotID) const;
     const BufferMap& GetVertexBuffers() const {
@@ -92,7 +89,6 @@ private:
     BufferMap                    m_VertexBuffers;
     std::shared_ptr<IndexBuffer> m_IndexBuffer;
     std::shared_ptr<Material>    m_Material;
-    D3D12_PRIMITIVE_TOPOLOGY     m_PrimitiveTopology;
 
     // AABB extents for original mesh (*Without any transforms)
     XMFLOAT3 m_Extents {};

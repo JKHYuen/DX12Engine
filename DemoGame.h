@@ -21,7 +21,8 @@ class Window;
 class EditorGui;
 class Skybox;
 class PBRObjectPSO;
-class OutlinePSO;
+class UnlitPSO;
+class UnlitPrimitivePSO;
 class BloomPSO;
 class BloomEffect;
 class OutlineEffect;
@@ -96,7 +97,8 @@ private:
 
     /// TODO: figure out more generalized PSO loading system
     std::unique_ptr<PBRObjectPSO> m_PBR_PSO;
-    std::unique_ptr<OutlinePSO> m_Outline_PSO;
+    std::unique_ptr<UnlitPSO> m_Unlit_PSO;
+    std::unique_ptr<UnlitPrimitivePSO> m_UnlitPrimitive_PSO;
     std::unique_ptr<ImageBasedLightingPSO> m_IBL_PSO;
     std::unique_ptr<BloomPSO> m_Bloom_PSO;
     ///

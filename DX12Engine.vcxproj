@@ -311,7 +311,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="OutlineEffect.cpp" />
-    <ClCompile Include="OutlinePSO.cpp" />
+    <ClCompile Include="UnlitPrimitivePSO.cpp" />
+    <ClCompile Include="UnlitPSO.cpp" />
     <ClCompile Include="PanoToCubemapPSO.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
@@ -440,7 +441,8 @@
     <ClInclude Include="Logger.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="OutlineEffect.h" />
-    <ClInclude Include="OutlinePSO.h" />
+    <ClInclude Include="UnlitPrimitivePSO.h" />
+    <ClInclude Include="UnlitPSO.h" />
     <ClInclude Include="PanoToCubemapPSO.h" />
     <ClInclude Include="PBRObjectPSO.h" />
     <ClInclude Include="Picker.h" />
@@ -501,7 +503,7 @@
       <EnableDebuggingInformation Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</EnableDebuggingInformation>
       <EnableDebuggingInformation Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</EnableDebuggingInformation>
     </FxCompile>
-    <FxCompile Include="shaders\Outline_PS.hlsl">
+    <FxCompile Include="shaders\Unlit_PS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
@@ -632,6 +634,13 @@
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">/Zi /Fd compiled_shaders\pdbs\ %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/Zi /Fd compiled_shaders\pdbs\ %(AdditionalOptions)</AdditionalOptions>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="shaders\UnlitPrimitive_VS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/Zi /Fd compiled_shaders\pdbs\ %(AdditionalOptions)</AdditionalOptions>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

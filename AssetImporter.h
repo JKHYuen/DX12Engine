@@ -18,8 +18,8 @@
 
 namespace AssetImporter {
 	// Still accessible globally, this unnamed namespace just indicates data/members that should only be used in this file
+	/// TODO: Shader/PSO loading/caching will probably be it's own class soon
 	namespace {
-		/// TODO: Shader/PSO loading/caching will probably be it's own class soon
 		std::unordered_map<std::wstring, Microsoft::WRL::ComPtr<ID3DBlob>> g_LoadedCompiledShaders {};
 		std::mutex ms_LoadedCompiledShadersMutex;
 
@@ -124,7 +124,7 @@ namespace AssetImporter {
 		else {
 			Microsoft::WRL::ComPtr<ID3DBlob> blobptr;
 			ThrowIfFailed(D3DReadFileToBlob(filePath.data(), &blobptr));
-			g_LoadedCompiledShaders.emplace(filePath, blobptr);
+			g_LoadedCompiledShaders.emplace(filePath, blobptr); // string construction
 			return CD3DX12_SHADER_BYTECODE(blobptr.Get());
 		}
 	}

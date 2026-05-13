@@ -1,7 +1,8 @@
 #include "GameObject.h"
 #include "CommandList.h"
 #include "PBRObjectPSO.h"
-#include "OutlinePSO.h"
+#include "UnlitPSO.h"
+#include "UnlitPrimitivePSO.h"
 #include "Skybox.h"
 #include "DirectionalLight.h"
 #include "ShaderResourceView.h"
@@ -88,6 +89,7 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 
 		m_PBRVertexCB.uvScale            = m_RenderProps.uvScale;
 		m_PBRVertexCB.heightMapMagnitude = m_RenderProps.heightMapMagnitude;
+		m_PBRVertexCB.color = XMFLOAT4(1.0, 1.0, 1.0, 1.0); // unused
 	}
 
 	// Tessellation Props
@@ -122,19 +124,37 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 	m_Mesh->Draw(directCommandList);
 }
 
-void GameObject::RenderSilhouette(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, OutlinePSO* outlinePSO) const {
+void GameObject::RenderSilhouette(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPSO* unlitPSO, XMFLOAT4 color) {
+	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+
 	// Set all but MaterialTex to null SRVs (we need MaterialTex for height map)
 	for(int i = 0; i < PBRObjectPSO::TextureIndex::NumTextures; i++) {
 		if(i != PBRObjectPSO::TextureIndex::MaterialTex) {
 			directCommandList.SetNullShaderResourceView(PBRObjectPSO::PBRRootParameters::Textures, i);
 		}
 		else {
-			directCommandList.SetShaderResourceView(PBRObjectPSO::PBRRootParameters::Textures, i, m_TextureResources[i], D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE);
+			directCommandList.SetShaderResourceView(PBRObjectPSO::PBRRootParameters::Textures, PBRObjectPSO::TextureIndex::MaterialTex, m_TextureResources[PBRObjectPSO::TextureIndex::MaterialTex], D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE);
 		}
 	}
 
-	outlinePSO->UpdateResources(directCommandList, m_PBRVertexCB, m_TessellationProps);
+	m_PBRVertexCB.color = color;
+	unlitPSO->UpdateResources(directCommandList, m_PBRVertexCB, m_TessellationProps);
+
 	m_Mesh->Draw(directCommandList);
+}
+
+void GameObject::RenderBoundingBox(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPrimitivePSO* unlitPrimitivePSO, XMFLOAT4 color) {
+	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	// Set all textures to null SRVs
+	for(int i = 0; i < PBRObjectPSO::TextureIndex::NumTextures; i++) {
+		directCommandList.SetNullShaderResourceView(PBRObjectPSO::PBRRootParameters::Textures, i);
+	}
+
+	m_PBRVertexCB.color = color;
+	unlitPrimitivePSO->UpdateResources(directCommandList, m_PBRVertexCB);
+
+	directCommandList.GetCubePrimitive()->Draw(directCommandList);
 }
 
 // we can use a dirty flag to only update SRT when neccesary

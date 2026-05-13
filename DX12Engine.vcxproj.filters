@@ -174,7 +174,7 @@
     <ClCompile Include="Picker.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="OutlinePSO.cpp">
+    <ClCompile Include="UnlitPSO.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ImageBasedLightingPSO.cpp">
@@ -190,6 +190,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="PSOLoader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UnlitPrimitivePSO.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -377,7 +380,7 @@
     <ClInclude Include="Picker.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="OutlinePSO.h">
+    <ClInclude Include="UnlitPSO.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="StringHelpers.h">
@@ -404,6 +407,9 @@
     <ClInclude Include="PSOLoader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="UnlitPrimitivePSO.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shaders\PBR_VS.hlsl" />
@@ -418,10 +424,11 @@
     <FxCompile Include="shaders\IntegrateBRDF_PS.hlsl" />
     <FxCompile Include="shaders\PreFilterCubeMap_PS.hlsl" />
     <FxCompile Include="shaders\ConvoluteCubeMap_PS.hlsl" />
-    <FxCompile Include="shaders\Outline_PS.hlsl" />
+    <FxCompile Include="shaders\Unlit_PS.hlsl" />
     <FxCompile Include="shaders\Bloom_PS.hlsl" />
     <FxCompile Include="shaders\PBR_DS.hlsl" />
     <FxCompile Include="shaders\PBR_HS.hlsl" />
+    <FxCompile Include="shaders\UnlitPrimitive_VS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\assimp\Assimp.sln" />

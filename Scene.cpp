@@ -1,6 +1,8 @@
 #include "Scene.h"
 #include "DirectionalLight.h"
 #include "Skybox.h"
+#include "UnlitPSO.h"
+#include "UnlitPrimitivePSO.h"
 #include "CommandList.h"
 #include "CommandQueue.h"
 #include "ImGui.h"
@@ -45,7 +47,6 @@ void Scene::ComputeSkyboxIBLs(CommandList& directCommandList) {
 }
 
 /// TODO: TEMP
-
 void Scene::SetSkybox(CommandList& copyCommandList, CommandList& computeCommandList, const Skybox::SkyboxParams& skyboxParams) {
 	m_Skybox = Skybox(m_Device, copyCommandList, computeCommandList, skyboxParams);
 	//m_Skybox.SetCubemap(copyCommandList, computeCommandList, skyboxParams.hdrTextureName);
@@ -54,7 +55,7 @@ void Scene::SetSkybox(CommandList& copyCommandList, CommandList& computeCommandL
 }
 /// END TEMP
 
-void Scene::Render(const RenderTarget& targetRT, CommandList& directCommandList, const UpdateEventArgs& e) {
+void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e) {
 	// Render depth from directional light
 	m_DirectionalLight.SetShadowDepthPipelineStateAndRenderTarget(directCommandList);
 	for(auto& o : m_SceneObjects) {
@@ -62,11 +63,10 @@ void Scene::Render(const RenderTarget& targetRT, CommandList& directCommandList,
 	}
 
 	// Render skybox and objects with same render target
-	directCommandList.ClearTexture(targetRT.GetTexture(AttachmentPoint::Color0), Colors::DefaultBackground);
-	directCommandList.ClearDepthStencilTexture(targetRT.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL);
-	directCommandList.SetViewport(targetRT.GetViewport());
-	directCommandList.SetRenderTarget(targetRT);
-	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	directCommandList.ClearTexture(outputRT.GetTexture(AttachmentPoint::Color0), Colors::DefaultBackground);
+	directCommandList.ClearDepthStencilTexture(outputRT.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL);
+	directCommandList.SetViewport(outputRT.GetViewport());
+	directCommandList.SetRenderTarget(outputRT);
 
 	m_Skybox.Render(directCommandList, m_MainCamera);
 
@@ -84,6 +84,18 @@ void Scene::Render(const RenderTarget& targetRT, CommandList& directCommandList,
 	/// TODO: TEMP
 	mb_ChangeSkybox = false;
 }
+
+void Scene::RenderBoundingBoxes(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e, UnlitPrimitivePSO* unlitPrimitivePSO) {
+	unlitPrimitivePSO->SetWireframePipelineState(directCommandList);
+	
+	directCommandList.SetViewport(outputRT.GetViewport());
+	directCommandList.SetRenderTarget(outputRT);
+
+	for(auto& o : m_SceneObjects) {
+		o.RenderBoundingBox(directCommandList, e, unlitPrimitivePSO, XMFLOAT4(0.0, 1.0, 0.0, 1.0));
+	}
+}
+
 
 void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 	// Gameobject raycast picking for object inspector GUI, gameobjects are outlined if picked

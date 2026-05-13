@@ -12,6 +12,8 @@
 class Device;
 class MouseButtonEventArgs;
 class KeyEventArgs;
+class UnlitPSO;
+class UnlitPrimitivePSO;
 
 class Scene {
 
@@ -33,7 +35,7 @@ public:
 	const DirectionalLight& GetDirLight() const { return m_DirectionalLight; }
 
 	const Skybox& GetSkybox() const { return m_Skybox; }
-	const Picker* const GetPicker() const { return m_Picker.get(); }
+	Picker* const GetPicker() const { return m_Picker.get(); }
 
 	void ComputeSkyboxIBLs(CommandList& directCommandList);
 
@@ -48,7 +50,8 @@ public:
 	void SetSkybox(CommandList& copyCommandList, CommandList& computeCommandList, const Skybox::SkyboxParams& skyboxParams);
 	/// 
 
-	void Render(const RenderTarget& targetRT, CommandList& directCommandList, const UpdateEventArgs& e);
+	void Render(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e);
+	void RenderBoundingBoxes(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e, UnlitPrimitivePSO* unlitPrimitivePSO);
 
 	// For object picking
 	void SetGameWindowSize(uint32_t width, uint32_t height) {

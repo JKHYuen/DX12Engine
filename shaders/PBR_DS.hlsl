@@ -9,10 +9,13 @@ cbuffer VertexCB : register(b0, space0) {
     matrix directionalLightMVP;
     float2 uvScale;
     float  heightMapMagnitude;
+    float  pad1;
+    float4 color;
 };
 
 struct PixelInputType {
     float4 position                     : SV_POSITION;
+    float4 color                        : COLOR;
     float3 tangent                      : TANGENT;
     float3 bitangent                    : BITANGENT;
     float3 normal                       : NORMAL0;
@@ -85,6 +88,8 @@ PixelInputType main(
     ///
     
     o.directionalLightViewPosition = mul(directionalLightMVP, vertexPosition);
+    
+    o.color = color;
     
     return o;
 }

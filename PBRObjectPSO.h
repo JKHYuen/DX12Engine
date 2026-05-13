@@ -28,6 +28,7 @@ struct alignas(16) PBRVertexProps {
 	XMFLOAT2   uvScale;
 	float      heightMapMagnitude;
 	float      pad1;
+	XMFLOAT4   color = XMFLOAT4(1.0, 1.0, 1.0, 1.0);
 };
 
 struct alignas(16) PBRTessellationProps {
@@ -62,7 +63,7 @@ public:
 	PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRAY rtvFormat, DXGI_FORMAT depthFormat);
 
 	enum PBRRootParameters {
-		VertexCB,         // ConstantBuffer<VertexProps>   VertexCB	      : register(b0);
+		VertexCB,         // ConstantBuffer<VertexProps>   VertexCB	      : register(b0m space0);
 		MaterialCB,       // ConstantBuffer<MaterialProps> MaterialCB     : register(b0, space1);
 		LightCB,          // ConstantBuffer<LightProps>    LightCB        : register(b1);
 		TessellationCB,   // ConstantBuffer<LightProps>    TessellationCB : register(b2);
@@ -90,43 +91,6 @@ public:
 
 		NumTextures
 	};
-
-	//struct alignas(16) VertexProps {
-	//	XMFLOAT4X4 SRT;
-	//	XMFLOAT4X4 MVP;
-	//	XMFLOAT4   cameraPosition;
-	//	XMFLOAT4X4 directionalLightMVP;
-	//	XMFLOAT2   uvScale;
-	//	float      heightMapMagnitude;
-	//	float      pad1;
-	//};
-
-	//struct alignas(16) TessellationProps {
-	//	XMFLOAT4   cameraPosition;
-	//	XMFLOAT4X4 SRT;
-	//	XMFLOAT4   cullingPlanes[4];
-	//	float      cullBias;
-	//	XMFLOAT2   screenDimensions;
-	//	float      tessellationMagnitude;
-	//};
-
-	//struct alignas(16) MaterialProps {
-	//	float useParallaxShadow;
-	//	float minParallaxLayers;
-	//	float maxParallaxLayers;
-	//	float directionalShadowBias;
-	//	
-	//	float parallaxMagnitude;
-	//	float pad1;
-	//	float pad2;
-	//	float pad3;
-	//};
-
-	//struct alignas(16) LightProps {
-	//	XMFLOAT4 Time; // x: time, y: delta time
-	//	XMFLOAT4 dirLight;
-	//	XMFLOAT4 dirLightColor;
-	//};
 
 	std::shared_ptr<RootSignature> GetRootSignature() const {
 		return m_RootSignature;

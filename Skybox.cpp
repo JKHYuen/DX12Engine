@@ -133,6 +133,8 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, CommandList& comput
 }
 
 void Skybox::Render(CommandList& directCommandList, const Camera& camera) {
+	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
 	auto viewMatrix = XMMatrixTranspose(XMMatrixRotationQuaternion(camera.Get_Rotation()));
 	auto projMatrix = camera.Get_ProjectionMatrix();
 	auto viewProjMatrix = viewMatrix * projMatrix;

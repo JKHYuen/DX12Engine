@@ -130,7 +130,6 @@ void DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget(CommandList& d
     directCommandList.ClearDepthStencilTexture(m_DirectionalShadowMapRT.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
     directCommandList.SetViewport(m_ViewPort);
     directCommandList.SetRenderTarget(m_DirectionalShadowMapRT);
-    directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 
     directCommandList.SetPipelineState(m_DepthRenderPSO);
     directCommandList.SetGraphicsRootSignature(m_ObjectRootSignature);

@@ -92,7 +92,8 @@ void Scene::RenderBoundingBoxes(const RenderTarget& outputRT, CommandList& direc
 	directCommandList.SetRenderTarget(outputRT);
 
 	for(auto& o : m_SceneObjects) {
-		o.RenderBoundingBox(directCommandList, e, unlitPrimitivePSO, *this, XMFLOAT4(0.0, 1.0, 0.0, 1.0));
+		// Bounding box color hard coded here
+		o.RenderBoundingBox(directCommandList, e, unlitPrimitivePSO, *this, XMFLOAT4(0.1f, 1.0f, 0.1f, 1.0f));
 	}
 }
 

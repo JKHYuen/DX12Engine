@@ -4,6 +4,8 @@
 #include <iostream>
 #include <format>
 
+#include <DirectXMath.h>
+
 class Logger {
 public:
 	// Static class
@@ -19,6 +21,10 @@ public:
 	template<class T>
 	static void Log(T msg) {
 		std::cout << msg << std::endl;
+	}
+
+	static void Log(std::string_view label, DirectX::XMFLOAT3 msg) {
+		std::cout << label << "(" << msg.x << ", " << msg.y << ", " << msg.z << ")" << std::endl;
 	}
 
 	static void Log(std::wstring_view msg) {

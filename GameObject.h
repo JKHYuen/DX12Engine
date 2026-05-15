@@ -119,19 +119,26 @@ private:
 	
 	BoundingBox m_AABB {};
 
+	void RecalcAABBExtents();
+
 	std::string m_Name;
 
 	XMFLOAT4X4 m_TranslationMat {};
 	XMFLOAT4X4 m_RotationMat {};
 	XMFLOAT4X4 m_ScaleMat {};
 	
-	// Keep track of these separate from matrices for convenience in UI implementation
+	// Cached (calculated once per frame only) so this doesn't need to be recalculated when rebuilding AABB
+	XMFLOAT4X4 m_AABBOffsettedSRMatrix;
+	XMFLOAT3 m_AABBOffset;
+	
+	// Keep track of these separate from matrices for convenience
 	XMFLOAT3 m_Translation, m_EulerRotation, m_Scale;
 
 	/// Things that should be in some sort of component system:
+	// Note: Stored CB members are shared between different rendering methods e.g. render bounding box, render silhoutte
 	PBRVertexProps m_PBRVertexCB {};
 	PBRLightProps m_PBRLightCB {};
-	PBRTessellationProps m_TessellationProps {};
+	PBRTessellationProps m_TessellationCB {};
 
 	RenderProps m_RenderProps {};
 	///

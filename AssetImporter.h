@@ -86,7 +86,7 @@ namespace AssetImporter {
 
 			aiVector3D convertedAABBCenter = (aiMesh.mAABB.mMax + aiMesh.mAABB.mMin) * 0.5f;
 			mesh->SetCenter({ convertedAABBCenter.x, convertedAABBCenter.y, convertedAABBCenter.z });
-
+			
 			return mesh;
 		}
 	}

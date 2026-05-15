@@ -74,7 +74,6 @@ public:
     void                      SetMaterial(std::shared_ptr<Material> material);
     std::shared_ptr<Material> GetMaterial() const;
 
-    /// TODO: remove this
     XMFLOAT3 GetExtents() const { return m_Extents; };
     void SetExtents(XMFLOAT3 extents) { m_Extents = extents; };
 

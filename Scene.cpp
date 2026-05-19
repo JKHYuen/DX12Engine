@@ -56,6 +56,8 @@ void Scene::SetSkybox(CommandList& copyCommandList, CommandList& computeCommandL
 /// END TEMP
 
 void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e) {
+	m_MainCamera.UpdateFrustum();
+
 	// Render depth from directional light
 	m_DirectionalLight.SetShadowDepthPipelineStateAndRenderTarget(directCommandList);
 	for(auto& o : m_SceneObjects) {

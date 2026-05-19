@@ -125,14 +125,16 @@ private:
     float m_Up {};
     float m_Down {};
 
-    float m_Pitch {};
-    float m_Yaw {};
+    float m_CameraPitch {};
+    float m_CameraYaw {};
 
-    // A better input system would not need these variables
+    // Input state in current frame
+    // A better input system would simplify need these variables
     bool m_LeftShiftPressed {};
     bool m_LeftControlPressed {};
     bool m_LeftClickPressed {};
     bool m_RightClickPressed {};
+    bool m_MouseMoved {};
 
     uint32_t m_WindowWidth;
     uint32_t m_WindowHeight;

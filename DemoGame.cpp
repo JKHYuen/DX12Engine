@@ -67,7 +67,7 @@ namespace {
 
 	// Projection Matrix
 	float s_ZNear = 0.1f;
-	float s_ZFar  = 1000.0f;
+	float s_ZFar  = 100.0f;
 }
 
 DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t windowHeight, bool vSync, bool isFullScreen)
@@ -341,24 +341,31 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 
 	// Update the camera transform if ImGui is not showing, unless right click is held
 	if(!EditorGui::Get().GetUIVisibilityState() || m_RightClickPressed) {
-		float speedMultipler = m_LeftShiftPressed ? 32.0f : 8.0f;
-		
-		// extra slow movement if using left or right click
-		if(m_LeftControlPressed) {
-			speedMultipler *= 0.05f;
+		// Note: Check if camera transforms are actually needed, camera class is optimized with dirty flags (includes frustum building)
+		if(!(m_Left == 0 && m_Right == 0 && m_Up == 0 && m_Down == 0 && m_Forward == 0 && m_Backward == 0)) {
+			float speedMultipler = m_LeftShiftPressed ? 32.0f : 8.0f;
+
+			// extra slow movement if using left or right click
+			if(m_LeftControlPressed) {
+				speedMultipler *= 0.05f;
+			}
+
+			XMVECTOR cameraTranslation =
+				XMVector3Normalize(XMVectorSet(m_Right - m_Left, m_Up - m_Down, m_Forward - m_Backward, 1.0f))
+				* speedMultipler * (float)e.DeltaTime;
+			m_DemoScene->m_MainCamera.Translate(cameraTranslation);
 		}
 		
-		XMVECTOR cameraTranslation = 
-			XMVector3Normalize(XMVectorSet(m_Right - m_Left, 0.0f, m_Forward - m_Backward, 1.0f))
-			* speedMultipler * (float)e.DeltaTime;
-		XMVECTOR cameraPan = XMVectorSet(0.0f, m_Up - m_Down, 0.0f, 1.0f) 
-			* speedMultipler * (float)e.DeltaTime;
+		// float compare should be ok because we are only looking if value changed from last frame, not comparing 2 calculated floats
+		static float s_LastPitch {};
+		static float s_LastYaw {};
+		if(!(s_LastPitch == m_CameraPitch && s_LastYaw == m_CameraYaw)) {
+			XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(-m_CameraPitch), XMConvertToRadians(-m_CameraYaw), 0.0f);
+			m_DemoScene->m_MainCamera.Set_Rotation(cameraRotation);
+		}
 
-		m_DemoScene->m_MainCamera.Translate(cameraTranslation, Space::Local);
-		m_DemoScene->m_MainCamera.Translate(cameraPan, Space::Local);
-
-		XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(-m_Pitch), XMConvertToRadians(-m_Yaw), 0.0f);
-		m_DemoScene->m_MainCamera.Set_Rotation(cameraRotation);
+		s_LastPitch = m_CameraPitch;
+		s_LastYaw = m_CameraYaw;
 	}
 
 	OnRender(e);
@@ -428,11 +435,13 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 }
 
 void DemoGame::OnMouseMove(const MouseMotionEventArgs& e) {
+	m_MouseMoved = e.DeltaX != 0 || e.DeltaY != 0;
+
 	// Record mouse rotations only if ImGui is closed or right click is held down
 	if(!EditorGui::Get().GetUIVisibilityState() || m_RightClickPressed) {
-		m_Pitch -= e.DeltaY * sk_MouseSpeed;
-		m_Pitch = std::clamp(m_Pitch, -90.0f, 90.0f);
-		m_Yaw -= e.DeltaX * sk_MouseSpeed;
+		m_CameraPitch -= e.DeltaY * sk_MouseSpeed;
+		m_CameraPitch = std::clamp(m_CameraPitch, -90.0f, 90.0f);
+		m_CameraYaw -= e.DeltaX * sk_MouseSpeed;
 	}
 }
 

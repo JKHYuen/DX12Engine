@@ -11,10 +11,10 @@
 		- Can use dirty flag system for SRT/root sig updates
 */
 
-#include "DirectXMath.h"
 #include "DirectXCollision.h"
 #include "PBRObjectPSO.h"
 
+#include <DirectXMath.h>
 #include <memory>
 #include <vector>
 #include <string>
@@ -89,7 +89,7 @@ public:
 	void RenderToDirectionalShadowMap(CommandList& directCommandList, const DirectionalLight& directionalLight);
 
 	// Currently only compatible with PBRObjectPSO
-	void UpdatePBRShaderResources(CommandList& copyCommandList, const std::wstring& pbrMatName);
+	void UpdatePBRShaderResourcesFromFile(CommandList& copyCommandList, const std::wstring& pbrMatName);
 
 	void UpdateIBLShaderResources(const Scene& scene);
 

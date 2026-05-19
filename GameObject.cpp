@@ -16,11 +16,11 @@
 #include "Camera.h"
 #include "Scene.h"
 #include "Events.h"
-#include "DirectXMath.h"
 #include "Mesh.h"
 
 #include "Logger.h"
 
+#include <DirectXMath.h>
 #include <format>
 #include <algorithm>
 #include <limits>
@@ -43,10 +43,8 @@ GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params,
 	// Initialize AABB
 	{
 		XMStoreFloat4x4(&m_AABBOffsettedSRMatrix,
-			XMMatrixMultiply(
-				XMMatrixTranslation(-m_Mesh->GetCenter().x, -m_Mesh->GetCenter().y, -m_Mesh->GetCenter().z),
-				XMMatrixMultiply(XMLoadFloat4x4(&m_ScaleMat), XMLoadFloat4x4(&m_RotationMat))
-			)
+			XMMatrixTranslation(-m_Mesh->GetCenter().x, -m_Mesh->GetCenter().y, -m_Mesh->GetCenter().z) *
+			XMLoadFloat4x4(&m_ScaleMat) * XMLoadFloat4x4(&m_RotationMat)
 		);
 		XMStoreFloat3(&m_AABBOffset, XMVector3Transform(XMVECTORF32 { m_Mesh->GetCenter().x, m_Mesh->GetCenter().y, m_Mesh->GetCenter().z }, XMLoadFloat4x4(&m_RotationMat)));
 
@@ -54,7 +52,7 @@ GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params,
 		RecalcAABBExtents();
 	}
 
-	UpdatePBRShaderResources(copyCommandList, m_RenderProps.pbrMatName);
+	UpdatePBRShaderResourcesFromFile(copyCommandList, m_RenderProps.pbrMatName);
 
 	// Set rest of textures not updated in UpdateShaderResources()
 	m_TextureResources[PBRObjectPSO::IrradianceCubemap]    = params.scene.GetSkybox().GetIrradianceTexture();
@@ -64,8 +62,7 @@ GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params,
 }
 
 /// TODO: somehow make this compatible with assimp loading
-///        Rename this function to indicate it's loading textures from file
-void GameObject::UpdatePBRShaderResources(CommandList& copyCommandList, const std::wstring& pbrMatName) {
+void GameObject::UpdatePBRShaderResourcesFromFile(CommandList& copyCommandList, const std::wstring& pbrMatName) {
 	m_RenderProps.pbrMatName = pbrMatName;
 
 	/// TODO: set root asset folder somewhere, maybe in IGame
@@ -94,6 +91,11 @@ GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params,
 }
 
 void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, bool b_WireframeRender) {
+	/// TODO: add bias value (derived from heightMapMagnitude)
+	if(!scene.m_MainCamera.CheckAABBInFrustum(m_AABB, 0.0f)) {
+		return;
+	}
+
 	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 	
 	if(b_WireframeRender)
@@ -148,7 +150,7 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 	{
 		XMStoreFloat4(&m_TessellationCB.cameraPosition, scene.m_MainCamera.Get_Translation());
 		m_TessellationCB.SRT = m_PBRVertexCB.SRT;
-		/// TODO:
+		/// TODO: only if we want per triangle culling
 		//m_TessellationProps.cullingPlanes[4] = ;
 		//m_TessellationProps.cullBias = ;
 		m_TessellationCB.screenDimensions = { (float)scene.GetGameWindowWidth() , (float)scene.GetGameWindowHeight() };

@@ -39,8 +39,8 @@
 #include <cstdint>
 #include <vector>
 #include <memory>
-#include "DirectXMath.h"
-#include "d3d12.h"
+#include <DirectXMath.h>
+#include <d3d12.h>
 
 class Texture;
 

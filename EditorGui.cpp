@@ -597,7 +597,7 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 				auto& copyCommandQueue = device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 				auto copyCommandList = copyCommandQueue.GetCommandList();
 
-				picked->UpdatePBRShaderResources(*copyCommandList, s);
+				picked->UpdatePBRShaderResourcesFromFile(*copyCommandList, s);
 
 				copyCommandQueue.ExecuteCommandList(copyCommandList);
 				copyCommandQueue.FlushWait();

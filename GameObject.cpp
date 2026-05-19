@@ -35,8 +35,8 @@ GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params,
 	// Don't use setters (e.g. SetTranslation()), this ensures AABB is initialized properly
 	m_Scale = params.scale;
 	XMStoreFloat4x4(&m_ScaleMat, XMMatrixScaling(params.scale.x, params.scale.y, params.scale.z));
-	m_EulerRotation = params.eulerRotation;
-	XMStoreFloat4x4(&m_RotationMat, XMMatrixRotationRollPitchYaw(params.eulerRotation.x, params.eulerRotation.y, params.eulerRotation.z));
+	m_EulerRotation = params.radianEulerRotation;
+	XMStoreFloat4x4(&m_RotationMat, XMMatrixRotationRollPitchYaw(params.radianEulerRotation.x, params.radianEulerRotation.y, params.radianEulerRotation.z));
 	m_Translation = params.translation;
 	XMStoreFloat4x4(&m_TranslationMat, XMMatrixTranslation(params.translation.x, params.translation.y, params.translation.z));
 

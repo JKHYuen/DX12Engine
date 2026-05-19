@@ -188,15 +188,15 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 			GameObject::EntityParams goParams {
 				"Sphere",
 				*m_DemoScene,
-				XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 1.0f, 1.0f),
+				XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f)
 			};
 
 			GameObject::RenderProps goRenderProps {};
 			goRenderProps.pbrPSO = m_PBR_PSO.get();
 
 			goRenderProps.pbrMatName = L"stonewall";
-			goParams.translation = XMFLOAT3(0.0f, 3.0f, 0.0f);
 			goParams.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
+			goParams.translation = XMFLOAT3(0.0f, 3.0f, 0.0f);
 			goRenderProps.heightMapMagnitude = 0.05f;
 			m_DemoScene->AddGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive());
 
@@ -206,16 +206,16 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 			m_DemoScene->AddGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive());
 
 			goParams.name = "Cube";
-			goParams.translation = XMFLOAT3(4.0f, 3.0f, 0.0f);
 			goParams.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
+			goParams.translation = XMFLOAT3(4.0f, 3.0f, 0.0f);
 			goRenderProps.pbrMatName = L"metal_grid";
 			goRenderProps.heightMapMagnitude = 0.0f;
 			m_DemoScene->AddGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetCubePrimitive());
 
 			/// Test model import
 			{
-				goParams.translation = XMFLOAT3(0.0f, 3.0f, 4.0f);
 				goParams.scale = XMFLOAT3(1.0f, 1.0f, 1.0f);
+				goParams.translation = XMFLOAT3(0.0f, 3.0f, 4.0f);
 				goRenderProps.pbrMatName = L"viking_sword";
 				goRenderProps.heightMapMagnitude = 0.0f;
 				auto importedMesh = AssetImporter::ImportModel(*copyCommandList, L"assets/models/" + goRenderProps.pbrMatName + L"/" + goRenderProps.pbrMatName + L".obj");
@@ -224,8 +224,8 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 			}
 
 			goParams.name = "Floor";
-			goParams.translation = XMFLOAT3(0.0f, 0.0f, 0.0f);
 			goParams.scale = XMFLOAT3(40.0f, 40.0f, 40.0f);
+			goParams.translation = XMFLOAT3(0.0f, 0.0f, 0.0f);
 			goRenderProps.pbrMatName = L"bog";
 			goRenderProps.uvScale = XMFLOAT2(5.0f, 5.0f);
 			goRenderProps.heightMapMagnitude = 0.0f;

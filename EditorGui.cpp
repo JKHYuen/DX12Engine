@@ -543,7 +543,7 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 	static std::string s_ObjectName {}; // can't be string view, needs null terminated string for ImGui::Text
 	static std::wstring_view s_SelectedMat {};
 	static float s_ObjTranslation[3] {};
-	static float s_ObjEulerAngles[3] {};
+	static float s_ObjDegreeEulerAngles[3] {};
 	static float s_ObjScale[3] {};
 	static float s_UVScale[2] {};
 	static float s_HeightMapMagnitude {};
@@ -561,10 +561,13 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 		s_SelectedMat = picked->m_RenderProps.pbrMatName;
 
 		XMFLOAT3 translation = picked->GetTranslation();
-		XMFLOAT3 eulerRotation = picked->GetEulerRotation();
+		XMFLOAT3 degreeEulerRotation = picked->GetEulerRotation();
+		degreeEulerRotation.x = XMConvertToDegrees(degreeEulerRotation.x);
+		degreeEulerRotation.y = XMConvertToDegrees(degreeEulerRotation.y);
+		degreeEulerRotation.z = XMConvertToDegrees(degreeEulerRotation.z);
 		XMFLOAT3 scale = picked->GetScale();
 		memcpy(s_ObjTranslation, &translation, sizeof(float) * 3);
-		memcpy(s_ObjEulerAngles, &eulerRotation, sizeof(float) * 3);
+		memcpy(s_ObjDegreeEulerAngles, &degreeEulerRotation, sizeof(float) * 3);
 		memcpy(s_ObjScale, &scale, sizeof(float) * 3);
 
 		XMFLOAT2 uvScale = picked->m_RenderProps.uvScale;
@@ -612,8 +615,8 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 		picked->SetTranslation(s_ObjTranslation[0], s_ObjTranslation[1], s_ObjTranslation[2]);
 	}
 
-	if(ImGui::DragFloat3("Rotation", s_ObjEulerAngles, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
-		picked->SetEulerRotation(s_ObjEulerAngles[0], s_ObjEulerAngles[1], s_ObjEulerAngles[2]);
+	if(ImGui::DragFloat3("Rotation", s_ObjDegreeEulerAngles, 0.1f, -0.0f, 360.0f, "%.2f", ImGuiSliderFlags_WrapAround)) {
+		picked->SetEulerRotation(XMConvertToRadians(s_ObjDegreeEulerAngles[0]), XMConvertToRadians(s_ObjDegreeEulerAngles[1]), XMConvertToRadians(s_ObjDegreeEulerAngles[2]));
 	}
 
 	{

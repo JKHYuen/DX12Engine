@@ -46,7 +46,10 @@ public:
 		// string passed by value for convenience e.g. when modifying instances of this struct
 		std::string name;
 		Scene& scene;
-		XMFLOAT3 translation, eulerRotation, scale;
+
+		// Only support construction with degrees for now
+		// This should ideally be a union with quaternion and radian representations, but will need some validation
+		XMFLOAT3 scale, radianEulerRotation, translation;
 	};
 
 	/// Things that should be in some sort of component system:
@@ -94,6 +97,7 @@ public:
 	void UpdateIBLShaderResources(const Scene& scene);
 
 	XMFLOAT3 GetTranslation()   const { return m_Translation; };
+	// Radians
 	XMFLOAT3 GetEulerRotation() const { return m_EulerRotation; };
 	XMFLOAT3 GetScale()         const { return m_Scale; };
 
@@ -132,7 +136,7 @@ private:
 	XMFLOAT3 m_AABBOffset;
 	
 	// Keep track of these separate from matrices for convenience
-	XMFLOAT3 m_Translation, m_EulerRotation, m_Scale;
+	XMFLOAT3 m_Translation, m_EulerRotation /*Radians*/, m_Scale;
 
 	/// Things that should be in some sort of component system:
 	// Note: Stored CB members are shared between different rendering methods e.g. render bounding box, render silhoutte

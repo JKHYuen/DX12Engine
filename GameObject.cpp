@@ -150,9 +150,10 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 	{
 		XMStoreFloat4(&m_TessellationCB.cameraPosition, scene.m_MainCamera.Get_Translation());
 		m_TessellationCB.SRT = m_PBRVertexCB.SRT;
-		/// TODO: only if we want per triangle culling
+		/// TODO: only if we want per triangle culling, shader code is also commented out for now
 		//m_TessellationProps.cullingPlanes[4] = ;
 		//m_TessellationProps.cullBias = ;
+		///
 		m_TessellationCB.screenDimensions = { (float)scene.GetGameWindowWidth() , (float)scene.GetGameWindowHeight() };
 		m_TessellationCB.tessellationMagnitude = m_RenderProps.tessellationMagnitude;
 	}
@@ -187,7 +188,10 @@ void GameObject::RenderSilhouette(CommandList& directCommandList, const UpdateEv
 			directCommandList.SetNullShaderResourceView(PBRObjectPSO::PBRRootParameters::Textures, i);
 		}
 		else {
-			directCommandList.SetShaderResourceView(PBRObjectPSO::PBRRootParameters::Textures, PBRObjectPSO::TextureIndex::MaterialTex, m_TextureResources[PBRObjectPSO::TextureIndex::MaterialTex], D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE);
+			directCommandList.SetShaderResourceView(
+				PBRObjectPSO::PBRRootParameters::Textures, PBRObjectPSO::TextureIndex::MaterialTex,
+				m_TextureResources[PBRObjectPSO::TextureIndex::MaterialTex], D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE
+			);
 		}
 	}
 

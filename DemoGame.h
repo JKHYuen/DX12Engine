@@ -85,9 +85,6 @@ private:
     } m_PostProcessRTs {};
 
     void OnRender(const UpdateEventArgs& e);
-    
-    // Debug window, this shouldn't be implemented in this class if it ever becomes a real editor UI
-    void RenderImGui(CommandList& directCommandList);
 
     std::shared_ptr<Device>    m_Device;
     std::shared_ptr<Window>    m_Window;

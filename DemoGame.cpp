@@ -340,8 +340,9 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 	// m_SwapChain->WaitForSwapChain();
 
 	// Update the camera transform if ImGui is not showing, unless right click is held
+	// Note: Also check if camera transforms are actually needed, camera class is optimized with dirty flags (includes frustum building)
 	if(!EditorGui::Get().GetUIVisibilityState() || m_RightClickPressed) {
-		// Note: Check if camera transforms are actually needed, camera class is optimized with dirty flags (includes frustum building)
+		// Camera TRANSLATION
 		if(!(m_Left == 0 && m_Right == 0 && m_Up == 0 && m_Down == 0 && m_Forward == 0 && m_Backward == 0)) {
 			float speedMultipler = m_LeftShiftPressed ? 32.0f : 8.0f;
 
@@ -351,36 +352,24 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 			}
 
 			XMVECTOR cameraTranslation =
-				XMVector3Normalize(XMVectorSet(m_Right - m_Left, m_Up - m_Down, m_Forward - m_Backward, 1.0f))
+				XMVector3Normalize(XMVECTORF32 { m_Right - m_Left, m_Up - m_Down, m_Forward - m_Backward, 1.0f })
 				* speedMultipler * (float)e.DeltaTime;
 			m_DemoScene->m_MainCamera.Translate(cameraTranslation);
 		}
 		
-		// float compare should be ok because we are only looking if value changed from last frame, not comparing 2 calculated floats
+		// Camera ROTATION
+		// Note: float compare should be ok because we are only looking if value changed from last frame, not comparing 2 calculated floats
 		static float s_LastPitch {};
 		static float s_LastYaw {};
 		if(!(s_LastPitch == m_CameraPitch && s_LastYaw == m_CameraYaw)) {
 			XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(-m_CameraPitch), XMConvertToRadians(-m_CameraYaw), 0.0f);
 			m_DemoScene->m_MainCamera.Set_Rotation(cameraRotation);
 		}
-
 		s_LastPitch = m_CameraPitch;
 		s_LastYaw = m_CameraYaw;
 	}
 
 	OnRender(e);
-}
-
-void DemoGame::RenderImGui(CommandList& directCommandList) {
-	/// NOTE: Cursor visibility is currently solely controlled by ImGui, not ideal but works for now.
-	///       Cursor is visible anytime a ImGui window is shown or if picker is enabled.
-	ImGui::SetMouseCursor(EditorGui::Get().GetUIVisibilityState() || !Application::Get().GetCursorClientAreaLockState() ? ImGuiMouseCursor_Arrow : ImGuiMouseCursor_None);
-
-	// Keeping these functions separate for flexibility.
-	EditorGui::Get().NewFrame();
-	EditorGui::Get().DrawGameDebugUI(*m_Device, *m_DemoScene, *this);
-	EditorGui::Get().DrawObjectInspector(*m_Device, *m_DemoScene);
-	EditorGui::Get().Render(directCommandList);
 }
 
 void DemoGame::OnRender(const UpdateEventArgs& e) {
@@ -427,7 +416,20 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 	}
 
 	/// Draw ImGui
-	RenderImGui(*directCommandList);
+	{
+		/// NOTE: Cursor visibility is currently solely controlled by ImGui, not ideal but works for now.
+		///       Cursor is visible anytime a ImGui window is shown or if picker is enabled.
+		ImGui::SetMouseCursor(
+			EditorGui::Get().GetUIVisibilityState() || !Application::Get().GetCursorClientAreaLockState() ? 
+			ImGuiMouseCursor_Arrow : ImGuiMouseCursor_None
+		);
+
+		// Keeping these functions separate for flexibility (as opposed to moving them into one function in EditorGui)
+		EditorGui::Get().NewFrame();
+		EditorGui::Get().DrawGameDebugUI(*m_Device, *m_DemoScene, *this);
+		EditorGui::Get().DrawObjectInspector(*m_Device, *m_DemoScene);
+		EditorGui::Get().Render(*directCommandList);
+	}
 
 	/// Present
 	directCommandQueue.ExecuteCommandList(directCommandList);

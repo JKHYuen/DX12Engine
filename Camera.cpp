@@ -103,6 +103,7 @@ void Camera::Rotate(FXMVECTOR quaternion) {
 
 // Note: XMVector4NormalizeEst is used
 // Adapted from https://rastertek.com/dx11win10tut23.html
+// Far culling frustum plane is same as camera's, need to edit projection matrix if custom distance needed
 void Camera::UpdateFrustum() {
     if(!m_ViewDirty && !m_ProjectionDirty) {
         return;
@@ -164,7 +165,7 @@ void Camera::UpdateFrustum() {
     XMStoreFloat4(&m_FrustumPlanes[5], normalizedVec);
 }
 
-bool Camera::CheckAABBInFrustum(BoundingBox aabb, float bias) const {
+bool Camera::CheckAABBInFrustum(const BoundingBox& aabb, float bias) const {
     for(int i = 0; i < 6; i++) {
         if (m_FrustumPlanes[i].x * (aabb.Center.x - aabb.Extents.x) +
             m_FrustumPlanes[i].y * (aabb.Center.y - aabb.Extents.y) +

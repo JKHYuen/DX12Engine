@@ -123,17 +123,20 @@ private:
 	
 	BoundingBox m_AABB {};
 
-	void RecalcAABBExtents();
+	void RecalcAABB();
 
 	std::string m_Name;
 
 	XMFLOAT4X4 m_TranslationMat {};
 	XMFLOAT4X4 m_RotationMat {};
 	XMFLOAT4X4 m_ScaleMat {};
-	
-	// Cached (calculated once per frame only) so this doesn't need to be recalculated when rebuilding AABB
-	XMFLOAT4X4 m_AABBOffsettedSRMatrix;
-	XMFLOAT3 m_AABBOffset;
+
+	// Mesh local origin rotated by model's current rotation matrix
+	// This is needed for AABB calc because rotating an object that's local origin is not world 0,0,0 moves AABB center
+	XMFLOAT3 m_AABBOffset {};
+
+	// Cached and updated only when when rotation or scale matrix is updated (i.e. in translation and scale setters)
+	XMFLOAT4X4 m_SRMat;
 	
 	// Keep track of these separate from matrices for convenience
 	XMFLOAT3 m_Translation, m_EulerRotation /*Radians*/, m_Scale;

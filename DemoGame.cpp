@@ -93,7 +93,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	// Create post process RT buffers
 	m_PostProcessRTs = {*m_Device, sk_HDRFormat, windowWidth, windowHeight};
 
-	// TODO: Tweakable MSAA
+	/// TODO: Tweakable MSAA
 	DXGI_SAMPLE_DESC multiSampleDesc = m_Device->GetMultisampleQualityLevels(sk_HDRFormat);
 
 	m_SwapChain = std::make_shared<SwapChain>(*m_Device, m_Window->GetWindowHandle(), m_IsVsync, sk_HDRFormat);
@@ -132,7 +132,8 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 		m_HDR_MSAA_RT.AttachTexture(AttachmentPoint::DepthStencil, depthStencilTexture);
 	}
 
-	/// TODO: Create PSOs (this should be managed somewhere else)
+	/// Create PSOs 
+	/// TODO:(this should be managed somewhere else)
 	m_PBR_PSO = std::make_unique<PBRObjectPSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RT.GetRenderTargetFormats(), sk_DepthStencilBufferFormat);
 	m_IBL_PSO = std::make_unique<ImageBasedLightingPSO>(*m_Device, m_HDR_MSAA_RT);
 
@@ -170,7 +171,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 
 		m_DemoScene = std::make_unique<Scene>(*m_Device, *copyCommandList, *computeCommandList, dirLightParams, skyboxParams, m_WindowWidth, m_WindowHeight);
 
-		// Wait for IBL resource creation to finish (panotocubemap in Skybox class)
+		// Wait for IBL resource creation to finish before using them (e.g. panotocubemap in Skybox class)
 		copyCommandQueue.WaitForFenceValue(copyCommandQueue.ExecuteCommandList(copyCommandList));
 		computeCommandQueue.WaitForFenceValue(computeCommandQueue.ExecuteCommandList(computeCommandList));
 
@@ -183,7 +184,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 		m_DemoScene->ComputeSkyboxIBLs(*directCommandList);
 		directCommandQueue.ExecuteCommandList(directCommandList);
 
-		/// TEMP TEST SCENE
+		/// TEST SCENE
 		{
 			GameObject::EntityParams goParams {
 				"Sphere",
@@ -212,7 +213,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 			goRenderProps.heightMapMagnitude = 0.0f;
 			m_DemoScene->AddGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetCubePrimitive());
 
-			/// Test model import
+			// Test model import
 			{
 				goParams.scale = XMFLOAT3(1.0f, 1.0f, 1.0f);
 				goParams.translation = XMFLOAT3(0.0f, 3.0f, 4.0f);

@@ -34,8 +34,10 @@ struct alignas(16) PBRVertexProps {
 struct alignas(16) PBRTessellationProps {
 	XMFLOAT4   cameraPosition;
 	XMFLOAT4X4 SRT;
-	XMFLOAT4   cullingPlanes[4];
+	/// CURRENTLY UNUSED
+	XMFLOAT4   cullingPlanes[4]; 
 	float      cullBias;
+	/// END UNUSED
 	XMFLOAT2   screenDimensions;
 	float      tessellationMagnitude;
 };

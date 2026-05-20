@@ -77,7 +77,7 @@ public:
     void UpdateFrustum();
 
     // Bias is for vertex displacement factor
-    bool CheckAABBInFrustum(DirectX::BoundingBox aabb, float bias) const;
+    bool CheckAABBInFrustum(const DirectX::BoundingBox& aabb, float bias) const;
 
 protected:
     virtual void UpdateViewMatrix() const;

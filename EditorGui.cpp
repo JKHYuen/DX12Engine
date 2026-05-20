@@ -615,7 +615,7 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 		picked->SetTranslation(s_ObjTranslation[0], s_ObjTranslation[1], s_ObjTranslation[2]);
 	}
 
-	if(ImGui::DragFloat3("Rotation", s_ObjDegreeEulerAngles, 0.1f, -0.0f, 360.0f, "%.2f", ImGuiSliderFlags_WrapAround)) {
+	if(ImGui::DragFloat3("Rotation", s_ObjDegreeEulerAngles, 0.1f, 0.0f, 360.0f, "%.2f", ImGuiSliderFlags_WrapAround)) {
 		picked->SetEulerRotation(XMConvertToRadians(s_ObjDegreeEulerAngles[0]), XMConvertToRadians(s_ObjDegreeEulerAngles[1]), XMConvertToRadians(s_ObjDegreeEulerAngles[2]));
 	}
 

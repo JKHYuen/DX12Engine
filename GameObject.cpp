@@ -32,7 +32,7 @@ GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params,
 	, m_Name(params.name)
 	, m_RenderProps(renderProps)
 {
-	// Don't use setters (e.g. SetTranslation()), this ensures AABB is initialized properly
+	// Don't use setters (e.g. SetTranslation()), this ensures AABB is initialized properly / avoids unneccesary calcs
 	m_Scale = params.scale;
 	XMStoreFloat4x4(&m_ScaleMat, XMMatrixScaling(params.scale.x, params.scale.y, params.scale.z));
 	m_EulerRotation = params.radianEulerRotation;
@@ -40,16 +40,18 @@ GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params,
 	m_Translation = params.translation;
 	XMStoreFloat4x4(&m_TranslationMat, XMMatrixTranslation(params.translation.x, params.translation.y, params.translation.z));
 
+	XMStoreFloat4x4(&m_SRMat, XMMatrixMultiply(XMLoadFloat4x4(&m_ScaleMat), XMLoadFloat4x4(&m_RotationMat)));
+
 	// Initialize AABB
 	{
-		XMStoreFloat4x4(&m_AABBOffsettedSRMatrix,
-			XMMatrixTranslation(-m_Mesh->GetCenter().x, -m_Mesh->GetCenter().y, -m_Mesh->GetCenter().z) *
-			XMLoadFloat4x4(&m_ScaleMat) * XMLoadFloat4x4(&m_RotationMat)
-		);
 		XMStoreFloat3(&m_AABBOffset, XMVector3Transform(XMVECTORF32 { m_Mesh->GetCenter().x, m_Mesh->GetCenter().y, m_Mesh->GetCenter().z }, XMLoadFloat4x4(&m_RotationMat)));
 
-		m_AABB.Center = m_Translation;
-		RecalcAABBExtents();
+		// AABB center is always object geometric center, loaded mesh origin may be offsetted, account for it here
+		m_AABB.Center.x = m_Translation.x + m_AABBOffset.x;
+		m_AABB.Center.y = m_Translation.y + m_AABBOffset.y;
+		m_AABB.Center.z = m_Translation.z + m_AABBOffset.z;
+
+		RecalcAABB();
 	}
 
 	UpdatePBRShaderResourcesFromFile(copyCommandList, m_RenderProps.pbrMatName);
@@ -107,19 +109,8 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 	// using XMMatrixMultiply instead of operator* as recommended: 
 	// https://learn.microsoft.com/en-us/windows/win32/dxmath/pg-xnamath-optimizing#avoid-operator-overloads-when-possible
 	{
-		// Cache vars for AABB extents calc
-		{
-			XMStoreFloat3(&m_AABBOffset, XMVector3Transform(XMVECTORF32 { m_Mesh->GetCenter().x, m_Mesh->GetCenter().y, m_Mesh->GetCenter().z }, XMLoadFloat4x4(&m_RotationMat)));
+		XMStoreFloat4x4(&m_PBRVertexCB.SRT, XMMatrixMultiply(XMLoadFloat4x4(&m_SRMat), XMLoadFloat4x4(&m_TranslationMat)));
 
-			XMStoreFloat4x4(&m_AABBOffsettedSRMatrix,
-				XMMatrixMultiply(
-					XMMatrixTranslation(-m_Mesh->GetCenter().x, -m_Mesh->GetCenter().y, -m_Mesh->GetCenter().z),
-					XMMatrixMultiply(XMLoadFloat4x4(&m_ScaleMat), XMLoadFloat4x4(&m_RotationMat))
-				)
-			);
-		}
-
-		XMStoreFloat4x4(&m_PBRVertexCB.SRT, XMMatrixMultiply(XMLoadFloat4x4(&m_AABBOffsettedSRMatrix), XMLoadFloat4x4(&m_TranslationMat)));
 		XMStoreFloat4x4(
 			&m_PBRVertexCB.MVP, 
 			XMMatrixMultiply(
@@ -254,51 +245,62 @@ void GameObject::SetTranslation(float x, float y, float z) {
 	m_Translation = { x, y, z };
 	XMStoreFloat4x4(&m_TranslationMat, XMMatrixTranslation(x, y, z));
 
-	m_AABB.Center = m_Translation;
+	// AABB center is always object geometric center, loaded mesh origin may be offsetted, account for it here
+	m_AABB.Center.x = m_Translation.x + m_AABBOffset.x;
+	m_AABB.Center.y = m_Translation.y + m_AABBOffset.y;
+	m_AABB.Center.z = m_Translation.z + m_AABBOffset.z;
 }
 
 void GameObject::SetEulerRotation(float x, float y, float z) {
 	m_EulerRotation = { x, y, z };
 	XMStoreFloat4x4(&m_RotationMat, XMMatrixRotationRollPitchYaw(x, y, z));
 
-	RecalcAABBExtents();
+	XMStoreFloat4x4(&m_SRMat, XMMatrixMultiply(XMLoadFloat4x4(&m_ScaleMat), XMLoadFloat4x4(&m_RotationMat)));
+
+	XMStoreFloat3(&m_AABBOffset, XMVector3Transform(XMVECTORF32 { m_Mesh->GetCenter().x, m_Mesh->GetCenter().y, m_Mesh->GetCenter().z }, XMLoadFloat4x4(&m_RotationMat)));
+
+	RecalcAABB();
 }
 
 void GameObject::SetScale(float x, float y, float z) {
 	m_Scale = {x, y, z};
 	XMStoreFloat4x4(&m_ScaleMat, XMMatrixScaling(x, y, z));
 
-	RecalcAABBExtents();
+	XMStoreFloat4x4(&m_SRMat, XMMatrixMultiply(XMLoadFloat4x4(&m_ScaleMat), XMLoadFloat4x4(&m_RotationMat)));
+
+	RecalcAABB();
 }
 
+// Note: currently does not support height map, might be a lot more expensive/inaccurate if we do
 // Scale and rotate all 8 vertices (for non-uniform scaling support) with object transformation matrices
-// then calculate new extents based on this new transformed AABB.
+// then find new extents based on this new transformed AABB.
 // Kind of slow, called when scaling or rotating object. Can be simplified if there is uniform scaling.
-void GameObject::RecalcAABBExtents() {
+void GameObject::RecalcAABB() {
 	// Start with original mesh extents at world origin
-	XMFLOAT3 e = m_Mesh->GetExtents();
-	std::vector<XMFLOAT3> aabbVerts = {
-		{+ e.x, + e.y, + e.z}, {- e.x, - e.y, - e.z}, 
-		{+ e.x, + e.y, - e.z}, {- e.x, - e.y, + e.z},
-		{+ e.x, - e.y, + e.z}, {- e.x, + e.y, - e.z},
-		{+ e.x, - e.y, - e.z}, {- e.x, + e.y, + e.z},
-	};
+	const XMFLOAT3& e = m_Mesh->GetExtents();
+	static std::array<XMFLOAT3, 8> aabbVerts {};
+	aabbVerts[0] = {+ e.x, + e.y, + e.z}; aabbVerts[1] = {- e.x, - e.y, - e.z};
+	aabbVerts[2] = {+ e.x, + e.y, - e.z}; aabbVerts[3] = {- e.x, - e.y, + e.z};
+	aabbVerts[4] = {+ e.x, - e.y, + e.z}; aabbVerts[5] = {- e.x, + e.y, - e.z};
+	aabbVerts[6] = {+ e.x, - e.y, - e.z}; aabbVerts[7] = {- e.x, + e.y, + e.z};
 
-	// Note: this might be simplified if we are more clever about coord spaces
 	float maxX = 0.0f, maxY = 0.0f, maxZ = 0.0f;
-	for(XMFLOAT3 v : aabbVerts) {
-		// Rotate AABB vertex with original mesh center as pivot by
-		// translating vertex with original mesh center and then scale and rotate with model matrices
-		XMStoreFloat3(&v, XMVector3Transform(XMLoadFloat3(&v), XMLoadFloat4x4(&m_AABBOffsettedSRMatrix)));
+	for(XMFLOAT3& v : aabbVerts) {
+		// Rotate/Scale AABB vertex
+		XMStoreFloat3(&v, XMVector3Transform(XMLoadFloat3(&v), XMLoadFloat4x4(&m_SRMat)));
 
-		// comparison needs to take original mesh center into account since the calculated box ends up aligned with the object in world space
-		maxX = std::fmax(maxX, std::fabs(v.x + m_AABBOffset.x));
-		maxY = std::fmax(maxY, std::fabs(v.y + m_AABBOffset.y));
-		maxZ = std::fmax(maxZ, std::fabs(v.z + m_AABBOffset.z));
+		maxX = std::fmax(maxX, std::fabs(v.x));
+		maxY = std::fmax(maxY, std::fabs(v.y));
+		maxZ = std::fmax(maxZ, std::fabs(v.z));
 	}
 
 	m_AABB.Extents.x = maxX;
 	m_AABB.Extents.y = maxY;
 	m_AABB.Extents.z = maxZ;
+
+	// Update AABB center location because rotating with object's pivot could change where object geometric center is
+	m_AABB.Center.x = m_Translation.x + m_AABBOffset.x;
+	m_AABB.Center.y = m_Translation.y + m_AABBOffset.y;
+	m_AABB.Center.z = m_Translation.z + m_AABBOffset.z;
 }
 

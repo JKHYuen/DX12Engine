@@ -31,6 +31,7 @@ GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params,
 	: m_Mesh(mesh)
 	, m_Name(params.name)
 	, m_RenderProps(renderProps)
+	, b_RenderThisFrame(true)
 {
 	// Don't use setters (e.g. SetTranslation()), this ensures AABB is initialized properly / avoids unneccesary calcs
 	m_Scale = params.scale;
@@ -93,10 +94,15 @@ GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params,
 }
 
 void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, bool b_WireframeRender) {
+	// Frustum check is only done here, other render functions rely on b_RenderThisFrame.
+	// This means other render functions may respond a frame late (depending on call order) but we don't need to do frustum check multiple times a frame
 	/// TODO: add bias value (derived from heightMapMagnitude)
 	if(!scene.m_MainCamera.CheckAABBInFrustum(m_AABB, 0.0f)) {
+		b_RenderThisFrame = false;
 		return;
 	}
+
+	b_RenderThisFrame = true;
 
 	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 	
@@ -193,6 +199,8 @@ void GameObject::RenderSilhouette(CommandList& directCommandList, const UpdateEv
 }
 
 void GameObject::RenderBoundingBox(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPrimitivePSO* unlitPrimitivePSO, const Scene& scene, XMFLOAT4 color) {
+	if(!b_RenderThisFrame) return;
+	
 	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	// Set all textures to null SRVs
@@ -212,6 +220,7 @@ void GameObject::RenderBoundingBox(CommandList& directCommandList, const UpdateE
 
 // assume we are in right rendering pipeline (see DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget)
 void GameObject::RenderToDirectionalShadowMap(CommandList& directCommandList, const DirectionalLight& directionalLight) {
+	if(!b_RenderThisFrame) return;
 	if(!m_RenderProps.isShadowCaster) return;
 
 	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
@@ -254,10 +263,12 @@ void GameObject::SetTranslation(float x, float y, float z) {
 void GameObject::SetEulerRotation(float x, float y, float z) {
 	m_EulerRotation = { x, y, z };
 	XMStoreFloat4x4(&m_RotationMat, XMMatrixRotationRollPitchYaw(x, y, z));
-
-	XMStoreFloat4x4(&m_SRMat, XMMatrixMultiply(XMLoadFloat4x4(&m_ScaleMat), XMLoadFloat4x4(&m_RotationMat)));
-
-	XMStoreFloat3(&m_AABBOffset, XMVector3Transform(XMVECTORF32 { m_Mesh->GetCenter().x, m_Mesh->GetCenter().y, m_Mesh->GetCenter().z }, XMLoadFloat4x4(&m_RotationMat)));
+	
+	// Update cached values
+	{
+		XMStoreFloat4x4(&m_SRMat, XMMatrixMultiply(XMLoadFloat4x4(&m_ScaleMat), XMLoadFloat4x4(&m_RotationMat)));
+		XMStoreFloat3(&m_AABBOffset, XMVector3Transform(XMVECTORF32 { m_Mesh->GetCenter().x, m_Mesh->GetCenter().y, m_Mesh->GetCenter().z }, XMLoadFloat4x4(&m_RotationMat)));
+	}
 
 	RecalcAABB();
 }
@@ -266,6 +277,7 @@ void GameObject::SetScale(float x, float y, float z) {
 	m_Scale = {x, y, z};
 	XMStoreFloat4x4(&m_ScaleMat, XMMatrixScaling(x, y, z));
 
+	// Update cached values
 	XMStoreFloat4x4(&m_SRMat, XMMatrixMultiply(XMLoadFloat4x4(&m_ScaleMat), XMLoadFloat4x4(&m_RotationMat)));
 
 	RecalcAABB();
@@ -274,7 +286,7 @@ void GameObject::SetScale(float x, float y, float z) {
 // Note: currently does not support height map, might be a lot more expensive/inaccurate if we do
 // Scale and rotate all 8 vertices (for non-uniform scaling support) with object transformation matrices
 // then find new extents based on this new transformed AABB.
-// Kind of slow, called when scaling or rotating object. Can be simplified if there is uniform scaling.
+// Kind of slow, only called when scaling or rotating object. Can be simplified if there is uniform scaling.
 void GameObject::RecalcAABB() {
 	// Start with original mesh extents at world origin
 	const XMFLOAT3& e = m_Mesh->GetExtents();

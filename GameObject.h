@@ -123,6 +123,10 @@ private:
 	
 	BoundingBox m_AABB {};
 
+	// Mesh local origin rotated by model's current rotation matrix
+	// This is needed for AABB calc because rotating an object that's local origin is not world 0,0,0 moves AABB center
+	XMFLOAT3 m_AABBOffset {};
+
 	void RecalcAABB();
 
 	std::string m_Name;
@@ -131,15 +135,13 @@ private:
 	XMFLOAT4X4 m_RotationMat {};
 	XMFLOAT4X4 m_ScaleMat {};
 
-	// Mesh local origin rotated by model's current rotation matrix
-	// This is needed for AABB calc because rotating an object that's local origin is not world 0,0,0 moves AABB center
-	XMFLOAT3 m_AABBOffset {};
-
 	// Cached and updated only when when rotation or scale matrix is updated (i.e. in translation and scale setters)
 	XMFLOAT4X4 m_SRMat;
 	
 	// Keep track of these separate from matrices for convenience
 	XMFLOAT3 m_Translation, m_EulerRotation /*Radians*/, m_Scale;
+
+	bool b_RenderThisFrame;
 
 	/// Things that should be in some sort of component system:
 	// Note: Stored CB members are shared between different rendering methods e.g. render bounding box, render silhoutte

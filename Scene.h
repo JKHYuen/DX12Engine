@@ -66,7 +66,7 @@ public:
 	Camera m_MainCamera;
 
 private:
-	static const int sk_MaxSceneObjects = 100;
+	static const int sk_MaxSceneObjects = 100000;
 	/// TODO: Currently no system to validate destoyed objects, smarter storage needed
 	///       Same size objects should at least be grouped together in separate arrays in a real engine
 	std::vector<GameObject> m_SceneObjects;

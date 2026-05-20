@@ -67,7 +67,7 @@ namespace {
 
 	// Projection Matrix
 	float s_ZNear = 0.1f;
-	float s_ZFar  = 100.0f;
+	float s_ZFar  = 1000.0f;
 }
 
 DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t windowHeight, bool vSync, bool isFullScreen)
@@ -200,6 +200,21 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 			goParams.translation = XMFLOAT3(0.0f, 3.0f, 0.0f);
 			goRenderProps.heightMapMagnitude = 0.05f;
 			m_DemoScene->AddGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive());
+
+			/// STRESS TEST
+			//int s = 5;
+			//for(int i = 0; i < 20; i++) {
+			//	for(int j = 0; j < 20; j++) {
+			//		for(int k = 0; k < 20; k++) {
+			//			goParams.translation = XMFLOAT3(s * i, s * j, s * k);
+			//			m_DemoScene->AddGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive());
+			//			
+			//			static int count = 0;
+			//			Logger::Log(++count);
+			//		}
+			//	}
+			//}
+			/// END STRESS TEST
 
 			goParams.translation = XMFLOAT3(-4.0f, 3.0f, 0.0f);
 			goRenderProps.pbrMatName = L"marble";
@@ -402,7 +417,7 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 			nextInputPostProcessRT = &m_PostProcessRTs.RTs[0];
 		};
 
-		m_DemoScene->RenderBoundingBoxes(*nextInputPostProcessRT, *directCommandList, e, m_UnlitPrimitive_PSO.get());
+		//m_DemoScene->RenderBoundingBoxes(*nextInputPostProcessRT, *directCommandList, e, m_UnlitPrimitive_PSO.get());
 
 		/// TODO: move this to a tonemapping PSO class
 		// Tonemapping

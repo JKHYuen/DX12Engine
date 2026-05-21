@@ -95,9 +95,10 @@ namespace AssetImporter {
 	/// TODO: figure out a way to make Assimp materials compatible with this renderer
 	inline std::shared_ptr<Mesh> ImportModel(CommandList& commandList, const std::wstring& modelFilePath) {
 		Assimp::Importer importer;
-
+		std::string fileName {};
+		StringConvert::WideString_To_String(modelFilePath, fileName);
 		const aiScene* pScene =
-			importer.ReadFile(StringConvert::WideString_To_String(modelFilePath),
+			importer.ReadFile(fileName,
 				aiProcessPreset_TargetRealtime_MaxQuality |
 				aiProcess_OptimizeGraph |
 				aiProcess_ConvertToLeftHanded | 

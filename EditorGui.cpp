@@ -269,6 +269,17 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 	// HDR color picker is WIP in ImGui, color picker disabled since it doesn't support HDR. We will render preview box manually since the values need to be normalized.
 	static const ImGuiColorEditFlags kHDRColorEditFlags = ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoSmallPreview;
 
+	static auto ImGuiHelpMarker = [](const char* desc, bool b_IsSameLine = true, bool b_IsWarning = false) {
+		if(b_IsSameLine) ImGui::SameLine();
+		if(b_IsWarning)  ImGui::TextDisabled("(!)"); else ImGui::TextDisabled("(?)");
+		if(ImGui::BeginItemTooltip()) {
+			ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+			ImGui::TextUnformatted(desc);
+			ImGui::PopTextWrapPos();
+			ImGui::EndTooltip();
+		}
+	};
+
 	struct ScrollingBuffer {
 		int MaxSize;
 		int Offset;
@@ -318,67 +329,74 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 			ImGui::DragFloat("UI Scale", &style.FontScaleDpi, 0.02f, 0.5f, 4.0f, "%.2fx");
 		}
 
-		// Performance Graph 
-		// Graph data update rate based on s_GraphUpdateRate, default: 60hz
-		// This is to throttle the rate ScrollingBuffer records data so we don't need a huge buffer for high frame rates over a big time scale
-		{
-			static ScrollingBuffer s_FPSGraphBuffer {};
+		if(ImGui::CollapsingHeader("Performance", ImGuiTreeNodeFlags_DefaultOpen)) {
+			const DXGI_ADAPTER_DESC3& adapterDesc = device.GetAdapterDesc();
+			DXGI_QUERY_VIDEO_MEMORY_INFO videoMemoryInfo = device.GetVRAMUsed();
+			ImGui::TextDisabled("%s %d MB   Resolution: %d x %d", device.GetAdapterName().c_str(), adapterDesc.DedicatedVideoMemory / 1024 / 1024, game.GetWindowWidth(), game.GetWindowHeight());
+			ImGui::Text("%d MB / %d MB", videoMemoryInfo.CurrentUsage / 1024 / 1024, videoMemoryInfo.Budget / 1024 / 1024);
 
-			// Save axis extents for update ticks faster than s_GraphUpdateRate
-			static std::pair xCurrentAxisExtents = { 0.0, 1.0 };
-			static std::pair yCurrentAxisExtents = { 0.0, 1.0 };
+			// Performance Graph 
+			// Graph data update rate based on s_GraphUpdateRate, default: 60hz
+			// This is to throttle the rate ScrollingBuffer records data so we don't need a huge buffer for high frame rates over a big time scale
+			{
+				static ScrollingBuffer s_FPSGraphBuffer {};
 
-			// 60 times a second is probably overkill, note that time scale at 1 second doesn't render properly at 30 times a second
-			static const float s_GraphUpdateRate = 1.0f / 60.0f;
-			static float s_UpdateTimer = s_GraphUpdateRate;
-			s_UpdateTimer -= ImGui::GetIO().DeltaTime;
-			if(s_UpdateTimer <= 0) {
-				s_FPSGraphBuffer.AddPoint((float)ImGui::GetTime(), (float)game.m_CurrentAvgFPS);
-				s_UpdateTimer = s_GraphUpdateRate;
-			}
+				// Save axis extents for update ticks faster than s_GraphUpdateRate
+				static std::pair xCurrentAxisExtents = { 0.0, 1.0 };
+				static std::pair yCurrentAxisExtents = { 0.0, 1.0 };
 
-			ImGui::Text("FPS: %d", game.m_CurrentAvgFPS);
+				// 60 times a second is probably overkill, note that time scale at 1 second doesn't render properly at 30 times a second
+				static const float s_GraphUpdateRate = 1.0f / 60.0f;
+				static float s_UpdateTimer = s_GraphUpdateRate;
+				s_UpdateTimer -= ImGui::GetIO().DeltaTime;
+				if(s_UpdateTimer <= 0) {
+					s_FPSGraphBuffer.AddPoint((float)ImGui::GetTime(), (float)game.m_CurrentAvgFPS);
+					s_UpdateTimer = s_GraphUpdateRate;
+				}
 
-			static int timeScale = 5;
-			if(ImPlot::BeginPlot("##FPS Graph", ImVec2(-1, 100), ImPlotFlags_NoFrame | ImPlotFlags_NoLegend | ImPlotFlags_NoInputs)) {
-				ImPlot::SetupAxes(
-					nullptr, nullptr,
-					// x axis flags
-					ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_Lock,
-					// y axis flags
-					ImPlotAxisFlags_LockMin
-				);
+				ImGui::Text("FPS: %d", game.m_CurrentAvgFPS);
 
-				// Update axis extents
-				// We don't use ImPlot autofit because it doesn't leave headroom
-				if(s_UpdateTimer == s_GraphUpdateRate) {
-					double newXMin = ImGui::GetTime() - timeScale;
-					double newXMax = ImGui::GetTime();
-					ImPlot::SetupAxisLimits(ImAxis_X1, newXMin, newXMax, ImGuiCond_Always);
-					xCurrentAxisExtents.first = newXMin;
-					xCurrentAxisExtents.second = newXMax;
+				static int timeScale = 5;
+				if(ImPlot::BeginPlot("##FPS Graph", ImVec2(-1, 100), ImPlotFlags_NoFrame | ImPlotFlags_NoLegend | ImPlotFlags_NoInputs)) {
+					ImPlot::SetupAxes(
+						nullptr, nullptr,
+						// x axis flags
+						ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_Lock,
+						// y axis flags
+						ImPlotAxisFlags_LockMin
+					);
 
-					if(game.m_CurrentAvgFPS >= yCurrentAxisExtents.second || game.m_CurrentAvgFPS * 2.0f <= yCurrentAxisExtents.second) {
-						float newYMax = std::max(120.0f, game.m_CurrentAvgFPS * 1.5f);
-						ImPlot::SetupAxisLimits(ImAxis_Y1, 0, newYMax, ImGuiCond_Always);
-						yCurrentAxisExtents.second = newYMax;
+					// Update axis extents
+					// We don't use ImPlot autofit because it doesn't leave headroom
+					if(s_UpdateTimer == s_GraphUpdateRate) {
+						double newXMin = ImGui::GetTime() - timeScale;
+						double newXMax = ImGui::GetTime();
+						ImPlot::SetupAxisLimits(ImAxis_X1, newXMin, newXMax, ImGuiCond_Always);
+						xCurrentAxisExtents.first = newXMin;
+						xCurrentAxisExtents.second = newXMax;
+
+						if(game.m_CurrentAvgFPS >= yCurrentAxisExtents.second || game.m_CurrentAvgFPS * 2.0f <= yCurrentAxisExtents.second) {
+							float newYMax = std::max(120.0f, game.m_CurrentAvgFPS * 1.5f);
+							ImPlot::SetupAxisLimits(ImAxis_Y1, 0, newYMax, ImGuiCond_Always);
+							yCurrentAxisExtents.second = newYMax;
+						}
 					}
-				}
-				else {
-					ImPlot::SetupAxisLimits(ImAxis_X1, xCurrentAxisExtents.first, xCurrentAxisExtents.second, ImGuiCond_Always);
-					ImPlot::SetupAxisLimits(ImAxis_Y1, 0, yCurrentAxisExtents.second, ImGuiCond_Always);
-				}
+					else {
+						ImPlot::SetupAxisLimits(ImAxis_X1, xCurrentAxisExtents.first, xCurrentAxisExtents.second, ImGuiCond_Always);
+						ImPlot::SetupAxisLimits(ImAxis_Y1, 0, yCurrentAxisExtents.second, ImGuiCond_Always);
+					}
 
-				static ImPlotSpec s_Spec {};
-				s_Spec.Offset = s_FPSGraphBuffer.Offset;
-				ImPlot::PlotLine("FPS", s_FPSGraphBuffer.tData.data(), s_FPSGraphBuffer.frameTimeData.data(), (int)s_FPSGraphBuffer.tData.size(), s_Spec);
-				ImPlot::EndPlot();
+					static ImPlotSpec s_Spec {};
+					s_Spec.Offset = s_FPSGraphBuffer.Offset;
+					ImPlot::PlotLine("FPS", s_FPSGraphBuffer.tData.data(), s_FPSGraphBuffer.frameTimeData.data(), (int)s_FPSGraphBuffer.tData.size(), s_Spec);
+					ImPlot::EndPlot();
 
-				ImGui::SliderInt("Time Scale", &timeScale, 1, 30, "%ds");
+					ImGui::SliderInt("Time Scale", &timeScale, 1, 30, "%ds");
+				}
 			}
 		}
 
-		if(ImGui::CollapsingHeader("View", ImGuiTreeNodeFlags_DefaultOpen)) {
+		if(ImGui::CollapsingHeader("Display", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::Checkbox("Wireframe Render Mode",  & scene.mb_WireframeRender);
 
 			// FOV Slider
@@ -394,7 +412,9 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 				for(auto& s : game.m_SkyboxNames) {
 					ImGui::TableNextColumn();
 
-					if(ImGui::Selectable(StringConvert::WideString_To_String(s).c_str(), s == s_SelectedSkybox)) {
+					static std::string fileName {};
+					StringConvert::WideString_To_String(s, fileName);
+					if(ImGui::Selectable(fileName.c_str(), s == s_SelectedSkybox)) {
 						auto& copyCommandQueue = device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 						auto copyCommandList = copyCommandQueue.GetCommandList();
 						auto& computeCommandQueue = device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE);
@@ -581,7 +601,7 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 	}
 	s_LastPickedObject = picked;
 
-	ImGui::SetNextWindowPos({ (float)scene.m_GameWindowWidth * 0.8f, (float)scene.m_GameWindowHeight * 0.05f }, ImGuiCond_Once);
+	ImGui::SetNextWindowPos({ (float)scene.GetWindowWidth() * 0.8f, (float)scene.GetWindowHeight() * 0.05f }, ImGuiCond_Once);
 
 	// sb_ObjectInspectorState var is just to make window x button work
 	ImGui::Begin(s_ObjectName.c_str(), &sb_ObjectInspectorState, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
@@ -596,7 +616,9 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 		for(const auto& s : scene.m_MaterialNames) {
 			ImGui::TableNextColumn();
 
-			if(ImGui::Selectable(StringConvert::WideString_To_String(s).c_str(), s == s_SelectedMat)) {
+			static std::string fileName {};
+			StringConvert::WideString_To_String(s, fileName);
+			if(ImGui::Selectable(fileName.c_str(), s == s_SelectedMat)) {
 				auto& copyCommandQueue = device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 				auto copyCommandList = copyCommandQueue.GetCommandList();
 

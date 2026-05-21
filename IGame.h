@@ -17,6 +17,8 @@ public:
     virtual uint32_t Run() = 0;
 
     virtual void OnUpdate(const UpdateEventArgs & e) = 0;
+    virtual uint32_t GetWindowWidth()  const = 0;
+    virtual uint32_t GetWindowHeight() const = 0;
 
     virtual void OnKeyPressed(const KeyEventArgs& e) {};
     virtual void OnKeyReleased(const KeyEventArgs& e) {};

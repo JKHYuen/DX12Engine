@@ -151,7 +151,7 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 		//m_TessellationProps.cullingPlanes[4] = ;
 		//m_TessellationProps.cullBias = ;
 		///
-		m_TessellationCB.screenDimensions = { (float)scene.GetGameWindowWidth() , (float)scene.GetGameWindowHeight() };
+		m_TessellationCB.screenDimensions = { (float)scene.GetWindowWidth() , (float)scene.GetWindowHeight() };
 		m_TessellationCB.tessellationMagnitude = m_RenderProps.tessellationMagnitude;
 	}
 

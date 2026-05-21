@@ -48,6 +48,9 @@ public:
     void OnMouseButtonPressed(const MouseButtonEventArgs& e)  override;
     void OnMouseButtonReleased(const MouseButtonEventArgs& e) override;
 
+    uint32_t GetWindowWidth()  const override { return m_WindowWidth;  }
+    uint32_t GetWindowHeight() const override { return m_WindowHeight; }
+
 private:
     /// TODO: Add some convenient way to get next set of RTs, currently manually indexing
     // An array of 2 render targets used to chain post processing effects.
@@ -99,6 +102,7 @@ private:
     std::unique_ptr<ImageBasedLightingPSO> m_IBL_PSO;
     std::unique_ptr<BloomPSO> m_Bloom_PSO;
     ///
+
     std::unique_ptr<BloomEffect> m_BloomEffect;
     std::unique_ptr<OutlineEffect> m_OutlineEffect;
 

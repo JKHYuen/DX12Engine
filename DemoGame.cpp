@@ -169,7 +169,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 			m_IBL_PSO.get()
 		};
 
-		m_DemoScene = std::make_unique<Scene>(*m_Device, *copyCommandList, *computeCommandList, dirLightParams, skyboxParams, m_WindowWidth, m_WindowHeight);
+		m_DemoScene = std::make_unique<Scene>(*m_Device, *copyCommandList, *computeCommandList, dirLightParams, skyboxParams, *this);
 
 		// Wait for IBL resource creation to finish before using them (e.g. panotocubemap in Skybox class)
 		copyCommandQueue.WaitForFenceValue(copyCommandQueue.ExecuteCommandList(copyCommandList));
@@ -202,12 +202,12 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 			m_DemoScene->AddGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive());
 
 			/// STRESS TEST
-			//int s = 5;
-			//for(int i = 0; i < 20; i++) {
-			//	for(int j = 0; j < 20; j++) {
-			//		for(int k = 0; k < 20; k++) {
+			//const int s = 5;
+			//for(int i = 0; i < 10; i++) {
+			//	for(int j = 0; j < 10; j++) {
+			//		for(int k = 0; k < 10; k++) {
 			//			goParams.translation = XMFLOAT3(s * i, s * j, s * k);
-			//			m_DemoScene->AddGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive());
+			//			m_DemoScene->AddGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetCubePrimitive());
 			//			
 			//			static int count = 0;
 			//			Logger::Log(++count);
@@ -322,7 +322,7 @@ uint32_t DemoGame::Run() {
 }
 
 void DemoGame::OnResize(const ResizeEventArgs& e) {
-	m_WindowWidth = std::max(1u, e.Width);
+	m_WindowWidth  = std::max(1u, e.Width);
 	m_WindowHeight = std::max(1u, e.Height);
 
 	m_SwapChain->Resize(m_WindowWidth, m_WindowHeight);
@@ -336,8 +336,6 @@ void DemoGame::OnResize(const ResizeEventArgs& e) {
 
 	m_BloomEffect->ResizeRenderTargets(m_WindowWidth, m_WindowHeight);
 	m_OutlineEffect->Resize(m_WindowWidth, m_WindowHeight);
-
-	m_DemoScene->SetGameWindowSize(m_WindowWidth, m_WindowHeight);
 }
 
 void DemoGame::OnUpdate(const UpdateEventArgs& e) {
@@ -417,7 +415,7 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 			nextInputPostProcessRT = &m_PostProcessRTs.RTs[0];
 		};
 
-		//m_DemoScene->RenderBoundingBoxes(*nextInputPostProcessRT, *directCommandList, e, m_UnlitPrimitive_PSO.get());
+		m_DemoScene->RenderBoundingBoxes(*nextInputPostProcessRT, *directCommandList, e, m_UnlitPrimitive_PSO.get());
 
 		/// TODO: move this to a tonemapping PSO class
 		// Tonemapping

@@ -1,4 +1,5 @@
 #include "Scene.h"
+#include "IGame.h"
 #include "DirectionalLight.h"
 #include "Skybox.h"
 #include "UnlitPSO.h"
@@ -16,12 +17,11 @@
 
 #include <filesystem>
 
-Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const DirectionalLight::DirectionalLightParams& dirLightParams, const Skybox::SkyboxParams& skyboxParams, int windowWidth, int windowHeight)
+Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const DirectionalLight::DirectionalLightParams& dirLightParams, const Skybox::SkyboxParams& skyboxParams, const IGame& game)
 	: m_DirectionalLight(device, dirLightParams)
 	, m_Skybox(device, copyCommandList, computeCommandList, skyboxParams)
 	, m_Device(device)
-	, m_GameWindowWidth(windowWidth)
-	, m_GameWindowHeight(windowHeight)
+	, m_Game(game)
 {
 	// arbitrary default camera position
 	XMVECTOR cameraPos    = XMVectorSet(0, 5, -20, 1);
@@ -99,6 +99,8 @@ void Scene::RenderBoundingBoxes(const RenderTarget& outputRT, CommandList& direc
 	}
 }
 
+uint32_t Scene::GetWindowWidth() const { return m_Game.GetWindowWidth(); }
+uint32_t Scene::GetWindowHeight() const { return m_Game.GetWindowHeight(); }
 
 void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 	// Gameobject raycast picking for object inspector GUI, gameobjects are outlined if picked
@@ -108,7 +110,7 @@ void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 	if(e.Button == MouseButtonEventArgs::Left) {
 		if(EditorGui::Get().GetUIVisibilityState() && !ImGui::GetIO().WantCaptureMouse) {
 			// Update picked object
-			m_Picker->MouseRaycast(*this, e.X, e.Y, m_GameWindowWidth, m_GameWindowHeight);
+			m_Picker->MouseRaycast(*this, e.X, e.Y, m_Game.GetWindowWidth(), m_Game.GetWindowHeight());
 		}
 
 		// Unpick object if mouse clicked and editor UI is not open

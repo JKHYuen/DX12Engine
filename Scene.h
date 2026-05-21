@@ -10,6 +10,7 @@
 #include <vector>
 
 class Device;
+class IGame;
 class MouseButtonEventArgs;
 class KeyEventArgs;
 class UnlitPSO;
@@ -21,7 +22,7 @@ class Scene {
 	friend class Picker;
 
 public:
-	Scene(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const DirectionalLight::DirectionalLightParams& dirLightParams, const Skybox::SkyboxParams& skyboxParams, int windowWidth, int windowHeight);
+	Scene(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const DirectionalLight::DirectionalLightParams& dirLightParams, const Skybox::SkyboxParams& skyboxParams, const IGame& game);
 
 	Scene(const Scene&)            = delete;
 	Scene& operator=(const Scene&) = delete;
@@ -50,17 +51,11 @@ public:
 	void SetSkybox(CommandList& copyCommandList, CommandList& computeCommandList, const Skybox::SkyboxParams& skyboxParams);
 	/// 
 
-	void Render(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e);
+	void Render(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e);	
 	void RenderBoundingBoxes(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e, UnlitPrimitivePSO* unlitPrimitivePSO);
-
-	// For object picking
-	void SetGameWindowSize(uint32_t width, uint32_t height) {
-		m_GameWindowWidth = width;
-		m_GameWindowHeight = height;
-	};
-
-	uint32_t GetGameWindowWidth() const { return m_GameWindowWidth; }
-	uint32_t GetGameWindowHeight() const { return m_GameWindowHeight; }
+	
+	uint32_t GetWindowWidth()  const;
+	uint32_t GetWindowHeight() const;
 
 	// keep this public out of convenience for now
 	Camera m_MainCamera;
@@ -82,10 +77,7 @@ private:
 	// Device owned by IGame
 	Device& m_Device;
 
-	// For object picking
-	uint32_t m_GameWindowWidth;
-	uint32_t m_GameWindowHeight;
-	//
+	const IGame& m_Game;
 
 	std::unique_ptr<Picker> m_Picker {};
 

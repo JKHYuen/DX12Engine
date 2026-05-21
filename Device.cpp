@@ -2,6 +2,11 @@
 #include "Device.h"
 #include "DescriptorAllocator.h"
 #include "CommandQueue.h"
+#include "StringHelpers.h"
+
+namespace {
+    constexpr D3D_FEATURE_LEVEL targetFeatureLevel = D3D_FEATURE_LEVEL_12_1;
+}
 
 Device::Device(DXGI_GPU_PREFERENCE gpuPreference, bool useWarp) {
     if(!m_DxgiAdapter) {
@@ -23,7 +28,7 @@ Device::Device(DXGI_GPU_PREFERENCE gpuPreference, bool useWarp) {
             for(UINT i = 0; dxgiFactory6->EnumAdapterByGpuPreference(i, gpuPreference, IID_PPV_ARGS(&dxgiAdapter)) !=
                 DXGI_ERROR_NOT_FOUND;
                 ++i) {
-                if(SUCCEEDED(D3D12CreateDevice(dxgiAdapter.Get(), D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), nullptr))) {
+                if(SUCCEEDED(D3D12CreateDevice(dxgiAdapter.Get(), targetFeatureLevel, __uuidof(ID3D12Device), nullptr))) {
                     ThrowIfFailed(dxgiAdapter.As(&m_DxgiAdapter));
                     break;
                 }
@@ -34,9 +39,11 @@ Device::Device(DXGI_GPU_PREFERENCE gpuPreference, bool useWarp) {
             ThrowIfFailed(m_DxgiAdapter->GetDesc3(&m_AdapterDesc));
         }
         assert(m_DxgiAdapter);
+
+        StringConvert::WideString_To_String(m_AdapterDesc.Description, m_AdapterName);
     }
 
-    ThrowIfFailed(D3D12CreateDevice(m_DxgiAdapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&m_D3d12Device)));
+    ThrowIfFailed(D3D12CreateDevice(m_DxgiAdapter.Get(), targetFeatureLevel, IID_PPV_ARGS(&m_D3d12Device)));
 
     // Enable debug messages (only works if the debug layer has already been enabled).
     ComPtr<ID3D12InfoQueue> pInfoQueue;
@@ -86,6 +93,12 @@ Device::Device(DXGI_GPU_PREFERENCE gpuPreference, bool useWarp) {
         }
         m_HighestRootSignatureVersion = featureData.HighestVersion;
     }
+}
+
+DXGI_QUERY_VIDEO_MEMORY_INFO Device::GetVRAMUsed() const {
+    DXGI_QUERY_VIDEO_MEMORY_INFO videoMemoryInfo;
+    m_DxgiAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &videoMemoryInfo);
+    return videoMemoryInfo;
 }
 
 CommandQueue& Device::GetCommandQueue(D3D12_COMMAND_LIST_TYPE type) {
@@ -149,3 +162,5 @@ DescriptorAllocation Device::AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type
 void Device::ReleaseStaleDescriptors() {
     for(int i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i) { m_DescriptorAllocators[i]->ReleaseStaleDescriptors(); }
 }
+
+

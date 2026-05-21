@@ -78,6 +78,16 @@ public:
         return m_DxgiAdapter;
     }
 
+    DXGI_QUERY_VIDEO_MEMORY_INFO GetVRAMUsed() const;
+
+    const DXGI_ADAPTER_DESC3& GetAdapterDesc() const {
+        return m_AdapterDesc;
+    }
+
+    const std::string& GetAdapterName() const {
+        return m_AdapterName;
+    }
+
     /**
      * Get a command queue. Valid types are:
      * - D3D12_COMMAND_LIST_TYPE_DIRECT : Can be used for draw, dispatch, or copy commands.
@@ -115,6 +125,8 @@ private:
 
     Microsoft::WRL::ComPtr<IDXGIAdapter4> m_DxgiAdapter;
     DXGI_ADAPTER_DESC3 m_AdapterDesc;
+
+    std::string m_AdapterName;
 
     // Default command queues.
     std::unique_ptr<CommandQueue> m_DirectCommandQueue;

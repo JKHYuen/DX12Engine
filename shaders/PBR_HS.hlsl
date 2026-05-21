@@ -37,15 +37,11 @@ struct DomainInputType {
 // Note: Distance based tessellation can be improved by adding min and max distance with interpolation between these values
 float CalcTessellationFactor(float3 vertexPosition1, float3 vertexPosition2) {
     /// TODO: check if this is right, removes one sqrt
-    //float3 viewDistVec = cameraPosition - ((vertexPosition1 + vertexPosition2) * 0.5);
-    //float viewDistSquard = dot(viewDistVec, viewDistVec);
-    //float3 edgeLengthVec = vertexPosition1 - vertexPosition2;
-    //float edgeLengthSquard = dot(edgeLengthVec, edgeLengthVec);
-    //return sqrt(edgeLengthSquard * screenDimensions.y) / (viewDistSquard * tessellationMagnitude);
-    
-    float viewDistance = distance(cameraPosition.xyz, (vertexPosition1 + vertexPosition2) * 0.5);
-    float edgeLength   = distance(vertexPosition1, vertexPosition2);
-    return (edgeLength * screenDimensions.y) / (viewDistance * tessellationMagnitude);
+    float3 viewDistVec = cameraPosition.xyz - ((vertexPosition1 + vertexPosition2) * 0.5);
+    float viewDistSquard = dot(viewDistVec, viewDistVec);
+    float3 edgeLengthVec = vertexPosition1 - vertexPosition2;
+    float edgeLengthSquard = dot(edgeLengthVec, edgeLengthVec);
+    return sqrt(edgeLengthSquard / viewDistSquard) * (screenDimensions.y / tessellationMagnitude);
 }
 #endif
 
@@ -69,9 +65,9 @@ float CalcTessellationFactor(float3 vertexPosition1, float3 vertexPosition2) {
 ConstantOutputType PBRPatchConstantFunction(InputPatch<HullInputType, NUM_CONTROL_POINTS> inputPatch, uint patchId : SV_PrimitiveID) {
     ConstantOutputType output;
     /// TODO: check matrix multiply order
-    //float3 vertexPosition0 = mul(SRT, float4(inputPatch[0].position.xyz, 1.0)).xyz;
-    //float3 vertexPosition1 = mul(SRT, float4(inputPatch[1].position.xyz, 1.0)).xyz;
-    //float3 vertexPosition2 = mul(SRT, float4(inputPatch[2].position.xyz, 1.0)).xyz;
+    float3 vertexPosition0 = mul(SRT, float4(inputPatch[0].position.xyz, 1.0)).xyz;
+    float3 vertexPosition1 = mul(SRT, float4(inputPatch[1].position.xyz, 1.0)).xyz;
+    float3 vertexPosition2 = mul(SRT, float4(inputPatch[2].position.xyz, 1.0)).xyz;
     
     // TODO: Triangle Frustum culling - might only be worth it for very big objects like terrain (we also have object culling)
     //if (TriangleIsCulled(vertexPosition0, vertexPosition1, vertexPosition2)) {

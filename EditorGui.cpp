@@ -330,9 +330,10 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 		}
 
 		if(ImGui::CollapsingHeader("Performance", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::TextDisabled("Resolution: %d x %d", game.GetWindowWidth(), game.GetWindowHeight());
 			const DXGI_ADAPTER_DESC3& adapterDesc = device.GetAdapterDesc();
+			ImGui::TextDisabled("%s %d MB", device.GetAdapterName().c_str(), adapterDesc.DedicatedVideoMemory / 1024 / 1024);
 			DXGI_QUERY_VIDEO_MEMORY_INFO videoMemoryInfo = device.GetVRAMUsed();
-			ImGui::TextDisabled("%s %d MB   Resolution: %d x %d", device.GetAdapterName().c_str(), adapterDesc.DedicatedVideoMemory / 1024 / 1024, game.GetWindowWidth(), game.GetWindowHeight());
 			ImGui::Text("%d MB / %d MB", videoMemoryInfo.CurrentUsage / 1024 / 1024, videoMemoryInfo.Budget / 1024 / 1024);
 
 			// Performance Graph 
@@ -399,107 +400,124 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 		if(ImGui::CollapsingHeader("Display", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::Checkbox("Wireframe Render Mode",  & scene.mb_WireframeRender);
 
+			static int aabbRadioIdx = 0;
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("AABB Render Mode:"); ImGui::SameLine();
+			ImGui::RadioButton("Off", &aabbRadioIdx, 0); ImGui::SameLine();
+			ImGui::RadioButton("All", &aabbRadioIdx, 1); ImGui::SameLine();
+			ImGui::RadioButton("Picked Only", &aabbRadioIdx, 2);
+			scene.SetAABBRenderMode((Scene::AABBRenderMode)aabbRadioIdx);
+
 			// FOV Slider
 			static float s_FOV = scene.m_MainCamera.Get_FoV();
-			ImGui::SliderFloat("FOV", &s_FOV, 12.0f, 90.0f);
-			scene.m_MainCamera.Set_FoV(s_FOV);
+			if(ImGui::SliderFloat("FOV", &s_FOV, 12.0f, 90.0f)) {
+				scene.m_MainCamera.Set_FoV(s_FOV);
+			}
 		}
 		
-		// Skybox Selector
-		if(ImGui::CollapsingHeader("Skybox", ImGuiTreeNodeFlags_DefaultOpen)) {
-			static std::wstring_view s_SelectedSkybox = scene.m_Skybox.GetTextureName();
-			if(ImGui::BeginTable("Skybox Table", 3, ImGuiTableFlags_Borders)) {
-				for(auto& s : game.m_SkyboxNames) {
-					ImGui::TableNextColumn();
+		if(ImGui::CollapsingHeader("Scene", ImGuiTreeNodeFlags_DefaultOpen)) {
+			// Skybox Selector
+			ImGui::SetNextItemOpen(true, ImGuiTreeNodeFlags_DefaultOpen);
+			if(ImGui::TreeNode("Skybox")) {
+				static std::wstring_view s_SelectedSkybox = scene.m_Skybox.GetTextureName();
+				if(ImGui::BeginTable("Skybox Table", 3, ImGuiTableFlags_Borders)) {
+					for(auto& s : game.m_SkyboxNames) {
+						ImGui::TableNextColumn();
 
-					static std::string fileName {};
-					StringConvert::WideString_To_String(s, fileName);
-					if(ImGui::Selectable(fileName.c_str(), s == s_SelectedSkybox)) {
-						auto& copyCommandQueue = device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
-						auto copyCommandList = copyCommandQueue.GetCommandList();
-						auto& computeCommandQueue = device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE);
-						auto computeCommandList = computeCommandQueue.GetCommandList();
+						static std::string fileName {};
+						StringConvert::WideString_To_String(s, fileName);
+						if(ImGui::Selectable(fileName.c_str(), s == s_SelectedSkybox)) {
+							auto& copyCommandQueue = device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
+							auto copyCommandList = copyCommandQueue.GetCommandList();
+							auto& computeCommandQueue = device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE);
+							auto computeCommandList = computeCommandQueue.GetCommandList();
 
-						// Load new skybox cubemap
-						/// TODO: Creates new skybox object every time, do something smarter
-						Skybox::SkyboxParams skyboxParams {
-							s,
-							game.m_IBL_PSO.get()
+							// Load new skybox cubemap
+							/// TODO: Creates new skybox object every time, do something smarter
+							Skybox::SkyboxParams skyboxParams {
+								s,
+								game.m_IBL_PSO.get()
+							};
+
+							scene.SetSkybox(*copyCommandList, *computeCommandList, skyboxParams);
+
+							copyCommandQueue.WaitForFenceValue(copyCommandQueue.ExecuteCommandList(copyCommandList));
+							computeCommandQueue.WaitForFenceValue(computeCommandQueue.ExecuteCommandList(computeCommandList));
+							///
+
+							// Render new IBLs
+							auto& directCommandQueue = device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
+							auto directCommandList = directCommandQueue.GetCommandList();
+							directCommandList->SetScissorRect(game.m_DefaultScissorRect);
+							scene.ComputeSkyboxIBLs(*directCommandList);
+							directCommandQueue.WaitForFenceValue(directCommandQueue.ExecuteCommandList(directCommandList));
+
+							s_SelectedSkybox = s;
 						};
 
-						scene.SetSkybox(*copyCommandList, *computeCommandList, skyboxParams);
-
-						copyCommandQueue.WaitForFenceValue(copyCommandQueue.ExecuteCommandList(copyCommandList));
-						computeCommandQueue.WaitForFenceValue(computeCommandQueue.ExecuteCommandList(computeCommandList));
-						///
-
-						// Render new IBLs
-						auto& directCommandQueue = device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
-						auto directCommandList = directCommandQueue.GetCommandList();
-						directCommandList->SetScissorRect(game.m_DefaultScissorRect);
-						scene.ComputeSkyboxIBLs(*directCommandList);
-						directCommandQueue.WaitForFenceValue(directCommandQueue.ExecuteCommandList(directCommandList));
-
-						s_SelectedSkybox = s;
-					};
-
+					}
+					ImGui::EndTable();
 				}
-				ImGui::EndTable();
-			}
-		}
+				ImGui::TreePop();
 
-		// Directional Light
-		if(ImGui::CollapsingHeader("Directional Light", ImGuiTreeNodeFlags_DefaultOpen)) {
-			static DirectionalLight& sceneLight = scene.m_DirectionalLight;
-			static float s_SceneDirLightEulerAngle[2];
-			static float s_SceneDirLightColor[3];
-			static float s_ShadowNearFarZ[2];
-			static float s_ShadowRenderDistance;
-
-			static bool sb_DirInit = false;
-			if(!sb_DirInit) {
-				sb_DirInit = true;
-
-				XMFLOAT3 startingDirAngles = sceneLight.GetEulerAngles();
-				memcpy(s_SceneDirLightEulerAngle, &startingDirAngles, sizeof(float) * 2);
-
-				XMFLOAT4 startingSceneLightColor = sceneLight.GetColor();
-				memcpy(s_SceneDirLightColor, &startingSceneLightColor, sizeof(float) * 3);
-
-				XMFLOAT2 nearFarZ = sceneLight.GetShadowNearFarZ();
-				memcpy(s_ShadowNearFarZ, &nearFarZ, sizeof(float) * 2);
-
-				s_ShadowRenderDistance = sceneLight.GetShadowRenderDistance();
+				ImGui::Spacing();
 			}
 
-			if(ImGui::DragFloat2("Direction", s_SceneDirLightEulerAngle, 0.1f, 0.0f, 360.0f, "%.2f", kSliderFlags | ImGuiSliderFlags_WrapAround)) {
-				sceneLight.SetEulerAngles(s_SceneDirLightEulerAngle[0], s_SceneDirLightEulerAngle[1], 0.0f);
-			}
+			ImGui::SetNextItemOpen(true, ImGuiTreeNodeFlags_DefaultOpen);
+			if(ImGui::TreeNode("Directional Light")) {
+				static DirectionalLight& sceneLight = scene.m_DirectionalLight;
+				static float s_SceneDirLightEulerAngle[2];
+				static float s_SceneDirLightColor[3];
+				static float s_ShadowNearFarZ[2];
+				static float s_ShadowRenderDistance;
 
-			if(ImGui::ColorEdit3("Light Color", s_SceneDirLightColor, kHDRColorEditFlags)) {
-				sceneLight.SetColor(s_SceneDirLightColor[0], s_SceneDirLightColor[1], s_SceneDirLightColor[2]);
-			}
-			ImGuiHDRColorEdit3Preview("##Light Color", s_SceneDirLightColor, kHDRColorEditFlags);
+				static bool sb_DirInit = false;
+				if(!sb_DirInit) {
+					sb_DirInit = true;
 
-			if(ImGui::DragFloat2("Shadow Near/Far Z", s_ShadowNearFarZ, 0.1f, 0.1f, 10000.0f, "%.2f", kSliderFlags)) {
-				sceneLight.SetShadowNearFarZ({ s_ShadowNearFarZ[0], s_ShadowNearFarZ[1] });
-			}
+					XMFLOAT3 startingDirAngles = sceneLight.GetEulerAngles();
+					memcpy(s_SceneDirLightEulerAngle, &startingDirAngles, sizeof(float) * 2);
 
-			if(ImGui::DragFloat("Shadow Render Distance", &s_ShadowRenderDistance, 0.1f, 0.1f, 10000.0f, "%.2f", kSliderFlags)) {
-				sceneLight.SetShadowRenderDistance(s_ShadowRenderDistance);
-			}
+					XMFLOAT4 startingSceneLightColor = sceneLight.GetColor();
+					memcpy(s_SceneDirLightColor, &startingSceneLightColor, sizeof(float) * 3);
 
-			// Shadow debug
-			if(ImGui::TreeNode("Shadow Debug")) {
-				static float s_ImageScale = 0.25f;
-				ImGui::SliderFloat("##Directional Shadow Map Texture Scale", &s_ImageScale, 0.0, 1.0, "%.2fx");
-				ImVec2 imageSize = ImVec2(1920.0f * s_ImageScale, 1080.0f * s_ImageScale);
+					XMFLOAT2 nearFarZ = sceneLight.GetShadowNearFarZ();
+					memcpy(s_ShadowNearFarZ, &nearFarZ, sizeof(float) * 2);
 
-				// Directional shadow map debug view
-				ImGui::ImageWithBg(
-					(ImTextureID)GetImageSRVAllocation(EditorGui::GuiSRVIndex::DirectionalShadowMap).gpuHandle.ptr,
-					imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
-				);
+					s_ShadowRenderDistance = sceneLight.GetShadowRenderDistance();
+				}
+
+				if(ImGui::DragFloat2("Direction", s_SceneDirLightEulerAngle, 0.1f, 0.0f, 360.0f, "%.2f", kSliderFlags | ImGuiSliderFlags_WrapAround)) {
+					sceneLight.SetEulerAngles(s_SceneDirLightEulerAngle[0], s_SceneDirLightEulerAngle[1], 0.0f);
+				}
+
+				if(ImGui::ColorEdit3("Light Color", s_SceneDirLightColor, kHDRColorEditFlags)) {
+					sceneLight.SetColor(s_SceneDirLightColor[0], s_SceneDirLightColor[1], s_SceneDirLightColor[2]);
+				}
+				ImGuiHDRColorEdit3Preview("##Light Color", s_SceneDirLightColor, kHDRColorEditFlags);
+
+				if(ImGui::DragFloat2("Shadow Near/Far Z", s_ShadowNearFarZ, 0.1f, 0.1f, 10000.0f, "%.2f", kSliderFlags)) {
+					sceneLight.SetShadowNearFarZ({ s_ShadowNearFarZ[0], s_ShadowNearFarZ[1] });
+				}
+
+				if(ImGui::DragFloat("Shadow Render Distance", &s_ShadowRenderDistance, 0.1f, 0.1f, 10000.0f, "%.2f", kSliderFlags)) {
+					sceneLight.SetShadowRenderDistance(s_ShadowRenderDistance);
+				}
+
+				// Shadow debug
+				if(ImGui::TreeNode("Shadow Debug")) {
+					static float s_ImageScale = 0.25f;
+					ImGui::SliderFloat("##Directional Shadow Map Texture Scale", &s_ImageScale, 0.0, 1.0, "%.2fx");
+					ImVec2 imageSize = ImVec2(1920.0f * s_ImageScale, 1080.0f * s_ImageScale);
+
+					// Directional shadow map debug view
+					ImGui::ImageWithBg(
+						(ImTextureID)GetImageSRVAllocation(EditorGui::GuiSRVIndex::DirectionalShadowMap).gpuHandle.ptr,
+						imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
+					);
+					ImGui::TreePop();
+				}
+
 				ImGui::TreePop();
 			}
 		}

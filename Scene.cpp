@@ -22,6 +22,7 @@ Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeC
 	, m_Skybox(device, copyCommandList, computeCommandList, skyboxParams)
 	, m_Device(device)
 	, m_Game(game)
+	, m_AABBRenderMode(AABBRenderMode::None)
 {
 	// arbitrary default camera position
 	XMVECTOR cameraPos    = XMVectorSet(0, 5, -20, 1);
@@ -88,15 +89,27 @@ void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList,
 }
 
 void Scene::RenderBoundingBoxes(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e, UnlitPrimitivePSO* unlitPrimitivePSO) {
+	if(m_AABBRenderMode == AABBRenderMode::None) return;
+
 	unlitPrimitivePSO->SetWireframePipelineState(directCommandList);
 	
 	directCommandList.SetViewport(outputRT.GetViewport());
 	directCommandList.SetRenderTarget(outputRT);
+	
+	// Bounding box color is hard coded for now
+	constexpr XMFLOAT4 aabbColor = XMFLOAT4(0.1f, 1.0f, 0.1f, 1.0f);
 
-	for(auto& o : m_SceneObjects) {
-		// Bounding box color hard coded here
-		o.RenderBoundingBox(directCommandList, e, unlitPrimitivePSO, *this, XMFLOAT4(0.1f, 1.0f, 0.1f, 1.0f));
+	if(m_AABBRenderMode == AABBRenderMode::PickedOnly) {
+		if(GameObject* picked = m_Picker->GetPickedObject())
+			picked->RenderBoundingBox(directCommandList, e, unlitPrimitivePSO, *this, aabbColor);
 	}
+	// Render All AABBs
+	else {
+		for(auto& o : m_SceneObjects) {
+			o.RenderBoundingBox(directCommandList, e, unlitPrimitivePSO, *this, aabbColor);
+		}
+	}
+
 }
 
 uint32_t Scene::GetWindowWidth() const { return m_Game.GetWindowWidth(); }

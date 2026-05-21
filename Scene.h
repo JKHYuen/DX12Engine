@@ -33,6 +33,12 @@ public:
 	void OnKeyPressed(const KeyEventArgs& e);
 	void OnKeyReleased(const KeyEventArgs& e);
 
+	enum AABBRenderMode {
+		None,
+		All,
+		PickedOnly
+	};
+
 	const DirectionalLight& GetDirLight() const { return m_DirectionalLight; }
 
 	const Skybox& GetSkybox() const { return m_Skybox; }
@@ -57,6 +63,10 @@ public:
 	uint32_t GetWindowWidth()  const;
 	uint32_t GetWindowHeight() const;
 
+	void SetAABBRenderMode(AABBRenderMode mode) {
+		m_AABBRenderMode = mode;
+	}
+
 	// keep this public out of convenience for now
 	Camera m_MainCamera;
 
@@ -80,6 +90,8 @@ private:
 	const IGame& m_Game;
 
 	std::unique_ptr<Picker> m_Picker {};
+
+	AABBRenderMode m_AABBRenderMode;
 
 	/// TODO: TEMP
 	bool mb_ChangeSkybox = false;

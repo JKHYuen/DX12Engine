@@ -32,7 +32,7 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
     m_DirectionalShadowMapRT = std::make_unique<RenderTarget>();
 
     XMStoreFloat4x4(&m_LightOrthoMatrix, XMMatrixOrthographicLH(m_ShadowRenderDistance, m_ShadowRenderDistance, m_ShadowNearFarZ.x, m_ShadowNearFarZ.y));
-    SetEulerAngles(params.eulerDir.x, params.eulerDir.y, params.eulerDir.z);
+    SetEulerAngles(params.eulerDegreeDir.x, params.eulerDegreeDir.y, params.eulerDegreeDir.z);
 
     // Create directional light shadow map
     auto shadowMapDesc = CD3DX12_RESOURCE_DESC::Tex2D(

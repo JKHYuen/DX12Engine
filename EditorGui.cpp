@@ -335,7 +335,7 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 			const DXGI_ADAPTER_DESC3& adapterDesc = device.GetAdapterDesc();
 			ImGui::TextDisabled("%s %d MB", device.GetAdapterName().c_str(), adapterDesc.DedicatedVideoMemory / 1024 / 1024);
 			DXGI_QUERY_VIDEO_MEMORY_INFO videoMemoryInfo = device.GetVRAMUsed();
-			ImGui::Text("%d MB / %d MB", videoMemoryInfo.CurrentUsage / 1024 / 1024, videoMemoryInfo.Budget / 1024 / 1024);
+			ImGui::Text("VRAM: %d MB / %d MB", videoMemoryInfo.CurrentUsage / 1024 / 1024, videoMemoryInfo.Budget / 1024 / 1024);
 
 			// Performance Graph 
 			// Graph data update rate based on s_GraphUpdateRate, default: 60hz

@@ -29,7 +29,7 @@ public:
         std::shared_ptr<RootSignature> objectRootSignature;
         CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT depthRenderInputLayout;
         XMFLOAT3 color;
-        XMFLOAT3 eulerDir;
+        XMFLOAT3 eulerDegreeDir;
         int shadowMapResolution;
         float shadowRenderDistance;
         XMFLOAT2 shadowNearFarZ;

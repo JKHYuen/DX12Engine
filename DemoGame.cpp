@@ -42,7 +42,6 @@ using namespace DirectX;
 using namespace Microsoft::WRL;
 
 // static parameters
-// non const values only represent starting values, they will change during runtime
 namespace {
 	constexpr float sk_MouseSpeed = 0.05f;
 
@@ -50,15 +49,17 @@ namespace {
 	constexpr DXGI_FORMAT sk_DepthStencilBufferFormat = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 
 	static const std::wstring s_defaultSkyboxName = L"industrial_sunset_puresky_4k.hdr";
+
+	constexpr XMFLOAT3 s_StartingDirLightColor = XMFLOAT3(9.0f, 8.0f, 7.0f);
+	constexpr XMFLOAT3 s_StartingDirLightDegreeAngle = XMFLOAT3(140.0f, 230.0f, 0.0f);
 	
 	// Default Directional Light Shadow params
-	int   s_ShadowMapResolution = 4096;
-	float s_ShadowMapNear       = 0.1f;
-	float s_ShadowMapFar        = 150.0f;
-	float s_ShadowDistance      = 35.0f;
-	float s_ShadowBias          = 0.001f;
+	constexpr int   s_StartingShadowMapResolution = 4096;
+	constexpr float s_StartingShadowMapNear       = 0.1f;
+	constexpr float s_StartingShadowMapFar        = 150.0f;
+	constexpr float s_StartingShadowDistance      = 35.0f;
+	constexpr float s_StartingShadowBias          = 0.001f;
 
-	float s_DefaultFOV = 45.0f;
 	float s_MinFOV     = 12.0f;
 	float s_MaxFOV     = 90.0f;
 
@@ -151,12 +152,12 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 		DirectionalLight::DirectionalLightParams dirLightParams {
 			m_PBR_PSO->GetRootSignature(), // reuse PBR root signature for depth render
 			VertexInput::Get_POS_NORM_TAN_BIT_UV_InputLayout(),
-			XMFLOAT3(9.0f, 8.0f, 7.0f),
-			XMFLOAT3(140.0f, 230.0f, 0.0f),
-			s_ShadowMapResolution,
-			s_ShadowDistance,
-			{s_ShadowMapNear, s_ShadowMapFar},
-			s_ShadowBias
+			s_StartingDirLightColor,
+			s_StartingDirLightDegreeAngle,
+			s_StartingShadowMapResolution,
+			s_StartingShadowDistance,
+			{s_StartingShadowMapNear, s_StartingShadowMapFar},
+			s_StartingShadowBias
 		};
 
 		auto& computeCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE);
@@ -185,7 +186,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 		/// TEST SCENE
 		{
 			GameObject::EntityParams goParams {
-				"Sphere",
+				"",
 				*m_DemoScene,
 				XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f)
 			};
@@ -193,6 +194,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 			GameObject::RenderProps goRenderProps {};
 			goRenderProps.pbrPSO = m_PBR_PSO.get();
 
+			goParams.name = "Sphere";
 			goRenderProps.pbrMatName = L"stonewall";
 			goParams.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
 			goParams.translation = XMFLOAT3(0.0f, 3.0f, 0.0f);
@@ -214,6 +216,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 			//}
 			/// END STRESS TEST
 
+			goParams.name = "Sphere";
 			goParams.translation = XMFLOAT3(-4.0f, 3.0f, 0.0f);
 			goRenderProps.pbrMatName = L"marble";
 			goRenderProps.heightMapMagnitude = 0.0f;
@@ -228,6 +231,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 
 			// Test model import
 			{
+				goParams.name = "Sword";
 				goParams.scale = XMFLOAT3(1.0f, 1.0f, 1.0f);
 				goParams.translation = XMFLOAT3(0.0f, 3.0f, 4.0f);
 				goRenderProps.pbrMatName = L"viking_sword";

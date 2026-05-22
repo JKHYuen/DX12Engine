@@ -20,6 +20,9 @@
 
 Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const DirectionalLight::DirectionalLightParams& dirLightParams, const Skybox::SkyboxParams& skyboxParams, const IGame& game)
 	: m_DirectionalLight(device, dirLightParams)
+	// Note: camera starting values are unimportant, they are overriden by OnResize() function in DemoGame on app launch.
+	//       Starting FOV however is determined here, will clean this up later.
+	, m_MainCamera(45.0f, 1.0f, 0.1f, 100.0f)
 	, m_Skybox(device, copyCommandList, computeCommandList, skyboxParams)
 	, m_Device(device)
 	, m_Game(game)

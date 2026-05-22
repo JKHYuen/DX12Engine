@@ -8,6 +8,7 @@
 #endif
 #include "DX12EngineCore/CommandList.h"
 #include "DX12EngineCore/ShaderResourceView.h"
+#include "DX12EngineCore/Mesh.h"
 
 #include "PBRObjectPSO.h"
 #include "UnlitPSO.h"
@@ -17,7 +18,6 @@
 #include "Camera.h"
 #include "Scene.h"
 #include "Events.h"
-#include "Mesh.h"
 #include "AssetImporter.h"
 
 #include "Logger.h"

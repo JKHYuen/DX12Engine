@@ -3,13 +3,12 @@
 #if defined(min)
 #undef min
 #endif
-
 #if defined(max)
 #undef max
 #endif
 #include <algorithm> // For std::min and std::max.
-#include <filesystem>
 
+#include <filesystem>
 #include <d3dx12.h>
 #include <DirectXMath.h>
 
@@ -20,10 +19,9 @@
 #include "DX12EngineCore/CommandList.h"
 #include "DX12EngineCore/RootSignature.h"
 #include "DX12EngineCore/Window.h"
-#include "Helpers.h"
 
+#include "Helpers.h"
 #include "Colors.h"
-#include "Texture.h"
 #include "Skybox.h"
 #include "EditorGui.h"
 #include "DirectionalLight.h"
@@ -39,8 +37,6 @@
 #include "Logger.h"
 
 #include "imgui.h"
-#include "implot.h"
-
 
 using namespace DirectX;
 using namespace Microsoft::WRL;

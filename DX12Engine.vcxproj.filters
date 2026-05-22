@@ -404,6 +404,9 @@
     <ClInclude Include="DX12EngineCore\Window.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\DirectXTex.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shaders\PBR_VS.hlsl" />
@@ -428,6 +431,9 @@
     <None Include="include\assimp\Assimp.sln" />
     <None Include="include\assimp\code\assimp.vcxproj" />
     <None Include="include\imgui\imgui.natstepfilter" />
+    <None Include="include\DirectXTex.inl">
+      <Filter>Header Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="include\imgui\imgui.natvis" />

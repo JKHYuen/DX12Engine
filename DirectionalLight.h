@@ -104,5 +104,6 @@ private:
     /// TODO: these members can be static
     ComPtr<ID3D12PipelineState> m_DepthRenderPSO;
     std::shared_ptr<RootSignature> m_ObjectRootSignature;
+    ///
 };
 

@@ -37,6 +37,8 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
             AssetImporter::g_AssetPath = L"assets/";
         }
         // Look for assets in a shared location, currently hardcoded for visual studio project
+        // assets location: solutionDir/assets
+        //    exe location: solutionDir/Bin/(Release/Debug)/
         else {
             const auto& sharedAssetPath = fs::current_path().parent_path().parent_path();
             if(sharedAssetPath != "") {

@@ -61,8 +61,6 @@ namespace AssetImporter {
 				}
 			}
 
-			//Logger::Log("Min: {}, {}, {}\nMax: {}, {}, {}\n\n", aiMesh.mAABB.mMin.x, aiMesh.mAABB.mMin.y, aiMesh.mAABB.mMin.z, aiMesh.mAABB.mMax.x, aiMesh.mAABB.mMax.y, aiMesh.mAABB.mMax.z);
-
 			auto vertexBuffer = commandList.CopyVertexBuffer(vertexData);
 			mesh->SetVertexBuffer(0, vertexBuffer);
 

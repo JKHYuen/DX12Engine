@@ -1,8 +1,8 @@
 #pragma once
 #include <memory>
-#include "RenderTarget.h"
 
 class Device;
+class RenderTarget;
 class UnlitPSO;
 class BloomPSO;
 class BloomEffect;
@@ -28,7 +28,7 @@ private:
 	UnlitPSO* m_UnlitPSO;
 
 	// Intermediate texture to draw outline, this will be blurred and overlayed onto the output render target
-	RenderTarget m_OutlineSilhouetteRT;
+	std::unique_ptr<RenderTarget> m_OutlineSilhouetteRT;
 
 	// Currently only used by Debug UI
 	bool mb_DisableEffect = false;

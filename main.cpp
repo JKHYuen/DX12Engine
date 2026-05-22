@@ -5,8 +5,8 @@
 // For CommandLineToArgvW
 //#include <shellapi.h>
 
-#include "Application.h"
-#include "Device.h"
+#include "DX12EngineCore/Application.h"
+#include "DX12EngineCore/Device.h"
 #include "DemoGame.h"
 #include "Logger.h"
 #include "AssetImporter.h"

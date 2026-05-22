@@ -3,13 +3,14 @@
 #include <d3dx12.h>
 #include <memory>
 
-#include "Device.h"
-#include "RenderTarget.h"
-#include "Texture.h"
-#include "CommandQueue.h"
-#include "CommandList.h"
-#include "ShaderResourceView.h"
-#include "Mesh.h"
+#include "DX12EngineCore/Device.h"
+#include "DX12EngineCore/RenderTarget.h"
+#include "DX12EngineCore/Texture.h"
+#include "DX12EngineCore/CommandQueue.h"
+#include "DX12EngineCore/CommandList.h"
+#include "DX12EngineCore/ShaderResourceView.h"
+#include "DX12EngineCore/Mesh.h"
+
 #include "Camera.h"
 #include "ImageBasedLightingPSO.h"
 #include "Colors.h"

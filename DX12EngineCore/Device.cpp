@@ -2,7 +2,9 @@
 #include "Device.h"
 #include "DescriptorAllocator.h"
 #include "CommandQueue.h"
-#include "StringHelpers.h"
+
+/// TODO: figure out something less flimsy
+#include "../StringHelpers.h"
 
 namespace {
     constexpr D3D_FEATURE_LEVEL targetFeatureLevel = D3D_FEATURE_LEVEL_12_1;

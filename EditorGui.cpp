@@ -8,12 +8,14 @@
 #undef max
 #endif
 
-#include "Device.h"
-#include "CommandQueue.h"
-#include "CommandList.h"
+#include "DX12EngineCore/Application.h"
+#include "DX12EngineCore/Device.h"
+#include "DX12EngineCore/CommandQueue.h"
+#include "DX12EngineCore/CommandList.h"
+#include "DX12EngineCore/Resource.h"
+
 #include "GameObject.h"
 #include "Scene.h"
-#include "Resource.h"
 #include "StringHelpers.h"
 
 #include "imgui.h"
@@ -23,7 +25,6 @@
 
 #include "Logger.h"
 // Game specific
-#include "Application.h"
 #include "DemoGame.h"
 #include "BloomEffect.h"
 #include "OutlineEffect.h"

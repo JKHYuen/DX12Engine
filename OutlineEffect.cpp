@@ -1,9 +1,11 @@
+#include "DX12EngineCore/RenderTarget.h"
+#include "DX12EngineCore/Texture.h"
+#include "DX12EngineCore/CommandList.h"
+#include "GameObject.h"
 #include "OutlineEffect.h"
 #include "UnlitPSO.h"
 #include "BloomEffect.h"
-#include "RenderTarget.h"
-#include "GameObject.h"
-#include "CommandList.h"
+
 #include "Texture.h"
 #include "Scene.h"
 #include "Colors.h"
@@ -12,6 +14,8 @@
 OutlineEffect::OutlineEffect(Device& device, const RenderTarget& screenRenderTarget, UnlitPSO* outlinePSO, BloomPSO* bloomPSO)
 	: m_UnlitPSO(outlinePSO)
 {
+	m_OutlineSilhouetteRT = std::make_unique<RenderTarget>();
+
 	uint32_t outputWidth = screenRenderTarget.GetTexture(AttachmentPoint::Color0)->GetWidth();
 	uint32_t outputHeight = screenRenderTarget.GetTexture(AttachmentPoint::Color0)->GetHeight();
 
@@ -25,7 +29,7 @@ OutlineEffect::OutlineEffect(Device& device, const RenderTarget& screenRenderTar
 
 		auto outlineTexture = std::make_shared<Texture>(device, outlineTextureDesc, nullptr, true); // RTVs created here
 		outlineTexture->SetName(L"Outline Texture");
-		m_OutlineSilhouetteRT.AttachTexture(AttachmentPoint::Color0, outlineTexture);
+		m_OutlineSilhouetteRT->AttachTexture(AttachmentPoint::Color0, outlineTexture);
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc {};
 		srvDesc.Format = screenRenderTarget.GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0];
@@ -41,7 +45,7 @@ OutlineEffect::OutlineEffect(Device& device, const RenderTarget& screenRenderTar
 
 void OutlineEffect::Resize(uint32_t width, uint32_t height) {
 	m_BloomEffect->ResizeRenderTargets(width, height);
-	m_OutlineSilhouetteRT.Resize(width, height);
+	m_OutlineSilhouetteRT->Resize(width, height);
 }
 
 bool OutlineEffect::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, const RenderTarget& blendRenderTarget, const RenderTarget& outputRenderTarget) {
@@ -52,16 +56,16 @@ bool OutlineEffect::Render(CommandList& directCommandList, const UpdateEventArgs
 	if(outlineObject == nullptr) return false;
 
 	m_UnlitPSO->SetPipelineState(directCommandList);
-	directCommandList.SetViewport(m_OutlineSilhouetteRT.GetViewport());
-	directCommandList.SetRenderTarget(m_OutlineSilhouetteRT);
-	directCommandList.ClearTexture(m_OutlineSilhouetteRT.GetTexture(AttachmentPoint::Color0), Colors::Clear);
+	directCommandList.SetViewport(m_OutlineSilhouetteRT->GetViewport());
+	directCommandList.SetRenderTarget(*m_OutlineSilhouetteRT);
+	directCommandList.ClearTexture(m_OutlineSilhouetteRT->GetTexture(AttachmentPoint::Color0), Colors::Clear);
 
 	// Render object silhouette to intermediate RT
 	// Note: unlit color has to be white, outline color added in bloom stage
 	outlineObject->RenderSilhouette(directCommandList, e, m_UnlitPSO, XMFLOAT4(1.0, 1.0, 1.0, 1.0));
 
 	// Bloom (blur) silhoutte
-	m_BloomEffect->Render(directCommandList, m_OutlineSilhouetteRT, outputRenderTarget, & blendRenderTarget, true);
+	m_BloomEffect->Render(directCommandList, *m_OutlineSilhouetteRT, outputRenderTarget, & blendRenderTarget, true);
 
 	return true;
 }

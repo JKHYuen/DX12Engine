@@ -13,14 +13,15 @@
 #include <d3dx12.h>
 #include <DirectXMath.h>
 
-#include "Application.h"
-#include "Device.h"
-#include "SwapChain.h"
-#include "CommandQueue.h"
-#include "CommandList.h"
-#include "RootSignature.h"
+#include "DX12EngineCore/Application.h"
+#include "DX12EngineCore/Device.h"
+#include "DX12EngineCore/SwapChain.h"
+#include "DX12EngineCore/CommandQueue.h"
+#include "DX12EngineCore/CommandList.h"
+#include "DX12EngineCore/RootSignature.h"
+#include "DX12EngineCore/Window.h"
 #include "Helpers.h"
-#include "Window.h"
+
 #include "Colors.h"
 #include "Texture.h"
 #include "Skybox.h"

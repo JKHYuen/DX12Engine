@@ -1,8 +1,9 @@
 #include "UnlitPrimitivePSO.h"
 
-#include "Commandlist.h"
-#include "Device.h"
-#include "RootSignature.h"
+#include "DX12EngineCore/Commandlist.h"
+#include "DX12EngineCore/Device.h"
+#include "DX12EngineCore/RootSignature.h"
+
 #include "Helpers.h"
 #include "AssetImporter.h"
 #include "PBRObjectPSO.h"

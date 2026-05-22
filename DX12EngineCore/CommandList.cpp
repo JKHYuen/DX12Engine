@@ -22,7 +22,6 @@
 #include "ShaderResourceView.h"
 #include "UnorderedAccessView.h"
 #include "ConstantBufferView.h"
-#include "Logger.h"
 
 namespace {
 	// Hash names for primitive meshes created by functions for ms_MeshCache

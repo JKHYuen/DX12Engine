@@ -9,7 +9,6 @@
 #include "RenderTarget.h"
 #include "ResourceStateTracker.h"
 #include "Texture.h"
-#include "Logger.h"
 
 Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight, IGame& game)
     : m_hWnd(hWnd)

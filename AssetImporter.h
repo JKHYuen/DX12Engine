@@ -3,9 +3,9 @@
 #include "Logger.h"
 #include "StringHelpers.h"
 #include "Helpers.h"
-#include "VertexInput.h"
-#include "CommandList.h"
-#include "Mesh.h"
+#include "DX12EngineCore/VertexInput.h"
+#include "DX12EngineCore/CommandList.h"
+#include "DX12EngineCore/Mesh.h"
 #include "Logger.h"
 
 #include <d3dcompiler.h>

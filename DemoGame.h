@@ -1,11 +1,13 @@
 #pragma once
 
+#include "DX12EngineCore/RenderTarget.h"
+#include "DX12EngineCore/Texture.h"
+#include "DX12EngineCore/IGame.h"
+
 #include "Events.h"
 #include "Camera.h"
 #include "Scene.h"
-#include "RenderTarget.h"
-#include "Texture.h"
-#include "IGame.h"
+
 
 #include <memory>
 #include <format>

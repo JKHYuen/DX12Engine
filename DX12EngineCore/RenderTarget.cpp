@@ -2,7 +2,6 @@
 
 #include "Texture.h"
 #include "RenderTarget.h"
-#include "Logger.h"
 
 RenderTarget::RenderTarget()
     : m_Textures(AttachmentPoint::NumAttachmentPoints)

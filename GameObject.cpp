@@ -6,13 +6,14 @@
 #if defined(max)
 #undef max
 #endif
-#include "CommandList.h"
+#include "DX12EngineCore/CommandList.h"
+#include "DX12EngineCore/ShaderResourceView.h"
+
 #include "PBRObjectPSO.h"
 #include "UnlitPSO.h"
 #include "UnlitPrimitivePSO.h"
 #include "Skybox.h"
 #include "DirectionalLight.h"
-#include "ShaderResourceView.h"
 #include "Camera.h"
 #include "Scene.h"
 #include "Events.h"

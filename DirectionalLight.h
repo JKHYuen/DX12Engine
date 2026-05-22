@@ -7,7 +7,7 @@
 #include <d3dx12.h>
 #include <wrl/client.h>
 
-#include "RenderTarget.h"
+#include "DX12EngineCore/RenderTarget.h"
 
 using namespace DirectX;
 using namespace Microsoft::WRL;

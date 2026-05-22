@@ -197,85 +197,41 @@
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Application.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="BloomEffect.cpp" />
     <ClCompile Include="BloomPSO.cpp" />
-    <ClCompile Include="Buffer.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="ByteAddressBuffer.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="Camera.cpp" />
-    <ClCompile Include="CommandList.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="CommandQueue.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="ConstantBuffer.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="ConstantBufferView.cpp" />
     <ClCompile Include="DemoGame.cpp" />
-    <ClCompile Include="DescriptorAllocation.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="DescriptorAllocator.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="DescriptorAllocatorPage.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Device.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="DirectionalLight.cpp" />
-    <ClCompile Include="DynamicDescriptorHeap.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
+    <ClCompile Include="DX12EngineCore\Application.cpp" />
+    <ClCompile Include="DX12EngineCore\Buffer.cpp" />
+    <ClCompile Include="DX12EngineCore\ByteAddressBuffer.cpp" />
+    <ClCompile Include="DX12EngineCore\CommandList.cpp" />
+    <ClCompile Include="DX12EngineCore\CommandQueue.cpp" />
+    <ClCompile Include="DX12EngineCore\ConstantBuffer.cpp" />
+    <ClCompile Include="DX12EngineCore\ConstantBufferView.cpp" />
+    <ClCompile Include="DX12EngineCore\DescriptorAllocation.cpp" />
+    <ClCompile Include="DX12EngineCore\DescriptorAllocator.cpp" />
+    <ClCompile Include="DX12EngineCore\DescriptorAllocatorPage.cpp" />
+    <ClCompile Include="DX12EngineCore\Device.cpp" />
+    <ClCompile Include="DX12EngineCore\DynamicDescriptorHeap.cpp" />
+    <ClCompile Include="DX12EngineCore\GenerateMipsPSO.cpp" />
+    <ClCompile Include="DX12EngineCore\IndexBuffer.cpp" />
+    <ClCompile Include="DX12EngineCore\Mesh.cpp" />
+    <ClCompile Include="DX12EngineCore\PanoToCubemapPSO.cpp" />
+    <ClCompile Include="DX12EngineCore\RenderTarget.cpp" />
+    <ClCompile Include="DX12EngineCore\Resource.cpp" />
+    <ClCompile Include="DX12EngineCore\ResourceStateTracker.cpp" />
+    <ClCompile Include="DX12EngineCore\RootSignature.cpp" />
+    <ClCompile Include="DX12EngineCore\ShaderResourceView.cpp" />
+    <ClCompile Include="DX12EngineCore\StructuredBuffer.cpp" />
+    <ClCompile Include="DX12EngineCore\SwapChain.cpp" />
+    <ClCompile Include="DX12EngineCore\Texture.cpp" />
+    <ClCompile Include="DX12EngineCore\ThreadSafeQueue.cpp" />
+    <ClCompile Include="DX12EngineCore\UnorderedAccessView.cpp" />
+    <ClCompile Include="DX12EngineCore\UploadBuffer.cpp" />
+    <ClCompile Include="DX12EngineCore\VertexBuffer.cpp" />
+    <ClCompile Include="DX12EngineCore\Window.cpp" />
     <ClCompile Include="GameObject.cpp" />
-    <ClCompile Include="GenerateMipsPSO.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="EditorGui.cpp" />
     <ClCompile Include="ImageBasedLightingPSO.cpp" />
     <ClCompile Include="include\DX12LibPCH.cpp">
@@ -296,129 +252,59 @@
     <ClCompile Include="include\imgui\implot.cpp" />
     <ClCompile Include="include\imgui\implot_demo.cpp" />
     <ClCompile Include="include\imgui\implot_items.cpp" />
-    <ClCompile Include="IndexBuffer.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Mesh.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="OutlineEffect.cpp" />
     <ClCompile Include="UnlitPrimitivePSO.cpp" />
     <ClCompile Include="UnlitPSO.cpp" />
-    <ClCompile Include="PanoToCubemapPSO.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="PBRObjectPSO.cpp" />
     <ClCompile Include="Picker.cpp" />
     <ClCompile Include="PSOLoader.cpp" />
-    <ClCompile Include="RenderTarget.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Resource.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="ResourceStateTracker.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="RootSignature.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="Scene.cpp" />
-    <ClCompile Include="ShaderResourceView.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="Skybox.cpp" />
-    <ClCompile Include="StructuredBuffer.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="SwapChain.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Texture.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="ThreadSafeQueue.cpp" />
-    <ClCompile Include="UnorderedAccessView.cpp" />
-    <ClCompile Include="UploadBuffer.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="VertexBuffer.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Window.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Application.h" />
     <ClInclude Include="AssetImporter.h" />
     <ClInclude Include="BloomEffect.h" />
     <ClInclude Include="BloomPSO.h" />
-    <ClInclude Include="Buffer.h" />
-    <ClInclude Include="ByteAddressBuffer.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Colors.h" />
-    <ClInclude Include="CommandList.h" />
-    <ClInclude Include="CommandQueue.h" />
-    <ClInclude Include="ConstantBuffer.h" />
-    <ClInclude Include="ConstantBufferView.h" />
-    <ClInclude Include="Defines.h" />
     <ClInclude Include="DemoGame.h" />
-    <ClInclude Include="DescriptorAllocation.h" />
-    <ClInclude Include="DescriptorAllocator.h" />
-    <ClInclude Include="DescriptorAllocatorPage.h" />
-    <ClInclude Include="Device.h" />
     <ClInclude Include="DirectionalLight.h" />
-    <ClInclude Include="DynamicDescriptorHeap.h" />
-    <ClInclude Include="endianness.h" />
+    <ClInclude Include="DX12EngineCore\Application.h" />
+    <ClInclude Include="DX12EngineCore\Buffer.h" />
+    <ClInclude Include="DX12EngineCore\ByteAddressBuffer.h" />
+    <ClInclude Include="DX12EngineCore\CommandList.h" />
+    <ClInclude Include="DX12EngineCore\CommandQueue.h" />
+    <ClInclude Include="DX12EngineCore\ConstantBuffer.h" />
+    <ClInclude Include="DX12EngineCore\ConstantBufferView.h" />
+    <ClInclude Include="DX12EngineCore\Defines.h" />
+    <ClInclude Include="DX12EngineCore\DescriptorAllocation.h" />
+    <ClInclude Include="DX12EngineCore\DescriptorAllocator.h" />
+    <ClInclude Include="DX12EngineCore\DescriptorAllocatorPage.h" />
+    <ClInclude Include="DX12EngineCore\Device.h" />
+    <ClInclude Include="DX12EngineCore\DynamicDescriptorHeap.h" />
+    <ClInclude Include="DX12EngineCore\GenerateMipsPSO.h" />
+    <ClInclude Include="DX12EngineCore\IndexBuffer.h" />
+    <ClInclude Include="DX12EngineCore\Mesh.h" />
+    <ClInclude Include="DX12EngineCore\PanoToCubemapPSO.h" />
+    <ClInclude Include="DX12EngineCore\RenderTarget.h" />
+    <ClInclude Include="DX12EngineCore\Resource.h" />
+    <ClInclude Include="DX12EngineCore\ResourceStateTracker.h" />
+    <ClInclude Include="DX12EngineCore\RootSignature.h" />
+    <ClInclude Include="DX12EngineCore\ShaderResourceView.h" />
+    <ClInclude Include="DX12EngineCore\StructuredBuffer.h" />
+    <ClInclude Include="DX12EngineCore\SwapChain.h" />
+    <ClInclude Include="DX12EngineCore\Texture.h" />
+    <ClInclude Include="DX12EngineCore\ThreadSafeQueue.h" />
+    <ClInclude Include="DX12EngineCore\UnorderedAccessView.h" />
+    <ClInclude Include="DX12EngineCore\UploadBuffer.h" />
+    <ClInclude Include="DX12EngineCore\VertexBuffer.h" />
+    <ClInclude Include="DX12EngineCore\VertexInput.h" />
+    <ClInclude Include="DX12EngineCore\Window.h" />
     <ClInclude Include="GameObject.h" />
     <ClInclude Include="DataArray.h" />
-    <ClInclude Include="IGame.h" />
-    <ClInclude Include="GenerateMipsPSO.h" />
+    <ClInclude Include="DX12EngineCore\IGame.h" />
     <ClInclude Include="EditorGui.h" />
     <ClInclude Include="ImageBasedLightingPSO.h" />
     <ClInclude Include="include\HighResolutionClock.h" />
@@ -437,34 +323,16 @@
     <ClInclude Include="include\imgui\imstb_textedit.h" />
     <ClInclude Include="include\imgui\imstb_truetype.h" />
     <ClInclude Include="include\KeyCodes.h" />
-    <ClInclude Include="IndexBuffer.h" />
     <ClInclude Include="Logger.h" />
-    <ClInclude Include="Mesh.h" />
     <ClInclude Include="OutlineEffect.h" />
     <ClInclude Include="UnlitPrimitivePSO.h" />
     <ClInclude Include="UnlitPSO.h" />
-    <ClInclude Include="PanoToCubemapPSO.h" />
     <ClInclude Include="PBRObjectPSO.h" />
     <ClInclude Include="Picker.h" />
     <ClInclude Include="PSOLoader.h" />
-    <ClInclude Include="RenderTarget.h" />
-    <ClInclude Include="Resource.h" />
-    <ClInclude Include="ResourceStateTracker.h" />
-    <ClInclude Include="RootSignature.h" />
     <ClInclude Include="Scene.h" />
-    <ClInclude Include="ShaderResourceView.h" />
     <ClInclude Include="Skybox.h" />
     <ClInclude Include="StringHelpers.h" />
-    <ClInclude Include="StructuredBuffer.h" />
-    <ClInclude Include="SwapChain.h" />
-    <ClInclude Include="Texture.h" />
-    <ClInclude Include="ThreadSafeQueue.h" />
-    <ClInclude Include="UnorderedAccessView.h" />
-    <ClInclude Include="UploadBuffer.h" />
-    <ClInclude Include="uuid_v4.h" />
-    <ClInclude Include="VertexBuffer.h" />
-    <ClInclude Include="VertexInput.h" />
-    <ClInclude Include="Window.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shaders\PBR_DS.hlsl">

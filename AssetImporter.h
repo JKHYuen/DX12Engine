@@ -11,12 +11,18 @@
 #include <d3dcompiler.h>
 #include <unordered_map>    
 #include <string>    
+#include <filesystem>
 
 #include <assimp/Importer.hpp>    
 #include <assimp/scene.h>           
 #include <assimp/postprocess.h>  
 
+namespace fs = std::filesystem;
+
 namespace AssetImporter {
+	// initialized in main
+	inline fs::path g_AssetPath;
+
 	// Still accessible globally, this unnamed namespace just indicates data/members that should only be used in this file
 	/// TODO: Shader/PSO loading/caching will probably be it's own class soon
 	namespace {
@@ -93,12 +99,12 @@ namespace AssetImporter {
 
 	/// TODO: INCOMPLETE - function only checks for first mesh in file
 	/// TODO: figure out a way to make Assimp materials compatible with this renderer
-	inline std::shared_ptr<Mesh> ImportModel(CommandList& commandList, const std::wstring& modelFilePath) {
+	inline std::shared_ptr<Mesh> ImportModel(CommandList& commandList, const std::wstring& modelPath) {
 		Assimp::Importer importer;
-		std::string fileName {};
-		StringConvert::WideString_To_String(modelFilePath, fileName);
+		std::string filePathStr {};
+		StringConvert::WideString_To_String(modelPath, filePathStr);
 		const aiScene* pScene =
-			importer.ReadFile(fileName,
+			importer.ReadFile(filePathStr,
 				aiProcessPreset_TargetRealtime_MaxQuality |
 				aiProcess_OptimizeGraph |
 				aiProcess_ConvertToLeftHanded | 

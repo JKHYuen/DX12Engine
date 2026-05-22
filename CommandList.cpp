@@ -257,18 +257,20 @@ void CommandList::SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY primitiveTopology)
 	m_d3d12CommandList->IASetPrimitiveTopology(primitiveTopology);
 }
 
-std::shared_ptr<Texture> CommandList::LoadTextureFromFile(const std::wstring& fileName, bool sRGB) {
+std::shared_ptr<Texture> CommandList::LoadTextureFromFile(const std::wstring& filePath, bool sRGB) {
 	assert(m_d3d12CommandListType == D3D12_COMMAND_LIST_TYPE_COPY);
 
 	std::shared_ptr<Texture> texture;
-	fs::path                 filePath(fileName);
+	fs::path                 filesystemPath(filePath);
 
-	if(!fs::exists(filePath)) {
+	if(!fs::exists(filesystemPath)) {
+		std::wstring s = L"Texture not found: " + filePath;
+		MessageBox(NULL, s.c_str(), NULL, MB_OK);
 		throw std::exception("File not found.");
 	}
 
 	std::lock_guard<std::mutex> lock(ms_TextureCacheMutex);
-	auto iter = ms_TextureCache.find(fileName);
+	auto iter = ms_TextureCache.find(filePath);
 	if(iter != ms_TextureCache.end()) {
 		texture = iter->second;
 	}
@@ -276,17 +278,17 @@ std::shared_ptr<Texture> CommandList::LoadTextureFromFile(const std::wstring& fi
 		TexMetadata  metadata;
 		ScratchImage scratchImage;
 
-		if(filePath.extension() == ".dds") {
-			ThrowIfFailed(LoadFromDDSFile(fileName.c_str(), DDS_FLAGS_FORCE_RGB, &metadata, scratchImage));
+		if(filesystemPath.extension() == ".dds") {
+			ThrowIfFailed(LoadFromDDSFile(filePath.c_str(), DDS_FLAGS_FORCE_RGB, &metadata, scratchImage));
 		}
-		else if(filePath.extension() == ".hdr") {
-			ThrowIfFailed(LoadFromHDRFile(fileName.c_str(), &metadata, scratchImage));
+		else if(filesystemPath.extension() == ".hdr") {
+			ThrowIfFailed(LoadFromHDRFile(filePath.c_str(), &metadata, scratchImage));
 		}
-		else if(filePath.extension() == ".tga") {
-			ThrowIfFailed(LoadFromTGAFile(fileName.c_str(), &metadata, scratchImage));
+		else if(filesystemPath.extension() == ".tga") {
+			ThrowIfFailed(LoadFromTGAFile(filePath.c_str(), &metadata, scratchImage));
 		}
 		else {
-			ThrowIfFailed(LoadFromWICFile(fileName.c_str(), WIC_FLAGS_FORCE_RGB, &metadata, scratchImage));
+			ThrowIfFailed(LoadFromWICFile(filePath.c_str(), WIC_FLAGS_FORCE_RGB, &metadata, scratchImage));
 		}
 
 		// Force the texture format to be sRGB to convert to linear when sampling the texture in a shader.
@@ -327,7 +329,7 @@ std::shared_ptr<Texture> CommandList::LoadTextureFromFile(const std::wstring& fi
 		);
 
 		texture = std::make_shared<Texture>(m_Device, textureResource);
-		texture->SetName(fileName);
+		texture->SetName(filePath);
 
 		// Update the global state tracker.
 		ResourceStateTracker::AddGlobalResourceState(textureResource.Get(), D3D12_RESOURCE_STATE_COMMON);
@@ -351,7 +353,7 @@ std::shared_ptr<Texture> CommandList::LoadTextureFromFile(const std::wstring& fi
 		}
 
 		// Add the texture resource to the texture cache.
-		ms_TextureCache[fileName] = texture;
+		ms_TextureCache[filePath] = texture;
 	}
 
 	return texture;
@@ -1359,7 +1361,7 @@ std::shared_ptr<Mesh> CommandList::GetSpherePrimitive() {
 		return iter->second;
 	}
 	else {
-		ms_MeshCache[sk_SpherePrimitiveName] = CreateSphere(0.5f, 16);
+		ms_MeshCache[sk_SpherePrimitiveName] = CreateSphere(0.5f, 32);
 		return ms_MeshCache[sk_SpherePrimitiveName];
 	}
 }

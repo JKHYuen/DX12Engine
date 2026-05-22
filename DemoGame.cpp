@@ -81,7 +81,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	/// TODO: dont hardcode asset path
 	// Get skybox names from asset folder
 	// Note: wide strings from file system is supported, but it can not be properly displayed with ImGui
-	for(const auto& entry : std::filesystem::directory_iterator(L"assets/cubemaps")) {
+	for(const auto& entry : std::filesystem::directory_iterator(AssetImporter::g_AssetPath / L"cubemaps")) {
 		m_SkyboxNames.emplace_back(entry.path().filename().c_str());
 	}
 
@@ -234,7 +234,8 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 				goParams.translation = XMFLOAT3(0.0f, 3.0f, 4.0f);
 				goRenderProps.pbrMatName = L"viking_sword";
 				goRenderProps.heightMapMagnitude = 0.0f;
-				auto importedMesh = AssetImporter::ImportModel(*copyCommandList, L"assets/models/" + goRenderProps.pbrMatName + L"/" + goRenderProps.pbrMatName + L".obj");
+				std::wstring modelFilePath = (AssetImporter::g_AssetPath / L"models" / goRenderProps.pbrMatName / goRenderProps.pbrMatName).native() + L".obj";
+				auto importedMesh = AssetImporter::ImportModel(*copyCommandList, modelFilePath);
 
 				m_DemoScene->AddGameObject(*copyCommandList, goParams, goRenderProps, importedMesh);
 			}

@@ -9,10 +9,14 @@
 #include "Device.h"
 #include "DemoGame.h"
 #include "Logger.h"
+#include "AssetImporter.h"
 #include "Helpers.h"
 
 #include <dxgidebug.h>
 #include <iostream>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdLine, int nCmdShow) {
     int retCode = 0;
@@ -22,25 +26,32 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
     Microsoft::WRL::ComPtr<ID3D12Debug> debugInterface;
     ThrowIfFailed(D3D12GetDebugInterface(IID_PPV_ARGS(&debugInterface)));
     debugInterface->EnableDebugLayer();
+#endif
+
+    // Find assets folder
+    {
+        AssetImporter::g_AssetPath = L"";
+
+        // Check if assets folder is in same folder as exe
+        if(fs::exists(L"assets/")) {
+            AssetImporter::g_AssetPath = L"assets/";
+        }
+        // Look for assets in a shared location, currently hardcoded for visual studio project
+        else {
+            const auto& sharedAssetPath = fs::current_path().parent_path().parent_path();
+            if(sharedAssetPath != "") {
+                AssetImporter::g_AssetPath = sharedAssetPath / L"assets/";
+            }
+        }
+
+        if(AssetImporter::g_AssetPath == L"") {
+            MessageBox(NULL, L"Asset folder not found.", NULL, MB_OK);
+            return 1;
+        }
+    }
 
     // Initialize basic global console logger
     Logger::InitializeConsole();
-#endif
-
-    // Set the working directory to the path of the executable.
-    //WCHAR   path[MAX_PATH];
-    //int     argc = 0;
-    //LPWSTR* argv = CommandLineToArgvW(lpCmdLine, &argc);
-    //if(argv) {
-    //    for(int i = 0; i < argc; ++i) {
-    //        // -wd Specify the Working Directory.
-    //        if(wcscmp(argv[i], L"-wd") == 0) {
-    //            wcscpy_s(path, argv[++i]);
-    //            SetCurrentDirectoryW(path);
-    //        }
-    //    }
-    //    LocalFree(argv);
-    //}
 
     Application::Create(hInstance);
     {

@@ -17,6 +17,7 @@
 #include "Scene.h"
 #include "Events.h"
 #include "Mesh.h"
+#include "AssetImporter.h"
 
 #include "Logger.h"
 
@@ -68,8 +69,7 @@ GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params,
 void GameObject::UpdatePBRShaderResourcesFromFile(CommandList& copyCommandList, const std::wstring& pbrMatName) {
 	m_RenderProps.pbrMatName = pbrMatName;
 
-	/// TODO: set root asset folder somewhere, maybe in IGame
-	std::wstring matPathPrefix { L"assets/materials/" + pbrMatName + L"/" + pbrMatName };
+	std::wstring matPathPrefix { AssetImporter::g_AssetPath / L"materials" / pbrMatName / pbrMatName };
 
 	// Load Resources, note that commandlist is not executed here
 	m_TextureResources[PBRObjectPSO::AlbedoTex] =

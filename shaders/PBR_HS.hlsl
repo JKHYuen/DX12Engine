@@ -65,9 +65,9 @@ float CalcTessellationFactor(float3 vertexPosition1, float3 vertexPosition2) {
 ConstantOutputType PBRPatchConstantFunction(InputPatch<HullInputType, NUM_CONTROL_POINTS> inputPatch, uint patchId : SV_PrimitiveID) {
     ConstantOutputType output;
     /// TODO: check matrix multiply order
-    float3 vertexPosition0 = mul(SRT, float4(inputPatch[0].position.xyz, 1.0)).xyz;
-    float3 vertexPosition1 = mul(SRT, float4(inputPatch[1].position.xyz, 1.0)).xyz;
-    float3 vertexPosition2 = mul(SRT, float4(inputPatch[2].position.xyz, 1.0)).xyz;
+    //float3 vertexPosition0 = mul(SRT, float4(inputPatch[0].position.xyz, 1.0)).xyz;
+    //float3 vertexPosition1 = mul(SRT, float4(inputPatch[1].position.xyz, 1.0)).xyz;
+    //float3 vertexPosition2 = mul(SRT, float4(inputPatch[2].position.xyz, 1.0)).xyz;
     
     // TODO: Triangle Frustum culling - might only be worth it for very big objects like terrain (we also have object culling)
     //if (TriangleIsCulled(vertexPosition0, vertexPosition1, vertexPosition2)) {
@@ -75,7 +75,7 @@ ConstantOutputType PBRPatchConstantFunction(InputPatch<HullInputType, NUM_CONTRO
     //    return output;
     //}
     
-#if defined(TESS_MODE_UNIFORM)
+#if defined(TESS_MODE_UNIFORM) 
     output.edges[0] = output.edges[1] = output.edges[2] = output.inside = tessellationMagnitude;
     
 #elif defined(TESS_MODE_EDGE)

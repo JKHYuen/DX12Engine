@@ -1,11 +1,11 @@
 #pragma once
 #include <memory>
 #include <string>
-#include "DX12EngineCore/RenderTarget.h"
 
 class Device;
 class RootSignature;
 class Texture;
+class RenderTarget;
 class CommandList;
 class ShaderResourceView;
 class Camera;
@@ -31,9 +31,9 @@ public:
 	// Compute/draw precomputed textures for IBL
 	void ComputeIBLMaps(CommandList& directCommandList);
 
-	std::shared_ptr<Texture> GetIrradianceTexture() const { return m_IrradianceConvolutionCubemap_RT.GetTexture(AttachmentPoint::Color0); };
-	std::shared_ptr<Texture> GetPrefilterTexture()  const { return m_PrefilterCubemap_RT.GetTexture(AttachmentPoint::Color0); };
-	std::shared_ptr<Texture> Get_BRDF_LUT_Texture() const { return m_BRDF_LUT_RT.GetTexture(AttachmentPoint::Color0); };
+	std::shared_ptr<Texture> GetIrradianceTexture() const;
+	std::shared_ptr<Texture> GetPrefilterTexture()  const;
+	std::shared_ptr<Texture> Get_BRDF_LUT_Texture() const;
 
 	std::wstring_view GetTextureName() const { return m_SkyboxTextureName; }
 
@@ -48,8 +48,8 @@ private:
 	std::shared_ptr<Texture> m_HDRPanoTexture;
 	std::shared_ptr<Texture> m_SkyCubemapTexture;
 
-	RenderTarget m_IrradianceConvolutionCubemap_RT;
-	RenderTarget m_PrefilterCubemap_RT;
-	RenderTarget m_BRDF_LUT_RT;
+	std::unique_ptr<RenderTarget> m_IrradianceConvolutionCubemap_RT;
+	std::unique_ptr<RenderTarget> m_PrefilterCubemap_RT;
+	std::unique_ptr<RenderTarget> m_BRDF_LUT_RT;
 };
 

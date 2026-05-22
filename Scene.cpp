@@ -2,6 +2,7 @@
 
 #include "DX12EngineCore/CommandList.h"
 #include "DX12EngineCore/Device.h"
+#include "DX12EngineCore/RenderTarget.h"
 #include "DX12EngineCore/IGame.h"
 
 #include "DirectionalLight.h"

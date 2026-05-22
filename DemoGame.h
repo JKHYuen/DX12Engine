@@ -1,13 +1,14 @@
 #pragma once
 
-#include "DX12EngineCore/RenderTarget.h"
-#include "DX12EngineCore/Texture.h"
 #include "DX12EngineCore/IGame.h"
 
-#include "Events.h"
-#include "Camera.h"
-#include "Scene.h"
+/// TODO: Figure out way to get rid of these includes, PostProcessRenderTargets subclass needs them for now
+#include "DX12EngineCore/RenderTarget.h"
+#include "DX12EngineCore/Texture.h"
+///
 
+#include "Events.h"
+#include "Scene.h"
 
 #include <memory>
 #include <format>
@@ -18,7 +19,6 @@ class CommandList;
 class RootSignature;
 class Device;
 class SwapChain;
-class Texture;
 class Window;
 class EditorGui;
 class Skybox;
@@ -54,6 +54,8 @@ public:
     uint32_t GetWindowHeight() const override { return m_WindowHeight; }
 
 private:
+    void OnRender(const UpdateEventArgs& e);
+
     /// TODO: Add some convenient way to get next set of RTs, currently manually indexing
     // An array of 2 render targets used to chain post processing effects.
     // This is needed because post processing effects often need to read and write to the same textures,
@@ -87,15 +89,14 @@ private:
 
         // Non multisampled floating point render textures
         RenderTarget RTs[2] {};
-    } m_PostProcessRTs {};
+    };
 
-    void OnRender(const UpdateEventArgs& e);
+    std::unique_ptr<PostProcessRenderTargets> m_PostProcessRTs;
+    std::unique_ptr<RenderTarget> m_HDR_MSAA_RT;
 
     std::shared_ptr<Device>    m_Device;
     std::shared_ptr<Window>    m_Window;
     std::shared_ptr<SwapChain> m_SwapChain;
-
-    RenderTarget m_HDR_MSAA_RT {};
 
     /// TODO: figure out more generalized PSO loading system
     std::unique_ptr<PBRObjectPSO> m_PBR_PSO;

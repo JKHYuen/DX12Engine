@@ -54,6 +54,10 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, CommandList& comput
 	: m_IBL_PSO(params.iblPSO)
 	, m_SkyboxTextureName(params.hdrTextureName) {
 
+	m_IrradianceConvolutionCubemap_RT = std::make_unique<RenderTarget>();
+	m_PrefilterCubemap_RT = std::make_unique<RenderTarget>();
+	m_BRDF_LUT_RT = std::make_unique<RenderTarget>();
+
 	DXGI_FORMAT cubemapFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
 
 	m_SkyboxCubeMesh = copyCommandList.GetCubePrimitive();
@@ -91,9 +95,9 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, CommandList& comput
 		auto irradianceConvolutionCubemap = std::make_shared<Texture>(device, irradianceCubemapDesc, nullptr, false);
 		irradianceConvolutionCubemap->SetName(L"Skybox Irradiance Convolution Cubemap - " + m_SkyboxTextureName);
 
-		m_IrradianceConvolutionCubemap_RT.AttachTexture(AttachmentPoint::Color0, irradianceConvolutionCubemap);
+		m_IrradianceConvolutionCubemap_RT->AttachTexture(AttachmentPoint::Color0, irradianceConvolutionCubemap);
 
-		cubeMapSRVDesc.Format = m_IrradianceConvolutionCubemap_RT.GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0];
+		cubeMapSRVDesc.Format = m_IrradianceConvolutionCubemap_RT->GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0];
 		irradianceConvolutionCubemap->CreateShaderResourceView(cubeMapSRVDesc);
 	}
 
@@ -107,9 +111,9 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, CommandList& comput
 		auto prefilterCubemap = std::make_shared<Texture>(device, prefilterCubemapDesc, nullptr, false);
 		prefilterCubemap->SetName(L"Skybox Prefilter Cubemap - " + m_SkyboxTextureName);
 
-		m_PrefilterCubemap_RT.AttachTexture(AttachmentPoint::Color0, prefilterCubemap);
+		m_PrefilterCubemap_RT->AttachTexture(AttachmentPoint::Color0, prefilterCubemap);
 
-		cubeMapSRVDesc.Format = m_PrefilterCubemap_RT.GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0];
+		cubeMapSRVDesc.Format = m_PrefilterCubemap_RT->GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0];
 		prefilterCubemap->CreateShaderResourceView(cubeMapSRVDesc);
 	}
 
@@ -123,14 +127,14 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, CommandList& comput
 		auto BRDF_LUT_Texture = std::make_shared<Texture>(device, lutTextureDesc);
 		BRDF_LUT_Texture->SetName(L"Integrated BRDF Texture");
 
-		m_BRDF_LUT_RT.AttachTexture(AttachmentPoint::Color0, BRDF_LUT_Texture);
+		m_BRDF_LUT_RT->AttachTexture(AttachmentPoint::Color0, BRDF_LUT_Texture);
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC lutSRVDesc = {};
 		lutSRVDesc.Format = DXGI_FORMAT_R16G16_FLOAT; // DO NOT CHANGE, must match format in ImageBasedLightingPSO
 		lutSRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		lutSRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 		lutSRVDesc.Texture2D.MipLevels = -1;
-		m_BRDF_LUT_RT.GetTexture(AttachmentPoint::Color0)->CreateShaderResourceView(lutSRVDesc);
+		m_BRDF_LUT_RT->GetTexture(AttachmentPoint::Color0)->CreateShaderResourceView(lutSRVDesc);
 	}
 }
 
@@ -157,9 +161,9 @@ void Skybox::ComputeIBLMaps(CommandList& directCommandList) {
 		/// TODO: This could be only calculated once per runtime, or saved to disk
 		m_IBL_PSO->SetPipelineState(directCommandList, ImageBasedLightingPSO::BRDF_LUT);
 
-		directCommandList.ClearTexture(m_BRDF_LUT_RT.GetTexture(AttachmentPoint::Color0), Colors::DebugMagenta);
-		directCommandList.SetRenderTarget(m_BRDF_LUT_RT);
-		directCommandList.SetViewport(m_BRDF_LUT_RT.GetViewport());
+		directCommandList.ClearTexture(m_BRDF_LUT_RT->GetTexture(AttachmentPoint::Color0), Colors::DebugMagenta);
+		directCommandList.SetRenderTarget(*m_BRDF_LUT_RT);
+		directCommandList.SetViewport(m_BRDF_LUT_RT->GetViewport());
 		directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 		directCommandList.Draw(3);
@@ -176,16 +180,16 @@ void Skybox::ComputeIBLMaps(CommandList& directCommandList) {
 			auto viewProjMatrix = viewMatrix * cubemapProjectionMat;
 
 			D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
-			rtvDesc.Format = m_IrradianceConvolutionCubemap_RT.GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0];
+			rtvDesc.Format = m_IrradianceConvolutionCubemap_RT->GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0];
 			rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
 			rtvDesc.Texture2DArray.MipSlice = 0;
 			rtvDesc.Texture2DArray.FirstArraySlice = i;
 			rtvDesc.Texture2DArray.ArraySize = 1;
-			m_IrradianceConvolutionCubemap_RT.GetTexture(AttachmentPoint::Color0)->CreateRenderTargetView(rtvDesc);
+			m_IrradianceConvolutionCubemap_RT->GetTexture(AttachmentPoint::Color0)->CreateRenderTargetView(rtvDesc);
 
-			directCommandList.ClearTexture(m_IrradianceConvolutionCubemap_RT.GetTexture(AttachmentPoint::Color0), Colors::DebugMagenta);
-			directCommandList.SetViewport(m_IrradianceConvolutionCubemap_RT.GetViewport());
-			directCommandList.SetRenderTarget(m_IrradianceConvolutionCubemap_RT);
+			directCommandList.ClearTexture(m_IrradianceConvolutionCubemap_RT->GetTexture(AttachmentPoint::Color0), Colors::DebugMagenta);
+			directCommandList.SetViewport(m_IrradianceConvolutionCubemap_RT->GetViewport());
+			directCommandList.SetRenderTarget(*m_IrradianceConvolutionCubemap_RT);
 
 			directCommandList.SetGraphics32BitConstants(0, viewProjMatrix);
 			m_SkyboxCubeMesh->Draw(directCommandList);
@@ -205,16 +209,16 @@ void Skybox::ComputeIBLMaps(CommandList& directCommandList) {
 				auto viewProjMatrix = viewMatrix * cubemapProjectionMat;
 
 				D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
-				rtvDesc.Format = m_PrefilterCubemap_RT.GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0];
+				rtvDesc.Format = m_PrefilterCubemap_RT->GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0];
 				rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
 				rtvDesc.Texture2DArray.MipSlice = mipSlice;
 				rtvDesc.Texture2DArray.FirstArraySlice = i;
 				rtvDesc.Texture2DArray.ArraySize = 1;
-				m_PrefilterCubemap_RT.GetTexture(AttachmentPoint::Color0)->CreateRenderTargetView(rtvDesc);
+				m_PrefilterCubemap_RT->GetTexture(AttachmentPoint::Color0)->CreateRenderTargetView(rtvDesc);
 
-				directCommandList.ClearTexture(m_PrefilterCubemap_RT.GetTexture(AttachmentPoint::Color0), Colors::DebugMagenta);
-				directCommandList.SetViewport(m_PrefilterCubemap_RT.GetViewport({ (float)currMipScale, (float)currMipScale }));
-				directCommandList.SetRenderTarget(m_PrefilterCubemap_RT);
+				directCommandList.ClearTexture(m_PrefilterCubemap_RT->GetTexture(AttachmentPoint::Color0), Colors::DebugMagenta);
+				directCommandList.SetViewport(m_PrefilterCubemap_RT->GetViewport({ (float)currMipScale, (float)currMipScale }));
+				directCommandList.SetRenderTarget(*m_PrefilterCubemap_RT);
 
 				directCommandList.SetGraphics32BitConstants(0, viewProjMatrix);
 				float roughness = (float)mipSlice / (float)(sk_CubemapMipLevels - 1);
@@ -225,4 +229,8 @@ void Skybox::ComputeIBLMaps(CommandList& directCommandList) {
 		}
 	}
 }
+
+std::shared_ptr<Texture> Skybox::GetIrradianceTexture() const { return m_IrradianceConvolutionCubemap_RT->GetTexture(AttachmentPoint::Color0); };
+std::shared_ptr<Texture> Skybox::GetPrefilterTexture()  const { return m_PrefilterCubemap_RT->GetTexture(AttachmentPoint::Color0); };
+std::shared_ptr<Texture> Skybox::Get_BRDF_LUT_Texture() const { return m_BRDF_LUT_RT->GetTexture(AttachmentPoint::Color0); };
 

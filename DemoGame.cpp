@@ -91,8 +91,9 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	// Create EditorGui singleton
 	EditorGui::Create(*m_Device, sk_HDRFormat, SwapChain::sk_BufferCount, m_Window->GetWindowHandle());
 
-	// Create post process RT buffers
-	m_PostProcessRTs = {*m_Device, sk_HDRFormat, windowWidth, windowHeight};
+	// Create screen RenderTargets
+	m_PostProcessRTs = std::make_unique<PostProcessRenderTargets>(*m_Device, sk_HDRFormat, windowWidth, windowHeight);
+	m_HDR_MSAA_RT = std::make_unique<RenderTarget>();
 
 	/// TODO: Tweakable MSAA
 	DXGI_SAMPLE_DESC multiSampleDesc = m_Device->GetMultisampleQualityLevels(sk_HDRFormat);
@@ -129,22 +130,22 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 		auto depthStencilTexture = std::make_shared<Texture>(*m_Device, depthStencilDesc, &depthClearValue);
 		depthStencilTexture->SetName(L"Depth Stencil Render Target");
 
-		m_HDR_MSAA_RT.AttachTexture(AttachmentPoint::Color0, colorTexture);
-		m_HDR_MSAA_RT.AttachTexture(AttachmentPoint::DepthStencil, depthStencilTexture);
+		m_HDR_MSAA_RT->AttachTexture(AttachmentPoint::Color0, colorTexture);
+		m_HDR_MSAA_RT->AttachTexture(AttachmentPoint::DepthStencil, depthStencilTexture);
 	}
 
 	/// Create PSOs 
 	/// TODO:(this should be managed somewhere else)
-	m_PBR_PSO = std::make_unique<PBRObjectPSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RT.GetRenderTargetFormats(), sk_DepthStencilBufferFormat);
-	m_IBL_PSO = std::make_unique<ImageBasedLightingPSO>(*m_Device, m_HDR_MSAA_RT);
+	m_PBR_PSO = std::make_unique<PBRObjectPSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RT->GetRenderTargetFormats(), sk_DepthStencilBufferFormat);
+	m_IBL_PSO = std::make_unique<ImageBasedLightingPSO>(*m_Device, *m_HDR_MSAA_RT);
 
-	m_Bloom_PSO = std::make_unique<BloomPSO>(*m_Device, m_HDR_MSAA_RT);
-	m_Unlit_PSO = std::make_unique<UnlitPSO>(*m_Device, m_HDR_MSAA_RT.GetRenderTargetFormats(), m_PBR_PSO.get()->GetRootSignature());
-	m_UnlitPrimitive_PSO = std::make_unique<UnlitPrimitivePSO>(*m_Device, m_HDR_MSAA_RT.GetRenderTargetFormats(), m_PBR_PSO.get()->GetRootSignature());
+	m_Bloom_PSO = std::make_unique<BloomPSO>(*m_Device, *m_HDR_MSAA_RT);
+	m_Unlit_PSO = std::make_unique<UnlitPSO>(*m_Device, m_HDR_MSAA_RT->GetRenderTargetFormats(), m_PBR_PSO.get()->GetRootSignature());
+	m_UnlitPrimitive_PSO = std::make_unique<UnlitPrimitivePSO>(*m_Device, m_HDR_MSAA_RT->GetRenderTargetFormats(), m_PBR_PSO.get()->GetRootSignature());
 	///
 
-	m_BloomEffect = std::make_unique<BloomEffect>(*m_Device, m_HDR_MSAA_RT, m_Bloom_PSO.get());
-	m_OutlineEffect = std::make_unique<OutlineEffect>(*m_Device, m_HDR_MSAA_RT, m_Unlit_PSO.get(), m_Bloom_PSO.get());
+	m_BloomEffect = std::make_unique<BloomEffect>(*m_Device, *m_HDR_MSAA_RT, m_Bloom_PSO.get());
+	m_OutlineEffect = std::make_unique<OutlineEffect>(*m_Device, *m_HDR_MSAA_RT, m_Unlit_PSO.get(), m_Bloom_PSO.get());
 
 	auto& copyCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 	// Load Assets (COPY operations)
@@ -332,9 +333,9 @@ void DemoGame::OnResize(const ResizeEventArgs& e) {
 	float aspectRatio = m_WindowWidth / (float)m_WindowHeight;
 	m_DemoScene->m_MainCamera.Set_Projection(m_DemoScene->m_MainCamera.Get_FoV(), aspectRatio, s_ZNear, s_ZFar);
 
-	m_HDR_MSAA_RT.Resize(m_WindowWidth, m_WindowHeight);
+	m_HDR_MSAA_RT->Resize(m_WindowWidth, m_WindowHeight);
 
-	m_PostProcessRTs.Resize(m_WindowWidth, m_WindowHeight);
+	m_PostProcessRTs->Resize(m_WindowWidth, m_WindowHeight);
 
 	m_BloomEffect->ResizeRenderTargets(m_WindowWidth, m_WindowHeight);
 	m_OutlineEffect->Resize(m_WindowWidth, m_WindowHeight);
@@ -396,25 +397,25 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 
 	/// Render Test Scene
 	// Perform HDR rendering to multisampled render target
-	m_DemoScene->Render(m_HDR_MSAA_RT, *directCommandList, e);
+	m_DemoScene->Render(*m_HDR_MSAA_RT, *directCommandList, e);
 
 	/// MSAA resolve
 	auto& swapChainRT = m_SwapChain->GetRenderTarget();
 	// Resolve the MSAA render target to the swapchain's backbuffer
 	directCommandList->ResolveSubresource(
-		m_PostProcessRTs.RTs[0].GetTexture(AttachmentPoint::Color0),
-		m_HDR_MSAA_RT.GetTexture(AttachmentPoint::Color0)
+		m_PostProcessRTs->RTs[0].GetTexture(AttachmentPoint::Color0),
+		m_HDR_MSAA_RT->GetTexture(AttachmentPoint::Color0)
 	);
 
 	/// Post Processing
 	{
-		directCommandList->ClearTexture(m_PostProcessRTs.RTs[1].GetTexture(AttachmentPoint::Color0), Colors::DebugMagenta);
-		m_BloomEffect->Render(*directCommandList, m_PostProcessRTs.RTs[0], m_PostProcessRTs.RTs[1]);
+		directCommandList->ClearTexture(m_PostProcessRTs->RTs[1].GetTexture(AttachmentPoint::Color0), Colors::DebugMagenta);
+		m_BloomEffect->Render(*directCommandList, m_PostProcessRTs->RTs[0], m_PostProcessRTs->RTs[1]);
 		
 		/// TODO: come up with something less silly, we need some more logic in PostProcessRenderTargets
-		RenderTarget* nextInputPostProcessRT = &m_PostProcessRTs.RTs[1];
-		if(m_OutlineEffect->Render(*directCommandList, e, *m_DemoScene, m_PostProcessRTs.RTs[1], m_PostProcessRTs.RTs[0])) {
-			nextInputPostProcessRT = &m_PostProcessRTs.RTs[0];
+		RenderTarget* nextInputPostProcessRT = &m_PostProcessRTs->RTs[1];
+		if(m_OutlineEffect->Render(*directCommandList, e, *m_DemoScene, m_PostProcessRTs->RTs[1], m_PostProcessRTs->RTs[0])) {
+			nextInputPostProcessRT = &m_PostProcessRTs->RTs[0];
 		};
 
 		m_DemoScene->RenderBoundingBoxes(*nextInputPostProcessRT, *directCommandList, e, m_UnlitPrimitive_PSO.get());
@@ -609,4 +610,3 @@ void DemoGame::OnMouseWheel(const MouseWheelEventArgs& e) {
 		m_DemoScene->m_MainCamera.Set_FoV(fov);
 	}
 }
-

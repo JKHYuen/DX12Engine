@@ -7,14 +7,14 @@
 #include <d3dx12.h>
 #include <wrl/client.h>
 
-#include "DX12EngineCore/RenderTarget.h"
-
 using namespace DirectX;
 using namespace Microsoft::WRL;
 
 class ShaderResourceView;
 class CommandList;
 class RootSignature;
+class RenderTarget;
+class Texture;
 class Mesh;
 class Device;
 struct PBRVertexProps;
@@ -71,7 +71,7 @@ public:
     void SetShadowNearFarZ(XMFLOAT2 nearFarZ);
     void SetShadowRenderDistance(float distance);
 
-    std::shared_ptr<Texture> GetShadowMapTexture() const { return m_DirectionalShadowMapRT.GetTexture(AttachmentPoint::DepthStencil); }
+    std::shared_ptr<Texture> GetShadowMapTexture() const;
     
     void SetShadowDepthPipelineStateAndRenderTarget(CommandList& directCommandList) const;
 
@@ -98,7 +98,7 @@ private:
     XMFLOAT4X4 m_LightViewMatrix;
     D3D12_VIEWPORT m_ViewPort;
 
-    RenderTarget m_DirectionalShadowMapRT;
+    std::unique_ptr<RenderTarget> m_DirectionalShadowMapRT;
     ///
 
     /// TODO: these members can be static

@@ -3,9 +3,11 @@
 #include "DX12EngineCore/ShaderResourceView.h"
 #include "DX12EngineCore/RootSignature.h"
 #include "DX12EngineCore/Texture.h"
+#include "DX12EngineCore/RenderTarget.h"
 #include "DX12EngineCore/CommandList.h"
 #include "DX12EngineCore/Device.h"
 #include "DX12EngineCore/Mesh.h"
+
 #include "PBRObjectPSO.h"
 #include "EditorGui.h"
 #include "AssetImporter.h"
@@ -27,6 +29,8 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
     , m_ShadowRenderDistance(params.shadowRenderDistance)
     , m_ShadowNearFarZ(params.shadowNearFarZ)
 {
+    m_DirectionalShadowMapRT = std::make_unique<RenderTarget>();
+
     XMStoreFloat4x4(&m_LightOrthoMatrix, XMMatrixOrthographicLH(m_ShadowRenderDistance, m_ShadowRenderDistance, m_ShadowNearFarZ.x, m_ShadowNearFarZ.y));
     SetEulerAngles(params.eulerDir.x, params.eulerDir.y, params.eulerDir.z);
 
@@ -41,7 +45,7 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
 
     auto shadowMapDepthTexture = std::make_shared<Texture>(m_Device, shadowMapDesc, &depthClearValue);
     shadowMapDepthTexture->SetName(L"Directional Light Shadow Map");
-    m_DirectionalShadowMapRT.AttachTexture(AttachmentPoint::DepthStencil, shadowMapDepthTexture);
+    m_DirectionalShadowMapRT->AttachTexture(AttachmentPoint::DepthStencil, shadowMapDepthTexture);
 
     // Initialize ImGui SRV for debug
     {
@@ -79,7 +83,7 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
     shadowDepthPipelineStateStream.HS = AssetImporter::GetCompiledShaderFromFile(L"PBR_HS.cso");
     shadowDepthPipelineStateStream.DS = AssetImporter::GetCompiledShaderFromFile(L"PBR_DS.cso");
     shadowDepthPipelineStateStream.Rasterizer = rasterizerDesc;
-    shadowDepthPipelineStateStream.DSVFormat = m_DirectionalShadowMapRT.GetDepthStencilFormat();
+    shadowDepthPipelineStateStream.DSVFormat = m_DirectionalShadowMapRT->GetDepthStencilFormat();
 
     m_Device.CreatePipelineState(shadowDepthPipelineStateStream, m_DepthRenderPSO);
 }
@@ -128,9 +132,9 @@ void DirectionalLight::SetShadowRenderDistance(float distance) {
 }
 
 void DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget(CommandList& directCommandList) const {
-    directCommandList.ClearDepthStencilTexture(m_DirectionalShadowMapRT.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
+    directCommandList.ClearDepthStencilTexture(m_DirectionalShadowMapRT->GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
     directCommandList.SetViewport(m_ViewPort);
-    directCommandList.SetRenderTarget(m_DirectionalShadowMapRT);
+    directCommandList.SetRenderTarget(*m_DirectionalShadowMapRT);
 
     directCommandList.SetPipelineState(m_DepthRenderPSO);
     directCommandList.SetGraphicsRootSignature(m_ObjectRootSignature);
@@ -144,6 +148,9 @@ void DirectionalLight::RenderObjectToDepth(CommandList& directCommandList, Mesh&
     directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::PBRRootParameters::TessellationCB, tessProps);
     mesh.Draw(directCommandList);
 }
+
+std::shared_ptr<Texture> DirectionalLight::GetShadowMapTexture() const { return m_DirectionalShadowMapRT->GetTexture(AttachmentPoint::DepthStencil); }
+
 
 
 

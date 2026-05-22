@@ -60,8 +60,8 @@ namespace {
 	constexpr float s_StartingShadowDistance      = 35.0f;
 	constexpr float s_StartingShadowBias          = 0.001f;
 
-	float s_MinFOV     = 12.0f;
-	float s_MaxFOV     = 90.0f;
+	float s_MinFOV = 12.0f;
+	float s_MaxFOV = 90.0f;
 
 	// Projection Matrix
 	float s_ZNear = 0.1f;

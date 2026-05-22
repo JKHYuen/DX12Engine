@@ -129,6 +129,7 @@ namespace AssetImporter {
 		std::wstring filePath = L"compiled_shaders/" + csoFileName;
 
 		if(auto kvp = g_LoadedCompiledShaders.find(filePath); kvp != g_LoadedCompiledShaders.end()) {
+			Logger::Log("found");
 			return CD3DX12_SHADER_BYTECODE(kvp->second.Get());
 		}
 		else {

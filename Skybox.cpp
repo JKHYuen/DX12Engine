@@ -46,7 +46,7 @@ namespace {
 
 /// TODO: TEST FUNCTION, UNUSED
 void Skybox::SetCubemap(CommandList& copyCommandList, CommandList& computeCommandList, const std::wstring& hdrTextureName) {
-	m_HDRPanoTexture = copyCommandList.LoadTextureFromFile(AssetImporter::g_AssetPath / L"cubemaps" / hdrTextureName, true);
+	m_HDRPanoTexture = copyCommandList.LoadTextureFromFile(AssetImporter::Get().GetAssetPath() / L"cubemaps" / hdrTextureName, true);
 	computeCommandList.PanoToCubemapCompute(m_SkyCubemapTexture, m_HDRPanoTexture);
 }
 
@@ -61,7 +61,7 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, CommandList& comput
 	DXGI_FORMAT cubemapFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
 
 	m_SkyboxCubeMesh = copyCommandList.GetCubePrimitive();
-	m_HDRPanoTexture = copyCommandList.LoadTextureFromFile(AssetImporter::g_AssetPath / L"cubemaps" / m_SkyboxTextureName, true);
+	m_HDRPanoTexture = copyCommandList.LoadTextureFromFile(AssetImporter::Get().GetAssetPath() / L"cubemaps" / m_SkyboxTextureName, true);
 
 	// Convert hdr panoramic texture to cubemap
 	auto skyboxCubemapDesc = m_HDRPanoTexture->GetD3D12ResourceDesc();

@@ -41,7 +41,7 @@ Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeC
 
 	// Get all material names from asset folder (mostly for testing, scene instance should only hold used materials)
 	// Note: wide strings from file system is supported, but it can not be properly displayed with ImGui
-	for(const auto& entry : std::filesystem::directory_iterator(AssetImporter::g_AssetPath / L"materials")) {
+	for(const auto& entry : std::filesystem::directory_iterator(AssetImporter::Get().GetAssetPath() / L"materials")) {
 		m_MaterialNames.emplace_back(entry.path().filename().c_str());
 	}
 }

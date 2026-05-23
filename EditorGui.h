@@ -19,6 +19,7 @@ class Resource;
 class Scene;
 class DemoGame;
 
+/// Singleton
 class EditorGui {
 public:
 	struct GuiDescriptorAllocation {
@@ -37,14 +38,15 @@ public:
 	};
 
 	/// Singleton
-	EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWND hwnd);
 	~EditorGui();
 
+	EditorGui() = delete;
 	EditorGui(const EditorGui&)			    = delete;
 	EditorGui& operator=(const EditorGui&)  = delete;
 	EditorGui(EditorGui&&)                  = delete;
 	EditorGui& operator=(EditorGui&&)       = delete;
 
+	// Currently called in DemoGame ctor only
 	static EditorGui& Create(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWND hwnd);
 	static EditorGui& Get();
 	static void Destroy();
@@ -80,6 +82,8 @@ public:
 	void DrawObjectInspector(Device& device, const Scene& scene);
 
 private:
+	EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWND hwnd);
+
 	bool sb_ShowDebugWindow = false;
 	bool sb_ObjectInspectorState = false;
 	bool sb_PickerEnabled = false; // See comment on SetPickerState()

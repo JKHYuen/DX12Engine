@@ -31,8 +31,8 @@ UnlitPrimitivePSO::UnlitPrimitivePSO(Device& device, D3D12_RT_FORMAT_ARRAY rtvFo
 	pipelineStateStream.pRootSignature = m_ObjectRootSignature->GetD3D12RootSignature().Get();
 	pipelineStateStream.InputLayout = VertexInput::Get_POS_NORM_TAN_BIT_UV_InputLayout();
 	pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	pipelineStateStream.VS = AssetImporter::GetCompiledShaderFromFile(L"UnlitPrimitive_VS.cso");
-	pipelineStateStream.PS = AssetImporter::GetCompiledShaderFromFile(L"Unlit_PS.cso");
+	pipelineStateStream.VS = AssetImporter::Get().GetCompiledShaderFromFile(L"UnlitPrimitive_VS.cso");
+	pipelineStateStream.PS = AssetImporter::Get().GetCompiledShaderFromFile(L"Unlit_PS.cso");
 	pipelineStateStream.RTVFormats = rtvFormats;
 	pipelineStateStream.RasterDesc = rasterDesc;
 

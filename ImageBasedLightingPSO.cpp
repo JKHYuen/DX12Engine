@@ -3,6 +3,7 @@
 #include "DX12EngineCore/Device.h"
 #include "DX12EngineCore/RootSignature.h"
 #include "DX12EngineCore/RenderTarget.h"
+#include "DX12EngineCore/CommandList.h"
 
 #include "Helpers.h"
 #include "AssetImporter.h"
@@ -56,8 +57,8 @@ ImageBasedLightingPSO::ImageBasedLightingPSO(Device& device, const RenderTarget&
 	skyboxPipelineStateStream.pRootSignature = m_SkyboxRootSignature->GetD3D12RootSignature().Get();
 	skyboxPipelineStateStream.InputLayout = { inputLayout, 1 };
 	skyboxPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	skyboxPipelineStateStream.VS = AssetImporter::GetCompiledShaderFromFile(L"Skybox_VS.cso");
-	skyboxPipelineStateStream.PS = AssetImporter::GetCompiledShaderFromFile(L"Skybox_PS.cso");
+	skyboxPipelineStateStream.VS = AssetImporter::Get().GetCompiledShaderFromFile(L"Skybox_VS.cso");
+	skyboxPipelineStateStream.PS = AssetImporter::Get().GetCompiledShaderFromFile(L"Skybox_PS.cso");
 	skyboxPipelineStateStream.RTVFormats = renderTarget.GetRenderTargetFormats();
 	skyboxPipelineStateStream.SampleDesc = renderTarget.GetSampleDesc();
 	skyboxPipelineStateStream.DepthStencilDesc = depthStencilDesc;
@@ -69,7 +70,7 @@ ImageBasedLightingPSO::ImageBasedLightingPSO(Device& device, const RenderTarget&
 	{
 		// Skybox_VS.cso vertex shader is used
 		// Same root sig as skybox rendering (one inline matrix, one SRV)
-		skyboxPipelineStateStream.PS = AssetImporter::GetCompiledShaderFromFile(L"ConvoluteCubeMap_PS.cso");
+		skyboxPipelineStateStream.PS = AssetImporter::Get().GetCompiledShaderFromFile(L"ConvoluteCubeMap_PS.cso");
 		skyboxPipelineStateStream.SampleDesc = { 1, 0 };
 
 		device.CreatePipelineState(skyboxPipelineStateStream, m_ConvolutionPSO);
@@ -89,7 +90,7 @@ ImageBasedLightingPSO::ImageBasedLightingPSO(Device& device, const RenderTarget&
 		// Skybox_VS.cso vertex shader is used
 		// Same pipeline state as irradiance convolution except pixel shader and root signature
 		skyboxPipelineStateStream.pRootSignature = m_PrefilterRootSignature->GetD3D12RootSignature().Get();
-		skyboxPipelineStateStream.PS = AssetImporter::GetCompiledShaderFromFile(L"PreFilterCubeMap_PS.cso");
+		skyboxPipelineStateStream.PS = AssetImporter::Get().GetCompiledShaderFromFile(L"PreFilterCubeMap_PS.cso");
 		skyboxPipelineStateStream.SampleDesc = { 1, 0 };
 
 		device.CreatePipelineState(skyboxPipelineStateStream, m_PrefilterPSO);
@@ -105,8 +106,8 @@ ImageBasedLightingPSO::ImageBasedLightingPSO(Device& device, const RenderTarget&
 		// BRDF Precompute Pipeline State
 		skyboxPipelineStateStream.pRootSignature = m_BRDF_LUT_RootSignature->GetD3D12RootSignature().Get();
 		skyboxPipelineStateStream.InputLayout = CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT();
-		skyboxPipelineStateStream.VS = AssetImporter::GetCompiledShaderFromFile(L"ScreenRender_VS.cso");
-		skyboxPipelineStateStream.PS = AssetImporter::GetCompiledShaderFromFile(L"IntegrateBRDF_PS.cso");
+		skyboxPipelineStateStream.VS = AssetImporter::Get().GetCompiledShaderFromFile(L"ScreenRender_VS.cso");
+		skyboxPipelineStateStream.PS = AssetImporter::Get().GetCompiledShaderFromFile(L"IntegrateBRDF_PS.cso");
 		skyboxPipelineStateStream.SampleDesc = { 1, 0 };
 		// Don't know a simpler way to write this..
 		DXGI_FORMAT format[] = { DXGI_FORMAT_R16G16_FLOAT, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN };

@@ -197,6 +197,7 @@
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AssetImporter.cpp" />
     <ClCompile Include="BloomEffect.cpp" />
     <ClCompile Include="BloomPSO.cpp" />
     <ClCompile Include="Camera.cpp" />

@@ -56,13 +56,12 @@ class Application {
 
 public:
     // Singleton
+    Application() = delete;
     Application(const Application&) = delete;
     Application& operator=(const Application&) = delete;
     Application(Application&&) = delete;
     Application& operator=(Application&&) = delete;
 
-    // Create an application instance.
-    Application(HINSTANCE hInst);
     ~Application();
 
     /**
@@ -110,6 +109,9 @@ public:
     void Quit();
 
 private:
+    // Create an application instance.
+    Application(HINSTANCE hInst);
+
     HINSTANCE m_hInstance;
 
     // Set to true while the application is running. 

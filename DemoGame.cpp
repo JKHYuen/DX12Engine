@@ -79,7 +79,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	/// TODO: dont hardcode asset path
 	// Get skybox names from asset folder
 	// Note: wide strings from file system is supported, but it can not be properly displayed with ImGui
-	for(const auto& entry : std::filesystem::directory_iterator(AssetImporter::g_AssetPath / L"cubemaps")) {
+	for(const auto& entry : std::filesystem::directory_iterator(AssetImporter::Get().GetAssetPath() / L"cubemaps")) {
 		m_SkyboxNames.emplace_back(entry.path().filename().c_str());
 	}
 
@@ -236,8 +236,8 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 				goParams.translation = XMFLOAT3(0.0f, 3.0f, 4.0f);
 				goRenderProps.pbrMatName = L"viking_sword";
 				goRenderProps.heightMapMagnitude = 0.0f;
-				std::wstring modelFilePath = (AssetImporter::g_AssetPath / L"models" / goRenderProps.pbrMatName / goRenderProps.pbrMatName).native() + L".obj";
-				auto importedMesh = AssetImporter::ImportModel(*copyCommandList, modelFilePath);
+				std::wstring modelFilePath = (AssetImporter::Get().GetAssetPath() / L"models" / goRenderProps.pbrMatName / goRenderProps.pbrMatName).native() + L".obj";
+				auto importedMesh = AssetImporter::Get().ImportModel(*copyCommandList, modelFilePath);
 
 				m_DemoScene->AddGameObject(*copyCommandList, goParams, goRenderProps, importedMesh);
 			}
@@ -295,15 +295,15 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 
 		postProcessPipelineStateStream.pRootSignature = m_PostProcessRootSignature->GetD3D12RootSignature().Get();
 		postProcessPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		postProcessPipelineStateStream.VS = AssetImporter::GetCompiledShaderFromFile(L"ScreenRender_VS.cso");
-		postProcessPipelineStateStream.PS = AssetImporter::GetCompiledShaderFromFile(L"Postprocess_PS.cso");
+		postProcessPipelineStateStream.VS = AssetImporter::Get().GetCompiledShaderFromFile(L"ScreenRender_VS.cso");
+		postProcessPipelineStateStream.PS = AssetImporter::Get().GetCompiledShaderFromFile(L"Postprocess_PS.cso");
 		postProcessPipelineStateStream.Rasterizer = rasterizerDesc;
 		postProcessPipelineStateStream.RTVFormats = m_SwapChain->GetRenderTarget().GetRenderTargetFormats();
 
 		m_Device->CreatePipelineState(postProcessPipelineStateStream, m_PostprocessPSO);
 
 		// Tonemap PSO
-		postProcessPipelineStateStream.PS = AssetImporter::GetCompiledShaderFromFile(L"Tonemap_PS.cso");
+		postProcessPipelineStateStream.PS = AssetImporter::Get().GetCompiledShaderFromFile(L"Tonemap_PS.cso");
 		m_Device->CreatePipelineState(postProcessPipelineStateStream, m_TonemapPSO);
 	}
 

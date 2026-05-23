@@ -61,10 +61,10 @@ PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT
 	hdrPipelineStateStream.pRootSignature = m_RootSignature->GetD3D12RootSignature().Get();
 	hdrPipelineStateStream.InputLayout = VertexInput::Get_POS_NORM_TAN_BIT_UV_InputLayout();
 	hdrPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
-	hdrPipelineStateStream.VS = AssetImporter::GetCompiledShaderFromFile(L"PBR_VS.cso");
-	hdrPipelineStateStream.HS = AssetImporter::GetCompiledShaderFromFile(L"PBR_HS.cso");
-	hdrPipelineStateStream.DS = AssetImporter::GetCompiledShaderFromFile(L"PBR_DS.cso");
-	hdrPipelineStateStream.PS = AssetImporter::GetCompiledShaderFromFile(L"PBR_PS.cso");
+	hdrPipelineStateStream.VS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_VS.cso");
+	hdrPipelineStateStream.HS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_HS.cso");
+	hdrPipelineStateStream.DS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_DS.cso");
+	hdrPipelineStateStream.PS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_PS.cso");
 	hdrPipelineStateStream.DSVFormat = depthStencilFormat;
 	hdrPipelineStateStream.RTVFormats = rtvFormat;
 	hdrPipelineStateStream.SampleDesc = sampleDesc;

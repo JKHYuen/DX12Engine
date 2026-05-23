@@ -2,6 +2,8 @@
 #include "DX12EngineCore/Device.h"
 #include "DX12EngineCore/VertexInput.h"
 #include "DX12EngineCore/RootSignature.h"
+#include "DX12EngineCore/CommandList.h"
+
 #include "BloomPSO.h"
 #include "d3dx12.h"
 #include "AssetImporter.h"
@@ -65,8 +67,8 @@ BloomPSO::BloomPSO(Device& device, const RenderTarget& renderTarget) {
 
 		bloomPipelineStateStream.pRootSignature = m_RootSignature->GetD3D12RootSignature().Get();
 		bloomPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		bloomPipelineStateStream.VS = AssetImporter::GetCompiledShaderFromFile(L"ScreenRender_VS.cso");
-		bloomPipelineStateStream.PS = AssetImporter::GetCompiledShaderFromFile(L"Bloom_PS.cso");
+		bloomPipelineStateStream.VS = AssetImporter::Get().GetCompiledShaderFromFile(L"ScreenRender_VS.cso");
+		bloomPipelineStateStream.PS = AssetImporter::Get().GetCompiledShaderFromFile(L"Bloom_PS.cso");
 		bloomPipelineStateStream.RTVFormats = renderTarget.GetRenderTargetFormats();
 		bloomPipelineStateStream.SampleDesc = { 1, 0 };
 		bloomPipelineStateStream.BlendDesc = blendDesc;

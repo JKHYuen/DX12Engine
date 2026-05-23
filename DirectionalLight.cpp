@@ -79,9 +79,9 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
     shadowDepthPipelineStateStream.pRootSignature = m_ObjectRootSignature->GetD3D12RootSignature().Get();
     shadowDepthPipelineStateStream.InputLayout = params.depthRenderInputLayout;
     shadowDepthPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
-    shadowDepthPipelineStateStream.VS = AssetImporter::GetCompiledShaderFromFile(L"PBR_VS.cso");
-    shadowDepthPipelineStateStream.HS = AssetImporter::GetCompiledShaderFromFile(L"PBR_HS.cso");
-    shadowDepthPipelineStateStream.DS = AssetImporter::GetCompiledShaderFromFile(L"PBR_DS.cso");
+    shadowDepthPipelineStateStream.VS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_VS.cso");
+    shadowDepthPipelineStateStream.HS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_HS.cso");
+    shadowDepthPipelineStateStream.DS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_DS.cso");
     shadowDepthPipelineStateStream.Rasterizer = rasterizerDesc;
     shadowDepthPipelineStateStream.DSVFormat = m_DirectionalShadowMapRT->GetDepthStencilFormat();
 

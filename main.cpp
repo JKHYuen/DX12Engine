@@ -28,29 +28,7 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
     debugInterface->EnableDebugLayer();
 #endif
 
-    // Find assets folder
-    {
-        AssetImporter::g_AssetPath = L"";
-
-        // Check if assets folder is in same folder as exe
-        if(fs::exists(L"assets/")) {
-            AssetImporter::g_AssetPath = L"assets/";
-        }
-        // Look for assets in a shared location, currently hardcoded for visual studio project
-        // assets location: solutionDir/assets
-        //    exe location: solutionDir/Bin/(Release/Debug)/
-        else {
-            const auto& sharedAssetPath = fs::current_path().parent_path().parent_path();
-            if(sharedAssetPath != "") {
-                AssetImporter::g_AssetPath = sharedAssetPath / L"assets/";
-            }
-        }
-
-        if(AssetImporter::g_AssetPath == L"") {
-            MessageBox(NULL, L"Asset folder not found.", NULL, MB_OK);
-            return 1;
-        }
-    }
+    AssetImporter::Create();
 
     // Initialize basic global console logger
     Logger::InitializeConsole();

@@ -70,7 +70,7 @@ GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params,
 void GameObject::UpdatePBRShaderResourcesFromFile(CommandList& copyCommandList, const std::wstring& pbrMatName) {
 	m_RenderProps.pbrMatName = pbrMatName;
 
-	std::wstring matPathPrefix { AssetImporter::g_AssetPath / L"materials" / pbrMatName / pbrMatName };
+	std::wstring matPathPrefix { AssetImporter::Get().GetAssetPath() / L"materials" / pbrMatName / pbrMatName };
 
 	// Load Resources, note that commandlist is not executed here
 	m_TextureResources[PBRObjectPSO::AlbedoTex] =
@@ -177,6 +177,7 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 	m_Mesh->Draw(directCommandList);
 }
 
+// Only used for outline effect
 void GameObject::RenderSilhouette(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPSO* unlitPSO, XMFLOAT4 color) {
 	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 
@@ -221,7 +222,9 @@ void GameObject::RenderBoundingBox(CommandList& directCommandList, const UpdateE
 
 // assume we are in right rendering pipeline (see DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget)
 void GameObject::RenderToDirectionalShadowMap(CommandList& directCommandList, const DirectionalLight& directionalLight) {
-	if(!b_RenderThisFrame) return;
+	// Need a smarter shadow cull than just tying it to object frustum culling, shadows will cull in camera
+	//if(!b_RenderThisFrame) return;
+
 	if(!m_RenderProps.isShadowCaster) return;
 
 	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
@@ -311,7 +314,8 @@ void GameObject::RecalcAABB() {
 	m_AABB.Extents.y = maxY;
 	m_AABB.Extents.z = maxZ;
 
-	// Update AABB center location because rotating with object's pivot could change where object geometric center is
+	// Update AABB center location because rotating with object's pivot could change where AABB center is 
+	// (AABB center is always object's geometric center)
 	m_AABB.Center.x = m_Translation.x + m_AABBOffset.x;
 	m_AABB.Center.y = m_Translation.y + m_AABBOffset.y;
 	m_AABB.Center.z = m_Translation.z + m_AABBOffset.z;

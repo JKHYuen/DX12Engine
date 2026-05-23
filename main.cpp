@@ -28,12 +28,12 @@ int CALLBACK wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR lpCmdL
     debugInterface->EnableDebugLayer();
 #endif
 
-    AssetImporter::Create();
+    AssetImporter::Initialize();
 
     // Initialize basic global console logger
     Logger::InitializeConsole();
 
-    Application::Create(hInstance);
+    Application::Initialize(hInstance);
     {
         std::unique_ptr<IGame> demo = std::make_unique<DemoGame>(L"DX12 Render", 1280, 720, /*vSync*/ true, false);
         retCode = demo->Run();

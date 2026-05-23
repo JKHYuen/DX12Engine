@@ -79,7 +79,7 @@ Application::~Application() {
     s_WindowMapByName.clear();
 }
 
-Application& Application::Create(HINSTANCE hInst) {
+Application& Application::Initialize(HINSTANCE hInst) {
     if(!sp_Singleton) {
         sp_Singleton = new Application(hInst);
     }

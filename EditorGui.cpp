@@ -205,7 +205,7 @@ EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWN
 	//style.Colors[ImGuiCol_PopupBg]              = ImVec4(0.20f, 0.22f, 0.27f, 0.9f);
 }
 
-EditorGui& EditorGui::Create(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWND hwnd) {
+EditorGui& EditorGui::Initialize(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWND hwnd) {
 	if(!sp_Singleton) {
 		sp_Singleton = new EditorGui(device, RTVformat, bufferCount, hwnd);
 	}

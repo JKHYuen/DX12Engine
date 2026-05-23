@@ -15,7 +15,7 @@ struct aiMesh;
 /// Singleton
 class AssetImporter {
 public:
-	static AssetImporter& Create();
+	static AssetImporter& Initialize();
 	static AssetImporter& Get();
 	static void Destroy();
 

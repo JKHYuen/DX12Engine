@@ -47,7 +47,7 @@ public:
 	EditorGui& operator=(EditorGui&&)       = delete;
 
 	// Currently called in DemoGame ctor only
-	static EditorGui& Create(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWND hwnd);
+	static EditorGui& Initialize(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWND hwnd);
 	static EditorGui& Get();
 	static void Destroy();
 	///

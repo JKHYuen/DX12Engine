@@ -67,7 +67,7 @@ public:
     /**
     * Create the application singleton with the application instance handle.
     */
-    static Application& Create(HINSTANCE hInst);
+    static Application& Initialize(HINSTANCE hInst);
 
     /**
     * Destroy the application instance and all windows created by this application instance.

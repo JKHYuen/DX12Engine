@@ -30,7 +30,7 @@ namespace {
 	fs::path s_AssetPath;
 }
 
-AssetImporter& AssetImporter::Create() {
+AssetImporter& AssetImporter::Initialize() {
 	if(!sp_Singleton) {
 		sp_Singleton = new AssetImporter();
 

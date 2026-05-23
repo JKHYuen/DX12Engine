@@ -86,7 +86,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	m_Device = std::make_shared<Device>();
 
 	// Create EditorGui singleton
-	EditorGui::Create(*m_Device, sk_HDRFormat, SwapChain::sk_BufferCount, m_Window->GetWindowHandle());
+	EditorGui::Initialize(*m_Device, sk_HDRFormat, SwapChain::sk_BufferCount, m_Window->GetWindowHandle());
 
 	// Create screen RenderTargets
 	m_PostProcessRTs = std::make_unique<PostProcessRenderTargets>(*m_Device, sk_HDRFormat, windowWidth, windowHeight);

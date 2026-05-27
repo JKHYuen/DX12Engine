@@ -1,17 +1,23 @@
 #include "PBRObjectPSO.h"
 
+#include "DX12EngineCore/CommandList.h"
 #include "DX12EngineCore/Device.h"
 #include "DX12EngineCore/RootSignature.h"
-#include "DX12EngineCore/CommandList.h"
 #include "DX12EngineCore/VertexInput.h"
-#include "DX12EngineCore/RenderTarget.h"
-#include "DX12EngineCore/ShaderResourceView.h"
 
-#include "Helpers.h"
 #include "AssetImporter.h"
-#include "Logger.h"
 
-#include <d3dx12.h>
+#include "d3d12.h"
+#include "d3dcommon.h"
+#include "d3dx12_core.h"
+#include "d3dx12_default.h"
+#include "d3dx12_pipeline_state_stream.h"
+#include "d3dx12_root_signature.h"
+#include "dxgicommon.h"
+#include "dxgiformat.h"
+#include <cassert>
+#include <memory>
+#include <vector>
 #include <wrl/client.h>
 
 using namespace DirectX;
@@ -37,7 +43,7 @@ PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT
 			D3D12_TEXTURE_ADDRESS_MODE_BORDER, D3D12_TEXTURE_ADDRESS_MODE_BORDER, D3D12_TEXTURE_ADDRESS_MODE_BORDER, 0.0f, 0, D3D12_COMPARISON_FUNC_LESS);
 		CD3DX12_STATIC_SAMPLER_DESC samplers[] = { anisotropicWrapSampler, trilinearClampSampler, trilinearBorderSampler };
 
-		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
+		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription {};
 		rootSignatureDescription.Init_1_1(PBRRootParameters::NumPBRRootParameters, rootParameters, 3, samplers, 
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS);
 		m_RootSignature = std::make_shared<RootSignature>(device, rootSignatureDescription.Desc_1_1);

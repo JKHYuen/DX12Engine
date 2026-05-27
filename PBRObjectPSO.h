@@ -7,9 +7,9 @@
 
 #include <d3d12.h>
 #include <DirectXMath.h>
-#include <wrl/client.h>
 #include <memory>
 #include <vector>
+#include <wrl/client.h>
 
 using namespace DirectX;
 using namespace Microsoft::WRL;

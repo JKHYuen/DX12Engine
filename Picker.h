@@ -17,7 +17,7 @@ class Picker {
 	friend class EditorGui;
 
 public:
-	Picker() = default;
+	Picker();
 
 	// Raycast intersection test with all objects in a scene, results are cached and cleared when mouse moves.
 	// Only checks GameObject type and assumes it has a valid AABB

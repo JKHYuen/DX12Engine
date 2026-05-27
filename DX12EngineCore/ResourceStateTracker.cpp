@@ -1,8 +1,8 @@
 #include <DX12LibPCH.h>
 
-#include "ResourceStateTracker.h"
 #include "CommandList.h"
 #include "Resource.h"
+#include "ResourceStateTracker.h"
 
 // Static definitions.
 std::mutex                             ResourceStateTracker::ms_GlobalMutex;

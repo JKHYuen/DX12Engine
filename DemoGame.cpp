@@ -1,42 +1,50 @@
 #include "DemoGame.h"
 
+#include "DX12EngineCore/Application.h"
+#include "DX12EngineCore/CommandList.h"
+#include "DX12EngineCore/CommandQueue.h"
+#include "DX12EngineCore/Device.h"
+#include "DX12EngineCore/RenderTarget.h"
+#include "DX12EngineCore/SwapChain.h"
+#include "DX12EngineCore/Texture.h"
+#include "DX12EngineCore/VertexInput.h"
+#include "DX12EngineCore/Window.h"
+
+#include "AssetImporter.h"
+#include "BloomEffect.h"
+#include "BloomPSO.h"
+#include "Colors.h"
+#include "d3d12.h"
+#include "d3dx12_core.h"
+#include "DirectionalLight.h"
+#include "EditorGui.h"
+#include "Events.h"
+#include "GameObject.h"
+#include "ImageBasedLightingPSO.h"
+#include "imgui.h"
+#include "KeyCodes.h"
+#include "OutlineEffect.h"
+#include "PBRObjectPSO.h"
+#include "Scene.h"
+#include "Skybox.h"
+#include "TonemapPSO.h"
+#include "UnlitPrimitivePSO.h"
+#include "UnlitPSO.h"
+
 #if defined(min)
 #undef min
 #endif
 #if defined(max)
 #undef max
 #endif
-#include <algorithm> // For std::min and std::max.
+#include <algorithm>
 
+#include <climits>
+#include <cstdint>
+#include <memory>
+#include <string>
 #include <filesystem>
-#include <d3dx12.h>
 #include <DirectXMath.h>
-
-#include "DX12EngineCore/Application.h"
-#include "DX12EngineCore/Device.h"
-#include "DX12EngineCore/SwapChain.h"
-#include "DX12EngineCore/CommandQueue.h"
-#include "DX12EngineCore/CommandList.h"
-#include "DX12EngineCore/RootSignature.h"
-#include "DX12EngineCore/Window.h"
-
-#include "Helpers.h"
-#include "Colors.h"
-#include "Skybox.h"
-#include "EditorGui.h"
-#include "DirectionalLight.h"
-#include "GameObject.h"
-#include "PBRObjectPSO.h"
-#include "UnlitPSO.h"
-#include "UnlitPrimitivePSO.h"
-#include "ImageBasedLightingPSO.h"
-#include "BloomPSO.h"
-#include "BloomEffect.h"
-#include "OutlineEffect.h"
-#include "AssetImporter.h"
-#include "Logger.h"
-
-#include "imgui.h"
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -104,7 +112,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 			sk_HDRFormat, m_WindowWidth, m_WindowHeight, 1, 1, multiSampleDesc.Count, multiSampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
 		);
 
-		D3D12_CLEAR_VALUE colorClearValue;
+		D3D12_CLEAR_VALUE colorClearValue {};
 		colorClearValue.Format = colorDesc.Format;
 		colorClearValue.Color[0] = 0.6f;
 		colorClearValue.Color[1] = 0.6f;
@@ -120,7 +128,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 			D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
 		);
 
-		D3D12_CLEAR_VALUE depthClearValue;
+		D3D12_CLEAR_VALUE depthClearValue {};
 		depthClearValue.Format = depthStencilDesc.Format;
 		depthClearValue.DepthStencil = { 1.0f, 0 };
 
@@ -139,6 +147,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	m_Bloom_PSO = std::make_unique<BloomPSO>(*m_Device, *m_HDR_MSAA_RT);
 	m_Unlit_PSO = std::make_unique<UnlitPSO>(*m_Device, m_HDR_MSAA_RT->GetRenderTargetFormats(), m_PBR_PSO.get()->GetRootSignature());
 	m_UnlitPrimitive_PSO = std::make_unique<UnlitPrimitivePSO>(*m_Device, m_HDR_MSAA_RT->GetRenderTargetFormats(), m_PBR_PSO.get()->GetRootSignature());
+	m_Tonemap_PSO = std::make_unique<TonemapPSO>(*m_Device, m_SwapChain->GetRenderTarget());
 	///
 
 	m_BloomEffect = std::make_unique<BloomEffect>(*m_Device, *m_HDR_MSAA_RT, m_Bloom_PSO.get(), 16, 0.5f, 80.0f, 0.9f, XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), EditorGui::ImGuiDebugSRVIndex::BloomPrefilter);
@@ -180,6 +189,8 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 
 		directCommandList->SetScissorRect(m_DefaultScissorRect);
 
+		// Compute IBL textures, we will not wait for this to finish, 
+		// worst case there will be a few frames of empty IBL textures but this has not been observed.
 		m_DemoScene->ComputeSkyboxIBLs(*directCommandList);
 		directCommandQueue.ExecuteCommandList(directCommandList);
 
@@ -255,60 +266,10 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 
 			copyCommandQueue.ExecuteCommandList(copyCommandList);
 		}
+
+		// Wait for loading operations to complete before rendering the first frame
+		copyCommandQueue.FlushWait();
 	}
-
-	/// TODO: extract PSOs as classes to match rest of project
-	// Create Post Process/Tonemap Pipeline States 
-	// Note: post process pipeline currently unused, will be used for bloom eventually, it should also be in a separate class
-	{
-		D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags_VSPS =
-			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
-
-		CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
-
-		CD3DX12_ROOT_PARAMETER1 rootParameters[1] {};
-		rootParameters[0].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
-
-		CD3DX12_STATIC_SAMPLER_DESC pointClampSampler(
-			0, D3D12_FILTER_MIN_MAG_MIP_POINT,
-			D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
-
-		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
-		rootSignatureDescription.Init_1_1(_countof(rootParameters), rootParameters, 1, &pointClampSampler, rootSignatureFlags_VSPS);
-		m_PostProcessRootSignature = std::make_shared<RootSignature>(*m_Device, rootSignatureDescription.Desc_1_1);
-
-		// Note: cull front, triangle created in ScreenRender_VS faces away from camera
-		CD3DX12_RASTERIZER_DESC rasterizerDesc(D3D12_DEFAULT);
-		rasterizerDesc.CullMode = D3D12_CULL_MODE_FRONT;
-
-		struct PostProcessPipelineStateStream {
-			CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE        pRootSignature;
-			CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY    PrimitiveTopologyType;
-			CD3DX12_PIPELINE_STATE_STREAM_VS                    VS;
-			CD3DX12_PIPELINE_STATE_STREAM_PS                    PS;
-			CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER            Rasterizer;
-			CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
-		} postProcessPipelineStateStream;
-
-		postProcessPipelineStateStream.pRootSignature = m_PostProcessRootSignature->GetD3D12RootSignature().Get();
-		postProcessPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		postProcessPipelineStateStream.VS = AssetImporter::Get().GetCompiledShaderFromFile(L"ScreenRender_VS.cso");
-		postProcessPipelineStateStream.PS = AssetImporter::Get().GetCompiledShaderFromFile(L"Postprocess_PS.cso");
-		postProcessPipelineStateStream.Rasterizer = rasterizerDesc;
-		postProcessPipelineStateStream.RTVFormats = m_SwapChain->GetRenderTarget().GetRenderTargetFormats();
-
-		m_Device->CreatePipelineState(postProcessPipelineStateStream, m_PostprocessPSO);
-
-		// Tonemap PSO
-		postProcessPipelineStateStream.PS = AssetImporter::Get().GetCompiledShaderFromFile(L"Tonemap_PS.cso");
-		m_Device->CreatePipelineState(postProcessPipelineStateStream, m_TonemapPSO);
-	}
-
-	// Wait for loading operations to complete before rendering the first frame
-	copyCommandQueue.FlushWait();
 
 	// Wait for all resizable elements to be created before setting to fullscreen (OnResize will subsuquently be called)
 	if(isFullScreen) m_Window->SetFullscreen(true);
@@ -395,7 +356,7 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 
 	directCommandList->SetScissorRect(m_DefaultScissorRect);
 
-	/// Render Test Scene
+	/// Render Scene
 	// Perform HDR rendering to multisampled render target
 	m_DemoScene->Render(*m_HDR_MSAA_RT, *directCommandList, e);
 
@@ -422,11 +383,10 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 
 		/// TODO: move this to a tonemapping PSO class
 		// Tonemapping
-		directCommandList->SetPipelineState(m_TonemapPSO);
-		directCommandList->SetGraphicsRootSignature(m_PostProcessRootSignature);
+		m_Tonemap_PSO->SetPipelineState(*directCommandList);
 		directCommandList->SetViewport(swapChainRT.GetViewport());
 		directCommandList->SetRenderTarget(swapChainRT);
-		directCommandList->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
 		directCommandList->SetShaderResourceView(0, 0, nextInputPostProcessRT->GetTexture(AttachmentPoint::Color0), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		// non indexed full screen render (see ScreenRender vertex shader)
 		directCommandList->Draw(3);

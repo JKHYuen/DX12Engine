@@ -1,12 +1,16 @@
 #include "Picker.h"
-#include "Scene.h"
-#include "GameObject.h"
-#include "Logger.h"
-#include "EditorGui.h"
 
-#include <queue>
+#include "Camera.h"
+#include "EditorGui.h"
+#include "GameObject.h"
+#include "Scene.h"
+
 #include <algorithm>
 #include <DirectXMath.h>
+#include <DirectXMathConvert.inl>
+#include <DirectXMathMatrix.inl>
+#include <DirectXMathVector.inl>
+#include <utility>
 
 using namespace DirectX;
 
@@ -44,6 +48,12 @@ namespace {
 		outOrigin = camera.Get_Translation();
 	}
 }
+
+Picker::Picker() : 
+	m_PickedObject {nullptr},
+	m_RaycastCache {},
+	m_LastMousePos {}
+ {}
 
 // Cache all intersection hits and sort by raycast hit distance.
 // If mouse has not moved, loop through all cached raycast hits.

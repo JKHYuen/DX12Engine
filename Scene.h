@@ -1,12 +1,18 @@
 #pragma once
 #include "Camera.h"
 #include "DirectionalLight.h"
-#include "Skybox.h"
-#include "GameObject.h"
-#include "DataArray.h"
-#include "Picker.h"
 #include "Events.h"
+#include "GameObject.h"
+#include "Picker.h" // unique_ptr member needs this for some reason, unsure why
+#include "Skybox.h"
 
+#include "DX12EngineCore\CommandList.h"
+#include "DX12EngineCore\RenderTarget.h"
+
+#include <cassert>
+#include <cstdint>
+#include <memory>
+#include <string>
 #include <vector>
 
 class Device;
@@ -42,7 +48,7 @@ public:
 	const DirectionalLight& GetDirLight() const { return m_DirectionalLight; }
 
 	const Skybox& GetSkybox() const { return m_Skybox; }
-	Picker* const GetPicker() const { return m_Picker.get(); }
+	Picker* const GetPicker() const;
 
 	void ComputeSkyboxIBLs(CommandList& directCommandList);
 
@@ -89,7 +95,7 @@ private:
 
 	const IGame& m_Game;
 
-	std::unique_ptr<Picker> m_Picker {};
+	std::unique_ptr<Picker> m_Picker;
 
 	AABBRenderMode m_AABBRenderMode;
 

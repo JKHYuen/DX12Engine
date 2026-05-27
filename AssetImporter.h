@@ -4,9 +4,9 @@
 // unsure how to avoid this while keeping the convenience of the return type
 #include "d3dx12_core.h"
 
+#include <filesystem>
 #include <memory>
 #include <string>
-#include <filesystem>
 
 class CommandList;
 class Mesh;

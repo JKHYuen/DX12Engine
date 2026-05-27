@@ -2,7 +2,6 @@
 
 // This class manages/creates all pipeline states related to Bloom effect
 
-#include <d3d12.h>
 #include <DirectXMath.h>
 #include <wrl/client.h>
 #include <memory>
@@ -52,6 +51,5 @@ private:
 	ComPtr<ID3D12PipelineState> m_BloomAdditivePSO;
 
 	std::shared_ptr<RootSignature> m_RootSignature;
-	
 };
 

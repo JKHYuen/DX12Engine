@@ -33,9 +33,11 @@
 #include <cstdint>
 #include <functional>
 
+#include "d3d12.h"
+#include <exception>
+
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-
 
   // From DXSampleHelper.h 
   // Source: https://github.com/Microsoft/DirectX-Graphics-Samples

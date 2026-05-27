@@ -16,8 +16,9 @@
 
 #include <DirectXMath.h>
 #include <memory>
-#include <vector>
 #include <string>
+#include <string_view>
+#include <vector>
 
 using namespace DirectX;
 
@@ -79,9 +80,8 @@ public:
 	// Initialize with preconstructed mesh
 	GameObject(CommandList& copyCommandList, const EntityParams& params, const RenderProps& renderProps, std::shared_ptr<Mesh> mesh);
 
-	/// TODO: UNFINSIHED
-	// Initialize with mesh loaded from file
-	GameObject(CommandList& copyCommandList, const EntityParams& params, const RenderProps& renderProps, const std::wstring& meshFilePath);
+	/// TODO: Initialize with mesh loaded from file
+	//GameObject(CommandList& copyCommandList, const EntityParams& params, const RenderProps& renderProps, const std::wstring& meshFilePath);
 
 	void Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, bool b_RenderWireframe = false);
 

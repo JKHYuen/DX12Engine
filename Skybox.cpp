@@ -1,21 +1,24 @@
 #include "Skybox.h"
-#include <DirectXMath.h>
-#include <d3dx12.h>
-#include <memory>
 
+#include "AssetImporter.h"
+#include "Camera.h"
+#include "Colors.h"
+#include "ImageBasedLightingPSO.h"
+
+#include "DX12EngineCore/CommandList.h"
 #include "DX12EngineCore/Device.h"
+#include "DX12EngineCore/Mesh.h"
 #include "DX12EngineCore/RenderTarget.h"
 #include "DX12EngineCore/Texture.h"
-#include "DX12EngineCore/CommandQueue.h"
-#include "DX12EngineCore/CommandList.h"
-#include "DX12EngineCore/ShaderResourceView.h"
-#include "DX12EngineCore/Mesh.h"
 
-#include "Camera.h"
-#include "ImageBasedLightingPSO.h"
-#include "Colors.h"
-#include "AssetImporter.h"
-#include "Logger.h"
+#include "d3d12.h"
+#include "dxgiformat.h"
+#include <cmath>
+#include <DirectXMath.h>
+#include <DirectXMathConvert.inl>
+#include <DirectXMathMatrix.inl>
+#include <memory>
+#include <string>
 
 using namespace DirectX;
 

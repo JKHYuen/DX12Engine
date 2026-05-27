@@ -8,11 +8,6 @@
 // This class should eventually support IGame instance switching, but it is currently coupled with DemoGame.h implementation.
 // Note that the stored descriptors in this class is only used for ImGui debug textures.
 
-#include "imgui.h"
-
-#include <d3dx12.h>
-#include <wrl/client.h>
-
 class Device;
 class CommandList;
 class Resource;

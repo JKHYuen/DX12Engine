@@ -2,9 +2,10 @@
 
 // Note: currently hardcoded to only render objects using PBRObjectsPSO
 
-#include <directxmath.h>
-#include <d3d12.h>
-#include <d3dx12.h>
+#include "d3d12.h"
+#include "d3dx12_pipeline_state_stream.h"
+#include <DirectXMath.h>
+#include <memory>
 #include <wrl/client.h>
 
 using namespace DirectX;

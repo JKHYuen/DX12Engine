@@ -1,14 +1,19 @@
 #include "BloomEffect.h"
-#include "DX12EngineCore/Device.h"
-#include "DX12EngineCore/Texture.h"
-#include "DX12EngineCore/RenderTarget.h"
-#include "DX12EngineCore/CommandList.h"
 #include "BloomPSO.h"
-#include "EditorGui.h"
 #include "Colors.h"
-#include "Logger.h"
+#include "EditorGui.h"
 
+#include "DX12EngineCore/CommandList.h"
+#include "DX12EngineCore/Device.h"
+#include "DX12EngineCore/RenderTarget.h"
+#include "DX12EngineCore/Texture.h"
+
+#include "d3d12.h"
+#include "d3dx12_core.h"
+#include <cstdint>
+#include <DirectXMath.h>
 #include <format>
+#include <memory>
 
 BloomEffect::BloomEffect(Device& device, const RenderTarget& screenRenderTarget, BloomPSO* pso, int maxIterations, float intensity, float threshold, float softThreshold, XMFLOAT4 colorMultiply, EditorGui::ImGuiDebugSRVIndex debugID) :
 	m_TextureFormat     { screenRenderTarget.GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0] },

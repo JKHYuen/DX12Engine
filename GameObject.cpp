@@ -1,31 +1,24 @@
 #include "GameObject.h"
 
-#if defined(min)
-#undef min
-#endif
-#if defined(max)
-#undef max
-#endif
 #include "DX12EngineCore/CommandList.h"
-#include "DX12EngineCore/ShaderResourceView.h"
 #include "DX12EngineCore/Mesh.h"
 
-#include "PBRObjectPSO.h"
-#include "UnlitPSO.h"
-#include "UnlitPrimitivePSO.h"
-#include "Skybox.h"
-#include "DirectionalLight.h"
-#include "Camera.h"
-#include "Scene.h"
-#include "Events.h"
 #include "AssetImporter.h"
+#include "Camera.h"
+#include "DirectionalLight.h"
+#include "Events.h"
+#include "PBRObjectPSO.h"
+#include "Scene.h"
+#include "Skybox.h"
+#include "UnlitPrimitivePSO.h"
+#include "UnlitPSO.h"
 
-#include "Logger.h"
-
+#include "d3d12.h"
+#include <array>
+#include <cmath>
 #include <DirectXMath.h>
-#include <format>
-#include <algorithm>
-#include <limits>
+#include <memory>
+#include <string>
 
 using namespace DirectX;
 
@@ -90,9 +83,9 @@ void GameObject::UpdateIBLShaderResources(const Scene& scene) {
 }
 
 /// TODO: load from file with meshFileName
-GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params, const RenderProps& renderProps, const std::wstring& meshFilePath) {
-
-}
+//GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params, const RenderProps& renderProps, const std::wstring& meshFilePath) {
+//
+//}
 
 void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, bool b_WireframeRender) {
 	// Frustum check is only done here, other render functions rely on b_RenderThisFrame.

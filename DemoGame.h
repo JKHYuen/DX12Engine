@@ -10,10 +10,15 @@
 #include "Events.h"
 #include "Scene.h"
 
+#include "d3d12.h"
+#include "d3dx12_core.h"
+#include "dxgiformat.h"
+
 #include <memory>
 #include <format>
-#include <wrl/client.h>
-#include <DirectXMath.h>
+#include <cstdint>
+#include <string>
+#include <vector>
 
 class CommandList;
 class RootSignature;
@@ -29,6 +34,7 @@ class BloomPSO;
 class BloomEffect;
 class OutlineEffect;
 class ImageBasedLightingPSO;
+class TonemapPSO;
 class ShaderResourceView;
 
 class DemoGame : public IGame {
@@ -104,14 +110,13 @@ private:
     std::unique_ptr<UnlitPrimitivePSO> m_UnlitPrimitive_PSO;
     std::unique_ptr<ImageBasedLightingPSO> m_IBL_PSO;
     std::unique_ptr<BloomPSO> m_Bloom_PSO;
+    std::unique_ptr<TonemapPSO> m_Tonemap_PSO;
     ///
 
     std::unique_ptr<BloomEffect> m_BloomEffect;
     std::unique_ptr<OutlineEffect> m_OutlineEffect;
 
     std::shared_ptr<RootSignature> m_PostProcessRootSignature;
-    Microsoft::WRL::ComPtr<ID3D12PipelineState> m_TonemapPSO;
-    Microsoft::WRL::ComPtr<ID3D12PipelineState> m_PostprocessPSO;
 
     D3D12_RECT m_DefaultScissorRect;
 

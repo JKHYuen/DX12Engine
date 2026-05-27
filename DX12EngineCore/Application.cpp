@@ -1,17 +1,11 @@
 #include <DX12LibPCH.h>
 #include "Application.h"
 
-#include <iostream>
 #include <comdef.h>
-#include <fcntl.h>
-#include <io.h>
 
-#include "CommandQueue.h"
-#include "DescriptorAllocator.h"
 #include "Window.h"
 
 #include "imgui.h"
-#include "imgui_impl_win32.h"
 
 namespace {
     Application* sp_Singleton = nullptr;
@@ -98,7 +92,7 @@ void Application::Destroy() {
     }
 }
 
-std::shared_ptr<Window> Application::CreateRenderWindow(const std::wstring& windowName, int clientWidth, int clientHeight, IGame& game) {
+std::shared_ptr<Window> Application::CreateRenderWindow(const std::wstring& windowName, int clientWidth, int clientHeight, IGame& game) const {
     int screenWidth = ::GetSystemMetrics(SM_CXSCREEN);
     int screenHeight = ::GetSystemMetrics(SM_CYSCREEN);
 
@@ -143,7 +137,7 @@ int32_t Application::Run() {
 
     // Initialize Raw Input (Mouse only)
     {
-        RAWINPUTDEVICE Rid[1];
+        RAWINPUTDEVICE Rid[1] {};
         Rid[0].usUsagePage = 0x01;          // HID_USAGE_PAGE_GENERIC
         Rid[0].usUsage = 0x02;              // HID_USAGE_GENERIC_MOUSE
 
@@ -196,11 +190,11 @@ void Application::LockCursorToClientArea(HWND hwnd, bool state) {
     RECT rect {};
     GetClientRect(hwnd, &rect);
 
-    POINT ul;
+    POINT ul {};
     ul.x = rect.left;
     ul.y = rect.top;
 
-    POINT lr;
+    POINT lr {};
     lr.x = rect.right;
     lr.y = rect.bottom;
 
@@ -399,7 +393,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
             float zDelta = ((int)(short)HIWORD(wParam)) / (float)WHEEL_DELTA;
 
             // Convert the screen coordinates to client coordinates.
-            POINT clientToScreenPoint;
+            POINT clientToScreenPoint {};
             clientToScreenPoint.x = x;
             clientToScreenPoint.y = y;
             ScreenToClient(hwnd, &clientToScreenPoint);

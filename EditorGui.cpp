@@ -1,35 +1,31 @@
 #include "EditorGui.h"
-
-#if defined(min)
-#undef min
-#endif
-
-#if defined(max)
-#undef max
-#endif
+#include <DX12LibPCH.h>
 
 #include "DX12EngineCore/Application.h"
-#include "DX12EngineCore/Device.h"
-#include "DX12EngineCore/CommandQueue.h"
 #include "DX12EngineCore/CommandList.h"
+#include "DX12EngineCore/CommandQueue.h"
+#include "DX12EngineCore/Device.h"
 #include "DX12EngineCore/Resource.h"
 
+#include "DirectionalLight.h"
 #include "GameObject.h"
+#include "Picker.h"
 #include "Scene.h"
+#include "Skybox.h"
 #include "StringHelpers.h"
 
 #include "imgui.h"
-#include "implot.h"
-#include "imgui_impl_win32.h"
 #include "imgui_impl_dx12.h"
+#include "imgui_impl_win32.h"
+#include "implot.h"
 
-#include "Logger.h"
 // Game specific
-#include "DemoGame.h"
 #include "BloomEffect.h"
+#include "DemoGame.h"
+#include "dxgiformat.h"
 #include "OutlineEffect.h"
-
-#include <wrl/client.h>
+#include <dxgi1_4.h>
+#include <dxgi1_6.h>
 
 namespace {
 	EditorGui* sp_Singleton = nullptr;

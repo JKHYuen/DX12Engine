@@ -1,0 +1,500 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\cpp projects\\DX12Engine\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\DirectionalLight.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:DirectionalLight.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\DX12EngineCore\\CommandList.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:DX12EngineCore\\CommandList.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\DemoGame.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:DemoGame.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\DemoGame.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:DemoGame.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\GameObject.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:GameObject.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\Skybox.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:Skybox.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\Scene.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:Scene.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\Picker.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:Picker.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\PBRObjectPSO.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:PBRObjectPSO.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\EditorGui.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:EditorGui.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\include\\DX12LibPCH.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:include\\DX12LibPCH.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\include\\DX12LibPCH.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:include\\DX12LibPCH.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\Skybox.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:Skybox.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\Picker.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:Picker.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\DirectionalLight.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:DirectionalLight.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\PBRObjectPSO.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:PBRObjectPSO.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\include\\Events.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:include\\Events.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\GameObject.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:GameObject.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\Scene.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:Scene.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\OutlineEffect.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:OutlineEffect.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\EditorGui.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:EditorGui.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\INCLUDE\\DIRECTX\\DXGICOMMON.H||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:INCLUDE\\DIRECTX\\DXGICOMMON.H||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\TonemapPSO.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:TonemapPSO.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\TonemapPSO.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:TonemapPSO.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\DX12EngineCore\\Application.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:DX12EngineCore\\Application.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|C:\\cpp projects\\DX12Engine\\AssetImporter.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{BDBFB177-9CE5-4D1B-B686-75734531EA1C}|DX12Engine.vcxproj|solutionrelative:AssetImporter.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 168,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 282,
+          "SelectedChildIndex": 17,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "EditorGui.cpp",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\EditorGui.cpp",
+              "RelativeDocumentMoniker": "EditorGui.cpp",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\EditorGui.cpp",
+              "RelativeToolTip": "EditorGui.cpp",
+              "ViewState": "AgIAADgAAAAAAAAAAIAywE0AAAAGAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2026-05-22T03:41:50.849Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 20,
+              "Title": "EditorGui.h",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\EditorGui.h",
+              "RelativeDocumentMoniker": "EditorGui.h",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\EditorGui.h",
+              "RelativeToolTip": "EditorGui.h",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABQAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-05-22T03:41:49.079Z",
+              "IsPinned": true
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 23,
+              "Title": "TonemapPSO.h",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\TonemapPSO.h",
+              "RelativeDocumentMoniker": "TonemapPSO.h",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\TonemapPSO.h",
+              "RelativeToolTip": "TonemapPSO.h",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-05-27T00:39:59.58Z",
+              "IsPinned": true
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 22,
+              "Title": "TonemapPSO.cpp",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\TonemapPSO.cpp",
+              "RelativeDocumentMoniker": "TonemapPSO.cpp",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\TonemapPSO.cpp",
+              "RelativeToolTip": "TonemapPSO.cpp",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAuwAwAAAApAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2026-05-27T00:40:50.208Z",
+              "IsPinned": true
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 18,
+              "Title": "Scene.cpp",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\Scene.cpp",
+              "RelativeDocumentMoniker": "Scene.cpp",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\Scene.cpp",
+              "RelativeToolTip": "Scene.cpp",
+              "ViewState": "AgIAAGoAAAAAAAAAAAAAAH4AAABBAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2026-05-22T03:32:43.605Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:129:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{75188d03-9892-4ae2-abf1-207126247ce5}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:133:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:131:0:{13b12e3e-c1b4-4539-9371-4fe9a0d523fc}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:136:0:{13b12e3e-c1b4-4539-9371-4fe9a0d523fc}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:130:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:129:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{13b12e3e-c1b4-4539-9371-4fe9a0d523fc}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:132:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "DX12LibPCH.h",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\include\\DX12LibPCH.h",
+              "RelativeDocumentMoniker": "include\\DX12LibPCH.h",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\include\\DX12LibPCH.h",
+              "RelativeToolTip": "include\\DX12LibPCH.h",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-05-27T03:07:36.361Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "DX12LibPCH.cpp",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\include\\DX12LibPCH.cpp",
+              "RelativeDocumentMoniker": "include\\DX12LibPCH.cpp",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\include\\DX12LibPCH.cpp",
+              "RelativeToolTip": "include\\DX12LibPCH.cpp",
+              "ViewState": "AgIAAAIAAAAAAAAAAAAuwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2026-05-27T03:07:32.847Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "DirectionalLight.cpp",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\DirectionalLight.cpp",
+              "RelativeDocumentMoniker": "DirectionalLight.cpp",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\DirectionalLight.cpp",
+              "RelativeToolTip": "DirectionalLight.cpp",
+              "ViewState": "AgIAAAMAAAAAAAAAAAA+wBYAAAAXAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2026-05-27T03:03:41.753Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "Picker.h",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\Picker.h",
+              "RelativeDocumentMoniker": "Picker.h",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\Picker.h",
+              "RelativeToolTip": "Picker.h",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-05-27T02:53:03.854Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "Picker.cpp",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\Picker.cpp",
+              "RelativeDocumentMoniker": "Picker.cpp",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\Picker.cpp",
+              "RelativeToolTip": "Picker.cpp",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAAYAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2026-05-27T02:53:05.186Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "CommandList.h",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\DX12EngineCore\\CommandList.h",
+              "RelativeDocumentMoniker": "DX12EngineCore\\CommandList.h",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\DX12EngineCore\\CommandList.h",
+              "RelativeToolTip": "DX12EngineCore\\CommandList.h",
+              "ViewState": "AgIAAIoBAAAAAAAAAIAywFACAAANAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-05-27T02:52:56.577Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "Events.h",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\include\\Events.h",
+              "RelativeDocumentMoniker": "include\\Events.h",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\include\\Events.h",
+              "RelativeToolTip": "include\\Events.h",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-05-27T02:52:52.009Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "DirectionalLight.h",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\DirectionalLight.h",
+              "RelativeDocumentMoniker": "DirectionalLight.h",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\DirectionalLight.h",
+              "RelativeToolTip": "DirectionalLight.h",
+              "ViewState": "AgIAAA4AAAAAAAAAAAAUwAYAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-05-27T02:52:45.987Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 19,
+              "Title": "OutlineEffect.cpp",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\OutlineEffect.cpp",
+              "RelativeDocumentMoniker": "OutlineEffect.cpp",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\OutlineEffect.cpp",
+              "RelativeToolTip": "OutlineEffect.cpp",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAuwAgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2026-05-27T02:46:18.651Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 21,
+              "Title": "dxgicommon.h",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\include\\directx\\dxgicommon.h",
+              "RelativeDocumentMoniker": "include\\directx\\dxgicommon.h",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\include\\directx\\dxgicommon.h",
+              "RelativeToolTip": "include\\directx\\dxgicommon.h",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-05-27T02:45:27.203Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "Skybox.h",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\Skybox.h",
+              "RelativeDocumentMoniker": "Skybox.h",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\Skybox.h",
+              "RelativeToolTip": "Skybox.h",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACkAAAAiAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-05-27T02:29:53.351Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "Skybox.cpp",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\Skybox.cpp",
+              "RelativeDocumentMoniker": "Skybox.cpp",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\Skybox.cpp",
+              "RelativeToolTip": "Skybox.cpp",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABEAAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2026-05-27T02:29:45.133Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "PBRObjectPSO.cpp",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\PBRObjectPSO.cpp",
+              "RelativeDocumentMoniker": "PBRObjectPSO.cpp",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\PBRObjectPSO.cpp",
+              "RelativeToolTip": "PBRObjectPSO.cpp",
+              "ViewState": "AgIAAAMAAAAAAAAAAMBAwBAAAAAXAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2026-05-27T02:26:43.807Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "PBRObjectPSO.h",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\PBRObjectPSO.h",
+              "RelativeDocumentMoniker": "PBRObjectPSO.h",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\PBRObjectPSO.h",
+              "RelativeToolTip": "PBRObjectPSO.h",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-05-27T02:26:41.668Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 17,
+              "Title": "GameObject.h",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\GameObject.h",
+              "RelativeDocumentMoniker": "GameObject.h",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\GameObject.h",
+              "RelativeToolTip": "GameObject.h",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-05-27T02:20:58.383Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "GameObject.cpp",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\GameObject.cpp",
+              "RelativeDocumentMoniker": "GameObject.cpp",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\GameObject.cpp",
+              "RelativeToolTip": "GameObject.cpp",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAuwBMAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2026-05-27T02:13:59.567Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "Scene.h",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\Scene.h",
+              "RelativeDocumentMoniker": "Scene.h",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\Scene.h",
+              "RelativeToolTip": "Scene.h",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAuwAUAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-05-27T02:07:10.991Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 25,
+              "Title": "AssetImporter.h",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\AssetImporter.h",
+              "RelativeDocumentMoniker": "AssetImporter.h",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\AssetImporter.h",
+              "RelativeToolTip": "AssetImporter.h",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAARAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-05-27T02:01:41.694Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 24,
+              "Title": "Application.h",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\DX12EngineCore\\Application.h",
+              "RelativeDocumentMoniker": "DX12EngineCore\\Application.h",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\DX12EngineCore\\Application.h",
+              "RelativeToolTip": "DX12EngineCore\\Application.h",
+              "ViewState": "AgIAAB0AAAAAAAAAAAAhwC8AAAATAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-05-27T02:00:25.461Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "DemoGame.cpp",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\DemoGame.cpp",
+              "RelativeDocumentMoniker": "DemoGame.cpp",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\DemoGame.cpp",
+              "RelativeToolTip": "DemoGame.cpp",
+              "ViewState": "AgIAAB4AAAAAAAAAAAAAACoAAAAiAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2026-05-27T01:59:04.191Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "DemoGame.h",
+              "DocumentMoniker": "C:\\cpp projects\\DX12Engine\\DemoGame.h",
+              "RelativeDocumentMoniker": "DemoGame.h",
+              "ToolTip": "C:\\cpp projects\\DX12Engine\\DemoGame.h",
+              "RelativeToolTip": "DemoGame.h",
+              "ViewState": "AgIAAFwAAAAAAAAAAAAhwHAAAAAZAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2026-05-27T01:58:48.083Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

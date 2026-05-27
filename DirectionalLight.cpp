@@ -1,20 +1,27 @@
 #include "DirectionalLight.h"
 
-#include "DX12EngineCore/ShaderResourceView.h"
-#include "DX12EngineCore/RootSignature.h"
-#include "DX12EngineCore/Texture.h"
-#include "DX12EngineCore/RenderTarget.h"
 #include "DX12EngineCore/CommandList.h"
 #include "DX12EngineCore/Device.h"
 #include "DX12EngineCore/Mesh.h"
+#include "DX12EngineCore/RenderTarget.h"
+#include "DX12EngineCore/RootSignature.h"
+#include "DX12EngineCore/Texture.h"
 
-#include "PBRObjectPSO.h"
-#include "EditorGui.h"
 #include "AssetImporter.h"
-#include "Helpers.h"
+#include "EditorGui.h"
+#include "PBRObjectPSO.h"
 
-#include <wrl/client.h>
+#include "d3d12.h"
+#include "d3dcommon.h"
+#include "d3dx12_core.h"
+#include "d3dx12_default.h"
+#include "d3dx12_pipeline_state_stream.h"
+#include "dxgiformat.h"
 #include <cmath>
+#include <DirectXMath.h>
+#include <memory>
+#include <minwinbase.h>
+#include <wrl/client.h>
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -39,7 +46,7 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
         DXGI_FORMAT_D32_FLOAT, params.shadowMapResolution, params.shadowMapResolution, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
     );
 
-    D3D12_CLEAR_VALUE depthClearValue;
+    D3D12_CLEAR_VALUE depthClearValue {};
     depthClearValue.Format = DXGI_FORMAT_D32_FLOAT;
     depthClearValue.DepthStencil = { 1.0f, 0 };
 

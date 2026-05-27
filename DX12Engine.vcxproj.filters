@@ -198,6 +198,9 @@
     <ClCompile Include="AssetImporter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="TonemapPSO.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Helpers.h">
@@ -410,6 +413,9 @@
     <ClInclude Include="include\DirectXTex.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TonemapPSO.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shaders\PBR_VS.hlsl" />
@@ -420,7 +426,6 @@
     <FxCompile Include="shaders\Skybox_VS.hlsl" />
     <FxCompile Include="shaders\Tonemap_PS.hlsl" />
     <FxCompile Include="shaders\ScreenRender_VS.hlsl" />
-    <FxCompile Include="shaders\Postprocess_PS.hlsl" />
     <FxCompile Include="shaders\IntegrateBRDF_PS.hlsl" />
     <FxCompile Include="shaders\PreFilterCubeMap_PS.hlsl" />
     <FxCompile Include="shaders\ConvoluteCubeMap_PS.hlsl" />

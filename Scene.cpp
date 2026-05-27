@@ -2,21 +2,27 @@
 
 #include "DX12EngineCore/CommandList.h"
 #include "DX12EngineCore/Device.h"
-#include "DX12EngineCore/RenderTarget.h"
 #include "DX12EngineCore/IGame.h"
+#include "DX12EngineCore/RenderTarget.h"
 
-#include "DirectionalLight.h"
-#include "Skybox.h"
-#include "UnlitPSO.h"
-#include "UnlitPrimitivePSO.h"
-#include "ImGui.h"
-#include "Picker.h"
-#include "Logger.h"
-#include "EditorGui.h"
-#include "Colors.h"
 #include "AssetImporter.h"
+#include "Colors.h"
+#include "d3d12.h"
+#include "DirectionalLight.h"
+#include "EditorGui.h"
+#include "Events.h"
+#include "GameObject.h"
+#include "ImGui.h"
+#include "KeyCodes.h"
+#include "Picker.h"
+#include "Skybox.h"
+#include "UnlitPrimitivePSO.h"
 
+#include <cstdint>
+#include <DirectXMath.h>
+#include <DirectXMathVector.inl>
 #include <filesystem>
+#include <memory>
 
 Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const DirectionalLight::DirectionalLightParams& dirLightParams, const Skybox::SkyboxParams& skyboxParams, const IGame& game)
 	: m_DirectionalLight(device, dirLightParams)
@@ -117,6 +123,8 @@ void Scene::RenderBoundingBoxes(const RenderTarget& outputRT, CommandList& direc
 
 uint32_t Scene::GetWindowWidth() const { return m_Game.GetWindowWidth(); }
 uint32_t Scene::GetWindowHeight() const { return m_Game.GetWindowHeight(); }
+
+Picker* const Scene::GetPicker() const { return m_Picker.get(); }
 
 void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 	// Gameobject raycast picking for object inspector GUI, gameobjects are outlined if picked

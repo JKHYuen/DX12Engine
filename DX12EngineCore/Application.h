@@ -39,12 +39,6 @@
 
 /// NOTE: Cursor visibility is currently solely controlled by ImGui, not ideal but works for now
 
-#include "DescriptorAllocation.h"
-
-#include <d3d12.h>
-#include <dxgi1_6.h>
-#include <wrl/client.h>
-
 #include <memory>
 #include <string>
 
@@ -87,7 +81,7 @@ public:
      * @param clientHeight The height (in pixels) of the window's client area.
      * @returns The created window instance.
      */
-    std::shared_ptr<Window> CreateRenderWindow(const std::wstring& windowName, int clientWidth, int clientHeight, IGame& game);
+    std::shared_ptr<Window> CreateRenderWindow(const std::wstring& windowName, int clientWidth, int clientHeight, IGame& game) const;
 
     /**
      * Get a window by name.

@@ -2,10 +2,11 @@
 
 #include "CommandList.h"
 
-#include "Device.h"
 #include "ByteAddressBuffer.h"
-#include "ConstantBuffer.h"
 #include "CommandQueue.h"
+#include "ConstantBuffer.h"
+#include "ConstantBufferView.h"
+#include "Device.h"
 #include "DynamicDescriptorHeap.h"
 #include "GenerateMipsPSO.h"
 #include "IndexBuffer.h"
@@ -15,13 +16,12 @@
 #include "Resource.h"
 #include "ResourceStateTracker.h"
 #include "RootSignature.h"
+#include "ShaderResourceView.h"
 #include "StructuredBuffer.h"
 #include "Texture.h"
+#include "UnorderedAccessView.h"
 #include "UploadBuffer.h"
 #include "VertexBuffer.h"
-#include "ShaderResourceView.h"
-#include "UnorderedAccessView.h"
-#include "ConstantBufferView.h"
 
 namespace {
 	// Hash names for primitive meshes created by functions for ms_MeshCache
@@ -38,7 +38,7 @@ CommandList::CommandList(Device& device, D3D12_COMMAND_LIST_TYPE type)
 
 	// Create SRV (static var) used to pad unused texture slots
 	if(CommandList::s_NullSRV == nullptr) {
-		D3D12_SHADER_RESOURCE_VIEW_DESC defaultSRVDesc;
+		D3D12_SHADER_RESOURCE_VIEW_DESC defaultSRVDesc {};
 		defaultSRVDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		defaultSRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 		defaultSRVDesc.Texture2D.MostDetailedMip = 0;
@@ -472,7 +472,7 @@ void CommandList::GenerateMips_UAV(const std::shared_ptr<Texture>& texture, bool
 
 	m_GenerateMipsPSO->SetPipelineState(*this);
 
-	GenerateMipsCB generateMipsCB;
+	GenerateMipsCB generateMipsCB {};
 	generateMipsCB.IsSRGB = isSRGB;
 
 	auto resource = texture->GetD3D12Resource();
@@ -602,7 +602,7 @@ void CommandList::PanoToCubemapCompute(const std::shared_ptr<Texture>& cubemapTe
 
 	m_PanoToCubemapPSO->SetPipelineState(*this);
 
-	PanoToCubemapCB panoToCubemapCB;
+	PanoToCubemapCB panoToCubemapCB {};
 
 	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
 	uavDesc.Format = Texture::GetUAVCompatableFormat(cubemapDesc.Format);

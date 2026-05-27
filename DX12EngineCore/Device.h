@@ -37,6 +37,15 @@
 
 #include "Helpers.h"
 #include "DescriptorAllocator.h"
+#include <d3d12.h>
+#include <dxgicommon.h>
+#include <dxgiformat.h>
+#include <dxgi1_4.h>
+#include <combaseapi.h>
+#include <Windows.h>
+#include <cstdint>
+#include <memory>
+#include <string>
 
 class CommandQueue;
 class DescriptorAllocation;
@@ -137,6 +146,5 @@ private:
     std::unique_ptr<DescriptorAllocator> m_DescriptorAllocators[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 
     D3D_ROOT_SIGNATURE_VERSION m_HighestRootSignatureVersion;
-
 };
 

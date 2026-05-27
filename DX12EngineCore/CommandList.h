@@ -37,11 +37,10 @@
 #include <d3d12.h>
 #include <wrl/client.h>
 
-#include <functional>  // For std::function
-#include <map>         // for std::map
-#include <memory>      // for std::unique_ptr
-#include <mutex>       // for std::mutex
-#include <vector>      // for std::vector
+#include <unordered_map>
+#include <memory>      
+#include <mutex>     
+#include <vector>      
 
 class Buffer;
 class ByteAddressBuffer;

@@ -3,8 +3,8 @@
 // This class manages/creates all pipeline states related to Bloom effect
 
 #include <DirectXMath.h>
-#include <wrl/client.h>
 #include <memory>
+#include <wrl/client.h>
 
 using namespace Microsoft::WRL;
 using namespace DirectX;
@@ -13,6 +13,7 @@ class Device;
 class RenderTarget;
 class RootSignature;
 class CommandList;
+struct ID3D12PipelineState;
 
 class BloomPSO {
 public:

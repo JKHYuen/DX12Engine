@@ -3,8 +3,8 @@
 // This class manages and creates all PSOs used for image based lighting - currently just static lighting calculated from skybox as cubemaps
 
 #include <d3d12.h>
-#include <wrl/client.h>
 #include <memory>
+#include <wrl/client.h>
 
 using namespace Microsoft::WRL;
 

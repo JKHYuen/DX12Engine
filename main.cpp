@@ -1,22 +1,14 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#include <Shlwapi.h>
 
-// For CommandLineToArgvW
-//#include <shellapi.h>
-
-#include "DX12EngineCore/Application.h"
-#include "DX12EngineCore/Device.h"
-#include "DemoGame.h"
-#include "Logger.h"
 #include "AssetImporter.h"
+#include "DemoGame.h"
+#include "DX12EngineCore/Application.h"
 #include "Helpers.h"
+#include "Logger.h"
 
+#include <dxgi1_3.h>
 #include <dxgidebug.h>
-#include <iostream>
-#include <filesystem>
-
-namespace fs = std::filesystem;
 
 int CALLBACK wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ PWSTR lpCmdLine, _In_ int nCmdShow) {
     int retCode = 0;

@@ -1,10 +1,19 @@
-#include "DX12EngineCore/RenderTarget.h"
-#include "DX12EngineCore/Device.h"
-#include "DX12EngineCore/RootSignature.h"
-#include "DX12EngineCore/CommandList.h"
-
 #include "BloomPSO.h"
+
+#include "DX12EngineCore/CommandList.h"
+#include "DX12EngineCore/Device.h"
+#include "DX12EngineCore/RenderTarget.h"
+#include "DX12EngineCore/RootSignature.h"
+
 #include "AssetImporter.h"
+#include "d3d12.h"
+#include "d3dcommon.h"
+#include "d3dx12_core.h"
+#include "d3dx12_default.h"
+#include "d3dx12_pipeline_state_stream.h"
+#include "d3dx12_root_signature.h"
+
+#include <memory>
 
 BloomPSO::BloomPSO(Device& device, const RenderTarget& renderTarget) {
 	// Bloom pipeline state

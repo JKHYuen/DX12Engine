@@ -4,11 +4,9 @@
 // This and other "PSO" classes are ad hoc for the PBR pipeline and a more generalized implementation will be needed in the future.
 
 #include <d3d12.h>
-#include <DirectXMath.h>
-#include <wrl/client.h>
 #include <memory>
+#include <wrl/client.h>
 
-using namespace DirectX;
 using namespace Microsoft::WRL;
 
 class Device;

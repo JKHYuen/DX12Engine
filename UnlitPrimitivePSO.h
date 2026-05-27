@@ -4,11 +4,9 @@
 // Using the PBR pipeline root sig for now since Unlit_PS uses existing cb to change color
 
 #include <d3d12.h>
-#include <DirectXMath.h>
-#include <wrl/client.h>
 #include <memory>
+#include <wrl/client.h>
 
-using namespace DirectX;
 using namespace Microsoft::WRL;
 
 class Device;

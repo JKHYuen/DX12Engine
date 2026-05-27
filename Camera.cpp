@@ -1,6 +1,7 @@
 #include "Camera.h"
-#include "Logger.h"
 #include <DirectXCollision.h>
+#include <malloc.h>
+#include <DirectXMath.h>
 
 using namespace DirectX;
 

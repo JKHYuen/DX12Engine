@@ -7,9 +7,6 @@
 
 #include <algorithm>
 #include <DirectXMath.h>
-#include <DirectXMathConvert.inl>
-#include <DirectXMathMatrix.inl>
-#include <DirectXMathVector.inl>
 #include <utility>
 
 using namespace DirectX;

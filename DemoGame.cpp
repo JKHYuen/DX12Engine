@@ -17,6 +17,7 @@
 #include "d3d12.h"
 #include "d3dx12_core.h"
 #include "DirectionalLight.h"
+#include "dxgiformat.h"
 #include "EditorGui.h"
 #include "Events.h"
 #include "GameObject.h"
@@ -97,7 +98,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	EditorGui::Initialize(*m_Device, sk_HDRFormat, SwapChain::sk_BufferCount, m_Window->GetWindowHandle());
 
 	// Create screen RenderTargets
-	m_PostProcessRTs = std::make_unique<PostProcessRenderTargets>(*m_Device, sk_HDRFormat, windowWidth, windowHeight);
+	m_PostProcessRTs = std::make_unique<PostprocessRenderTargets>(*m_Device, sk_HDRFormat, windowWidth, windowHeight);
 	m_HDR_MSAA_RT = std::make_unique<RenderTarget>();
 
 	/// TODO: Tweakable MSAA
@@ -360,36 +361,44 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 	// Perform HDR rendering to multisampled render target
 	m_DemoScene->Render(*m_HDR_MSAA_RT, *directCommandList, e);
 
+	/// Clear Intermediate Post Process RTs
+	directCommandList->ClearTexture(m_PostProcessRTs->RTs[0].GetTexture(AttachmentPoint::Color0), Colors::DebugMagenta);
+	directCommandList->ClearTexture(m_PostProcessRTs->RTs[1].GetTexture(AttachmentPoint::Color0), Colors::DebugMagenta);
+
 	/// MSAA resolve
-	auto& swapChainRT = m_SwapChain->GetRenderTarget();
 	// Resolve the MSAA render target to the swapchain's backbuffer
 	directCommandList->ResolveSubresource(
 		m_PostProcessRTs->RTs[0].GetTexture(AttachmentPoint::Color0),
 		m_HDR_MSAA_RT->GetTexture(AttachmentPoint::Color0)
 	);
 
-	/// Post Processing
+	/// Post Processing / UI
 	{
-		directCommandList->ClearTexture(m_PostProcessRTs->RTs[1].GetTexture(AttachmentPoint::Color0), Colors::DebugMagenta);
+		// Bloom pass
 		m_BloomEffect->Render(*directCommandList, m_PostProcessRTs->RTs[0], m_PostProcessRTs->RTs[1]);
 		
-		/// TODO: come up with something less silly, we need some more logic in PostProcessRenderTargets
+		// Gameobject Outline Effect (if any)
+		/// TODO: come up with something less silly, we might need some more logic in PostProcessRenderTargets
 		RenderTarget* nextInputPostProcessRT = &m_PostProcessRTs->RTs[1];
 		if(m_OutlineEffect->Render(*directCommandList, e, *m_DemoScene, m_PostProcessRTs->RTs[1], m_PostProcessRTs->RTs[0])) {
 			nextInputPostProcessRT = &m_PostProcessRTs->RTs[0];
 		};
-
+		
+		// Render AABB visualization (if any)
 		m_DemoScene->RenderBoundingBoxes(*nextInputPostProcessRT, *directCommandList, e, m_UnlitPrimitive_PSO.get());
 
-		/// TODO: move this to a tonemapping PSO class
 		// Tonemapping
-		m_Tonemap_PSO->SetPipelineState(*directCommandList);
-		directCommandList->SetViewport(swapChainRT.GetViewport());
-		directCommandList->SetRenderTarget(swapChainRT);
+		{
+			m_Tonemap_PSO->SetPipelineState(*directCommandList);
 
-		directCommandList->SetShaderResourceView(0, 0, nextInputPostProcessRT->GetTexture(AttachmentPoint::Color0), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		// non indexed full screen render (see ScreenRender vertex shader)
-		directCommandList->Draw(3);
+			auto& swapChainRT = m_SwapChain->GetRenderTarget();
+			directCommandList->SetViewport(swapChainRT.GetViewport());
+			directCommandList->SetRenderTarget(swapChainRT);
+
+			directCommandList->SetShaderResourceView(0, 0, nextInputPostProcessRT->GetTexture(AttachmentPoint::Color0), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			// non indexed full screen render (see ScreenRender vertex shader)
+			directCommandList->Draw(3);
+		}
 	}
 
 	/// Draw ImGui

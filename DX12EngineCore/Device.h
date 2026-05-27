@@ -32,8 +32,8 @@
 
 // Removed adapter patterns from Jeremiah's version - KHY
 
-#include <dxgi1_6.h>
-#include <wrl/client.h>
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 
 #include "Helpers.h"
 #include "DescriptorAllocator.h"
@@ -42,10 +42,11 @@
 #include <dxgiformat.h>
 #include <dxgi1_4.h>
 #include <combaseapi.h>
-#include <Windows.h>
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <dxgi1_6.h>
+#include <wrl/client.h>
 
 class CommandQueue;
 class DescriptorAllocation;

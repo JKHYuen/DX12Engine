@@ -1,22 +1,28 @@
 #include "AssetImporter.h"
 
+#include "d3dx12_core.h"
+#include "Helpers.h"
 #include "Logger.h"
 #include "StringHelpers.h"
-#include "Helpers.h"
-#include "d3dx12_core.h"
 
-#include "DX12EngineCore/VertexInput.h"
 #include "DX12EngineCore/CommandList.h"
 #include "DX12EngineCore/Mesh.h"
-
-#include <d3dcompiler.h>
-#include <unordered_map>    
-#include <string>    
-#include <filesystem>
+#include "DX12EngineCore/VertexInput.h"
 
 #include <assimp/Importer.hpp>    
-#include <assimp/scene.h>           
 #include <assimp/postprocess.h>  
+#include <assimp/scene.h>           
+
+#include <cassert>
+#include <d3dcompiler.h>
+#include <exception>
+#include <filesystem>
+#include <memory>
+#include <mutex>
+#include <string>    
+#include <unordered_map>    
+#include <vector>
+#include <wrl/client.h>
 
 using namespace DirectX;
 namespace fs = std::filesystem;

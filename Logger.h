@@ -1,10 +1,11 @@
 // Static logger class using WinAPI console for convenience
 #pragma once
 
-#include <iostream>
 #include <format>
-
+#include <iostream>
 #include <DirectXMath.h>
+#include <string>
+#include <string_view>
 
 class Logger {
 public:

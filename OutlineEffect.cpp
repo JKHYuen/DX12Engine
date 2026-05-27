@@ -1,14 +1,23 @@
 #include "BloomEffect.h"
+
 #include "DX12EngineCore/CommandList.h"
 #include "DX12EngineCore/RenderTarget.h"
 #include "DX12EngineCore/Texture.h"
+
+#include "Colors.h"
+#include "d3d12.h"
+#include "d3dx12_core.h"
+#include "EditorGui.h"
+#include "Events.h"
 #include "GameObject.h"
 #include "OutlineEffect.h"
 #include "Picker.h"
+#include "Scene.h"
 #include "UnlitPSO.h"
 
-#include "Colors.h"
-#include "Scene.h"
+#include <cstdint>
+#include <DirectXMath.h>
+#include <memory>
 
 OutlineEffect::OutlineEffect(Device& device, const RenderTarget& screenRenderTarget, UnlitPSO* outlinePSO, BloomPSO* bloomPSO)
 	: m_UnlitPSO(outlinePSO)

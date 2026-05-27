@@ -12,7 +12,9 @@
 #include "DX12EngineCore/Texture.h"
 
 #include "d3d12.h"
+#include "d3dx12_core.h"
 #include "dxgiformat.h"
+
 #include <cmath>
 #include <DirectXMath.h>
 #include <DirectXMathConvert.inl>

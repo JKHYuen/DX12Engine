@@ -66,9 +66,8 @@ private:
     // An array of 2 render targets used to chain post processing effects.
     // This is needed because post processing effects often need to read and write to the same textures,
     // this adds a buffer so it is allowed by DX
-    struct PostProcessRenderTargets {
-        PostProcessRenderTargets() = default;
-        PostProcessRenderTargets(Device& device, DXGI_FORMAT colorFormat, uint32_t width, uint32_t height) {
+    struct PostprocessRenderTargets {
+        PostprocessRenderTargets(Device& device, DXGI_FORMAT colorFormat, uint32_t width, uint32_t height) {
             auto textureDesc = CD3DX12_RESOURCE_DESC::Tex2D(
                 colorFormat, width, height, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
             );
@@ -97,7 +96,7 @@ private:
         RenderTarget RTs[2] {};
     };
 
-    std::unique_ptr<PostProcessRenderTargets> m_PostProcessRTs;
+    std::unique_ptr<PostprocessRenderTargets> m_PostProcessRTs;
     std::unique_ptr<RenderTarget> m_HDR_MSAA_RT;
 
     std::shared_ptr<Device>    m_Device;

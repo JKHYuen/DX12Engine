@@ -1,4 +1,5 @@
 #include "EditorGui.h"
+
 #include <DX12LibPCH.h>
 
 #include "DX12EngineCore/Application.h"
@@ -22,10 +23,7 @@
 // Game specific
 #include "BloomEffect.h"
 #include "DemoGame.h"
-#include "dxgiformat.h"
 #include "OutlineEffect.h"
-#include <dxgi1_4.h>
-#include <dxgi1_6.h>
 
 namespace {
 	EditorGui* sp_Singleton = nullptr;

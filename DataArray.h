@@ -24,6 +24,7 @@
 #include <vector>
 #include <unordered_set>
 #include <mutex>
+#include <cstdint>
 
 template<class T>
 class DataArray {

@@ -3,12 +3,17 @@
 #include "DX12EngineCore/Commandlist.h"
 #include "DX12EngineCore/Device.h"
 #include "DX12EngineCore/RootSignature.h"
+#include "DX12EngineCore/VertexInput.h"
 
-#include "Helpers.h"
 #include "AssetImporter.h"
+#include "d3d12.h"
+#include "d3dcommon.h"
+#include "d3dx12_core.h"
+#include "d3dx12_default.h"
+#include "d3dx12_pipeline_state_stream.h"
 #include "PBRObjectPSO.h"
 
-#include <d3dx12.h>
+#include <memory>
 #include <wrl/client.h>
 
 using namespace DirectX;

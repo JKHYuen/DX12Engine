@@ -79,7 +79,7 @@ namespace {
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> s_D3DSrvDescHeap {};
 
 	// Stores all created GuiDescriptorAllocations created by "AllocateImageSRV()". Indices are enum "GuiSRVIndex".
-	std::vector<EditorGui::GuiDescriptorAllocation> s_ImageSRVs { EditorGui::GuiSRVIndex::NumGuiSRVIndex };
+	std::vector<EditorGui::GuiDescriptorAllocation> s_ImageSRVs { EditorGui::ImGuiDebugSRVIndex::NumGuiSRVIndex };
 
 	void ImGuiHDRColorEdit3Preview(std::string_view s, float col[3], ImGuiColorEditFlags flags) {
 		ImGui::SameLine();
@@ -224,7 +224,7 @@ void EditorGui::Destroy() {
 	}
 }
 
-void EditorGui::RegisterImageSRV(Device& device, const std::shared_ptr<Resource>& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* srvDesc, GuiSRVIndex srvIndex) {
+void EditorGui::RegisterImageSRV(Device& device, const std::shared_ptr<Resource>& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* srvDesc, ImGuiDebugSRVIndex srvIndex) {
 	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle {};
 	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle {};
 	s_D3DSrvDescHeapAllocator.Alloc(&cpuHandle, &gpuHandle);
@@ -242,7 +242,7 @@ void EditorGui::FreeImageSRV(EditorGui::GuiDescriptorAllocation alloc) {
 	s_D3DSrvDescHeapAllocator.Free(alloc.cpuHandle, alloc.gpuHandle);
 }
 
-EditorGui::GuiDescriptorAllocation EditorGui::GetImageSRVAllocation(GuiSRVIndex srvIndex) const {
+EditorGui::GuiDescriptorAllocation EditorGui::GetImageSRVAllocation(ImGuiDebugSRVIndex srvIndex) const {
 	return s_ImageSRVs[srvIndex];
 }
 
@@ -513,7 +513,7 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 
 					// Directional shadow map debug view
 					ImGui::ImageWithBg(
-						(ImTextureID)GetImageSRVAllocation(EditorGui::GuiSRVIndex::DirectionalShadowMap).gpuHandle.ptr,
+						(ImTextureID)GetImageSRVAllocation(EditorGui::ImGuiDebugSRVIndex::DirectionalShadowMap).gpuHandle.ptr,
 						imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
 					);
 					ImGui::TreePop();
@@ -540,7 +540,7 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 				ImVec2 imageSize = ImVec2(1920.0f * imageScale, 1080.0f * imageScale);
 
 				ImGui::ImageWithBg(
-					(ImTextureID)GetImageSRVAllocation(EditorGui::GuiSRVIndex::BloomPrefilter).gpuHandle.ptr,
+					(ImTextureID)GetImageSRVAllocation(EditorGui::ImGuiDebugSRVIndex::BloomPrefilter).gpuHandle.ptr,
 					imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
 				);
 				ImGui::TreePop();

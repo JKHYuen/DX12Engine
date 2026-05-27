@@ -4,7 +4,9 @@
 
 #include <vector>
 #include <DirectXMath.h>
+
 #include "DX12EngineCore/RenderTarget.h"
+#include "EditorGui.h"
 
 using namespace DirectX;
 
@@ -17,7 +19,7 @@ class BloomEffect {
 	friend class EditorGui;
 
 public:
-	BloomEffect(Device& device, const RenderTarget& screenRenderTarget, BloomPSO* pso, int maxIterations = 16, float intensity = 0.5f, float threshold = 80.0f, float softThreshold = 0.9f, XMFLOAT4 colorMultiply = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+	BloomEffect(Device& device, const RenderTarget& screenRenderTarget, BloomPSO* pso, int maxIterations = 16, float intensity = 0.5f, float threshold = 80.0f, float softThreshold = 0.9f, XMFLOAT4 colorMultiply = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), EditorGui::ImGuiDebugSRVIndex debugID = EditorGui::ImGuiDebugSRVIndex::BloomPrefilter);
 
 	// "blendRenderTarget" is an optional render target if we want a texture other than inputRenderTarget to be blended with on the last render pass.
 	// (Last render pass uses outputRenderTarget as render target and adds m_SamplingRenderTargets[0] and blendRenderTarget/inputRenderTarget together with intensity multiplier to apply bloom)
@@ -32,6 +34,8 @@ private:
 	float m_Threshold;
 	float m_SoftThreshold;
 	XMFLOAT4 m_ColorMultiply;
+	
+	EditorGui::ImGuiDebugSRVIndex m_DebugID;
 
 	// Creates new render target at index idx in m_SamplingRenderTargets, SRV and RTV created as well
 	void CreateSamplingRenderTarget(size_t idx, uint32_t textureWidth, uint32_t textureHeight);
@@ -45,7 +49,8 @@ private:
 	BloomPSO* m_PSO;
 
 	DXGI_FORMAT m_TextureFormat;
-	D3D12_SHADER_RESOURCE_VIEW_DESC m_SRVDesc {}; // Same SRV desc for all textures in the bloom pass
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC m_DefaultSRVDesc {}; // Same SRV desc for all textures in the bloom pass
 
 	// Max number of iterations (resolution halved iteration)
 	int m_MaxIterationCount;

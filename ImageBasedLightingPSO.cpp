@@ -118,6 +118,8 @@ ImageBasedLightingPSO::ImageBasedLightingPSO(Device& device, const RenderTarget&
 }
 
 void ImageBasedLightingPSO::SetPipelineState(CommandList& directCommandList, IBLRenderType renderType) const {
+	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
 	switch(renderType) {
 	case Skybox:
 		directCommandList.SetPipelineState(m_SkyboxPSO);

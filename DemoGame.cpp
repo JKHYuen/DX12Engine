@@ -132,7 +132,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	}
 
 	/// Create PSOs 
-	/// TODO:(this should be managed somewhere else)
+	/// TODO: this should be managed somewhere else
 	m_PBR_PSO = std::make_unique<PBRObjectPSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RT->GetRenderTargetFormats(), sk_DepthStencilBufferFormat);
 	m_IBL_PSO = std::make_unique<ImageBasedLightingPSO>(*m_Device, *m_HDR_MSAA_RT);
 
@@ -141,7 +141,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	m_UnlitPrimitive_PSO = std::make_unique<UnlitPrimitivePSO>(*m_Device, m_HDR_MSAA_RT->GetRenderTargetFormats(), m_PBR_PSO.get()->GetRootSignature());
 	///
 
-	m_BloomEffect = std::make_unique<BloomEffect>(*m_Device, *m_HDR_MSAA_RT, m_Bloom_PSO.get());
+	m_BloomEffect = std::make_unique<BloomEffect>(*m_Device, *m_HDR_MSAA_RT, m_Bloom_PSO.get(), 16, 0.5f, 80.0f, 0.9f, XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), EditorGui::ImGuiDebugSRVIndex::BloomPrefilter);
 	m_OutlineEffect = std::make_unique<OutlineEffect>(*m_Device, *m_HDR_MSAA_RT, m_Unlit_PSO.get(), m_Bloom_PSO.get());
 
 	auto& copyCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
@@ -203,9 +203,9 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 
 			/// STRESS TEST
 			//const int s = 5;
-			//for(int i = 0; i < 10; i++) {
-			//	for(int j = 0; j < 10; j++) {
-			//		for(int k = 0; k < 10; k++) {
+			//for(int i = 0; i < 20; i++) {
+			//	for(int j = 0; j < 20; j++) {
+			//		for(int k = 0; k < 20; k++) {
 			//			goParams.translation = XMFLOAT3(s * i, s * j, s * k);
 			//			m_DemoScene->AddGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetCubePrimitive());
 			//			
@@ -338,7 +338,7 @@ void DemoGame::OnResize(const ResizeEventArgs& e) {
 	m_PostProcessRTs->Resize(m_WindowWidth, m_WindowHeight);
 
 	m_BloomEffect->ResizeRenderTargets(m_WindowWidth, m_WindowHeight);
-	m_OutlineEffect->Resize(m_WindowWidth, m_WindowHeight);
+	m_OutlineEffect->ResizeRenderTargets(m_WindowWidth, m_WindowHeight);
 }
 
 void DemoGame::OnUpdate(const UpdateEventArgs& e) {

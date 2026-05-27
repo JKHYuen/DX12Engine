@@ -10,7 +10,7 @@
 
 #include <format>
 
-BloomEffect::BloomEffect(Device& device, const RenderTarget& screenRenderTarget, BloomPSO* pso, int maxIterations, float intensity, float threshold, float softThreshold, XMFLOAT4 colorMultiply) :
+BloomEffect::BloomEffect(Device& device, const RenderTarget& screenRenderTarget, BloomPSO* pso, int maxIterations, float intensity, float threshold, float softThreshold, XMFLOAT4 colorMultiply, EditorGui::ImGuiDebugSRVIndex debugID) :
 	m_TextureFormat     { screenRenderTarget.GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0] },
 	m_MaxIterationCount { maxIterations },
 	m_IterationCount    { maxIterations },
@@ -19,17 +19,18 @@ BloomEffect::BloomEffect(Device& device, const RenderTarget& screenRenderTarget,
 	m_SoftThreshold     { softThreshold },
 	m_ColorMultiply     { colorMultiply },
 	m_PSO               { pso },
-	m_Device            { device }
+	m_Device            { device },
+	m_DebugID           { debugID }
 {
 	uint32_t textureWidth  = screenRenderTarget.GetTexture(AttachmentPoint::Color0)->GetWidth();
 	uint32_t textureHeight = screenRenderTarget.GetTexture(AttachmentPoint::Color0)->GetHeight();
 
-	// Initialize SRV
-	m_SRVDesc.Format = m_TextureFormat;
-	m_SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	m_SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	m_SRVDesc.Texture2D.MostDetailedMip = 0;
-	m_SRVDesc.Texture2D.MipLevels = 1;
+	// Initialize default SRV for all bloom effect textures
+	m_DefaultSRVDesc.Format = m_TextureFormat;
+	m_DefaultSRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	m_DefaultSRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	m_DefaultSRVDesc.Texture2D.MostDetailedMip = 0;
+	m_DefaultSRVDesc.Texture2D.MipLevels = 1;
 
 	// Create render targets
 	{
@@ -48,9 +49,8 @@ BloomEffect::BloomEffect(Device& device, const RenderTarget& screenRenderTarget,
 		}
 	}
 
-	/// TODO: this doesn't work for multiple instances of bloom (currently using BloomEffect for outlining as well)
 	// Create Debug SRV
-	EditorGui::Get().RegisterImageSRV(device, m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0), &m_SRVDesc, EditorGui::GuiSRVIndex::BloomPrefilter);
+	EditorGui::Get().RegisterImageSRV(device, m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0), &m_DefaultSRVDesc, m_DebugID);
 }
 
 void BloomEffect::CreateSamplingRenderTarget(size_t idx, uint32_t textureWidth, uint32_t textureHeight) {
@@ -63,7 +63,7 @@ void BloomEffect::CreateSamplingRenderTarget(size_t idx, uint32_t textureWidth, 
 	samplingTexture->SetName(std::format(L"Bloom Sample Texture {}", idx));
 	m_SamplingRenderTargets[idx].AttachTexture(AttachmentPoint::Color0, samplingTexture);
 
-	samplingTexture->CreateShaderResourceView(m_SRVDesc);
+	samplingTexture->CreateShaderResourceView(m_DefaultSRVDesc);
 }
 
 void BloomEffect::Render(CommandList& directCommandList, const RenderTarget& inputRenderTarget, const RenderTarget& outputRenderTarget, const RenderTarget* blendRenderTarget, bool b_MaskOutInput) {
@@ -87,7 +87,6 @@ void BloomEffect::Render(CommandList& directCommandList, const RenderTarget& inp
 	directCommandList.ClearTexture(m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0), Colors::DebugMagenta);
 	directCommandList.SetRenderTarget(m_SamplingRenderTargets[0]);
 	directCommandList.SetViewport(m_SamplingRenderTargets[0].GetViewport());
-	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	directCommandList.Draw(3);
 
@@ -181,6 +180,6 @@ void BloomEffect::ResizeRenderTargets(uint32_t width, uint32_t height) {
 		}
 	}
 
-	EditorGui::Get().RegisterImageSRV(m_Device, m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0), &m_SRVDesc, EditorGui::GuiSRVIndex::BloomPrefilter);
+	EditorGui::Get().RegisterImageSRV(m_Device, m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0), &m_DefaultSRVDesc, m_DebugID);
 }
 

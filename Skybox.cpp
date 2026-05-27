@@ -139,8 +139,6 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, CommandList& comput
 }
 
 void Skybox::Render(CommandList& directCommandList, const Camera& camera) {
-	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
 	auto viewMatrix = XMMatrixTranspose(XMMatrixRotationQuaternion(camera.Get_Rotation()));
 	auto projMatrix = camera.Get_ProjectionMatrix();
 	auto viewProjMatrix = viewMatrix * projMatrix;
@@ -164,7 +162,6 @@ void Skybox::ComputeIBLMaps(CommandList& directCommandList) {
 		directCommandList.ClearTexture(m_BRDF_LUT_RT->GetTexture(AttachmentPoint::Color0), Colors::DebugMagenta);
 		directCommandList.SetRenderTarget(*m_BRDF_LUT_RT);
 		directCommandList.SetViewport(m_BRDF_LUT_RT->GetViewport());
-		directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 		directCommandList.Draw(3);
 	}

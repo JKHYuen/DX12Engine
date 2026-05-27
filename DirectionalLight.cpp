@@ -59,7 +59,7 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
         srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
         shadowMapDepthTexture->CreateShaderResourceView(srvDesc);
 
-        EditorGui::Get().RegisterImageSRV(device, shadowMapDepthTexture, &srvDesc, EditorGui::GuiSRVIndex::DirectionalShadowMap);
+        EditorGui::Get().RegisterImageSRV(device, shadowMapDepthTexture, &srvDesc, EditorGui::ImGuiDebugSRVIndex::DirectionalShadowMap);
     }
 
     struct ShadowDepthPipelineStateStream {
@@ -138,6 +138,7 @@ void DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget(CommandList& d
 
     directCommandList.SetPipelineState(m_DepthRenderPSO);
     directCommandList.SetGraphicsRootSignature(m_ObjectRootSignature);
+    directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 }
 
 void DirectionalLight::RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, PBRVertexProps vertexProps, const PBRTessellationProps& tessProps) const {

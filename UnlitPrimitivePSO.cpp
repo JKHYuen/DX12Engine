@@ -49,11 +49,13 @@ UnlitPrimitivePSO::UnlitPrimitivePSO(Device& device, D3D12_RT_FORMAT_ARRAY rtvFo
 void UnlitPrimitivePSO::SetPipelineState(CommandList& directCommandList) const {
 	directCommandList.SetPipelineState(m_PipelineState);
 	directCommandList.SetGraphicsRootSignature(m_ObjectRootSignature);
+	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
 void UnlitPrimitivePSO::SetWireframePipelineState(CommandList& directCommandList) const {
 	directCommandList.SetPipelineState(m_WireframePipelineState);
 	directCommandList.SetGraphicsRootSignature(m_ObjectRootSignature);
+	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
 void UnlitPrimitivePSO::UpdateResources(CommandList& directCommandList, const PBRVertexProps& vertexProps) const {

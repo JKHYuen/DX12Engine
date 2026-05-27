@@ -20,7 +20,7 @@ public:
 
 	bool Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, const RenderTarget& blendRenderTarget, const RenderTarget& outputRenderTarget);
 
-	void Resize(uint32_t width, uint32_t height);
+	void ResizeRenderTargets(uint32_t width, uint32_t height);
 
 private:
 	std::unique_ptr<BloomEffect> m_BloomEffect;

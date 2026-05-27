@@ -35,7 +35,7 @@ GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params,
 	, m_RenderProps(renderProps)
 	, b_RenderThisFrame(true)
 {
-	// Don't use setters (e.g. SetTranslation()), this ensures AABB is initialized properly / avoids unneccesary calcs
+	// Don't use setters (e.g. SetTranslation()) to initialize, this ensures AABB is initialized properly / avoids unneccesary calcs
 	m_Scale = params.scale;
 	XMStoreFloat4x4(&m_ScaleMat, XMMatrixScaling(params.scale.x, params.scale.y, params.scale.z));
 	m_EulerRotation = params.radianEulerRotation;
@@ -105,8 +105,6 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 
 	b_RenderThisFrame = true;
 
-	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
-	
 	if(b_WireframeRender)
 		m_RenderProps.pbrPSO->SetWireframePipelineState(directCommandList);
 	else
@@ -179,8 +177,6 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 
 // Only used for outline effect
 void GameObject::RenderSilhouette(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPSO* unlitPSO, XMFLOAT4 color) {
-	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
-
 	// Set all but MaterialTex to null SRVs (we need MaterialTex for height map)
 	for(int i = 0; i < PBRObjectPSO::TextureIndex::NumTextures; i++) {
 		if(i != PBRObjectPSO::TextureIndex::MaterialTex) {
@@ -202,16 +198,20 @@ void GameObject::RenderSilhouette(CommandList& directCommandList, const UpdateEv
 
 void GameObject::RenderBoundingBox(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPrimitivePSO* unlitPrimitivePSO, const Scene& scene, XMFLOAT4 color) {
 	if(!b_RenderThisFrame) return;
-	
-	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	// Set all textures to null SRVs
 	for(int i = 0; i < PBRObjectPSO::TextureIndex::NumTextures; i++) {
 		directCommandList.SetNullShaderResourceView(PBRObjectPSO::PBRRootParameters::Textures, i);
 	}
 
-	XMMATRIX SRT = XMMatrixScaling(2.0f * m_AABB.Extents.x, 2.0f * m_AABB.Extents.y, 2.0f * m_AABB.Extents.z) * XMMatrixIdentity() * XMMatrixTranslation(m_AABB.Center.x, m_AABB.Center.y, m_AABB.Center.z);
-	XMStoreFloat4x4(&m_PBRVertexCB.MVP, SRT * scene.m_MainCamera.Get_ViewMatrix() * scene.m_MainCamera.Get_ProjectionMatrix());
+	XMMATRIX SRT = XMMatrixMultiply(
+		XMMatrixScaling(2.0f * m_AABB.Extents.x, 2.0f * m_AABB.Extents.y, 2.0f * m_AABB.Extents.z),
+		XMMatrixTranslation(m_AABB.Center.x, m_AABB.Center.y, m_AABB.Center.z)
+	);
+	XMStoreFloat4x4(&m_PBRVertexCB.MVP, XMMatrixMultiply(
+		XMMatrixMultiply(SRT, scene.m_MainCamera.Get_ViewMatrix()), 
+		scene.m_MainCamera.Get_ProjectionMatrix())
+	);
 
 	m_PBRVertexCB.color = color;
 
@@ -223,11 +223,10 @@ void GameObject::RenderBoundingBox(CommandList& directCommandList, const UpdateE
 // assume we are in right rendering pipeline (see DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget)
 void GameObject::RenderToDirectionalShadowMap(CommandList& directCommandList, const DirectionalLight& directionalLight) {
 	// Need a smarter shadow cull than just tying it to object frustum culling, shadows will cull in camera
+	// will revisit after CSM is implemented
 	//if(!b_RenderThisFrame) return;
 
 	if(!m_RenderProps.isShadowCaster) return;
-
-	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 
 	// Set all but MaterialTex to null SRVs (we need MaterialTex for height map)
 	for(int i = 0; i < PBRObjectPSO::TextureIndex::NumTextures; i++) {

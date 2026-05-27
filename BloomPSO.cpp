@@ -91,9 +91,11 @@ BloomPSO::BloomPSO(Device& device, const RenderTarget& renderTarget) {
 void BloomPSO::SetPipelineState(CommandList& directCommandList) const {
 	directCommandList.SetPipelineState(m_BloomPSO);
 	directCommandList.SetGraphicsRootSignature(m_RootSignature);
+	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
 void BloomPSO::SetAdditivePipelineState(CommandList& directCommandList) const {
 	directCommandList.SetPipelineState(m_BloomAdditivePSO);
 	directCommandList.SetGraphicsRootSignature(m_RootSignature);
+	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }

@@ -28,11 +28,13 @@ public:
 	};
 
 	// This must be manually added to for every type of texture that is shown on debug GUI.
-	// Do this instead of using hardcoded strings, so we don't have to memorize them in the future
+	// Doing this instead of using hardcoded strings, so it's better documented.
 	// (Good enough for now)
-	enum GuiSRVIndex {
+	enum ImGuiDebugSRVIndex {
+		None, // "Null" value to give this enum a default value, useful if storing these enums
 		DirectionalShadowMap,
 		BloomPrefilter,
+		OutlineBloomPrefilter,
 
 		NumGuiSRVIndex
 	};
@@ -72,9 +74,9 @@ public:
 
 	// Allocate to internal descriptor heap SRV with s_D3DSrvDescHeapAllocator
 	// Use this to allocate a SRV to be displayed on ImGui
-	void RegisterImageSRV(Device& device, const std::shared_ptr<Resource>& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* srvDesc, GuiSRVIndex srvIndex);
+	void RegisterImageSRV(Device& device, const std::shared_ptr<Resource>& resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* srvDesc, ImGuiDebugSRVIndex srvIndex);
 	void FreeImageSRV(GuiDescriptorAllocation alloc);
-	GuiDescriptorAllocation GetImageSRVAllocation(GuiSRVIndex index) const;
+	GuiDescriptorAllocation GetImageSRVAllocation(ImGuiDebugSRVIndex index) const;
 
 	// Different "IGame"'s will need to write different versions of this function.
 	// For game switching support, this function probably has to exist elsewhere.

@@ -40,10 +40,12 @@ OutlineEffect::OutlineEffect(Device& device, const RenderTarget& screenRenderTar
 		outlineTexture->CreateShaderResourceView(srvDesc);
 	}
 	
-	m_BloomEffect = std::make_unique<BloomEffect>(device, screenRenderTarget, bloomPSO, 2, 1.0f, 1.0f, 1.5f, XMFLOAT4 { 15.0f, 10.0f, 0.0f, 1.0f });
+	// Note: starting outline color is hardcoded here, can be modified with in app GUI after initialization
+	XMFLOAT4 defaultOutlineColor { 15.0f, 10.0f, 0.0f, 1.0f }; // HDR yellow color
+	m_BloomEffect = std::make_unique<BloomEffect>(device, screenRenderTarget, bloomPSO, 2, 1.0f, 1.0f, 1.5f, defaultOutlineColor, EditorGui::OutlineBloomPrefilter);
 }
 
-void OutlineEffect::Resize(uint32_t width, uint32_t height) {
+void OutlineEffect::ResizeRenderTargets(uint32_t width, uint32_t height) {
 	m_BloomEffect->ResizeRenderTargets(width, height);
 	m_OutlineSilhouetteRT->Resize(width, height);
 }
@@ -64,7 +66,7 @@ bool OutlineEffect::Render(CommandList& directCommandList, const UpdateEventArgs
 	// Note: unlit color has to be white, outline color added in bloom stage
 	outlineObject->RenderSilhouette(directCommandList, e, m_UnlitPSO, XMFLOAT4(1.0, 1.0, 1.0, 1.0));
 
-	// Bloom (blur) silhoutte
+	// Bloom (blur) rendered silhoutte
 	m_BloomEffect->Render(directCommandList, *m_OutlineSilhouetteRT, outputRenderTarget, & blendRenderTarget, true);
 
 	return true;

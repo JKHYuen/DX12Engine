@@ -53,6 +53,7 @@ UnlitPSO::UnlitPSO(Device& device, D3D12_RT_FORMAT_ARRAY rtvFormats, std::shared
 void UnlitPSO::SetPipelineState(CommandList& directCommandList) const {
 	directCommandList.SetPipelineState(m_PipelineState);
 	directCommandList.SetGraphicsRootSignature(m_ObjectRootSignature);
+	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 }
 
 void UnlitPSO::UpdateResources(CommandList& directCommandList, const PBRVertexProps& vertexProps, const PBRTessellationProps& tessProps) const {

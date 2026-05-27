@@ -83,11 +83,13 @@ PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT
 void PBRObjectPSO::SetPipelineState(CommandList& directCommandList) const {
 	directCommandList.SetPipelineState(m_PipelineState);
 	directCommandList.SetGraphicsRootSignature(m_RootSignature);
+	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 }
 
 void PBRObjectPSO::SetWireframePipelineState(CommandList& directCommandList) const {
 	directCommandList.SetPipelineState(m_WireFramePipelineState);
 	directCommandList.SetGraphicsRootSignature(m_RootSignature);
+	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 }
 
 void PBRObjectPSO::UpdateResources(CommandList& directCommandList, const std::vector<std::shared_ptr<Texture>>& pbrTextures, const PBRVertexProps& vertexProps, const PBRTessellationProps& tessProps, const PBRMaterialProps& materialProps, const PBRLightProps& lightProps) {

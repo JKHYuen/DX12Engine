@@ -102,8 +102,8 @@ void Scene::RenderBoundingBoxes(const RenderTarget& outputRT, CommandList& direc
 
 	unlitPrimitivePSO->SetWireframePipelineState(directCommandList);
 	
-	directCommandList.SetViewport(outputRT.GetViewport());
 	directCommandList.SetRenderTarget(outputRT);
+	directCommandList.SetViewport(outputRT.GetViewport());
 	
 	// Bounding box color is hard coded for now
 	constexpr XMFLOAT4 aabbColor = XMFLOAT4(0.1f, 1.0f, 0.1f, 1.0f);

@@ -362,44 +362,48 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 	m_DemoScene->Render(*m_HDR_MSAA_RT, *directCommandList, e);
 
 	/// Resolve the MSAA render target to intermediate render target before post processing
-	// Bug Note: Clearing m_PostProcessRTs->GetInputRT() is probably not necessary here,
-	//		     however, attempting to clearing inputRT here breaks transition barriers for later renders for some reason
-	//           (i.e. RT is stuck in render target state even though SetShaderResourceView() function should be taking care of state transition)
+	// KNOWN BUG: Clearing m_PostProcessRTs->GetInputRT() is probably not necessary here, however,
+	//		      attempting to clearing inputRT here breaks transition barriers for later renders for some reason
+	//            (i.e. RT is stuck in render target state even though SetShaderResourceView() function should be taking care of state transition)
 	directCommandList->ResolveSubresource(
 		m_PostProcessRTs->GetInputRT().GetTexture(AttachmentPoint::Color0),
 		m_HDR_MSAA_RT->GetTexture(AttachmentPoint::Color0)
 	);
 
 	/// Post Processing / UI
-	// Note: m_PostProcessRTs has to be swapped manually in current implementation
+	// Note: 
+	//	- m_PostProcessRTs must be swapped manually to correctly chain post process effects in current implementation
+	//  - Outline effect should not be tonemapped but because we are reusing the bloom post process code (hence we need to use m_PostProcessRTs),
+	//    rendering the outline before post processing is the easiest way to implement for now. 
+	//    Might need to make a separate bloom-like shader/effect to resolve this.
 	{
-		// Clear Intermediate Post Process RTs
+		// Clear Intermediate Post Process RT
 		m_PostProcessRTs->ClearOutputRT(*directCommandList);
 
 		// Bloom pass
 		m_BloomEffect->Render(*directCommandList, m_PostProcessRTs->GetInputRT(), m_PostProcessRTs->GetOutputRT());
 		m_PostProcessRTs->SwapRTs();
 
-		// Game object Outline Effect (if any)
+		// Game object outline effect (if any)
 		if(m_OutlineEffect->Render(*directCommandList, e, *m_DemoScene, m_PostProcessRTs->GetInputRT(), m_PostProcessRTs->GetOutputRT())) {
 			m_PostProcessRTs->SwapRTs();
 		}
-
-		// Render AABB visualization (if any)
-		m_DemoScene->RenderBoundingBoxes(m_PostProcessRTs->GetInputRT(), *directCommandList, e, m_UnlitPrimitive_PSO.get());
 
 		// Tonemapping
 		{
 			m_Tonemap_PSO->SetPipelineState(*directCommandList);
 
-			auto& swapChainRT = m_SwapChain->GetRenderTarget();
-			directCommandList->SetViewport(swapChainRT.GetViewport());
-			directCommandList->SetRenderTarget(swapChainRT);
+			const RenderTarget& swapChainRT = m_SwapChain->GetRenderTarget();
+			directCommandList->SetViewport(m_SwapChain->GetRenderTarget().GetViewport());
+			directCommandList->SetRenderTarget(m_SwapChain->GetRenderTarget());
 
 			directCommandList->SetShaderResourceView(0, 0, m_PostProcessRTs->GetInputRT().GetTexture(AttachmentPoint::Color0), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 			// non indexed full screen render (see ScreenRender vertex shader)
 			directCommandList->Draw(3);
 		}
+
+		// Render AABB visualization (if any)
+		m_DemoScene->RenderBoundingBoxes(m_SwapChain->GetRenderTarget(), *directCommandList, e, m_UnlitPrimitive_PSO.get());
 	}
 
 	/// Draw ImGui

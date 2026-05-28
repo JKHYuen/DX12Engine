@@ -7,6 +7,7 @@
 
 #include "DX12EngineCore/RenderTarget.h"
 #include "EditorGui.h"
+#include <cstdint>
 
 using namespace DirectX;
 
@@ -23,6 +24,7 @@ public:
 
 	// "blendRenderTarget" is an optional render target if we want a texture other than inputRenderTarget to be blended with on the last render pass.
 	// (Last render pass uses outputRenderTarget as render target and adds m_SamplingRenderTargets[0] and blendRenderTarget/inputRenderTarget together with intensity multiplier to apply bloom)
+	// if b_MaskOutInput is true, bloom is only rendered where input alpha is 0 (this is mostly just used for outline effect)
 	void Render(CommandList& directCommandList, const RenderTarget& inputRenderTarget, const RenderTarget& outputRenderTarget, const RenderTarget* blendRenderTarget = nullptr, bool b_MaskOutInput = false);
 
 	void ResizeRenderTargets(uint32_t width, uint32_t height);

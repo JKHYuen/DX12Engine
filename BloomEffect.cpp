@@ -133,16 +133,17 @@ void BloomEffect::Render(CommandList& directCommandList, const RenderTarget& inp
 	bloomProps.useFinalPass = 1.0f;
 	directCommandList.SetGraphicsDynamicConstantBuffer(BloomPSO::BloomRootParameters::BloomCB, bloomProps);
 	directCommandList.SetRenderTarget(outputRenderTarget);
-	directCommandList.SetViewport(outputRenderTarget.GetViewport());
+	directCommandList.SetViewport(inputRenderTarget.GetViewport());
 
 	directCommandList.SetShaderResourceView(BloomPSO::BloomRootParameters::Textures, 0, m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0));
 	directCommandList.SetShaderResourceView(
 		BloomPSO::BloomRootParameters::Textures, 1, 
 		(blendRenderTarget == nullptr) ? 
-			inputRenderTarget.GetTexture(AttachmentPoint::Color0) : blendRenderTarget->GetTexture(AttachmentPoint::Color0),
+		inputRenderTarget.GetTexture(AttachmentPoint::Color0) : blendRenderTarget->GetTexture(AttachmentPoint::Color0),
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
 	);
 
+	// Only really used for outline effect
 	if(b_MaskOutInput) {
 		directCommandList.SetShaderResourceView(BloomPSO::BloomRootParameters::Textures, 2, inputRenderTarget.GetTexture(AttachmentPoint::Color0));
 	}

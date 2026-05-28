@@ -41,6 +41,7 @@
 
 #include <memory>
 #include <string>
+#include <cstdint>
 
 class Window;
 class IGame;
@@ -112,7 +113,7 @@ private:
     // Used to make sure singleton is initialized before running message loop
     std::atomic_bool mb_IsInitialized;
     // Quit() sets this to true, ending message loop
-    std::atomic_bool m_RequestQuit;
+    std::atomic_bool mb_RequestQuit;
 
     bool mb_CursorClientAreaLockState;
 };

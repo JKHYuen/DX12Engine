@@ -75,7 +75,7 @@ bool OutlineEffect::Render(CommandList& directCommandList, const UpdateEventArgs
 	outlineObject->RenderSilhouette(directCommandList, e, m_UnlitPSO, XMFLOAT4(1.0, 1.0, 1.0, 1.0));
 
 	// Bloom (blur) rendered silhoutte
-	m_BloomEffect->Render(directCommandList, *m_OutlineSilhouetteRT, outputRenderTarget, & blendRenderTarget, true);
+	m_BloomEffect->Render(directCommandList, *m_OutlineSilhouetteRT, outputRenderTarget, &blendRenderTarget, true);
 
 	return true;
 }

@@ -20,6 +20,7 @@ class OutlineEffect {
 public:
 	OutlineEffect(Device& device, const RenderTarget& screenRenderTarget, UnlitPSO* outlinePSO, BloomPSO* bloomPSO);
 
+	// blendRenderTarget is prerendered frame, outline is rendered on top of this
 	bool Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, const RenderTarget& blendRenderTarget, const RenderTarget& outputRenderTarget);
 
 	void ResizeRenderTargets(uint32_t width, uint32_t height);

@@ -1,7 +1,7 @@
 #include <DX12LibPCH.h>
 
-#include "Texture.h"
 #include "RenderTarget.h"
+#include "Texture.h"
 
 RenderTarget::RenderTarget()
     : m_Textures(AttachmentPoint::NumAttachmentPoints)

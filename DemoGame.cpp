@@ -13,7 +13,6 @@
 #include "AssetImporter.h"
 #include "BloomEffect.h"
 #include "BloomPSO.h"
-#include "Colors.h"
 #include "d3d12.h"
 #include "d3dx12_core.h"
 #include "DirectionalLight.h"
@@ -26,6 +25,7 @@
 #include "KeyCodes.h"
 #include "OutlineEffect.h"
 #include "PBRObjectPSO.h"
+#include "RenderTargetPair.h"
 #include "Scene.h"
 #include "Skybox.h"
 #include "TonemapPSO.h"
@@ -98,7 +98,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	EditorGui::Initialize(*m_Device, sk_HDRFormat, SwapChain::sk_BufferCount, m_Window->GetWindowHandle());
 
 	// Create screen RenderTargets
-	m_PostProcessRTs = std::make_unique<PostprocessRenderTargets>(*m_Device, sk_HDRFormat, windowWidth, windowHeight);
+	m_PostProcessRTs = std::make_unique<RenderTargetPair>(*m_Device, sk_HDRFormat, windowWidth, windowHeight);
 	m_HDR_MSAA_RT = std::make_unique<RenderTarget>();
 
 	/// TODO: Tweakable MSAA
@@ -361,31 +361,32 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 	// Perform HDR rendering to multisampled render target
 	m_DemoScene->Render(*m_HDR_MSAA_RT, *directCommandList, e);
 
-	/// Clear Intermediate Post Process RTs
-	directCommandList->ClearTexture(m_PostProcessRTs->RTs[0].GetTexture(AttachmentPoint::Color0), Colors::DebugMagenta);
-	directCommandList->ClearTexture(m_PostProcessRTs->RTs[1].GetTexture(AttachmentPoint::Color0), Colors::DebugMagenta);
-
-	/// MSAA resolve
-	// Resolve the MSAA render target to the swapchain's backbuffer
+	/// Resolve the MSAA render target to intermediate render target before post processing
+	// Bug Note: Clearing m_PostProcessRTs->GetInputRT() is probably not necessary here,
+	//		     however, attempting to clearing inputRT here breaks transition barriers for later renders for some reason
+	//           (i.e. RT is stuck in render target state even though SetShaderResourceView() function should be taking care of state transition)
 	directCommandList->ResolveSubresource(
-		m_PostProcessRTs->RTs[0].GetTexture(AttachmentPoint::Color0),
+		m_PostProcessRTs->GetInputRT().GetTexture(AttachmentPoint::Color0),
 		m_HDR_MSAA_RT->GetTexture(AttachmentPoint::Color0)
 	);
 
 	/// Post Processing / UI
+	// Note: m_PostProcessRTs has to be swapped manually in current implementation
 	{
+		// Clear Intermediate Post Process RTs
+		m_PostProcessRTs->ClearOutputRT(*directCommandList);
+
 		// Bloom pass
-		m_BloomEffect->Render(*directCommandList, m_PostProcessRTs->RTs[0], m_PostProcessRTs->RTs[1]);
-		
-		// Gameobject Outline Effect (if any)
-		/// TODO: come up with something less silly, we might need some more logic in PostProcessRenderTargets
-		RenderTarget* nextInputPostProcessRT = &m_PostProcessRTs->RTs[1];
-		if(m_OutlineEffect->Render(*directCommandList, e, *m_DemoScene, m_PostProcessRTs->RTs[1], m_PostProcessRTs->RTs[0])) {
-			nextInputPostProcessRT = &m_PostProcessRTs->RTs[0];
-		};
-		
+		m_BloomEffect->Render(*directCommandList, m_PostProcessRTs->GetInputRT(), m_PostProcessRTs->GetOutputRT());
+		m_PostProcessRTs->SwapRTs();
+
+		// Game object Outline Effect (if any)
+		if(m_OutlineEffect->Render(*directCommandList, e, *m_DemoScene, m_PostProcessRTs->GetInputRT(), m_PostProcessRTs->GetOutputRT())) {
+			m_PostProcessRTs->SwapRTs();
+		}
+
 		// Render AABB visualization (if any)
-		m_DemoScene->RenderBoundingBoxes(*nextInputPostProcessRT, *directCommandList, e, m_UnlitPrimitive_PSO.get());
+		m_DemoScene->RenderBoundingBoxes(m_PostProcessRTs->GetInputRT(), *directCommandList, e, m_UnlitPrimitive_PSO.get());
 
 		// Tonemapping
 		{
@@ -395,7 +396,7 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 			directCommandList->SetViewport(swapChainRT.GetViewport());
 			directCommandList->SetRenderTarget(swapChainRT);
 
-			directCommandList->SetShaderResourceView(0, 0, nextInputPostProcessRT->GetTexture(AttachmentPoint::Color0), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			directCommandList->SetShaderResourceView(0, 0, m_PostProcessRTs->GetInputRT().GetTexture(AttachmentPoint::Color0), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 			// non indexed full screen render (see ScreenRender vertex shader)
 			directCommandList->Draw(3);
 		}

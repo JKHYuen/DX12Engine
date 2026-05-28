@@ -29,7 +29,7 @@ struct MakeWindow : public Window {
 Application::Application(HINSTANCE hInst)
     : m_hInstance(hInst)
     , mb_IsInitialized(false)
-    , m_RequestQuit(false)
+    , mb_RequestQuit(false)
     , mb_CursorClientAreaLockState(false) {
 
     // Windows 10 Creators update adds Per Monitor V2 DPI awareness context.
@@ -157,9 +157,9 @@ int32_t Application::Run() {
         ::DispatchMessage(&msg);
 
         // Quit() sets m_RequestQuit to true
-        if(m_RequestQuit) {
+        if(mb_RequestQuit) {
             ::PostQuitMessage(0);
-            m_RequestQuit = false;
+            mb_RequestQuit = false;
         }
 
         if(msg.message == WM_QUIT) {
@@ -176,7 +176,7 @@ void Application::Quit() {
     // the WM_QUIT message goes to that thread and will not be handled
     // in the main thread. To circumvent this, we also set a boolean flag
     // to indicate that the user has requested to quit the application.
-    m_RequestQuit = true;
+    mb_RequestQuit = true;
 }
 
 void Application::LockCursorToClientArea(HWND hwnd, bool state) {

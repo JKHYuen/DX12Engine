@@ -146,7 +146,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>include\imgui;include\imgui\backends;include;include\directx;include\assimp;$(OutDir)compiled_shaders/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);include\imgui;include\imgui\backends;include;include\directx;include\assimp;$(OutDir)compiled_shaders/</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>DX12LibPCH.h</PrecompiledHeaderFile>
@@ -175,7 +175,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>include\imgui;include\imgui\backends;include;include\directx;include\assimp;$(OutDir)compiled_shaders/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);include\imgui;include\imgui\backends;include;include\directx;include\assimp;$(OutDir)compiled_shaders/</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>DX12LibPCH.h</PrecompiledHeaderFile>
@@ -346,6 +346,7 @@
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="OutlineEffect.cpp" />
+    <ClCompile Include="RenderTargetPair.cpp" />
     <ClCompile Include="TonemapPSO.cpp" />
     <ClCompile Include="UnlitPrimitivePSO.cpp" />
     <ClCompile Include="UnlitPSO.cpp" />
@@ -418,6 +419,7 @@
     <ClInclude Include="include\KeyCodes.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="OutlineEffect.h" />
+    <ClInclude Include="RenderTargetPair.h" />
     <ClInclude Include="TonemapPSO.h" />
     <ClInclude Include="UnlitPrimitivePSO.h" />
     <ClInclude Include="UnlitPSO.h" />

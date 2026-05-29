@@ -8,8 +8,11 @@
 #include "DX12EngineCore/Device.h"
 #include "DX12EngineCore/Resource.h"
 
+#include "BloomEffect.h"
+#include "Camera.h"
 #include "DirectionalLight.h"
 #include "GameObject.h"
+#include "OutlineEffect.h"
 #include "Picker.h"
 #include "Scene.h"
 #include "Skybox.h"
@@ -21,9 +24,7 @@
 #include "implot.h"
 
 // Game specific
-#include "BloomEffect.h"
 #include "DemoGame.h"
-#include "OutlineEffect.h"
 
 namespace {
 	EditorGui* sp_Singleton = nullptr;
@@ -328,6 +329,7 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 			ImGui::TextDisabled("Resolution: %d x %d", game.GetWindowWidth(), game.GetWindowHeight());
 			const DXGI_ADAPTER_DESC3& adapterDesc = device.GetAdapterDesc();
 			ImGui::TextDisabled("%s %d MB", device.GetAdapterName().c_str(), adapterDesc.DedicatedVideoMemory / 1024 / 1024);
+			ImGui::TextDisabled("Shared Memory %d MB", adapterDesc.SharedSystemMemory / 1024 / 1024);
 			DXGI_QUERY_VIDEO_MEMORY_INFO videoMemoryInfo = device.GetVRAMUsed();
 			ImGui::Text("VRAM: %d MB / %d MB", videoMemoryInfo.CurrentUsage / 1024 / 1024, videoMemoryInfo.Budget / 1024 / 1024);
 
@@ -404,9 +406,9 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 			scene.SetAABBRenderMode((Scene::AABBRenderMode)aabbRadioIdx);
 
 			// FOV Slider
-			static float s_FOV = scene.m_MainCamera.Get_FoV();
+			static float s_FOV = scene.GetMainCamera().Get_FoV();
 			if(ImGui::SliderFloat("FOV", &s_FOV, 12.0f, 90.0f)) {
-				scene.m_MainCamera.Set_FoV(s_FOV);
+				scene.GetMainCamera().Set_FoV(s_FOV);
 			}
 		}
 		
@@ -422,30 +424,22 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 						static std::string fileName {};
 						StringConvert::WideString_To_String(s, fileName);
 						if(ImGui::Selectable(fileName.c_str(), s == s_SelectedSkybox)) {
+							// Load new skybox cubemap
 							auto& copyCommandQueue = device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 							auto copyCommandList = copyCommandQueue.GetCommandList();
 							auto& computeCommandQueue = device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE);
 							auto computeCommandList = computeCommandQueue.GetCommandList();
 
-							// Load new skybox cubemap
-							/// TODO: Creates new skybox object every time, do something smarter
-							Skybox::SkyboxParams skyboxParams {
-								s,
-								game.m_IBL_PSO.get()
-							};
-
-							scene.SetSkybox(*copyCommandList, *computeCommandList, skyboxParams);
-
+							scene.SetSkybox(*copyCommandList, *computeCommandList, s);
 							copyCommandQueue.WaitForFenceValue(copyCommandQueue.ExecuteCommandList(copyCommandList));
 							computeCommandQueue.WaitForFenceValue(computeCommandQueue.ExecuteCommandList(computeCommandList));
-							///
 
 							// Render new IBLs
 							auto& directCommandQueue = device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT);
 							auto directCommandList = directCommandQueue.GetCommandList();
 							directCommandList->SetScissorRect(game.m_DefaultScissorRect);
 							scene.ComputeSkyboxIBLs(*directCommandList);
-							directCommandQueue.WaitForFenceValue(directCommandQueue.ExecuteCommandList(directCommandList));
+							directCommandQueue.ExecuteCommandList(directCommandList);
 
 							s_SelectedSkybox = s;
 						};
@@ -506,9 +500,9 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 					ImVec2 imageSize = ImVec2(1920.0f * s_ImageScale, 1080.0f * s_ImageScale);
 
 					// Directional shadow map debug view
-					ImGui::ImageWithBg(
+					ImGui::Image(
 						(ImTextureID)GetImageSRVAllocation(EditorGui::ImGuiDebugSRVIndex::DirectionalShadowMap).gpuHandle.ptr,
-						imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
+						imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f)
 					);
 					ImGui::TreePop();
 				}
@@ -533,9 +527,9 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 				ImGui::SliderFloat("##Bloom Texture Scale", &imageScale, 0.0, 1.0, "%.2fx");
 				ImVec2 imageSize = ImVec2(1920.0f * imageScale, 1080.0f * imageScale);
 
-				ImGui::ImageWithBg(
+				ImGui::Image(
 					(ImTextureID)GetImageSRVAllocation(EditorGui::ImGuiDebugSRVIndex::BloomPrefilter).gpuHandle.ptr,
-					imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(0.0f, 0.0f, 0.0f, 1.0f)
+					imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f)
 				);
 				ImGui::TreePop();
 			}

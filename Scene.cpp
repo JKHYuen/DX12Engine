@@ -6,6 +6,7 @@
 #include "DX12EngineCore/RenderTarget.h"
 
 #include "AssetImporter.h"
+#include "Camera.h"
 #include "Colors.h"
 #include "d3d12.h"
 #include "DirectionalLight.h"
@@ -23,23 +24,23 @@
 #include <DirectXMathVector.inl>
 #include <filesystem>
 #include <memory>
+#include <string>
 
 Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const DirectionalLight::DirectionalLightParams& dirLightParams, const Skybox::SkyboxParams& skyboxParams, const IGame& game)
 	: m_DirectionalLight(device, dirLightParams)
-	// Note: camera starting values are unimportant, they are overriden by OnResize() function in DemoGame on app launch.
-	//       Starting FOV however is determined here, will clean this up later.
-	, m_MainCamera(45.0f, 1.0f, 0.1f, 100.0f)
+
 	, m_Skybox(device, copyCommandList, computeCommandList, skyboxParams)
 	, m_Device(device)
 	, m_Game(game)
 	, m_AABBRenderMode(AABBRenderMode::None)
 {
+	m_MainCamera = std::make_unique<Camera>();
+
 	// arbitrary default camera position
 	XMVECTOR cameraPos    = XMVectorSet(0, 5, -20, 1);
 	XMVECTOR cameraTarget = XMVectorSet(0, 5, 0, 1);
 	XMVECTOR cameraUp     = XMVectorSet(0, 1, 0, 0);
-
-	m_MainCamera.Set_LookAt(cameraPos, cameraTarget, cameraUp);
+	m_MainCamera->Set_LookAt(cameraPos, cameraTarget, cameraUp);
 
 	m_SceneObjects.reserve(sk_MaxSceneObjects);
 
@@ -56,17 +57,12 @@ void Scene::ComputeSkyboxIBLs(CommandList& directCommandList) {
 	m_Skybox.ComputeIBLMaps(directCommandList);
 }
 
-/// TODO: TEMP
-void Scene::SetSkybox(CommandList& copyCommandList, CommandList& computeCommandList, const Skybox::SkyboxParams& skyboxParams) {
-	m_Skybox = Skybox(m_Device, copyCommandList, computeCommandList, skyboxParams);
-	//m_Skybox.SetCubemap(copyCommandList, computeCommandList, skyboxParams.hdrTextureName);
-
-	mb_ChangeSkybox = true;
+void Scene::SetSkybox(CommandList& copyCommandList, CommandList& computeCommandList, const std::wstring& hdrTextureName) {
+	m_Skybox.SetCubemap(m_Device, copyCommandList, computeCommandList, hdrTextureName);
 }
-/// END TEMP
 
 void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e) {
-	m_MainCamera.UpdateFrustum();
+	m_MainCamera->UpdateFrustum();
 
 	// Render depth from directional light
 	m_DirectionalLight.SetShadowDepthPipelineStateAndRenderTarget(directCommandList);
@@ -80,21 +76,13 @@ void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList,
 	directCommandList.SetViewport(outputRT.GetViewport());
 	directCommandList.SetRenderTarget(outputRT);
 
-	m_Skybox.Render(directCommandList, m_MainCamera);
+	m_Skybox.Render(directCommandList, *m_MainCamera);
 
 	// Render scene objects
 	// All game objects use the same PSO/root sig right now
 	for(auto& o : m_SceneObjects) {
-		/// TODO: TEMP
-		if(mb_ChangeSkybox) {
-			o.UpdateIBLShaderResources(*this);
-		}
-
 		o.Render(directCommandList, e, *this, mb_WireframeRender);
 	}
-
-	/// TODO: TEMP
-	mb_ChangeSkybox = false;
 }
 
 void Scene::RenderBoundingBoxes(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e, UnlitPrimitivePSO* unlitPrimitivePSO) {

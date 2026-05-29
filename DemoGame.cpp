@@ -13,6 +13,7 @@
 #include "AssetImporter.h"
 #include "BloomEffect.h"
 #include "BloomPSO.h"
+#include "Camera.h"
 #include "d3d12.h"
 #include "d3dx12_core.h"
 #include "DirectionalLight.h"
@@ -293,7 +294,7 @@ void DemoGame::OnResize(const ResizeEventArgs& e) {
 	m_SwapChain->Resize(m_WindowWidth, m_WindowHeight);
 
 	float aspectRatio = m_WindowWidth / (float)m_WindowHeight;
-	m_DemoScene->m_MainCamera.Set_Projection(m_DemoScene->m_MainCamera.Get_FoV(), aspectRatio, s_ZNear, s_ZFar);
+	m_DemoScene->GetMainCamera().Set_Projection(m_DemoScene->GetMainCamera().Get_FoV(), aspectRatio, s_ZNear, s_ZFar);
 
 	m_HDR_MSAA_RT->Resize(m_WindowWidth, m_WindowHeight);
 
@@ -333,7 +334,7 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 			XMVECTOR cameraTranslation =
 				XMVector3Normalize(XMVECTORF32 { m_Right - m_Left, m_Up - m_Down, m_Forward - m_Backward, 1.0f })
 				* speedMultipler * (float)e.DeltaTime;
-			m_DemoScene->m_MainCamera.Translate(cameraTranslation);
+			m_DemoScene->GetMainCamera().Translate(cameraTranslation);
 		}
 		
 		// Camera ROTATION
@@ -342,7 +343,7 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 		static float s_LastYaw {};
 		if(!(s_LastPitch == m_CameraPitch && s_LastYaw == m_CameraYaw)) {
 			XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(-m_CameraPitch), XMConvertToRadians(-m_CameraYaw), 0.0f);
-			m_DemoScene->m_MainCamera.Set_Rotation(cameraRotation);
+			m_DemoScene->GetMainCamera().Set_Rotation(cameraRotation);
 		}
 		s_LastPitch = m_CameraPitch;
 		s_LastYaw = m_CameraYaw;
@@ -579,8 +580,8 @@ void DemoGame::OnKeyReleased(const KeyEventArgs& e) {
 
 void DemoGame::OnMouseWheel(const MouseWheelEventArgs& e) {
 	if(!EditorGui::Get().GetUIVisibilityState()) {
-		auto fov = m_DemoScene->m_MainCamera.Get_FoV();
+		auto fov = m_DemoScene->GetMainCamera().Get_FoV();
 		fov = std::clamp(fov - e.WheelDelta, s_MinFOV, s_MaxFOV);
-		m_DemoScene->m_MainCamera.Set_FoV(fov);
+		m_DemoScene->GetMainCamera().Set_FoV(fov);
 	}
 }

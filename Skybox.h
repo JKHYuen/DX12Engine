@@ -3,6 +3,8 @@
 #include <string>
 #include <string_view>
 
+#include "d3d12.h"
+
 class Device;
 class RootSignature;
 class Texture;
@@ -23,7 +25,7 @@ public:
 	// Loads "hdrTextureName" from file as skybox
 	Skybox(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const SkyboxParams& params);
 	
-	void SetCubemap(CommandList& copyCommandList, CommandList& computeCommandList, const std::wstring& hdrTextureName);
+	void SetCubemap(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const std::wstring& hdrTextureName);
 
 	// Draw skybox
 	// Note: Render target needs to be set externally
@@ -41,12 +43,17 @@ public:
 private:
 	std::wstring m_SkyboxTextureName;
 
+	D3D12_SHADER_RESOURCE_VIEW_DESC m_CubeMapSRVDesc;
+
 	// PSO owned by DemoGame currently
 	ImageBasedLightingPSO* m_IBL_PSO;
 
 	std::shared_ptr<Mesh> m_SkyboxCubeMesh;
 
-	std::shared_ptr<Texture> m_HDRPanoTexture;
+	std::shared_ptr<Texture> m_HDRPanoFromFileTexture;
+
+	// Function to create m_SkyCubemapTexture, needed when assigning new HDR pano texture
+	void CreateSkyCubemapTexture(Device& device);
 	std::shared_ptr<Texture> m_SkyCubemapTexture;
 
 	std::unique_ptr<RenderTarget> m_IrradianceConvolutionCubemap_RT;

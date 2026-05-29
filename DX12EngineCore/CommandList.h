@@ -31,6 +31,12 @@
   *  The CommandList class provides additional functionality that makes working with
   *  DirectX 12 applications easier.
   */
+
+// KHY:
+// Changed made: 
+//  - Added simple Texture and Mesh cache
+//  - Simplified load texture function
+
 #include "VertexInput.h"
 
 #include <DirectXMath.h>

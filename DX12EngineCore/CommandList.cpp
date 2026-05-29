@@ -22,6 +22,7 @@
 #include "UnorderedAccessView.h"
 #include "UploadBuffer.h"
 #include "VertexBuffer.h"
+#include <Logger.h>
 
 namespace {
 	// Hash names for primitive meshes created by functions for ms_MeshCache
@@ -319,19 +320,8 @@ std::shared_ptr<Texture> CommandList::LoadTextureFromFile(const std::wstring& fi
 			break;
 		}
 
-		Microsoft::WRL::ComPtr<ID3D12Resource> textureResource;
-
-		auto heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-		ThrowIfFailed(m_Device.GetD3D12Device()->CreateCommittedResource(
-			&heapProps, D3D12_HEAP_FLAG_NONE, &textureDesc,
-			D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&textureResource))
-		);
-
-		texture = std::make_shared<Texture>(m_Device, textureResource);
+		texture = std::make_shared<Texture>(m_Device, textureDesc);
 		texture->SetName(filePath);
-
-		// Update the global state tracker.
-		ResourceStateTracker::AddGlobalResourceState(textureResource.Get(), D3D12_RESOURCE_STATE_COMMON);
 
 		std::vector<D3D12_SUBRESOURCE_DATA> subresources(scratchImage.GetImageCount());
 		const Image* pImages = scratchImage.GetImages();
@@ -344,7 +334,7 @@ std::shared_ptr<Texture> CommandList::LoadTextureFromFile(const std::wstring& fi
 
 		CopyTextureSubresource(texture, 0, static_cast<uint32_t>(subresources.size()), subresources.data());
 
-		if(subresources.size() < textureResource->GetDesc().MipLevels) {
+		if(subresources.size() < texture->GetD3D12Resource()->GetDesc().MipLevels) {
 			if(!m_ComputeCommandList) {
 				m_ComputeCommandList = m_Device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE).GetCommandList();
 			}

@@ -1,5 +1,4 @@
 #pragma once
-#include "Camera.h"
 #include "DirectionalLight.h"
 #include "Events.h"
 #include "GameObject.h"
@@ -15,6 +14,7 @@
 #include <string>
 #include <vector>
 
+class Camera;
 class Device;
 class IGame;
 class MouseButtonEventArgs;
@@ -59,9 +59,7 @@ public:
 		m_SceneObjects.emplace_back(std::forward<TArgs>(tArgs)...);
 	}
 
-	/// TODO: test
-	void SetSkybox(CommandList& copyCommandList, CommandList& computeCommandList, const Skybox::SkyboxParams& skyboxParams);
-	/// 
+	void SetSkybox(CommandList& copyCommandList, CommandList& computeCommandList, const std::wstring& hdrTextureName);
 
 	void Render(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e);	
 	void RenderBoundingBoxes(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e, UnlitPrimitivePSO* unlitPrimitivePSO);
@@ -73,11 +71,10 @@ public:
 		m_AABBRenderMode = mode;
 	}
 
-	// keep this public out of convenience for now
-	Camera m_MainCamera;
+	Camera& GetMainCamera() const { return *m_MainCamera; }
 
 private:
-	static const int sk_MaxSceneObjects = 100000;
+	static const int sk_MaxSceneObjects = 65536;
 	/// TODO: Currently no system to validate destoyed objects, smarter storage needed
 	///       Same size objects should at least be grouped together in separate arrays in a real engine
 	std::vector<GameObject> m_SceneObjects;
@@ -90,6 +87,8 @@ private:
 	DirectionalLight m_DirectionalLight;
 	Skybox m_Skybox;
 	
+	std::unique_ptr<Camera> m_MainCamera;
+
 	// Device owned by IGame
 	Device& m_Device;
 
@@ -98,8 +97,5 @@ private:
 	std::unique_ptr<Picker> m_Picker;
 
 	AABBRenderMode m_AABBRenderMode;
-
-	/// TODO: TEMP
-	bool mb_ChangeSkybox = false;
 };
 

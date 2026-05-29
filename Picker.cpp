@@ -77,7 +77,7 @@ GameObject* Picker::MouseRaycast(Scene& scene, int mouseX, int mouseY, int windo
 
 		XMVECTOR origin {};
 		XMVECTOR direction {};
-		GetPickerRayVectors(mouseX, mouseY, windowWidth, windowHeight, scene.m_MainCamera, origin, direction);
+		GetPickerRayVectors(mouseX, mouseY, windowWidth, windowHeight, scene.GetMainCamera(), origin, direction);
 
 		for(GameObject& go : scene.m_SceneObjects) {
 			float hitDistance = 0.0f;

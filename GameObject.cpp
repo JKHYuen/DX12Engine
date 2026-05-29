@@ -91,7 +91,7 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 	// Frustum check is only done here, other render functions rely on b_RenderThisFrame.
 	// This means other render functions may respond a frame late (depending on call order) but we don't need to do frustum check multiple times a frame
 	/// TODO: add bias value (derived from heightMapMagnitude)
-	if(!scene.m_MainCamera.CheckAABBInFrustum(m_AABB, 0.0f)) {
+	if(!scene.GetMainCamera().CheckAABBInFrustum(m_AABB, 0.0f)) {
 		b_RenderThisFrame = false;
 		return;
 	}
@@ -112,8 +112,8 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 		XMStoreFloat4x4(
 			&m_PBRVertexCB.MVP, 
 			XMMatrixMultiply(
-				XMMatrixMultiply(XMLoadFloat4x4(&m_PBRVertexCB.SRT), scene.m_MainCamera.Get_ViewMatrix()),
-				scene.m_MainCamera.Get_ProjectionMatrix()
+				XMMatrixMultiply(XMLoadFloat4x4(&m_PBRVertexCB.SRT), scene.GetMainCamera().Get_ViewMatrix()),
+				scene.GetMainCamera().Get_ProjectionMatrix()
 			)
 		);
 
@@ -128,7 +128,7 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 			)
 		);
 
-		XMStoreFloat4(&m_PBRVertexCB.cameraPosition, scene.m_MainCamera.Get_Translation());
+		XMStoreFloat4(&m_PBRVertexCB.cameraPosition, scene.GetMainCamera().Get_Translation());
 
 		m_PBRVertexCB.uvScale            = m_RenderProps.uvScale;
 		m_PBRVertexCB.heightMapMagnitude = m_RenderProps.heightMapMagnitude;
@@ -137,7 +137,7 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 
 	// Tessellation Props
 	{
-		XMStoreFloat4(&m_TessellationCB.cameraPosition, scene.m_MainCamera.Get_Translation());
+		XMStoreFloat4(&m_TessellationCB.cameraPosition, scene.GetMainCamera().Get_Translation());
 		m_TessellationCB.SRT = m_PBRVertexCB.SRT;
 		/// TODO: only if we want per triangle culling, shader code is also commented out for now
 		//m_TessellationProps.cullingPlanes[4] = ;
@@ -202,8 +202,8 @@ void GameObject::RenderBoundingBox(CommandList& directCommandList, const UpdateE
 		XMMatrixTranslation(m_AABB.Center.x, m_AABB.Center.y, m_AABB.Center.z)
 	);
 	XMStoreFloat4x4(&m_PBRVertexCB.MVP, XMMatrixMultiply(
-		XMMatrixMultiply(SRT, scene.m_MainCamera.Get_ViewMatrix()), 
-		scene.m_MainCamera.Get_ProjectionMatrix())
+		XMMatrixMultiply(SRT, scene.GetMainCamera().Get_ViewMatrix()), 
+		scene.GetMainCamera().Get_ProjectionMatrix())
 	);
 
 	m_PBRVertexCB.color = color;

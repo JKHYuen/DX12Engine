@@ -21,6 +21,7 @@
 #include <DirectXMathMatrix.inl>
 #include <memory>
 #include <string>
+#include <cassert>
 
 using namespace DirectX;
 
@@ -30,6 +31,8 @@ namespace {
 	constexpr int sk_IrradianceMapResolution    = 32;
 	constexpr int sk_FullPrefilterMapResolution = 512;
 	constexpr int sk_PrecomputedBRDFResolution  = 512;
+
+	constexpr DXGI_FORMAT sk_CubemapFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
 
 	constexpr XMFLOAT3 float3_000  {0.0f,   0.0f,  0.0f};
 	constexpr XMFLOAT3 float3_100  {1.0f,   0.0f,  0.0f};
@@ -49,12 +52,6 @@ namespace {
 	};
 }
 
-/// TODO: TEST FUNCTION, UNUSED
-void Skybox::SetCubemap(CommandList& copyCommandList, CommandList& computeCommandList, const std::wstring& hdrTextureName) {
-	m_HDRPanoTexture = copyCommandList.LoadTextureFromFile(AssetImporter::Get().GetAssetPath() / L"cubemaps" / hdrTextureName, true);
-	computeCommandList.PanoToCubemapCompute(m_SkyCubemapTexture, m_HDRPanoTexture);
-}
-
 Skybox::Skybox(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const SkyboxParams& params)
 	: m_IBL_PSO(params.iblPSO)
 	, m_SkyboxTextureName(params.hdrTextureName) {
@@ -63,37 +60,24 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, CommandList& comput
 	m_PrefilterCubemap_RT = std::make_unique<RenderTarget>();
 	m_BRDF_LUT_RT = std::make_unique<RenderTarget>();
 
-	DXGI_FORMAT cubemapFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
-
 	m_SkyboxCubeMesh = copyCommandList.GetCubePrimitive();
-	m_HDRPanoTexture = copyCommandList.LoadTextureFromFile(AssetImporter::Get().GetAssetPath() / L"cubemaps" / m_SkyboxTextureName, true);
+
+	m_CubeMapSRVDesc.Format = sk_CubemapFormat;
+	m_CubeMapSRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	m_CubeMapSRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+	m_CubeMapSRVDesc.TextureCube.MipLevels = -1;
+
+	m_HDRPanoFromFileTexture = copyCommandList.LoadTextureFromFile(AssetImporter::Get().GetAssetPath() / L"cubemaps" / m_SkyboxTextureName, true);
+	CreateSkyCubemapTexture(device);
 
 	// Convert hdr panoramic texture to cubemap
-	auto skyboxCubemapDesc = m_HDRPanoTexture->GetD3D12ResourceDesc();
-	skyboxCubemapDesc.Width = skyboxCubemapDesc.Height = sk_CubeFaceResolution;
-	skyboxCubemapDesc.DepthOrArraySize = 6;
-	skyboxCubemapDesc.MipLevels = sk_CubemapMipLevels;
-	
-	m_SkyCubemapTexture = std::make_shared<Texture>(device, skyboxCubemapDesc, nullptr, false);
-	m_SkyCubemapTexture->SetName(m_SkyboxTextureName + L" Skybox Cubemap");
-
-	// PanoToCubemapCompute function will switch to compute queue when called by a COPY command list
-	computeCommandList.PanoToCubemapCompute(m_SkyCubemapTexture, m_HDRPanoTexture);
-
-	// Create cubemap SRV 
-	D3D12_SHADER_RESOURCE_VIEW_DESC cubeMapSRVDesc = {};
-	cubeMapSRVDesc.Format = skyboxCubemapDesc.Format;
-	cubeMapSRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	cubeMapSRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-	cubeMapSRVDesc.TextureCube.MipLevels = -1;
-
-	m_SkyCubemapTexture->CreateShaderResourceView(cubeMapSRVDesc);
+	computeCommandList.PanoToCubemapCompute(m_SkyCubemapTexture, m_HDRPanoFromFileTexture);
 
 	/// Create Render Textures
 	// Create cubemap render texture for irradiance convolution
 	{
 		auto irradianceCubemapDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-			cubemapFormat, sk_IrradianceMapResolution, sk_IrradianceMapResolution,
+			sk_CubemapFormat, sk_IrradianceMapResolution, sk_IrradianceMapResolution,
 			6, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
 		);
 
@@ -101,15 +85,13 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, CommandList& comput
 		irradianceConvolutionCubemap->SetName(L"Skybox Irradiance Convolution Cubemap - " + m_SkyboxTextureName);
 
 		m_IrradianceConvolutionCubemap_RT->AttachTexture(AttachmentPoint::Color0, irradianceConvolutionCubemap);
-
-		cubeMapSRVDesc.Format = m_IrradianceConvolutionCubemap_RT->GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0];
-		irradianceConvolutionCubemap->CreateShaderResourceView(cubeMapSRVDesc);
+		irradianceConvolutionCubemap->CreateShaderResourceView(m_CubeMapSRVDesc);
 	}
 
 	// Create cubemap render texture for Prefilter map (specular)
 	{
 		auto prefilterCubemapDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-			cubemapFormat, sk_FullPrefilterMapResolution, sk_FullPrefilterMapResolution,
+			sk_CubemapFormat, sk_FullPrefilterMapResolution, sk_FullPrefilterMapResolution,
 			6, sk_CubemapMipLevels, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
 		);
 
@@ -117,9 +99,7 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, CommandList& comput
 		prefilterCubemap->SetName(L"Skybox Prefilter Cubemap - " + m_SkyboxTextureName);
 
 		m_PrefilterCubemap_RT->AttachTexture(AttachmentPoint::Color0, prefilterCubemap);
-
-		cubeMapSRVDesc.Format = m_PrefilterCubemap_RT->GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0];
-		prefilterCubemap->CreateShaderResourceView(cubeMapSRVDesc);
+		prefilterCubemap->CreateShaderResourceView(m_CubeMapSRVDesc);
 	}
 
 	// Create render texture for precomputed BRDF
@@ -141,6 +121,32 @@ Skybox::Skybox(Device& device, CommandList& copyCommandList, CommandList& comput
 		lutSRVDesc.Texture2D.MipLevels = -1;
 		m_BRDF_LUT_RT->GetTexture(AttachmentPoint::Color0)->CreateShaderResourceView(lutSRVDesc);
 	}
+}
+
+void Skybox::SetCubemap(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const std::wstring& hdrTextureName) {
+	m_SkyboxTextureName = hdrTextureName;
+	m_HDRPanoFromFileTexture = copyCommandList.LoadTextureFromFile(AssetImporter::Get().GetAssetPath() / L"cubemaps" / hdrTextureName, true);
+
+	// Recreate m_SkyCubemapTexture, dx12 is super unhappy when you try to transition from D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+	// in a compute command list (in PanoToCubemapCompute())
+	CreateSkyCubemapTexture(device);
+
+	computeCommandList.PanoToCubemapCompute(m_SkyCubemapTexture, m_HDRPanoFromFileTexture);
+}
+
+void Skybox::CreateSkyCubemapTexture(Device& device) {
+	assert(m_HDRPanoFromFileTexture);
+
+	D3D12_RESOURCE_DESC skyboxCubemapDesc = m_HDRPanoFromFileTexture->GetD3D12ResourceDesc();
+	skyboxCubemapDesc.Format = sk_CubemapFormat;
+	skyboxCubemapDesc.Width = skyboxCubemapDesc.Height = sk_CubeFaceResolution;
+	skyboxCubemapDesc.DepthOrArraySize = 6;
+	skyboxCubemapDesc.MipLevels = sk_CubemapMipLevels;
+	m_SkyCubemapTexture = std::make_shared<Texture>(device, skyboxCubemapDesc, nullptr, false);
+	m_SkyCubemapTexture->SetName(m_SkyboxTextureName + L" Skybox Cubemap");
+
+	// Create cubemap SRV 
+	m_SkyCubemapTexture->CreateShaderResourceView(m_CubeMapSRVDesc);
 }
 
 void Skybox::Render(CommandList& directCommandList, const Camera& camera) {
@@ -234,5 +240,7 @@ void Skybox::ComputeIBLMaps(CommandList& directCommandList) {
 
 std::shared_ptr<Texture> Skybox::GetIrradianceTexture() const { return m_IrradianceConvolutionCubemap_RT->GetTexture(AttachmentPoint::Color0); };
 std::shared_ptr<Texture> Skybox::GetPrefilterTexture()  const { return m_PrefilterCubemap_RT->GetTexture(AttachmentPoint::Color0); };
-std::shared_ptr<Texture> Skybox::Get_BRDF_LUT_Texture() const { return m_BRDF_LUT_RT->GetTexture(AttachmentPoint::Color0); };
+std::shared_ptr<Texture> Skybox::Get_BRDF_LUT_Texture() const { return m_BRDF_LUT_RT->GetTexture(AttachmentPoint::Color0); }
+
+
 

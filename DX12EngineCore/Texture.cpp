@@ -3,9 +3,7 @@
 #include "Texture.h"
 
 #include "Device.h"
-#include "Application.h"
 #include "Helpers.h"
-#include "ShaderResourceView.h"
 #include "ResourceStateTracker.h"
 
 using namespace Microsoft::WRL;

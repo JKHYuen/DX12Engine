@@ -108,7 +108,7 @@ private:
     bool m_IsVsync;
 
     int m_CurrentAvgFPS {};
-    static const int sk_frameTimeSamples = 128;
-    double m_frameTimeHistory[sk_frameTimeSamples] = {};
+    static const int sk_frameTimeSampleCount = 128;
+    double m_frameTimeHistory[sk_frameTimeSampleCount] = {};
 };
 

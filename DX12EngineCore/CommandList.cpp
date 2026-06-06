@@ -22,7 +22,6 @@
 #include "UnorderedAccessView.h"
 #include "UploadBuffer.h"
 #include "VertexBuffer.h"
-#include <Logger.h>
 
 namespace {
 	// Hash names for primitive meshes created by functions for ms_MeshCache

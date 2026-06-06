@@ -70,12 +70,11 @@ namespace {
 	constexpr float s_StartingShadowDistance      = 35.0f;
 	constexpr float s_StartingShadowBias          = 0.001f;
 
-	float s_MinFOV = 12.0f;
-	float s_MaxFOV = 90.0f;
-
 	// Projection Matrix
-	float s_ZNear = 0.1f;
-	float s_ZFar  = 1000.0f;
+	float s_MinYFOV = 12.0f;
+	float s_MaxYFOV = 90.0f;
+	float s_ZNear   = 0.1f;
+	float s_ZFar    = 1000.0f;
 }
 
 DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t windowHeight, bool vSync, bool isFullScreen)
@@ -313,8 +312,8 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 	frameTimeSum += e.DeltaTime;
 	m_frameTimeHistory[frameHistoryIndex] = e.DeltaTime;
 
-	frameHistoryIndex = (frameHistoryIndex + 1) % sk_frameTimeSamples;
-	m_CurrentAvgFPS = (int)(sk_frameTimeSamples / frameTimeSum);
+	frameHistoryIndex = (frameHistoryIndex + 1) % sk_frameTimeSampleCount;
+	m_CurrentAvgFPS = (int)(sk_frameTimeSampleCount / frameTimeSum);
 
 	// Can reduce input latency
 	// m_SwapChain->WaitForSwapChain();
@@ -497,7 +496,7 @@ void DemoGame::OnKeyPressed(const KeyEventArgs& e) {
 			m_Down = 1.0f;
 			break;
 
-		case KeyCode::F:
+		case KeyCode::AltKey:
 			EditorGui::Get().SetPickerState(true);
 			break;
 
@@ -564,7 +563,7 @@ void DemoGame::OnKeyReleased(const KeyEventArgs& e) {
 			EditorGui::Get().ToggleDebugWindowState();
 			break;
 
-		case KeyCode::F:
+		case KeyCode::AltKey:
 			EditorGui::Get().SetPickerState(false);
 			break;
 
@@ -581,7 +580,7 @@ void DemoGame::OnKeyReleased(const KeyEventArgs& e) {
 void DemoGame::OnMouseWheel(const MouseWheelEventArgs& e) {
 	if(!EditorGui::Get().GetUIVisibilityState()) {
 		auto fov = m_DemoScene->GetMainCamera().Get_FoV();
-		fov = std::clamp(fov - e.WheelDelta, s_MinFOV, s_MaxFOV);
+		fov = std::clamp(fov - e.WheelDelta, s_MinYFOV, s_MaxYFOV);
 		m_DemoScene->GetMainCamera().Set_FoV(fov);
 	}
 }

@@ -7,6 +7,7 @@
 #include "DX12EngineCore/CommandQueue.h"
 #include "DX12EngineCore/Device.h"
 #include "DX12EngineCore/Resource.h"
+#include "DX12EngineCore/SwapChain.h"
 
 #include "BloomEffect.h"
 #include "Camera.h"
@@ -323,6 +324,31 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 			ImGui::SameLine();
 			ImGuiStyle& style = ImGui::GetStyle();
 			ImGui::DragFloat("UI Scale", &style.FontScaleDpi, 0.02f, 0.5f, 4.0f, "%.2fx");
+
+			ImGui::Spacing();
+			if(ImGui::TreeNode("Controls")) {
+				ImGui::Text(
+"\
+- Click and drag to change numeric values, double click to type in values\n\
+- Cursor and movement is disabled when menus are open\n\
+- Hold RIGHT CLICK when menus are open to reenable camera look and movement\n\
+- LEFT CLICK objects with menus open to enable object inspector\n\
+  Note: click raycasts/AABBs currently do not account for height maps\n\
+- Hold LALT to enable cursor to click on objects without menus\n\n\
+   ESC: (First press) Unlock cursor\n\
+        (Second press) Quit app\n\
+    F1: Toggle this menu\n\
+   F11: Toggle fullscreen\n\
+     V: Toggle Vsync\n\
+  WASD: Camera movement\n\
+    QE: Move camera up/down\n\
+LSHIFT: Move fast\n\
+ LCTRL: Move slow\n\
+"
+				);
+				ImGui::TreePop();
+			}
+			ImGui::Spacing();
 		}
 
 		if(ImGui::CollapsingHeader("Performance", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -332,6 +358,12 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 			ImGui::TextDisabled("Shared Memory %d MB", adapterDesc.SharedSystemMemory / 1024 / 1024);
 			DXGI_QUERY_VIDEO_MEMORY_INFO videoMemoryInfo = device.GetVRAMUsed();
 			ImGui::Text("VRAM: %d MB / %d MB", videoMemoryInfo.CurrentUsage / 1024 / 1024, videoMemoryInfo.Budget / 1024 / 1024);
+			if(game.m_SwapChain->GetVSync()) {
+				ImGui::Text("VSync: ON");
+			}
+			else {
+				ImGui::Text("VSync: OFF");
+			}
 
 			// Performance Graph 
 			// Graph data update rate based on s_GraphUpdateRate, default: 60hz
@@ -352,7 +384,10 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 					s_UpdateTimer = s_GraphUpdateRate;
 				}
 
+				ImGuiHelpMarker("Average of last 128 frames.", false);
+				ImGui::SameLine();
 				ImGui::Text("FPS: %d", game.m_CurrentAvgFPS);
+				ImGui::Text("    %.0f ms", (1.0f / game.m_CurrentAvgFPS) * 1000.0f);
 
 				static int timeScale = 5;
 				if(ImPlot::BeginPlot("##FPS Graph", ImVec2(-1, 100), ImPlotFlags_NoFrame | ImPlotFlags_NoLegend | ImPlotFlags_NoInputs)) {
@@ -397,6 +432,8 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 		if(ImGui::CollapsingHeader("Display", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::Checkbox("Wireframe Render Mode",  & scene.mb_WireframeRender);
 
+			ImGui::AlignTextToFramePadding();
+			ImGuiHelpMarker("AABBs account for rotations by rebuilding a new AABB that encompasses the old one. This creates a margin of error (amount depends on geometry), but is guaranteed to encompass the object and is much more efficient than recalculating from every vertex of the mesh. However, it does not currently account for height maps.\n\nAABBs are used for mouse object picking and frustum culling.", false); ImGui::SameLine();
 			static int aabbRadioIdx = 0;
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("AABB Render Mode:"); ImGui::SameLine();
@@ -407,7 +444,7 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 
 			// FOV Slider
 			static float s_FOV = scene.GetMainCamera().Get_FoV();
-			if(ImGui::SliderFloat("FOV", &s_FOV, 12.0f, 90.0f)) {
+			if(ImGui::SliderFloat("Vertical FOV", &s_FOV, 12.0f, 90.0f)) {
 				scene.GetMainCamera().Set_FoV(s_FOV);
 			}
 		}
@@ -535,7 +572,10 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 			}
 		}
 
-		if(ImGui::CollapsingHeader("Picker Outline", ImGuiTreeNodeFlags_DefaultOpen)) {
+		if(ImGui::CollapsingHeader("Picker Outline ", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::SameLine();
+			ImGuiHelpMarker("Bloom based outline effect for picked (clicked) objects. This post processing method gives geometry independent outlines that are thicker when far away and thinner when closer to the camera, which are desired properties for a scene editor effect.\n\nThis effect does not have the downsides of other common methods like inverted hull; which struggle with sharp angles and back culled quads. \n\nHowever, it does cost an additional screen space texture, one half resolution texture, one quarter resolution texture, and extra draw calls. The quality of the bloom effect can be adjusted to lower the additional cost.");
+
 			static BloomEffect* pickerBloomEffect = game.m_OutlineEffect->m_BloomEffect.get();
 			static float s_OutlineCol[3];
 			static bool b_PickerInit = false;

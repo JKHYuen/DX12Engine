@@ -1,5 +1,5 @@
 # C++ DX12 Game Engine
-DirectX 12 engine made from scratch in C++. After familiarizing myself with Direct3D and rendering in my [DX11 Project](https://github.com/JKHYuen/DX11Engine), I started over and ported all the features (along with new ones) to DX12 to get some experience with a modern rendering API. It was a challenging and time consuming process, but this tutorial series provided a good start ([link]( https://www.3dgep.com/learning-directx-12-1/). This is an ongoing project for learning rendering techniques, but I plan to eventually switch to a much more robust abstraction layer like [NVRHI](https://github.com/NVIDIA-RTX/NVRHI).
+3D DirectX 12 engine made from scratch in C++. After familiarizing myself with Direct3D and rendering in my [DX11 Project](https://github.com/JKHYuen/DX11Engine), I started over and ported all the features to DX12 to get some experience with a modern rendering API. New features were added and old ones were completely rewritten and generally improved with modern C++. It was a challenging and time consuming process, but [this tutorial](https://www.3dgep.com/learning-directx-12-1/) series provided a good start. This is an ongoing project for learning rendering techniques, but I plan to eventually transition to a much more robust abstraction layer like [NVRHI](https://github.com/NVIDIA-RTX/NVRHI) for a more serious project. 
 
 ***Windows 64-bit required** 
 
@@ -14,21 +14,25 @@ DirectX 12 engine made from scratch in C++. After familiarizing myself with Dire
 - Bloom
 	- Progressive down and up sampling with box sampling
 - Parallax occlusion mapping with optional self shadowing
-- Directional light with shadow mapping
-	- Simple 5x5 multisample PCF
+- Directional light with shadow mapping (other types of lights delayed until switching to deferred rendering)
+	- Simple 3x3 multisample PCF using HLSL compare sampling for efficient soft shadows
 - Object frustum culling
-- Tessellation with hull and domain shaders with two modes:
+- Tessellation with DX hull and domain shaders with two modes:
 	- Basic uniform tessellation
 	- Distance based edge tessellation
-- UI for real time scene/material editing and debugging (with options to tweak all features above)	
+- UI for real time scene/material editing and debugging
 	- Made with [Dear ImGui](https://github.com/ocornut/imgui)
+- AABB generation / visualization
+	- rotations supported, displacement maps not yet supported
+- Scene object picking with mouse click
+	- Robust object outlining (geometry agnostic) using post processing
+- MSAA (will be replaced with TAA when switching to deferred rendering)
 
 ## Controls
 - Click and drag to change numeric values, double click to type in values
 - Cursor and movement is disabled when menus are open
 - Hold **RIGHT CLICK** when menus are open to reenable camera look and movement
 - **LEFT CLICK** objects with menus open to enable object inspector
-  Note: click raycasts/AABBs currently do not account for height maps
 - Hold **LALT** to enable cursor to click on objects without menus
 
 		  F1: Toggle UI
@@ -39,7 +43,23 @@ DirectX 12 engine made from scratch in C++. After familiarizing myself with Dire
           QE: Move camera up/down
       LSHIFT: Move fast
        LCTRL: Move slow
-    
+
+## Caveats
+This was a first attempt at a modern renderer, some important base systems like resource state tracking/transitioning and memory management are adapted from the [tutorial](https://www.3dgep.com/learning-directx-12-1/) and are not well tested. There are major features that will not be added until switching to something more robust like NVRHI:
+- Render graph system
+- Smarter PSO management/generation
+- Bindless resources 
+	
+## High Priority TODOs / Research Topics
+- Switch from forward rendering to deferred rendering with forward pass for transparency
+- TAA
+- Cascaded shadow mapping
+- Light/reflection probes
+- Water rendering
+- Occlusion culling (HZB)
+- Procedural sky shading
+- Volumetrics
+
 ## Asset Sources
 - https://polyhaven.com/hdris
 - https://freepbr.com/

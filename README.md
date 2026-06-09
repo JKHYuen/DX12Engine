@@ -1,5 +1,9 @@
 # C++ DX12 Game Engine
-3D DirectX 12 engine made from scratch in C++. After familiarizing myself with Direct3D and rendering in my [DX11 Project](https://github.com/JKHYuen/DX11Engine), I started over and ported all the features to DX12 to get some experience with a modern rendering API. New features were added and old ones were completely rewritten and generally improved with modern C++. It was a challenging and time consuming process, but [this tutorial](https://www.3dgep.com/learning-directx-12-1/) series provided a good start. This is an ongoing project for learning rendering techniques, but I plan to eventually transition to a much more robust abstraction layer like [NVRHI](https://github.com/NVIDIA-RTX/NVRHI) for a more serious project. 
+3D DirectX 12 engine made from scratch in C++. After familiarizing myself with Direct3D and rendering in my [DX11 Project](https://github.com/JKHYuen/DX11Engine), I started over and ported all the features to DX12 to get some experience with a modern rendering API. New features were added and old ones were completely rewritten and generally improved with modern C++. 
+
+It was a challenging and time consuming process, but [this tutorial](https://www.3dgep.com/learning-directx-12-1/) series provided a good start. All source files that started from the tutorial have the orignial copyright notices in the headers. Major changes are documented but it is non-exhaustive, [see here](https://github.com/jpvanoosten/LearningDirectX12) for the original tutorial source.
+
+This is an ongoing project for learning rendering techniques, but I plan to eventually transition to a much more robust abstraction layer like [NVRHI](https://github.com/NVIDIA-RTX/NVRHI) for a more serious project. 
 
 ***Windows 64-bit required** 
 
@@ -45,7 +49,7 @@
        LCTRL: Move slow
 
 ## Caveats
-This was a first attempt at a modern renderer, some important base systems like resource state tracking/transitioning and memory management are adapted from the [tutorial](https://www.3dgep.com/learning-directx-12-1/) and are not well tested. There are major features that will not be added until switching to something more robust like NVRHI:
+This was a first attempt at a modern renderer, some important base systems like resource state tracking/transitioning and memory management are adapted from [the tutorial mentioned](https://www.3dgep.com/learning-directx-12-1/) and are not well tested. There are major features that will not be added until switching to something more robust like NVRHI:
 - Render graph system
 - Smarter PSO management/generation
 - Bindless resources 
@@ -64,7 +68,7 @@ This was a first attempt at a modern renderer, some important base systems like 
 - https://polyhaven.com/hdris
 - https://freepbr.com/
 
-## Additional Resources Used
+## Resources Used
  - https://www.3dgep.com/learning-directx-12-1/ (Lessons 1 - 4)
  - https://learnopengl.com/PBR/IBL/Diffuse-irradiance
  - https://learnopengl.com/Advanced-Lighting/Parallax-Mapping

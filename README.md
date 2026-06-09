@@ -1,4 +1,5 @@
 # C++ DX12 Game Engine
+DirectX 12 engine made from scratch in C++. After familiarizing myself with Direct3D and rendering in my [DX11 Project](https://github.com/JKHYuen/DX11Engine), I started over and ported all the features (along with new ones) to DX12 to get some experience with a modern rendering API. It was a challenging and time consuming process, but this tutorial series provided a good start ([link]( https://www.3dgep.com/learning-directx-12-1/). This is an ongoing project for learning rendering techniques, but I plan to eventually switch to a much more robust abstraction layer like [NVRHI](https://github.com/NVIDIA-RTX/NVRHI).
 
 ***Windows 64-bit required** 
 
@@ -23,25 +24,21 @@
 	- Made with [Dear ImGui](https://github.com/ocornut/imgui)
 
 ## Controls
-F1: Open UI  
+- Click and drag to change numeric values, double click to type in values
+- Cursor and movement is disabled when menus are open
+- Hold **RIGHT CLICK** when menus are open to reenable camera look and movement
+- **LEFT CLICK** objects with menus open to enable object inspector
+  Note: click raycasts/AABBs currently do not account for height maps
+- Hold **LALT** to enable cursor to click on objects without menus
 
-Controls below are listed in app UI:     
-
-    - Click and drag to change numeric values, double click to type in values
-    - Cursor and movement is disabled when menus are open
-    - Hold RIGHT CLICK when menus are open to reenable camera look and movement
-    - LEFT CLICK objects with menus open to enable object inspector
-      Note: click raycasts/AABBs currently do not account for height maps
-    - Hold LALT to enable cursor to click on objects without menus
-       ESC: (First press) Unlock cursor
-            (Second press) Quit app
-        F1: Toggle this menu
-       F11: Toggle fullscreen
-         V: Toggle Vsync
-      WASD: Camera movement
-        QE: Move camera up/down
-    LSHIFT: Move fast
-     LCTRL: Move slow
+		  F1: Toggle UI
+	     ESC: (First press) Unlock cursor from window / (Second press) Quit app
+	     F11: Toggle fullscreen
+		   V: Toggle Vsync
+        WASD: Camera movement
+          QE: Move camera up/down
+      LSHIFT: Move fast
+       LCTRL: Move slow
     
 ## Asset Sources
 - https://polyhaven.com/hdris

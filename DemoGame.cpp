@@ -85,7 +85,6 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 {
 	m_Window = Application::Get().CreateRenderWindow(name, windowWidth, windowHeight, *this);
 
-	/// TODO: dont hardcode asset path
 	// Get skybox names from asset folder
 	// Note: wide strings from file system is supported, but it can not be properly displayed with ImGui
 	for(const auto& entry : std::filesystem::directory_iterator(AssetImporter::Get().GetAssetPath() / L"cubemaps")) {
@@ -562,6 +561,10 @@ void DemoGame::OnKeyReleased(const KeyEventArgs& e) {
 		case KeyCode::F1: 
 			EditorGui::Get().ToggleDebugWindowState();
 			break;
+		/// TODO: Wireframe toggle
+		//case KeyCode::F2:
+		//	
+		//	break;
 
 		case KeyCode::AltKey:
 			EditorGui::Get().SetPickerState(false);

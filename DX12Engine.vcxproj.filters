@@ -438,8 +438,10 @@
     <FxCompile Include="shaders\Unlit_PS.hlsl" />
     <FxCompile Include="shaders\Bloom_PS.hlsl" />
     <FxCompile Include="shaders\PBR_DS.hlsl" />
-    <FxCompile Include="shaders\PBR_HS.hlsl" />
+    <FxCompile Include="shaders\PBR_HS.hlsli" />
     <FxCompile Include="shaders\UnlitPrimitive_VS.hlsl" />
+    <FxCompile Include="shaders\PBR_HS_UniformTess.hlsl" />
+    <FxCompile Include="shaders\PBR_HS_EdgeTess.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="include\assimp\Assimp.sln" />

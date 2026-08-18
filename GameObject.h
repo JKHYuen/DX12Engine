@@ -31,8 +31,8 @@ class UpdateEventArgs;
 class Scene;
 class UnlitPSO;
 class UnlitPrimitivePSO;
-
 class PBRObjectPSO;
+
 struct PBRVertexProps;
 struct PBRLightProps;
 struct PBRTessellationProps;
@@ -42,7 +42,6 @@ class GameObject {
 	friend class EditorGui;
 
 public:
-	/// TODO: Should be able to use any PSO, not just PBRObjectPSO (need polymorphism)
 	struct EntityParams {
 		// string passed by value for convenience e.g. when modifying instances of this struct
 		std::string name;
@@ -53,8 +52,10 @@ public:
 		XMFLOAT3 scale, radianEulerRotation, translation;
 	};
 
-	/// Things that should be in some sort of component system:
+	/// TODO: Should be able to use any PSO, not just PBRObjectPSO (need polymorphism) / component system
 	// Instance of RenderProps will be kept as member 
+	// Most of these values are controlled directly by EditorGui right now, not ideal see note in EditorGui.h
+	// This is to avoid writing tons of getter/setters
 	struct RenderProps {
 		std::wstring pbrMatName {};
 
@@ -62,6 +63,8 @@ public:
 
 		float heightMapMagnitude = 0.0f;
 
+		// using PBRRenderFlags out of convenience, this could be error prone
+		PBRRenderFlags tessellationModeFlag = PBRRenderFlags_UniformTessellation; 
 		float tessellationMagnitude = 1.0f;
 
 		float parallaxMagnitude = 0.0f;

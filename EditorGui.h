@@ -1,12 +1,12 @@
 #pragma once
 
 // Wrapper for Dear ImGui Debug UI
-// Note: Seperate free list allocator and static SRV descriptor heap used instead of DynamicDescriptorHeap in main engine for simplicity
+// Note: - Seperate free list allocator and static SRV descriptor heap used instead of DynamicDescriptorHeap in main engine for simplicity
+//       - Stored descriptors in this class is only used for ImGui debug textures
 
 // Singleton implementation for easy access to RegisterImageSRV() and FreeImageSRV() methods (used to display debug textures), too much dependency injection otherwise. Not static class for iniitialization control.
-// Encapsulation will inevitably break for debug UI, any class that needs to be displayed in debug UI will use "friend class EditorGui". This is so there is a normalized way to expose variables and avoids getters/setters/dependecy injection everywhere just for the debug UI.
+// Encapsulation will inevitably break for debug UI, any class that needs to be displayed in debug UI will use "friend class EditorGui". This is so there is a normalized way to expose variables and avoids getters/setters/dependecy injection everywhere.
 // This class should eventually support IGame instance switching, but it is currently coupled with DemoGame.h implementation.
-// Note that the stored descriptors in this class is only used for ImGui debug textures.
 
 #include "d3d12.h"
 #include "dxgiformat.h"
@@ -18,7 +18,7 @@ class Resource;
 class Scene;
 class DemoGame;
 
-/// Singleton
+/// Singleton Class
 class EditorGui {
 public:
 	struct GuiDescriptorAllocation {
@@ -66,7 +66,7 @@ public:
 	
 	// sb_PickerEnabled only exists to make GetUIVisibilityState() return true
 	// Cursor visibility is tied to GetUIVisibilityState() and is needed for manual activation of picker
-	// Currently only a key press uses this funciton.
+	// Currently only a user key input uses this funciton.
 	void SetPickerState(bool state) { sb_PickerEnabled = state; }
 
 	bool GetUIVisibilityState() const { return sb_ObjectInspectorState || sb_ShowDebugWindow || sb_PickerEnabled; }

@@ -17,11 +17,16 @@
 #include "dxgiformat.h"
 #include <cassert>
 #include <memory>
+#include <unordered_map>
 #include <vector>
 #include <wrl/client.h>
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
+
+namespace {
+	std::unordered_map<PBRRenderFlags, ComPtr<ID3D12PipelineState>> s_PSOMap {};
+}
 
 PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRAY rtvFormat, DXGI_FORMAT depthStencilFormat) {
 	// Create PBR root signature
@@ -68,7 +73,6 @@ PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT
 	hdrPipelineStateStream.InputLayout = VertexInput::Get_POS_NORM_TAN_BIT_UV_InputLayout();
 	hdrPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
 	hdrPipelineStateStream.VS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_VS.cso");
-	hdrPipelineStateStream.HS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_HS.cso");
 	hdrPipelineStateStream.DS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_DS.cso");
 	hdrPipelineStateStream.PS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_PS.cso");
 	hdrPipelineStateStream.DSVFormat = depthStencilFormat;
@@ -79,21 +83,40 @@ PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT
 	CD3DX12_RASTERIZER_DESC rasterDesc { D3D12_DEFAULT };
 	hdrPipelineStateStream.RasterDesc = rasterDesc;
 
-	device.CreatePipelineState(hdrPipelineStateStream, m_PipelineState);
+	PBRRenderFlags flags = PBRRenderFlags_None;
+	ComPtr<ID3D12PipelineState> pso;
+	
+	// Uniform tessellation PSO
+	hdrPipelineStateStream.HS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_HS_UniformTess.cso");
+	device.CreatePipelineState(hdrPipelineStateStream, pso);
+	flags = PBRRenderFlags_UniformTessellation;
+	s_PSOMap[flags] = pso;
 
+	// Edge tessellation PSO
+	hdrPipelineStateStream.HS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_HS_EdgeTess.cso");
+	device.CreatePipelineState(hdrPipelineStateStream, pso);
+	flags = PBRRenderFlags_EdgeTessellation;
+	s_PSOMap[flags] = pso;
+
+	// Wireframe uniform tessellation PSO
+	hdrPipelineStateStream.HS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_HS_UniformTess.cso");
 	rasterDesc.FillMode = D3D12_FILL_MODE_WIREFRAME;
 	hdrPipelineStateStream.RasterDesc = rasterDesc;
-	device.CreatePipelineState(hdrPipelineStateStream, m_WireFramePipelineState);
+	device.CreatePipelineState(hdrPipelineStateStream, pso);
+	flags = PBRRenderFlags_Wireframe | PBRRenderFlags_UniformTessellation;
+	s_PSOMap[flags] = pso;
+
+	// Wireframe edge tessellation PSO
+	hdrPipelineStateStream.HS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_HS_EdgeTess.cso");
+	device.CreatePipelineState(hdrPipelineStateStream, pso);
+	flags = PBRRenderFlags_Wireframe | PBRRenderFlags_EdgeTessellation;
+	s_PSOMap[flags] = pso;
 }
 
-void PBRObjectPSO::SetPipelineState(CommandList& directCommandList) const {
-	directCommandList.SetPipelineState(m_PipelineState);
-	directCommandList.SetGraphicsRootSignature(m_RootSignature);
-	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
-}
+void PBRObjectPSO::SetPipelineState(CommandList& directCommandList, PBRRenderFlags renderFlags) const {
+	assert(s_PSOMap.find(renderFlags) != s_PSOMap.end() && "Invalid PBR render flags.");
 
-void PBRObjectPSO::SetWireframePipelineState(CommandList& directCommandList) const {
-	directCommandList.SetPipelineState(m_WireFramePipelineState);
+	directCommandList.SetPipelineState(s_PSOMap[renderFlags]);
 	directCommandList.SetGraphicsRootSignature(m_RootSignature);
 	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 }

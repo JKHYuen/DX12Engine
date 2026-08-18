@@ -1,5 +1,3 @@
-
-#define TESS_MODE_UNIFORM /// TODO: TEMP
 #define NUM_CONTROL_POINTS 3
 
 cbuffer TessellationCB : register(b2) {
@@ -38,13 +36,14 @@ struct DomainInputType {
 float CalcTessellationFactor(float3 vertexPosition1, float3 vertexPosition2) {
     /// TODO: check if this is right, removes one sqrt
     float3 viewDistVec = cameraPosition.xyz - ((vertexPosition1 + vertexPosition2) * 0.5);
-    float viewDistSquard = dot(viewDistVec, viewDistVec);
+    float viewDistSquared = dot(viewDistVec, viewDistVec);
     float3 edgeLengthVec = vertexPosition1 - vertexPosition2;
-    float edgeLengthSquard = dot(edgeLengthVec, edgeLengthVec);
-    return sqrt(edgeLengthSquard / viewDistSquard) * (screenDimensions.y / tessellationMagnitude);
+    float edgeLengthSquared = dot(edgeLengthVec, edgeLengthVec);
+    return sqrt(edgeLengthSquared / viewDistSquared) * (screenDimensions.y / tessellationMagnitude);
 }
 #endif
 
+// Note: Triangle based culling disabled for now since it doesn't work properly with height map
 //bool TriangleIsBelowClipPlane(float3 p0, float3 p1, float3 p2, int cullPlaneIndex) {
 //    float4 plane = cullingPlanes[cullPlaneIndex];
 //    return
@@ -64,10 +63,15 @@ float CalcTessellationFactor(float3 vertexPosition1, float3 vertexPosition2) {
 
 ConstantOutputType PBRPatchConstantFunction(InputPatch<HullInputType, NUM_CONTROL_POINTS> inputPatch, uint patchId : SV_PrimitiveID) {
     ConstantOutputType output;
+    
+#if defined(TESS_MODE_UNIFORM) 
+    output.edges[0] = output.edges[1] = output.edges[2] = output.inside = tessellationMagnitude;
+    
+#elif defined(TESS_MODE_EDGE)
     /// TODO: check matrix multiply order
-    //float3 vertexPosition0 = mul(SRT, float4(inputPatch[0].position.xyz, 1.0)).xyz;
-    //float3 vertexPosition1 = mul(SRT, float4(inputPatch[1].position.xyz, 1.0)).xyz;
-    //float3 vertexPosition2 = mul(SRT, float4(inputPatch[2].position.xyz, 1.0)).xyz;
+    float3 vertexPosition0 = mul(SRT, float4(inputPatch[0].position.xyz, 1.0)).xyz;
+    float3 vertexPosition1 = mul(SRT, float4(inputPatch[1].position.xyz, 1.0)).xyz;
+    float3 vertexPosition2 = mul(SRT, float4(inputPatch[2].position.xyz, 1.0)).xyz;
     
     // TODO: Triangle Frustum culling - might only be worth it for very big objects like terrain (we also have object culling)
     //if (TriangleIsCulled(vertexPosition0, vertexPosition1, vertexPosition2)) {
@@ -75,10 +79,6 @@ ConstantOutputType PBRPatchConstantFunction(InputPatch<HullInputType, NUM_CONTRO
     //    return output;
     //}
     
-#if defined(TESS_MODE_UNIFORM) 
-    output.edges[0] = output.edges[1] = output.edges[2] = output.inside = tessellationMagnitude;
-    
-#elif defined(TESS_MODE_EDGE)
     output.edges[0] = CalcTessellationFactor(vertexPosition1, vertexPosition2);
     output.edges[1] = CalcTessellationFactor(vertexPosition2, vertexPosition0);
     output.edges[2] = CalcTessellationFactor(vertexPosition0, vertexPosition1);

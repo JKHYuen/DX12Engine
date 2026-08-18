@@ -430,10 +430,10 @@ LSHIFT: Move fast\n\
 		}
 
 		if(ImGui::CollapsingHeader("Display", ImGuiTreeNodeFlags_DefaultOpen)) {
-			ImGui::Checkbox("Wireframe Render Mode",  & scene.mb_WireframeRender);
+			ImGui::Checkbox("Wireframe Render Mode",  &scene.mb_WireframeRender);
 
 			ImGui::AlignTextToFramePadding();
-			ImGuiHelpMarker("AABBs account for rotations by rebuilding a new AABB that encompasses the old one. This creates a margin of error (amount depends on geometry), but is guaranteed to encompass the object and is much more efficient than recalculating from every vertex of the mesh. However, it does not currently account for height maps.\n\nAABBs are used for mouse object picking and frustum culling.", false); ImGui::SameLine();
+			ImGuiHelpMarker("Axis aligned bounding boxes (AABBs) account for rotations by rebuilding a new AABB that encompasses the old one. This creates a margin of error (amount depends on geometry), but is guaranteed to encompass the object and is much more efficient than recalculating from every vertex of the mesh. However, it does not currently account for height maps.\n\nAABBs are used for mouse object picking and frustum culling.", false); ImGui::SameLine();
 			static int aabbRadioIdx = 0;
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("AABB Render Mode:"); ImGui::SameLine();
@@ -744,7 +744,24 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 		}
 
 		ImGui::SeparatorText("Tessellation");
-		if(ImGui::DragFloat("Tesselation Magnitude", &picked->m_RenderProps.tessellationMagnitude, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
+		static int tessRadioIdx = 0;
+		ImGui::AlignTextToFramePadding();
+		ImGui::Text("Mode:"); ImGui::SameLine();
+		if(ImGui::RadioButton("Off", &tessRadioIdx, 0)) {
+			picked->m_RenderProps.tessellationModeFlag = PBRRenderFlags_UniformTessellation;
+			picked->m_RenderProps.tessellationMagnitude = 1.0;
+			// TODO: hide tess magnitude slider
+		}
+		ImGui::SameLine();
+		if(ImGui::RadioButton("Uniform", &tessRadioIdx, 1)) {
+			picked->m_RenderProps.tessellationModeFlag = PBRRenderFlags_UniformTessellation;
+		}
+		ImGui::SameLine();
+		if(ImGui::RadioButton("Distance Based Edge", &tessRadioIdx, 2)) {
+			picked->m_RenderProps.tessellationModeFlag = PBRRenderFlags_EdgeTessellation;
+		}
+
+		if(ImGui::DragFloat("Tesselation Magnitude", &picked->m_RenderProps.tessellationMagnitude, 0.01f, 1.0f, 1000.0f, "%.2f", kSliderFlags)) {
 		}
 
 		ImGui::SeparatorText("Parallax Occlusion Mapping");

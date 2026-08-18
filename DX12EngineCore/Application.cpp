@@ -286,7 +286,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
             bool control = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
             bool alt = (GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
             KeyCode::Key key = (KeyCode::Key)wParam;
-            unsigned int scanCode = (lParam & 0x00FF0000) >> 16;
             KeyEventArgs keyEventArgs(key, c, KeyEventArgs::Pressed, shift, control, alt);
             pWindow->OnKeyPressed(keyEventArgs);
         }

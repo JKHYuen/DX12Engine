@@ -46,6 +46,7 @@
 class Window;
 class IGame;
 
+/// Singleton class
 class Application {
     friend LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 

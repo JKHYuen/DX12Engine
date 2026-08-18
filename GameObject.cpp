@@ -98,10 +98,11 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 
 	b_RenderThisFrame = true;
 
-	if(b_WireframeRender)
-		m_RenderProps.pbrPSO->SetWireframePipelineState(directCommandList);
-	else
-		m_RenderProps.pbrPSO->SetPipelineState(directCommandList);
+	PBRRenderFlags flags = PBRRenderFlags_None;
+	if(b_WireframeRender) flags |= PBRRenderFlags_Wireframe;
+	flags |= m_RenderProps.tessellationModeFlag;
+
+	m_RenderProps.pbrPSO->SetPipelineState(directCommandList, flags);
 
 	// Vertex Props
 	// using XMMatrixMultiply instead of operator* as recommended: 

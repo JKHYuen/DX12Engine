@@ -34,7 +34,6 @@ struct DomainInputType {
 // Edge tessellation based on: https://catlikecoding.com/unity/tutorials/advanced-rendering/tessellation/
 // Note: Distance based tessellation can be improved by adding min and max distance with interpolation between these values
 float CalcTessellationFactor(float3 vertexPosition1, float3 vertexPosition2) {
-    /// TODO: check if this is right, removes one sqrt
     float3 viewDistVec = cameraPosition.xyz - ((vertexPosition1 + vertexPosition2) * 0.5);
     float viewDistSquared = dot(viewDistVec, viewDistVec);
     float3 edgeLengthVec = vertexPosition1 - vertexPosition2;
@@ -68,7 +67,6 @@ ConstantOutputType PBRPatchConstantFunction(InputPatch<HullInputType, NUM_CONTRO
     output.edges[0] = output.edges[1] = output.edges[2] = output.inside = tessellationMagnitude;
     
 #elif defined(TESS_MODE_EDGE)
-    /// TODO: check matrix multiply order
     float3 vertexPosition0 = mul(SRT, float4(inputPatch[0].position.xyz, 1.0)).xyz;
     float3 vertexPosition1 = mul(SRT, float4(inputPatch[1].position.xyz, 1.0)).xyz;
     float3 vertexPosition2 = mul(SRT, float4(inputPatch[2].position.xyz, 1.0)).xyz;

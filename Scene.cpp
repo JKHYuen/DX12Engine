@@ -144,7 +144,7 @@ void Scene::OnKeyReleased(const KeyEventArgs& e) {
 			}
 		break;
 
-		case KeyCode::F4:
+		case KeyCode::F2:
 			mb_WireframeRender = !mb_WireframeRender;
 			break;
 	}

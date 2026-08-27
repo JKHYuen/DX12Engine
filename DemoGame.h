@@ -40,8 +40,8 @@ public:
     // Called by main
     uint32_t Run()       override;
 
-    void OnUpdate(const UpdateEventArgs & e)                  override;
-    void OnResize(const ResizeEventArgs & e)                  override;
+    void OnUpdate(const UpdateEventArgs& e)                   override;
+    void OnResize(const ResizeEventArgs& e)                   override;
     void OnKeyPressed(const KeyEventArgs& e)                  override;
     void OnKeyReleased(const KeyEventArgs& e)                 override;
     void OnMouseWheel(const MouseWheelEventArgs& e)           override;

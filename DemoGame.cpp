@@ -561,10 +561,6 @@ void DemoGame::OnKeyReleased(const KeyEventArgs& e) {
 		case KeyCode::F1: 
 			EditorGui::Get().ToggleDebugWindowState();
 			break;
-		/// TODO: Wireframe toggle
-		//case KeyCode::F2:
-		//	
-		//	break;
 
 		case KeyCode::AltKey:
 			EditorGui::Get().SetPickerState(false);

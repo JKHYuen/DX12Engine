@@ -64,11 +64,12 @@ public:
 
 	void SetObjectInspectorState(bool state) { sb_ObjectInspectorState = state; }
 	
-	// sb_PickerEnabled only exists to make GetUIVisibilityState() return true
 	// Cursor visibility is tied to GetUIVisibilityState() and is needed for manual activation of picker
-	// Currently only a user key input uses this funciton.
+	// sb_PickerEnabled only exists to make GetUIVisibilityState() return true
+	// Currently only a user key input uses this function.
 	void SetPickerState(bool state) { sb_PickerEnabled = state; }
 
+	// Return whether GUI is currently visible
 	bool GetUIVisibilityState() const { return sb_ObjectInspectorState || sb_ShowDebugWindow || sb_PickerEnabled; }
 
 	// Allocate to internal descriptor heap SRV with s_D3DSrvDescHeapAllocator
@@ -77,7 +78,7 @@ public:
 	void FreeImageSRV(GuiDescriptorAllocation alloc);
 	GuiDescriptorAllocation GetImageSRVAllocation(ImGuiDebugSRVIndex index) const;
 
-	// Different "IGame"'s will need to write different versions of this function.
+	// Different IGame's will need to write different versions of this function.
 	// For game switching support, this function probably has to exist elsewhere.
 	void DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& game);
 	void DrawObjectInspector(Device& device, const Scene& scene);

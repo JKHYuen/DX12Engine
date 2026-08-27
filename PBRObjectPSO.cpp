@@ -87,9 +87,12 @@ PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT
 	ComPtr<ID3D12PipelineState> pso;
 	
 	// Uniform tessellation PSO
+	/// Note: "No Tessellation" flag still uses uniform tessellation PSO as of now
 	hdrPipelineStateStream.HS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_HS_UniformTess.cso");
 	device.CreatePipelineState(hdrPipelineStateStream, pso);
 	flags = PBRRenderFlags_UniformTessellation;
+	s_PSOMap[flags] = pso;
+	flags = PBRRenderFlags_NoTessellation;
 	s_PSOMap[flags] = pso;
 
 	// Edge tessellation PSO
@@ -104,6 +107,8 @@ PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT
 	hdrPipelineStateStream.RasterDesc = rasterDesc;
 	device.CreatePipelineState(hdrPipelineStateStream, pso);
 	flags = PBRRenderFlags_Wireframe | PBRRenderFlags_UniformTessellation;
+	s_PSOMap[flags] = pso;
+	flags = PBRRenderFlags_Wireframe | PBRRenderFlags_NoTessellation;
 	s_PSOMap[flags] = pso;
 
 	// Wireframe edge tessellation PSO

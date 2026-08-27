@@ -24,8 +24,9 @@
 #include "imgui_impl_win32.h"
 #include "implot.h"
 
-// Game specific
+// IGame specific
 #include "DemoGame.h"
+#include "PBRObjectPSO.h"
 
 namespace {
 	EditorGui* sp_Singleton = nullptr;
@@ -338,6 +339,7 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
    ESC: (First press) Unlock cursor\n\
         (Second press) Quit app\n\
     F1: Toggle this menu\n\
+    F2: Toggle wireframe render mode\n\
    F11: Toggle fullscreen\n\
      V: Toggle Vsync\n\
   WASD: Camera movement\n\
@@ -618,6 +620,7 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 	static bool  s_UseParallaxShadows {};
 	static int s_MinParallaxLayers {};
 	static int s_MaxParallaxLayers {};
+	static int s_TessRadioIdx = 0;
 	static GameObject* s_LastPickedObject {};
 
 	// If newly picked object, update variables
@@ -645,6 +648,16 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 		s_UseParallaxShadows = picked->m_RenderProps.useParallaxShadow;
 		s_MinParallaxLayers  = picked->m_RenderProps.minParallaxLayers;
 		s_MaxParallaxLayers  = picked->m_RenderProps.maxParallaxLayers;
+
+		if(((picked->m_RenderProps.tessellationModeFlag) & PBRRenderFlags_UniformTessellation) != 0) {
+			s_TessRadioIdx = 1;
+		}
+		else if(((picked->m_RenderProps.tessellationModeFlag) & PBRRenderFlags_EdgeTessellation) != 0) {
+			s_TessRadioIdx = 2;
+		}
+		else {
+			s_TessRadioIdx = 0;
+		}
 	}
 	s_LastPickedObject = picked;
 
@@ -742,26 +755,29 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 		if(ImGui::DragFloat("Height Map Magnitude", &s_HeightMapMagnitude, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
 			picked->m_RenderProps.heightMapMagnitude = s_HeightMapMagnitude;
 		}
-
+		
 		ImGui::SeparatorText("Tessellation");
-		static int tessRadioIdx = 0;
-		ImGui::AlignTextToFramePadding();
-		ImGui::Text("Mode:"); ImGui::SameLine();
-		if(ImGui::RadioButton("Off", &tessRadioIdx, 0)) {
-			picked->m_RenderProps.tessellationModeFlag = PBRRenderFlags_UniformTessellation;
-			picked->m_RenderProps.tessellationMagnitude = 1.0;
-			// TODO: hide tess magnitude slider
-		}
-		ImGui::SameLine();
-		if(ImGui::RadioButton("Uniform", &tessRadioIdx, 1)) {
-			picked->m_RenderProps.tessellationModeFlag = PBRRenderFlags_UniformTessellation;
-		}
-		ImGui::SameLine();
-		if(ImGui::RadioButton("Distance Based Edge", &tessRadioIdx, 2)) {
-			picked->m_RenderProps.tessellationModeFlag = PBRRenderFlags_EdgeTessellation;
-		}
+		{
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Mode:"); ImGui::SameLine();
+			if(ImGui::RadioButton("Off", &s_TessRadioIdx, 0)) {
+				picked->m_RenderProps.tessellationModeFlag = PBRRenderFlags_NoTessellation;
+			}
+			ImGui::SameLine();
+			if(ImGui::RadioButton("Uniform", &s_TessRadioIdx, 1)) {
+				picked->m_RenderProps.tessellationModeFlag = PBRRenderFlags_UniformTessellation;
+			}
+			ImGui::SameLine();
+			if(ImGui::RadioButton("Distance Based Edge", &s_TessRadioIdx, 2)) {
+				picked->m_RenderProps.tessellationModeFlag = PBRRenderFlags_EdgeTessellation;
+			}
 
-		if(ImGui::DragFloat("Tesselation Magnitude", &picked->m_RenderProps.tessellationMagnitude, 0.01f, 1.0f, 1000.0f, "%.2f", kSliderFlags)) {
+			if(s_TessRadioIdx == 1) {
+				if(ImGui::DragFloat("Tessellation Magnitude", &picked->m_RenderProps.tessellationMagnitude, 0.01f, 1.0f, 1000.0f, "%.2f", kSliderFlags)) {}
+			}
+			else if(s_TessRadioIdx == 2) {
+				if(ImGui::DragFloat("Tessellation Edge Length", &picked->m_RenderProps.tessellationEdgeLength, 1.0f, 1.0f, 1000.0f, "%.1f", kSliderFlags)) {}
+			}
 		}
 
 		ImGui::SeparatorText("Parallax Occlusion Mapping");

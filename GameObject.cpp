@@ -140,12 +140,17 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 	{
 		XMStoreFloat4(&m_TessellationCB.cameraPosition, scene.GetMainCamera().Get_Translation());
 		m_TessellationCB.SRT = m_PBRVertexCB.SRT;
-		/// TODO: only if we want per triangle culling, shader code is also commented out for now
-		//m_TessellationProps.cullingPlanes[4] = ;
-		//m_TessellationProps.cullBias = ;
-		///
 		m_TessellationCB.screenDimensions = { (float)scene.GetWindowWidth() , (float)scene.GetWindowHeight() };
-		m_TessellationCB.tessellationMagnitude = m_RenderProps.tessellationMagnitude;
+
+		if(((m_RenderProps.tessellationModeFlag) & PBRRenderFlags_UniformTessellation) != 0) {
+			m_TessellationCB.tessellationMagnitude = m_RenderProps.tessellationMagnitude;
+		}
+		else if(((m_RenderProps.tessellationModeFlag) & PBRRenderFlags_EdgeTessellation) != 0) {
+			m_TessellationCB.tessellationMagnitude = m_RenderProps.tessellationEdgeLength;
+		}
+		else {
+			m_TessellationCB.tessellationMagnitude = 1.0f;
+		}
 	}
 
 	// Light Props

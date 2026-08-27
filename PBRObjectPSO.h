@@ -10,10 +10,8 @@
 #include <DirectXMath.h>
 #include <memory>
 #include <vector>
-#include <wrl/client.h>
 
 using namespace DirectX;
-using namespace Microsoft::WRL;
 
 class Device;
 class RootSignature;
@@ -25,7 +23,8 @@ enum PBRRenderFlags : uint32_t {
 	PBRRenderFlags_None                = 0,
 	PBRRenderFlags_Wireframe           = 1 << 0,
 	PBRRenderFlags_UniformTessellation = 1 << 1,
-	PBRRenderFlags_EdgeTessellation    = 1 << 2
+	PBRRenderFlags_EdgeTessellation    = 1 << 2,
+	PBRRenderFlags_NoTessellation      = 1 << 3
 };
 DEFINE_ENUM_FLAG_OPERATORS(PBRRenderFlags);
 
@@ -44,6 +43,8 @@ struct alignas(16) PBRTessellationProps {
 	XMFLOAT4   cameraPosition;
 	XMFLOAT4X4 SRT;
 	/// CURRENTLY UNUSED
+	/// TODO: only if we want per triangle culling, shader code is also commented out for now because
+	///       AABBs used for culling currently do not work with height maps
 	XMFLOAT4   cullingPlanes[4]; 
 	float      cullBias;
 	/// END UNUSED

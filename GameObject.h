@@ -66,6 +66,7 @@ public:
 		// using PBRRenderFlags out of convenience, this could be error prone
 		PBRRenderFlags tessellationModeFlag = PBRRenderFlags_UniformTessellation; 
 		float tessellationMagnitude = 1.0f;
+		float tessellationEdgeLength = 5.0f;
 
 		float parallaxMagnitude = 0.0f;
 		bool useParallaxShadow = false;

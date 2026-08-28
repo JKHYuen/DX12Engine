@@ -107,12 +107,11 @@ float3 CalcReflectanceFromLight(const float3 lightDir, const float3 radiance, co
     // for energy conservation, the diffuse and specular light can't
     // be above 1.0 (unless the surface emits light); to preserve this
     // relationship the diffuse component (kD) should equal 1.0 - F (specular is Fresnel-Schlick term).
-    float3 kD = 1.0 - F;
-    kD *= 1.0 - metallic;
+    const float3 kD = (1.0 - F) * (1.0 - metallic);
     
     // reflectance equation
     // outgoing radiance Lo
-    // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
+    // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again here
     return (kD * albedo / PI + specular) * radiance * NdotL;
 }
 
@@ -228,18 +227,14 @@ float4 main(PixelInputType i) : SV_TARGET {
     float3x3 TBN = transpose(float3x3(i.tangent, i.bitangent, i.normal));
     const float3 normal = normalize(mul(TBN, normalMap));
     
-    /// REUSED VALUES
+    // Values used throughout shader
     const float3 viewDirection = normalize(i.cameraPosition.xyz - i.worldPosition.xyz);
     const float NdotV = max(dot(normal, viewDirection), 0.0);
-    
     // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0 
     // of 0.04 and if it's a metal, use the albedo color as F0 (metallic workflow)    
     const float3 F0 = lerp(0.04, albedo, metallic);
-    /// END REUSED VALUES
-    
-//
-// Calculate PBR Direct Lighting (Lo)
-//  
+
+/// CALCULATE PBR DIRECT LIGHTING (LO)
     const float3 dirLightLo = CalcReflectanceFromLight(-DirLight.xyz, DirLightColor.rgb, albedo, metallic, F0, roughness, normal, viewDirection, NdotV);
      
     ///// TODO: TEMP
@@ -251,10 +246,9 @@ float4 main(PixelInputType i) : SV_TARGET {
     ///// END TEMP
     //const float3 spotLightLo = CalcReflectanceFromLight(spotDir, radiance * attenuation, albedo, metallic, F0, roughness, normal, viewDirection, NdotV);
     const float3 spotLightLo = 0;
+/// END CALCULATE PBR DIRECT LIGHTING (LO)
     
-//
-//  IBL Ambient Lighting
-//
+/// IBL AMBIENT LIGHTING
     const float3 R = reflect(-viewDirection, normal);
 
     // Sample precalculated environment maps
@@ -263,17 +257,15 @@ float4 main(PixelInputType i) : SV_TARGET {
     const float2 envBRDF = BRDFLut.Sample(TrilinearClampSampler, float2(NdotV, roughness)).rg;
     
     const float3 indirect_kS = FresnelSchlickRoughness(NdotV, F0, roughness);
-    float3 indirect_kD = 1.0 - indirect_kS;
-    indirect_kD *= 1.0 - metallic;
+    const float3 indirect_kD = (1.0 - indirect_kS) * (1.0 - metallic);
     
     const float3 ambientDiffuse = indirect_kD * irradianceMap * albedo;
     const float3 ambientIndirectSpecular = prefilterMap * (indirect_kS * envBRDF.x + envBRDF.y);
 
     const float3 ambient = (ambientDiffuse + ambientIndirectSpecular) * ao;
+/// END IBL AMBIENT LIGHTING
     
-//
-// Calculate Shadow
-//
+/// CALCULATE SHADOW (only directional Light for now)
     // Calculate the projected texture coordinates.
     // use screen coord of vertex position with directional light's view/projection, rescaled to [0,1]
     const float3 normalizedDirectionalLightViewPos = (i.directionalLightViewPosition.xyz / i.directionalLightViewPosition.w);
@@ -306,6 +298,7 @@ float4 main(PixelInputType i) : SV_TARGET {
         // saturate() ensures valid values
         dirLightShadowFactor *= saturate(parallaxSelfShadowFactor);
     }
+/// END CALCULATE SHADOW 
     
     return float4(ambient + spotLightLo + dirLightLo * dirLightShadowFactor, 1);
 }

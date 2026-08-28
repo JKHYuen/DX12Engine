@@ -47,6 +47,7 @@
 #include <string>
 #include <filesystem>
 #include <DirectXMath.h>
+#include <Logger.h>
 
 using namespace DirectX;
 using namespace Microsoft::WRL;

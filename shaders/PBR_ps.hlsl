@@ -71,21 +71,49 @@ float GeometrySchlickGGX(float NdotV, float roughness) {
     return nom / denom;
 }
 
-float GeometrySmith(float3 N, float3 V, float3 L, float roughness) {
-    float NdotV = max(dot(N, V), 0.0);
-    float NdotL = max(dot(N, L), 0.0);
-    float ggx2 = GeometrySchlickGGX(NdotV, roughness);
+float GeometrySmith(float NdotV, float NdotL, float roughness) {
     float ggx1 = GeometrySchlickGGX(NdotL, roughness);
-
+    float ggx2 = GeometrySchlickGGX(NdotV, roughness);
     return ggx1 * ggx2;
 }
 
-float3 FresnelSchlick(float cosTheta, float3 F0) {
-    return F0 + (1.0 - F0) * pow(saturate(1.0 - cosTheta), 5.0);
+float3 FresnelSchlick(float cosTheta, float3 f0) {
+    return f0 + (1.0 - f0) * pow(saturate(1.0 - cosTheta), 5.0);
 }
 
-float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness) {
-    return F0 + (max(1.0 - roughness, F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+float3 FresnelSchlickRoughness(float cosTheta, float3 f0, float roughness) {
+    return f0 + (max(1.0 - roughness, f0) - f0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
+// lightDir and lightHalfVector given to avoid recalculation (half vector is calculated before this funciton for specular)
+float3 CalcReflectanceFromLight(const float3 lightDir, const float3 radiance, const float3 albedo, const float3 metallic, const float3 f0, const float roughness, const float3 normal, const float3 viewDirection, const float NdotV) {
+    const float3 H = normalize(viewDirection + lightDir);
+    const float NdotL = max(dot(normal, lightDir), 0.0);
+
+    // Cook-Torrance BRDF
+    const float NDF = DistributionGGX(normal, H, roughness);
+    const float G = GeometrySmith(NdotV, NdotL, roughness);
+    const float3 F = FresnelSchlick(max(dot(viewDirection, H), 0.0), f0);
+           
+    const float3 numerator = NDF * G * F;
+    const float denominator = 4.0 * NdotV * NdotL + 0.0001;
+    // Currently only from directional light
+    const float3 specular = numerator / denominator;
+    
+    // (Bandaid Fix) Prevent artifacts from extremely bright pixels on perfectly smooth materials
+    // This may cause some specular highilghts to be omitted (e.g. marble sphere from demo scene)
+    //specular = clamp(specular, 0, 10000);
+    
+    // for energy conservation, the diffuse and specular light can't
+    // be above 1.0 (unless the surface emits light); to preserve this
+    // relationship the diffuse component (kD) should equal 1.0 - F (specular is Fresnel-Schlick term).
+    float3 kD = 1.0 - F;
+    kD *= 1.0 - metallic;
+    
+    // reflectance equation
+    // outgoing radiance Lo
+    // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
+    return (kD * albedo / PI + specular) * radiance * NdotL;
 }
 
 // Parallax mapping adapted from: https://learnopengl.com/Advanced-Lighting/Parallax-Mapping
@@ -188,127 +216,96 @@ float4 main(PixelInputType i) : SV_TARGET {
     }
     
     /// TODO: try just trilinear filtering for non albedo channels (suggested by Valve)
-    float3 albedo   = AlbedoTex.Sample(AnisoWrapSampler, i.uv).rgb;
-    float ao        = MaterialTex.Sample(AnisoWrapSampler, i.uv).r;
-    float metallic  = MaterialTex.Sample(AnisoWrapSampler, i.uv).g;
-    float roughness = MaterialTex.Sample(AnisoWrapSampler, i.uv).b;
-    
-    // Normal preprocess
-    float3 normalMap = NormalTex.Sample(AnisoWrapSampler, i.uv).xyz * 2.0 - 1.0;
-    float3 normal    = normalize((normalMap.x * i.tangent) + (normalMap.y * i.bitangent) + (normalMap.z * i.normal));
-    
-//
-// Calculate PBR Direct Lighting (Lo)
-// Note: Currently only one directional light
-//
+    const float3 albedo = AlbedoTex.Sample(AnisoWrapSampler, i.uv).rgb;
+    const float ao = MaterialTex.Sample(AnisoWrapSampler, i.uv).r;
+    const float metallic = MaterialTex.Sample(AnisoWrapSampler, i.uv).g;
     // TODO: put this in CB
     float minRoughness = 0.00;
-    roughness = max(minRoughness, roughness);
+    const float roughness = max(minRoughness, MaterialTex.Sample(AnisoWrapSampler, i.uv).b);
+
+    // Normal preprocess
+    const float3 normalMap = NormalTex.Sample(AnisoWrapSampler, i.uv).xyz * 2.0 - 1.0;
+    float3x3 TBN = transpose(float3x3(i.tangent, i.bitangent, i.normal));
+    const float3 normal = normalize(mul(TBN, normalMap));
     
-    float3 viewDirection = normalize(i.cameraPosition.xyz - i.worldPosition.xyz);
+    /// REUSED VALUES
+    const float3 viewDirection = normalize(i.cameraPosition.xyz - i.worldPosition.xyz);
+    const float NdotV = max(dot(normal, viewDirection), 0.0);
     
     // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0 
     // of 0.04 and if it's a metal, use the albedo color as F0 (metallic workflow)    
-    float3 F0 = 0.04;
-    F0 = lerp(F0, albedo, metallic);
-
-    // reflectance equation
-    float3 Lo = 0.0;
-
-    // calculate per-light radiance (just one directional light for now)
-    const float3 L = -DirLight.xyz;
-    float3 H = normalize(viewDirection + L);
-
-    float3 radiance = DirLightColor.rgb;
-
-    // Cook-Torrance BRDF
-    float NDF = DistributionGGX(normal, H, roughness);
-    float G = GeometrySmith(normal, viewDirection, L, roughness);
-    float3 F = FresnelSchlick(max(dot(viewDirection, H), 0.0), F0);
-           
-    float3 numerator = NDF * G * F;
-    float denominator = 4.0 * max(dot(normal, viewDirection), 0.0) * max(dot(normal, L), 0.0) + 0.0001;
-    // Currently only from directional light
-    float3 specular = numerator / denominator;
+    const float3 F0 = lerp(0.04, albedo, metallic);
+    /// END REUSED VALUES
     
-    // (Bandaid Fix) Prevent artifacts from extremely bright pixels on perfectly smooth materials
-    // This may cause some specular highilghts to be omitted (e.g. marble sphere from demo scene)
-    //specular = clamp(specular, 0, 10000);
-    
-    // for energy conservation, the diffuse and specular light can't
-    // be above 1.0 (unless the surface emits light); to preserve this
-    // relationship the diffuse component (kD) should equal 1.0 - F (specular is Fresnel-Schlick term).
-    float3 kD = 1.0 - F;
-    kD *= 1.0 - metallic;
-    
-    // scale light by NdotL
-    float NdotL = max(dot(normal, L), 0.0);
-    // add to outgoing radiance Lo
-    // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
-    Lo += (kD * albedo / PI + specular) * radiance * NdotL;
-
+//
+// Calculate PBR Direct Lighting (Lo)
+//  
+    const float3 dirLightLo = CalcReflectanceFromLight(-DirLight.xyz, DirLightColor.rgb, albedo, metallic, F0, roughness, normal, viewDirection, NdotV);
+     
+    ///// TODO: TEMP
+    //float3 spotLightPos = float3(0, 0, 0);
+    //float3 spotDir = spotLightPos - i.worldPosition.xyz;
+    //float spotLightDist = length(spotDir);
+    //float attenuation = 1.0 / (1.0 + 0.09 * spotLightDist + 0.032 * (spotLightDist * spotLightDist));
+    //float3 radiance = float3(10, 0, 0);
+    ///// END TEMP
+    //const float3 spotLightLo = CalcReflectanceFromLight(spotDir, radiance * attenuation, albedo, metallic, F0, roughness, normal, viewDirection, NdotV);
+    const float3 spotLightLo = 0;
     
 //
 //  IBL Ambient Lighting
 //
-    float3 R = reflect(-viewDirection, normal);
+    const float3 R = reflect(-viewDirection, normal);
 
     // Sample precalculated environment maps
-    float3 irradianceMap = IrradianceCubemap.Sample(AnisoWrapSampler, normal).xyz;
-    float3 prefilterMap = PrefilterCubemap.SampleLevel(AnisoWrapSampler, R, roughness * MAX_REFLECTION_LOD).xyz;
-    float2 envBRDF = BRDFLut.Sample(TrilinearClampSampler, float2(max(dot(normal, viewDirection), 0.0), roughness)).rg;
+    const float3 irradianceMap = IrradianceCubemap.Sample(AnisoWrapSampler, normal).xyz;
+    const float3 prefilterMap = PrefilterCubemap.SampleLevel(AnisoWrapSampler, R, roughness * MAX_REFLECTION_LOD).xyz;
+    const float2 envBRDF = BRDFLut.Sample(TrilinearClampSampler, float2(NdotV, roughness)).rg;
     
-    float3 indirect_kS = FresnelSchlickRoughness(max(dot(normal, viewDirection), 0.0), F0, roughness);
+    const float3 indirect_kS = FresnelSchlickRoughness(NdotV, F0, roughness);
     float3 indirect_kD = 1.0 - indirect_kS;
     indirect_kD *= 1.0 - metallic;
     
-    float3 diffuse = irradianceMap * albedo;
-    float3 indirectSpecular = prefilterMap * (F * envBRDF.x + envBRDF.y);
+    const float3 ambientDiffuse = indirect_kD * irradianceMap * albedo;
+    const float3 ambientIndirectSpecular = prefilterMap * (indirect_kS * envBRDF.x + envBRDF.y);
 
-    float3 ambient = (indirect_kD * diffuse + indirectSpecular) * ao;
+    const float3 ambient = (ambientDiffuse + ambientIndirectSpecular) * ao;
     
 //
 // Calculate Shadow
 //
     // Calculate the projected texture coordinates.
     // use screen coord of vertex position with directional light's view/projection, rescaled to [0,1]
-    float3 normalizedDirectionalLightViewPos = (i.directionalLightViewPosition.xyz / i.directionalLightViewPosition.w);
-    float2 projectTexCoord = float2(normalizedDirectionalLightViewPos.x, -normalizedDirectionalLightViewPos.y) * 0.5 + 0.5;
-    float lightDepthValue = normalizedDirectionalLightViewPos.z;
+    const float3 normalizedDirectionalLightViewPos = (i.directionalLightViewPosition.xyz / i.directionalLightViewPosition.w);
+    const float2 projectTexCoord = float2(normalizedDirectionalLightViewPos.x, -normalizedDirectionalLightViewPos.y) * 0.5 + 0.5;
+    const float lightDepthValue = normalizedDirectionalLightViewPos.z;
         
     /// TODO: apply bias
     // Adaptive shadow bias
     //float shadowBias = max(0.05 * (1.0 - dot(normal, -lightDirection)), 0.005);
     //lightDepthValue = lightDepthValue - shadowBias;
     
-    // Shadowmap with basic PCF multisampling
-    float shadowFactor = 0.0; // 0: in shadow, 1: not in shadow
-    //float width, height, numOfLevels;
-    //DirectionalShadowMap.GetDimensions(0, width, height, numOfLevels);
-    //float2 texelSize = 1.0 / width;
+    // Directional light shadowmap with basic PCF multisampling
+    float dirLightShadowFactor = 0.0; // 0: in shadow, 1: not in shadow
     for (int x = -1; x <= 1; x++) {
         for (int y = -1; y <= 1; y++) {
-            //float pcfDepth = DirectionalShadowMap.Sample(TrilinearClampSampler, projectTexCoord + float2(x, y) * texelSize).r;
-            //shadowFactor += lightDepthValue > pcfDepth ? 0.0 : 1.0;
-            
-            shadowFactor += DirectionalShadowMap.SampleCmpLevelZero(TrilinearBorderSampler, projectTexCoord, lightDepthValue, float2(x, y));
+            dirLightShadowFactor += DirectionalShadowMap.SampleCmpLevelZero(TrilinearBorderSampler, projectTexCoord, lightDepthValue, float2(x, y));
         }
     }
-    shadowFactor /= 9.0;
+    dirLightShadowFactor /= 9.0;
     
     if (lightDepthValue > 1.0)
-        shadowFactor = 1.0;
+        dirLightShadowFactor = 1.0;
     
     // EXPERIMENTAL - Parallax occlusion self shadowing
     if (ParallaxMagnitude != 0 && UseParallaxShadow != 0) {
-        float3x3 TBN = transpose(float3x3(i.tangent, i.bitangent, i.normal));
         /// TODO: make power factor tweakable
         // Power factor added as a hacky way to make shadows more visible
-        float parallaxSelfShadowFactor = pow(CalcParallaxSoftShadowMultiplier(mul(L, TBN), i.uv, 1.0 - MaterialTex.Sample(AnisoWrapSampler, i.uv).a), 16.0);
+        const float parallaxSelfShadowFactor = pow(CalcParallaxSoftShadowMultiplier(normalize(mul(-DirLight.xyz, TBN)), i.uv, 1.0 - MaterialTex.Sample(AnisoWrapSampler, i.uv).a), 16.0);
         // Note: pow above causes invalid values sometimes (blows up bloom effect), this seems to only happen on specific materials
         // saturate() ensures valid values
-        shadowFactor *= saturate(parallaxSelfShadowFactor);
+        dirLightShadowFactor *= saturate(parallaxSelfShadowFactor);
     }
     
-    return float4(ambient + Lo * shadowFactor, 1);
+    return float4(ambient + spotLightLo + dirLightLo * dirLightShadowFactor, 1);
 }

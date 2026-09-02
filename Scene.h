@@ -3,6 +3,7 @@
 #include "Events.h"
 #include "GameObject.h"
 #include "Picker.h" // unique_ptr member needs this for some reason, unsure why
+#include "PointLight.h"
 #include "Skybox.h"
 
 #include "DX12EngineCore\CommandList.h"
@@ -16,11 +17,13 @@
 
 class Camera;
 class Device;
+class UnlitPSO;
 class IGame;
 class MouseButtonEventArgs;
 class KeyEventArgs;
 class UnlitPSO;
 class UnlitPrimitivePSO;
+class PointLight;
 
 class Scene {
 
@@ -28,7 +31,7 @@ class Scene {
 	friend class Picker;
 
 public:
-	Scene(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const DirectionalLight::DirectionalLightParams& dirLightParams, const Skybox::SkyboxParams& skyboxParams, const IGame& game);
+	Scene(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const DirectionalLight::DirectionalLightParams& dirLightParams, const Skybox::SkyboxParams& skyboxParams, UnlitPSO* unlitPSO, const IGame& game);
 
 	Scene(const Scene&)            = delete;
 	Scene& operator=(const Scene&) = delete;
@@ -82,6 +85,11 @@ private:
 	std::vector<std::wstring> m_MaterialNames;
 
 	std::unique_ptr<DirectionalLight> m_DirectionalLight;
+
+	/// TEST
+	std::unique_ptr<PointLight> m_PointLight;
+	///
+
 	std::unique_ptr<Skybox> m_Skybox;
 	
 	std::unique_ptr<Camera> m_MainCamera;
@@ -92,6 +100,10 @@ private:
 	const IGame& m_Game;
 
 	std::unique_ptr<Picker> m_Picker;
+
+	/// TODO: refactor access to PSO 
+	// Only for point light visualization
+	UnlitPSO* m_UnlitPSO;
 
 	AABBRenderMode m_AABBRenderMode;
 };

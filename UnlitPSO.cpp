@@ -11,6 +11,7 @@
 #include "d3dx12_core.h"
 #include "d3dx12_default.h"
 #include "d3dx12_pipeline_state_stream.h"
+#include "dxgiformat.h"
 #include "PBRObjectPSO.h"
 
 #include <memory>
@@ -19,7 +20,7 @@
 using namespace DirectX;
 using namespace Microsoft::WRL;
 
-UnlitPSO::UnlitPSO(Device& device, D3D12_RT_FORMAT_ARRAY rtvFormats, std::shared_ptr<RootSignature> objectRootSignature)
+UnlitPSO::UnlitPSO(Device& device, D3D12_RT_FORMAT_ARRAY rtvFormats, std::shared_ptr<RootSignature> objectRootSignature, DXGI_FORMAT depthStencilFormat)
 	: m_ObjectRootSignature(objectRootSignature)
 {
 	CD3DX12_RASTERIZER_DESC rasterDesc { D3D12_DEFAULT };
@@ -34,6 +35,12 @@ UnlitPSO::UnlitPSO(Device& device, D3D12_RT_FORMAT_ARRAY rtvFormats, std::shared
 		CD3DX12_PIPELINE_STATE_STREAM_DS DS;
 		CD3DX12_PIPELINE_STATE_STREAM_PS PS;
 		CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
+
+		/// TEST
+		CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
+		CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL DepthStencilDesc;
+		///
+
 		CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER RasterDesc;
 	} pipelineStateStream;
 
@@ -46,6 +53,13 @@ UnlitPSO::UnlitPSO(Device& device, D3D12_RT_FORMAT_ARRAY rtvFormats, std::shared
 	pipelineStateStream.PS = AssetImporter::Get().GetCompiledShaderFromFile(L"Unlit_PS.cso");
 	pipelineStateStream.RTVFormats = rtvFormats;
 	pipelineStateStream.RasterDesc = rasterDesc;
+
+	/// TEST
+	pipelineStateStream.DSVFormat = depthStencilFormat;
+	auto depthStencilDesc = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	depthStencilDesc.DepthEnable = FALSE;
+	pipelineStateStream.DepthStencilDesc = depthStencilDesc;
+	///
 
 	device.CreatePipelineState(pipelineStateStream, m_PipelineState);
 

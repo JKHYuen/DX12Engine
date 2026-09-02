@@ -15,6 +15,7 @@
 #include "GameObject.h"
 #include "OutlineEffect.h"
 #include "Picker.h"
+#include "RenderFlags.h"
 #include "Scene.h"
 #include "Skybox.h"
 #include "StringHelpers.h"
@@ -26,7 +27,8 @@
 
 // IGame specific
 #include "DemoGame.h"
-#include "PBRObjectPSO.h"
+
+#include <vector>
 
 namespace {
 	EditorGui* sp_Singleton = nullptr;
@@ -659,10 +661,10 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 		s_MinParallaxLayers  = picked->m_RenderProps.minParallaxLayers;
 		s_MaxParallaxLayers  = picked->m_RenderProps.maxParallaxLayers;
 
-		if(((picked->m_RenderProps.tessellationModeFlag) & PBRRenderFlags_UniformTessellation) != 0) {
+		if(((picked->m_RenderProps.tessellationModeFlag) & RenderFlags_UniformTessellation) != 0) {
 			s_TessRadioIdx = 1;
 		}
-		else if(((picked->m_RenderProps.tessellationModeFlag) & PBRRenderFlags_EdgeTessellation) != 0) {
+		else if(((picked->m_RenderProps.tessellationModeFlag) & RenderFlags_EdgeTessellation) != 0) {
 			s_TessRadioIdx = 2;
 		}
 		else {
@@ -771,15 +773,15 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Mode:"); ImGui::SameLine();
 			if(ImGui::RadioButton("Off", &s_TessRadioIdx, 0)) {
-				picked->m_RenderProps.tessellationModeFlag = PBRRenderFlags_NoTessellation;
+				picked->m_RenderProps.tessellationModeFlag = RenderFlags_NoTessellation;
 			}
 			ImGui::SameLine();
 			if(ImGui::RadioButton("Uniform", &s_TessRadioIdx, 1)) {
-				picked->m_RenderProps.tessellationModeFlag = PBRRenderFlags_UniformTessellation;
+				picked->m_RenderProps.tessellationModeFlag = RenderFlags_UniformTessellation;
 			}
 			ImGui::SameLine();
 			if(ImGui::RadioButton("Distance Based Edge", &s_TessRadioIdx, 2)) {
-				picked->m_RenderProps.tessellationModeFlag = PBRRenderFlags_EdgeTessellation;
+				picked->m_RenderProps.tessellationModeFlag = RenderFlags_EdgeTessellation;
 			}
 
 			if(s_TessRadioIdx == 1) {

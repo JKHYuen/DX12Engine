@@ -17,7 +17,7 @@ struct PBRTessellationProps;
 
 class UnlitPSO {
 public:
-	UnlitPSO(Device& device, D3D12_RT_FORMAT_ARRAY rtvFormats, std::shared_ptr<RootSignature> objectRootSignature);
+	UnlitPSO(Device& device, D3D12_RT_FORMAT_ARRAY rtvFormats, std::shared_ptr<RootSignature> objectRootSignature, DXGI_FORMAT depthStencilFormat);
 
 	void SetPipelineState(CommandList& directCommandList) const;
 	void SetWireframePipelineState(CommandList& directCommandList) const;

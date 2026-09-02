@@ -141,12 +141,12 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	}
 
 	/// Create PSOs 
-	/// TODO: this should be managed somewhere else
+	/// TODO: this should be managed somewhere else (AssetImporter?)
 	m_PBR_PSO = std::make_unique<PBRObjectPSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RT->GetRenderTargetFormats(), sk_DepthStencilBufferFormat);
 	m_IBL_PSO = std::make_unique<ImageBasedLightingPSO>(*m_Device, *m_HDR_MSAA_RT);
 
 	m_Bloom_PSO = std::make_unique<BloomPSO>(*m_Device, *m_HDR_MSAA_RT);
-	m_Unlit_PSO = std::make_unique<UnlitPSO>(*m_Device, m_HDR_MSAA_RT->GetRenderTargetFormats(), m_PBR_PSO.get()->GetRootSignature());
+	m_Unlit_PSO = std::make_unique<UnlitPSO>(*m_Device, m_HDR_MSAA_RT->GetRenderTargetFormats(), m_PBR_PSO.get()->GetRootSignature(), sk_DepthStencilBufferFormat);
 	m_UnlitPrimitive_PSO = std::make_unique<UnlitPrimitivePSO>(*m_Device, m_HDR_MSAA_RT->GetRenderTargetFormats(), m_PBR_PSO.get()->GetRootSignature());
 	m_Tonemap_PSO = std::make_unique<TonemapPSO>(*m_Device, m_SwapChain->GetRenderTarget());
 	///
@@ -178,7 +178,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 			m_IBL_PSO.get()
 		};
 
-		m_DemoScene = std::make_unique<Scene>(*m_Device, *copyCommandList, *computeCommandList, dirLightParams, skyboxParams, *this);
+		m_DemoScene = std::make_unique<Scene>(*m_Device, *copyCommandList, *computeCommandList, dirLightParams, skyboxParams, m_Unlit_PSO.get(), *this);
 
 		// Wait for IBL resource creation to finish before using them (e.g. panotocubemap in Skybox class)
 		copyCommandQueue.WaitForFenceValue(copyCommandQueue.ExecuteCommandList(copyCommandList));
@@ -380,6 +380,7 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 		// Clear Intermediate Post Process RT
 		m_PostProcessRTs->ClearOutputRT(*directCommandList);
 
+		/// TODO: refactor post process passes by passing in m_PostProcessRTs to functions
 		// Bloom pass
 		m_BloomEffect->Render(*directCommandList, m_PostProcessRTs->GetInputRT(), m_PostProcessRTs->GetOutputRT());
 		m_PostProcessRTs->SwapRTs();

@@ -6,6 +6,7 @@
 #include "DX12EngineCore/VertexInput.h"
 
 #include "AssetImporter.h"
+#include "RenderFlags.h"
 
 #include "d3d12.h"
 #include "d3dcommon.h"
@@ -21,11 +22,12 @@
 #include <vector>
 #include <wrl/client.h>
 
+using namespace RenderEnums;
 using namespace DirectX;
 using namespace Microsoft::WRL;
 
 namespace {
-	std::unordered_map<PBRRenderFlags, ComPtr<ID3D12PipelineState>> s_PSOMap {};
+	std::unordered_map<RenderFlags, ComPtr<ID3D12PipelineState>> s_PSOMap {};
 }
 
 PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRAY rtvFormat, DXGI_FORMAT depthStencilFormat) {
@@ -83,22 +85,22 @@ PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT
 	CD3DX12_RASTERIZER_DESC rasterDesc { D3D12_DEFAULT };
 	hdrPipelineStateStream.RasterDesc = rasterDesc;
 
-	PBRRenderFlags flags = PBRRenderFlags_None;
+	RenderFlags flags = RenderFlags_None;
 	ComPtr<ID3D12PipelineState> pso;
 	
 	// Uniform tessellation PSO
 	/// Note: "No Tessellation" flag still uses uniform tessellation PSO as of now
 	hdrPipelineStateStream.HS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_HS_UniformTess.cso");
 	device.CreatePipelineState(hdrPipelineStateStream, pso);
-	flags = PBRRenderFlags_UniformTessellation;
+	flags = RenderFlags_UniformTessellation;
 	s_PSOMap[flags] = pso;
-	flags = PBRRenderFlags_NoTessellation;
+	flags = RenderFlags_NoTessellation;
 	s_PSOMap[flags] = pso;
 
 	// Edge tessellation PSO
 	hdrPipelineStateStream.HS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_HS_EdgeTess.cso");
 	device.CreatePipelineState(hdrPipelineStateStream, pso);
-	flags = PBRRenderFlags_EdgeTessellation;
+	flags = RenderFlags_EdgeTessellation;
 	s_PSOMap[flags] = pso;
 
 	// Wireframe uniform tessellation PSO
@@ -106,19 +108,19 @@ PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT
 	rasterDesc.FillMode = D3D12_FILL_MODE_WIREFRAME;
 	hdrPipelineStateStream.RasterDesc = rasterDesc;
 	device.CreatePipelineState(hdrPipelineStateStream, pso);
-	flags = PBRRenderFlags_Wireframe | PBRRenderFlags_UniformTessellation;
+	flags = RenderFlags_Wireframe | RenderFlags_UniformTessellation;
 	s_PSOMap[flags] = pso;
-	flags = PBRRenderFlags_Wireframe | PBRRenderFlags_NoTessellation;
+	flags = RenderFlags_Wireframe | RenderFlags_NoTessellation;
 	s_PSOMap[flags] = pso;
 
 	// Wireframe edge tessellation PSO
 	hdrPipelineStateStream.HS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_HS_EdgeTess.cso");
 	device.CreatePipelineState(hdrPipelineStateStream, pso);
-	flags = PBRRenderFlags_Wireframe | PBRRenderFlags_EdgeTessellation;
+	flags = RenderFlags_Wireframe | RenderFlags_EdgeTessellation;
 	s_PSOMap[flags] = pso;
 }
 
-void PBRObjectPSO::SetPipelineState(CommandList& directCommandList, PBRRenderFlags renderFlags) const {
+void PBRObjectPSO::SetPipelineState(CommandList& directCommandList, RenderFlags renderFlags) const {
 	assert(s_PSOMap.find(renderFlags) != s_PSOMap.end() && "Invalid PBR render flags.");
 
 	directCommandList.SetPipelineState(s_PSOMap[renderFlags]);

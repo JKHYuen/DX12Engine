@@ -5,11 +5,11 @@
 	This and other "PSO" classes are ad hoc and a more generalized implementation will be needed in the future.
 */
 
-#include <cstdint>
 #include <d3d12.h>
 #include <DirectXMath.h>
 #include <memory>
 #include <vector>
+#include "RenderFlags.h"
 
 using namespace DirectX;
 
@@ -18,15 +18,6 @@ class RootSignature;
 class RenderTarget;
 class CommandList;
 class Texture;
-
-enum PBRRenderFlags : uint32_t {
-	PBRRenderFlags_None                = 0,
-	PBRRenderFlags_Wireframe           = 1 << 0,
-	PBRRenderFlags_UniformTessellation = 1 << 1,
-	PBRRenderFlags_EdgeTessellation    = 1 << 2,
-	PBRRenderFlags_NoTessellation      = 1 << 3
-};
-DEFINE_ENUM_FLAG_OPERATORS(PBRRenderFlags);
 
 struct alignas(16) PBRVertexProps {
 	XMFLOAT4X4 SRT;
@@ -108,7 +99,7 @@ public:
 		return m_RootSignature;
 	}
 		
-	void SetPipelineState(CommandList& directCommandList, PBRRenderFlags renderFlags) const;
+	void SetPipelineState(CommandList& directCommandList, RenderEnums::RenderFlags renderFlags) const;
 
 	void UpdateResources(CommandList& directCommandList, const std::vector<std::shared_ptr<Texture>>& pbrTextures, const PBRVertexProps& vertexProps, const PBRTessellationProps& tessProps, const PBRMaterialProps& materialProps, const PBRLightProps& lightProp);
 

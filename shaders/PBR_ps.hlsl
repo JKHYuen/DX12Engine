@@ -10,7 +10,7 @@ cbuffer MaterialCB : register(b0, space1) {
     float MinParallaxLayers;
     float MaxParallaxLayers;
 
-    float DirectionalShadowBias;
+    float DirectionalShadowBias; // currently unsued
 
     float ParallaxMagnitude;
 };

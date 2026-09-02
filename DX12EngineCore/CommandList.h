@@ -464,6 +464,7 @@ public:
     // Helper function to compute a tangent vector at a point on a unit sphere aligned to the x,z plane.
     inline DirectX::XMVECTOR GetCircleTangent(size_t i, size_t tessellation) noexcept;
 
+    /// TODO: move these to AssetImporter
     // Use these functions to create cached primitive meshes with predefined parameters
     std::shared_ptr<Mesh> GetCubePrimitive();
     std::shared_ptr<Mesh> GetSpherePrimitive();

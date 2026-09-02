@@ -13,6 +13,7 @@
 
 #include "DirectXCollision.h"
 #include "PBRObjectPSO.h"
+#include "RenderFlags.h"
 
 #include <DirectXMath.h>
 #include <memory>
@@ -21,6 +22,7 @@
 #include <vector>
 
 using namespace DirectX;
+using namespace RenderEnums;
 
 class CommandList;
 class DirectionalLight;
@@ -64,7 +66,7 @@ public:
 		float heightMapMagnitude = 0.0f;
 
 		// using PBRRenderFlags out of convenience, this could be error prone
-		PBRRenderFlags tessellationModeFlag = PBRRenderFlags_UniformTessellation; 
+		RenderFlags tessellationModeFlag = RenderFlags_UniformTessellation; 
 		float tessellationMagnitude = 1.0f;
 		float tessellationEdgeLength = 5.0f;
 

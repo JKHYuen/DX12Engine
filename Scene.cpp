@@ -18,6 +18,8 @@
 #include "Picker.h"
 #include "Skybox.h"
 #include "UnlitPrimitivePSO.h"
+#include "PointLight.h"
+#include "UnlitPSO.h"
 
 #include <cstdint>
 #include <DirectXMath.h>
@@ -26,8 +28,9 @@
 #include <memory>
 #include <string>
 
-Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const DirectionalLight::DirectionalLightParams& dirLightParams, const Skybox::SkyboxParams& skyboxParams, const IGame& game)
+Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const DirectionalLight::DirectionalLightParams& dirLightParams, const Skybox::SkyboxParams& skyboxParams, UnlitPSO* unlitPSO, const IGame& game)
 	: m_Device(device)
+	, m_UnlitPSO(unlitPSO)
 	, m_Game(game)
 	, m_AABBRenderMode(AABBRenderMode::None)
 {
@@ -50,6 +53,12 @@ Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeC
 	for(const auto& entry : std::filesystem::directory_iterator(AssetImporter::Get().GetAssetPath() / L"materials")) {
 		m_MaterialNames.emplace_back(entry.path().filename().c_str());
 	}
+
+	/// TEST
+	m_PointLight = std::make_unique<PointLight>(
+		XMFLOAT4 { 1.0f, 0.0f, 0.0f, 1.0f }, XMFLOAT3 {0.0f, 0.0f, 0.0f}, copyCommandList.GetSpherePrimitive(), m_UnlitPSO
+	);
+	///
 }
 
 void Scene::ComputeSkyboxIBLs(CommandList& directCommandList) {
@@ -76,6 +85,10 @@ void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList,
 	directCommandList.SetRenderTarget(outputRT);
 
 	m_Skybox->Render(directCommandList, *m_MainCamera);
+
+	/// TEST
+	//m_PointLight->RenderMesh(directCommandList, e, *m_MainCamera);
+	///
 
 	// Render scene objects
 	// All game objects use the same PSO/root sig right now
@@ -108,6 +121,7 @@ void Scene::RenderBoundingBoxes(const RenderTarget& outputRT, CommandList& direc
 
 }
 
+/// TODO: store ref to these values so we don't have to store m_Game
 uint32_t Scene::GetWindowWidth() const { return m_Game.GetWindowWidth(); }
 uint32_t Scene::GetWindowHeight() const { return m_Game.GetWindowHeight(); }
 

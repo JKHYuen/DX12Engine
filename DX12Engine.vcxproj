@@ -330,6 +330,7 @@
     <ClInclude Include="Logger.h" />
     <ClInclude Include="OutlineEffect.h" />
     <ClInclude Include="PointLight.h" />
+    <ClInclude Include="RenderFlags.h" />
     <ClInclude Include="RenderTargetPair.h" />
     <ClInclude Include="TonemapPSO.h" />
     <ClInclude Include="UnlitPrimitivePSO.h" />

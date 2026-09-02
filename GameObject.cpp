@@ -20,6 +20,7 @@
 #include <memory>
 #include <string>
 
+using namespace RenderEnums;
 using namespace DirectX;
 
 GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params, const RenderProps& renderProps, std::shared_ptr<Mesh> mesh)
@@ -98,8 +99,8 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 
 	b_RenderThisFrame = true;
 
-	PBRRenderFlags flags = PBRRenderFlags_None;
-	if(b_WireframeRender) flags |= PBRRenderFlags_Wireframe;
+	RenderFlags flags = RenderFlags_None;
+	if(b_WireframeRender) flags |= RenderFlags_Wireframe;
 	flags |= m_RenderProps.tessellationModeFlag;
 
 	m_RenderProps.pbrPSO->SetPipelineState(directCommandList, flags);
@@ -142,10 +143,10 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 		m_TessellationCB.SRT = m_PBRVertexCB.SRT;
 		m_TessellationCB.screenDimensions = { (float)scene.GetWindowWidth() , (float)scene.GetWindowHeight() };
 
-		if(((m_RenderProps.tessellationModeFlag) & PBRRenderFlags_UniformTessellation) != 0) {
+		if(((m_RenderProps.tessellationModeFlag) & RenderFlags_UniformTessellation) != 0) {
 			m_TessellationCB.tessellationMagnitude = m_RenderProps.tessellationMagnitude;
 		}
-		else if(((m_RenderProps.tessellationModeFlag) & PBRRenderFlags_EdgeTessellation) != 0) {
+		else if(((m_RenderProps.tessellationModeFlag) & RenderFlags_EdgeTessellation) != 0) {
 			m_TessellationCB.tessellationMagnitude = m_RenderProps.tessellationEdgeLength;
 		}
 		else {

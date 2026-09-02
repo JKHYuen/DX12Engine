@@ -2,7 +2,7 @@
 
 /*
 	Renderable gameobject with mesh and textures
-	Simple implementation that only support objects using PBR shaders/pipeline
+	Simple implementation that currently only support objects using a specific PBR shader/pipeline
 	
 	NOTE:
 		- AABB does not support rotation updates currently (it's non-trivial)
@@ -47,7 +47,7 @@ public:
 		std::string name;
 		Scene& scene;
 
-		// Only support construction with degrees for now
+		// Only support construction with radians for now
 		// This should ideally be a union with quaternion and radian representations, but will need some validation
 		XMFLOAT3 scale, radianEulerRotation, translation;
 	};
@@ -87,21 +87,18 @@ public:
 	/// TODO: Initialize with mesh loaded from file
 	//GameObject(CommandList& copyCommandList, const EntityParams& params, const RenderProps& renderProps, const std::wstring& meshFilePath);
 
+	/// Things that should be in some sort of component system:
 	void Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, bool b_RenderWireframe = false);
-
 	void RenderSilhouette(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPSO* unlitPSO, XMFLOAT4 color);
-
 	void RenderBoundingBox(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPrimitivePSO* unlitPSO, const Scene& scene, XMFLOAT4 color);
-
 	void RenderToDirectionalShadowMap(CommandList& directCommandList, const DirectionalLight& directionalLight);
 
-	// Currently only compatible with PBRObjectPSO
 	void UpdatePBRShaderResourcesFromFile(CommandList& copyCommandList, const std::wstring& pbrMatName);
-
 	void UpdateIBLShaderResources(const Scene& scene);
+	///
 
 	XMFLOAT3 GetTranslation()   const { return m_Translation; };
-	// Radians
+	// Radians!
 	XMFLOAT3 GetEulerRotation() const { return m_EulerRotation; };
 	XMFLOAT3 GetScale()         const { return m_Scale; };
 

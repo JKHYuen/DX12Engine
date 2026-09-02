@@ -27,13 +27,12 @@
 #include <string>
 
 Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const DirectionalLight::DirectionalLightParams& dirLightParams, const Skybox::SkyboxParams& skyboxParams, const IGame& game)
-	: m_DirectionalLight(device, dirLightParams)
-
-	, m_Skybox(device, copyCommandList, computeCommandList, skyboxParams)
-	, m_Device(device)
+	: m_Device(device)
 	, m_Game(game)
 	, m_AABBRenderMode(AABBRenderMode::None)
 {
+	m_DirectionalLight = std::make_unique<DirectionalLight>(device, dirLightParams);
+	m_Skybox = std::make_unique<Skybox>(device, copyCommandList, computeCommandList, skyboxParams);
 	m_MainCamera = std::make_unique<Camera>();
 
 	// arbitrary default camera position
@@ -54,20 +53,20 @@ Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeC
 }
 
 void Scene::ComputeSkyboxIBLs(CommandList& directCommandList) {
-	m_Skybox.ComputeIBLMaps(directCommandList);
+	m_Skybox->ComputeIBLMaps(directCommandList);
 }
 
 void Scene::SetSkybox(CommandList& copyCommandList, CommandList& computeCommandList, const std::wstring& hdrTextureName) {
-	m_Skybox.SetCubemap(m_Device, copyCommandList, computeCommandList, hdrTextureName);
+	m_Skybox->SetCubemap(m_Device, copyCommandList, computeCommandList, hdrTextureName);
 }
 
 void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e) {
 	m_MainCamera->UpdateFrustum();
 
 	// Render depth from directional light
-	m_DirectionalLight.SetShadowDepthPipelineStateAndRenderTarget(directCommandList);
+	m_DirectionalLight->SetShadowDepthPipelineStateAndRenderTarget(directCommandList);
 	for(auto& o : m_SceneObjects) {
-		o.RenderToDirectionalShadowMap(directCommandList, m_DirectionalLight);
+		o.RenderToDirectionalShadowMap(directCommandList, *m_DirectionalLight);
 	}
 
 	// Render skybox and objects with same render target
@@ -76,7 +75,7 @@ void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList,
 	directCommandList.SetViewport(outputRT.GetViewport());
 	directCommandList.SetRenderTarget(outputRT);
 
-	m_Skybox.Render(directCommandList, *m_MainCamera);
+	m_Skybox->Render(directCommandList, *m_MainCamera);
 
 	// Render scene objects
 	// All game objects use the same PSO/root sig right now
@@ -111,8 +110,6 @@ void Scene::RenderBoundingBoxes(const RenderTarget& outputRT, CommandList& direc
 
 uint32_t Scene::GetWindowWidth() const { return m_Game.GetWindowWidth(); }
 uint32_t Scene::GetWindowHeight() const { return m_Game.GetWindowHeight(); }
-
-Picker* const Scene::GetPicker() const { return m_Picker.get(); }
 
 void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 	// Gameobject raycast picking for object inspector GUI, gameobjects are outlined if picked

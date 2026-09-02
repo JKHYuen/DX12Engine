@@ -45,10 +45,9 @@ public:
 		PickedOnly
 	};
 
-	const DirectionalLight& GetDirLight() const { return m_DirectionalLight; }
-
-	const Skybox& GetSkybox() const { return m_Skybox; }
-	Picker* const GetPicker() const;
+	const DirectionalLight* GetDirLight() const { return m_DirectionalLight.get(); }
+	const Skybox* GetSkybox() const { return m_Skybox.get(); }
+	const Picker* GetPicker() const { return m_Picker.get(); }
 
 	void ComputeSkyboxIBLs(CommandList& directCommandList);
 
@@ -67,9 +66,7 @@ public:
 	uint32_t GetWindowWidth()  const;
 	uint32_t GetWindowHeight() const;
 
-	void SetAABBRenderMode(AABBRenderMode mode) {
-		m_AABBRenderMode = mode;
-	}
+	void SetAABBRenderMode(AABBRenderMode mode) {m_AABBRenderMode = mode; }
 
 	Camera& GetMainCamera() const { return *m_MainCamera; }
 
@@ -84,8 +81,8 @@ private:
 	// All materials used in this scene, currently just loads all material names in asset folder
 	std::vector<std::wstring> m_MaterialNames;
 
-	DirectionalLight m_DirectionalLight;
-	Skybox m_Skybox;
+	std::unique_ptr<DirectionalLight> m_DirectionalLight;
+	std::unique_ptr<Skybox> m_Skybox;
 	
 	std::unique_ptr<Camera> m_MainCamera;
 

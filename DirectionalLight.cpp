@@ -69,30 +69,34 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
         EditorGui::Get().RegisterImageSRV(device, shadowMapDepthTexture, &srvDesc, EditorGui::ImGuiDebugSRVIndex::DirectionalShadowMap);
     }
 
-    struct ShadowDepthPipelineStateStream {
-        CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE        pRootSignature;
-        CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT          InputLayout;
-        CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY    PrimitiveTopologyType;
-        CD3DX12_PIPELINE_STATE_STREAM_VS                    VS;
-        CD3DX12_PIPELINE_STATE_STREAM_HS                    HS;
-        CD3DX12_PIPELINE_STATE_STREAM_DS                    DS;
-        CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER            Rasterizer;
-        CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT  DSVFormat;
-    } shadowDepthPipelineStateStream;
+    // Initialize PSO for rendering objects to depth (for shadow mapping)
+    // Note: currently hardcoded for PBR material
+    {
+        struct ShadowDepthPipelineStateStream {
+            CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE        pRootSignature;
+            CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT          InputLayout;
+            CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY    PrimitiveTopologyType;
+            CD3DX12_PIPELINE_STATE_STREAM_VS                    VS;
+            CD3DX12_PIPELINE_STATE_STREAM_HS                    HS;
+            CD3DX12_PIPELINE_STATE_STREAM_DS                    DS;
+            CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER            Rasterizer;
+            CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT  DSVFormat;
+        } shadowDepthPipelineStateStream;
 
-    CD3DX12_RASTERIZER_DESC rasterizerDesc(D3D12_DEFAULT);
-    rasterizerDesc.CullMode = D3D12_CULL_MODE_FRONT;
+        CD3DX12_RASTERIZER_DESC rasterizerDesc(D3D12_DEFAULT);
+        rasterizerDesc.CullMode = D3D12_CULL_MODE_FRONT;
 
-    shadowDepthPipelineStateStream.pRootSignature = m_ObjectRootSignature->GetD3D12RootSignature().Get();
-    shadowDepthPipelineStateStream.InputLayout = params.depthRenderInputLayout;
-    shadowDepthPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
-    shadowDepthPipelineStateStream.VS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_VS.cso");
-    shadowDepthPipelineStateStream.HS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_HS.cso");
-    shadowDepthPipelineStateStream.DS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_DS.cso");
-    shadowDepthPipelineStateStream.Rasterizer = rasterizerDesc;
-    shadowDepthPipelineStateStream.DSVFormat = m_DirectionalShadowMapRT->GetDepthStencilFormat();
+        shadowDepthPipelineStateStream.pRootSignature = m_ObjectRootSignature->GetD3D12RootSignature().Get();
+        shadowDepthPipelineStateStream.InputLayout = params.depthRenderInputLayout;
+        shadowDepthPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
+        shadowDepthPipelineStateStream.VS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_VS.cso");
+        shadowDepthPipelineStateStream.HS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_HS.cso");
+        shadowDepthPipelineStateStream.DS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_DS.cso");
+        shadowDepthPipelineStateStream.Rasterizer = rasterizerDesc;
+        shadowDepthPipelineStateStream.DSVFormat = m_DirectionalShadowMapRT->GetDepthStencilFormat();
 
-    m_Device.CreatePipelineState(shadowDepthPipelineStateStream, m_DepthRenderPSO);
+        m_Device.CreatePipelineState(shadowDepthPipelineStateStream, m_DepthRenderPSO);
+    }
 }
 
 void DirectionalLight::SetEulerAngles(float rotX, float rotY, float rotZ) {
@@ -117,15 +121,15 @@ void DirectionalLight::SetQuaternionAngle(XMVECTOR rotationQuaternion) {
 
     XMStoreFloat4(&m_NormDirectionVector, XMVector3Normalize(dirVec));
 
-    m_Position.x = XMVectorGetX(dirVec) * -m_LightDistance;
-    m_Position.y = XMVectorGetY(dirVec) * -m_LightDistance;
-    m_Position.z = XMVectorGetZ(dirVec) * -m_LightDistance;
+    m_Translation.x = XMVectorGetX(dirVec) * -m_LightDistance;
+    m_Translation.y = XMVectorGetY(dirVec) * -m_LightDistance;
+    m_Translation.z = XMVectorGetZ(dirVec) * -m_LightDistance;
 
     // Regenerate view matrix
     static XMFLOAT3 up { 0.0f, 1.0f, 0.0f };
-    // Always look at origin, direction determined by m_Position
+    // Always look at origin, direction determined by m_Translation
     static XMFLOAT3 lookAt { 0.0f, 0.0f, 0.0f };
-    XMStoreFloat4x4(&m_LightViewMatrix, XMMatrixLookAtLH(XMLoadFloat3(&m_Position), XMLoadFloat3(&lookAt), XMLoadFloat3(&up)));
+    XMStoreFloat4x4(&m_LightViewMatrix, XMMatrixLookAtLH(XMLoadFloat3(&m_Translation), XMLoadFloat3(&lookAt), XMLoadFloat3(&up)));
 }
 
 void DirectionalLight::SetShadowNearFarZ(XMFLOAT2 nearFarZ) {

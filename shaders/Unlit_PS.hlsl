@@ -1,4 +1,4 @@
-// Very simple one color render
+// Simple one color render
 
 struct PixelInputType {
     float4 position : SV_POSITION;

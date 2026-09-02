@@ -256,13 +256,13 @@
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="OutlineEffect.cpp" />
+    <ClCompile Include="PointLight.cpp" />
     <ClCompile Include="RenderTargetPair.cpp" />
     <ClCompile Include="TonemapPSO.cpp" />
     <ClCompile Include="UnlitPrimitivePSO.cpp" />
     <ClCompile Include="UnlitPSO.cpp" />
     <ClCompile Include="PBRObjectPSO.cpp" />
     <ClCompile Include="Picker.cpp" />
-    <ClCompile Include="PSOLoader.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Skybox.cpp" />
   </ItemGroup>
@@ -329,13 +329,13 @@
     <ClInclude Include="include\KeyCodes.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="OutlineEffect.h" />
+    <ClInclude Include="PointLight.h" />
     <ClInclude Include="RenderTargetPair.h" />
     <ClInclude Include="TonemapPSO.h" />
     <ClInclude Include="UnlitPrimitivePSO.h" />
     <ClInclude Include="UnlitPSO.h" />
     <ClInclude Include="PBRObjectPSO.h" />
     <ClInclude Include="Picker.h" />
-    <ClInclude Include="PSOLoader.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="Skybox.h" />
     <ClInclude Include="StringHelpers.h" />

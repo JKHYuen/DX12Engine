@@ -102,9 +102,6 @@
     <ClCompile Include="OutlineEffect.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PSOLoader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="UnlitPrimitivePSO.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -202,6 +199,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="RenderTargetPair.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PointLight.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -314,9 +314,6 @@
     <ClInclude Include="OutlineEffect.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PSOLoader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="UnlitPrimitivePSO.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -420,6 +417,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="RenderTargetPair.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PointLight.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

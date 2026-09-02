@@ -1,3 +1,4 @@
+// same vertex CB as PBR shader for convenience
 cbuffer VertexCB : register(b0, space0) {
     matrix SRT;
     matrix MVP;

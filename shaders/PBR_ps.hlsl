@@ -218,7 +218,7 @@ float4 main(PixelInputType i) : SV_TARGET {
     const float3 albedo = AlbedoTex.Sample(AnisoWrapSampler, i.uv).rgb;
     const float ao = MaterialTex.Sample(AnisoWrapSampler, i.uv).r;
     const float metallic = MaterialTex.Sample(AnisoWrapSampler, i.uv).g;
-    // TODO: put this in CB
+    /// TODO: put this in CB
     float minRoughness = 0.00;
     const float roughness = max(minRoughness, MaterialTex.Sample(AnisoWrapSampler, i.uv).b);
 
@@ -237,15 +237,15 @@ float4 main(PixelInputType i) : SV_TARGET {
 /// CALCULATE PBR DIRECT LIGHTING (LO)
     const float3 dirLightLo = CalcReflectanceFromLight(-DirLight.xyz, DirLightColor.rgb, albedo, metallic, F0, roughness, normal, viewDirection, NdotV);
      
-    ///// TODO: TEMP
-    //float3 spotLightPos = float3(0, 0, 0);
-    //float3 spotDir = spotLightPos - i.worldPosition.xyz;
-    //float spotLightDist = length(spotDir);
-    //float attenuation = 1.0 / (1.0 + 0.09 * spotLightDist + 0.032 * (spotLightDist * spotLightDist));
-    //float3 radiance = float3(10, 0, 0);
-    ///// END TEMP
-    //const float3 spotLightLo = CalcReflectanceFromLight(spotDir, radiance * attenuation, albedo, metallic, F0, roughness, normal, viewDirection, NdotV);
-    const float3 spotLightLo = 0;
+    /// TODO: TEMP
+    float3 spotLightPos = float3(0, 0, 0);
+    float3 spotDir = spotLightPos - i.worldPosition.xyz;
+    float spotLightDist = length(spotDir);
+    float attenuation = 1.0 / (1.0 + 0.09 * spotLightDist + 0.032 * (spotLightDist * spotLightDist));
+    float3 radiance = float3(10, 0, 0);
+    /// END TEMP
+    const float3 spotLightLo = CalcReflectanceFromLight(spotDir, radiance * attenuation, albedo, metallic, F0, roughness, normal, viewDirection, NdotV);
+    //const float3 spotLightLo = 0;
 /// END CALCULATE PBR DIRECT LIGHTING (LO)
     
 /// IBL AMBIENT LIGHTING
@@ -270,11 +270,11 @@ float4 main(PixelInputType i) : SV_TARGET {
     // use screen coord of vertex position with directional light's view/projection, rescaled to [0,1]
     const float3 normalizedDirectionalLightViewPos = (i.directionalLightViewPosition.xyz / i.directionalLightViewPosition.w);
     const float2 projectTexCoord = float2(normalizedDirectionalLightViewPos.x, -normalizedDirectionalLightViewPos.y) * 0.5 + 0.5;
-    const float lightDepthValue = normalizedDirectionalLightViewPos.z;
+    float lightDepthValue = normalizedDirectionalLightViewPos.z;
         
     /// TODO: apply bias
     // Adaptive shadow bias
-    //float shadowBias = max(0.05 * (1.0 - dot(normal, -lightDirection)), 0.005);
+    //float shadowBias = max(0.05 * (1.0 - dot(normal, -DirLight.xyz)), 0.005);
     //lightDepthValue = lightDepthValue - shadowBias;
     
     // Directional light shadowmap with basic PCF multisampling

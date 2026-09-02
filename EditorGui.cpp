@@ -455,7 +455,7 @@ LSHIFT: Move fast\n\
 			// Skybox Selector
 			ImGui::SetNextItemOpen(true, ImGuiTreeNodeFlags_DefaultOpen);
 			if(ImGui::TreeNode("Skybox")) {
-				static std::wstring_view s_SelectedSkybox = scene.m_Skybox.GetTextureName();
+				static std::wstring_view s_SelectedSkybox = scene.m_Skybox->GetTextureName();
 				if(ImGui::BeginTable("Skybox Table", 3, ImGuiTableFlags_Borders)) {
 					for(auto& s : game.m_SkyboxNames) {
 						ImGui::TableNextColumn();
@@ -493,7 +493,7 @@ LSHIFT: Move fast\n\
 
 			ImGui::SetNextItemOpen(true, ImGuiTreeNodeFlags_DefaultOpen);
 			if(ImGui::TreeNode("Directional Light")) {
-				static DirectionalLight& sceneLight = scene.m_DirectionalLight;
+				static DirectionalLight& sceneLight = *(scene.m_DirectionalLight);
 				static float s_SceneDirLightEulerAngle[2];
 				static float s_SceneDirLightColor[3];
 				static float s_ShadowNearFarZ[2];
@@ -546,6 +546,16 @@ LSHIFT: Move fast\n\
 					ImGui::TreePop();
 				}
 
+				ImGui::TreePop();
+			}
+
+			if(ImGui::TreeNode("Point Lights")) {
+				static float s_PointLightColor[3];
+
+				//if(ImGui::ColorEdit3("Light Color", s_PointLightColor, kHDRColorEditFlags)) {
+				//	sceneLight.SetColor(s_PointLightColor[0], s_PointLightColor[1], s_PointLightColor[2]);
+				//}
+				//ImGuiHDRColorEdit3Preview("##Light Color", s_SceneDirLightColor, kHDRColorEditFlags);
 				ImGui::TreePop();
 			}
 		}

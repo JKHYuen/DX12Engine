@@ -24,7 +24,7 @@ public:
 	GameObject* MouseRaycast(Scene& scene, int mouseX, int mouseY, int windowWidth, int windowHeight);
 
 	// Note: returned object not const
-	GameObject* GetPickedObject() { return m_PickedObject; };
+	GameObject* GetPickedObject() const { return m_PickedObject; };
 
 	void ClearPickedObject();
 

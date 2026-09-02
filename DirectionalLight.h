@@ -39,6 +39,7 @@ public:
 
     DirectionalLight(Device& device, DirectionalLightParams params);
 
+    // Scenes should only have one directional light
     DirectionalLight(const DirectionalLight&)            = delete;
     DirectionalLight& operator=(const DirectionalLight&) = delete;
     DirectionalLight(DirectionalLight&&)                 = delete;
@@ -47,15 +48,13 @@ public:
     XMFLOAT4 GetColor() const { return m_Color; }
     void SetColor(float r, float g, float b) { m_Color = XMFLOAT4(r, g, b, 1.0f); }
 
-    XMFLOAT3 GetPosition() const { return m_Position; }
-
     // rotX, rotY, rotZ is in degrees
     void SetEulerAngles(float rotX, float rotY, float rotZ);
 
     XMFLOAT4 GetNormDirectionVector() const { return m_NormDirectionVector; }
 
     // Sets direction of light, by rotating default direction (0.0, 0.0, 1.0) by rotation parameters (radians)
-    // Updates m_Position and calls GenerateViewMatrix
+    // Updates m_Translation and calls GenerateViewMatrix
     void SetQuaternionAngle(XMVECTOR rotationQuaternion);
 
     float GetShadowBias() const { return m_ShadowBias; }
@@ -93,7 +92,7 @@ private:
     float m_ShadowRenderDistance; // width/height of ortho proj matrix
     float m_ShadowBias;
     XMFLOAT4 m_Color;
-    XMFLOAT3 m_Position;
+    XMFLOAT3 m_Translation; // only used for light view mat calculation
     XMFLOAT3 m_LookAt;
     XMFLOAT4X4 m_LightOrthoMatrix;
     XMFLOAT4X4 m_LightViewMatrix;

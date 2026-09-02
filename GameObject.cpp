@@ -53,10 +53,10 @@ GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params,
 	UpdatePBRShaderResourcesFromFile(copyCommandList, m_RenderProps.pbrMatName);
 
 	// Set rest of textures not updated in UpdateShaderResources()
-	m_TextureResources[PBRObjectPSO::IrradianceCubemap]    = params.scene.GetSkybox().GetIrradianceTexture();
-	m_TextureResources[PBRObjectPSO::PrefilterCubemap]     = params.scene.GetSkybox().GetPrefilterTexture();
-	m_TextureResources[PBRObjectPSO::BRDFLut]              = params.scene.GetSkybox().Get_BRDF_LUT_Texture();
-	m_TextureResources[PBRObjectPSO::DirectionalShadowMap] = params.scene.GetDirLight().GetShadowMapTexture();
+	m_TextureResources[PBRObjectPSO::IrradianceCubemap]    = params.scene.GetSkybox()->GetIrradianceTexture();
+	m_TextureResources[PBRObjectPSO::PrefilterCubemap]     = params.scene.GetSkybox()->GetPrefilterTexture();
+	m_TextureResources[PBRObjectPSO::BRDFLut]              = params.scene.GetSkybox()->Get_BRDF_LUT_Texture();
+	m_TextureResources[PBRObjectPSO::DirectionalShadowMap] = params.scene.GetDirLight()->GetShadowMapTexture();
 }
 
 /// TODO: somehow make this compatible with assimp loading
@@ -75,11 +75,11 @@ void GameObject::UpdatePBRShaderResourcesFromFile(CommandList& copyCommandList, 
 }
 
 void GameObject::UpdateIBLShaderResources(const Scene& scene) {
-	m_TextureResources[PBRObjectPSO::IrradianceCubemap] = scene.GetSkybox().GetIrradianceTexture();
-	m_TextureResources[PBRObjectPSO::PrefilterCubemap]  = scene.GetSkybox().GetPrefilterTexture();
+	m_TextureResources[PBRObjectPSO::IrradianceCubemap] = scene.GetSkybox()->GetIrradianceTexture();
+	m_TextureResources[PBRObjectPSO::PrefilterCubemap]  = scene.GetSkybox()->GetPrefilterTexture();
 
 	/// TODO: this should be cached, it never changes
-	m_TextureResources[PBRObjectPSO::BRDFLut]           = scene.GetSkybox().Get_BRDF_LUT_Texture();
+	m_TextureResources[PBRObjectPSO::BRDFLut]           = scene.GetSkybox()->Get_BRDF_LUT_Texture();
 }
 
 /// TODO: load from file with meshFileName
@@ -118,8 +118,8 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 			)
 		);
 
-		XMFLOAT4X4 v = scene.GetDirLight().GetViewMatrix();
-		XMFLOAT4X4 p = scene.GetDirLight().GetOrthoMatrix();
+		XMFLOAT4X4 v = scene.GetDirLight()->GetViewMatrix();
+		XMFLOAT4X4 p = scene.GetDirLight()->GetOrthoMatrix();
 		XMMATRIX directionalLightViewMat = XMLoadFloat4x4(&v);
 		XMMATRIX directionalLightOrthoMat = XMLoadFloat4x4(&p);
 		XMStoreFloat4x4(&m_PBRVertexCB.directionalLightMVP,
@@ -156,8 +156,8 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 	// Light Props
 	{
 		m_PBRLightCB.Time = { (float)e.Time, (float)e.DeltaTime, 0.0f, 0.0f };
-		m_PBRLightCB.dirLight = scene.GetDirLight().GetNormDirectionVector();
-		m_PBRLightCB.dirLightColor = scene.GetDirLight().GetColor();
+		m_PBRLightCB.dirLight = scene.GetDirLight()->GetNormDirectionVector();
+		m_PBRLightCB.dirLightColor = scene.GetDirLight()->GetColor();
 	}
 
 	PBRMaterialProps materialProps {};
@@ -165,7 +165,7 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 		materialProps.useParallaxShadow     = m_RenderProps.useParallaxShadow ? 1.0f : 0.0f;
 		materialProps.minParallaxLayers     = (float)m_RenderProps.minParallaxLayers;
 		materialProps.maxParallaxLayers     = (float)m_RenderProps.maxParallaxLayers;
-		materialProps.directionalShadowBias = scene.GetDirLight().GetShadowBias();
+		materialProps.directionalShadowBias = scene.GetDirLight()->GetShadowBias();
 		materialProps.parallaxMagnitude     = m_RenderProps.parallaxMagnitude;
 	}
 

@@ -13,19 +13,23 @@
 #include "d3dx12_pipeline_state_stream.h"
 #include "dxgiformat.h"
 #include "PBRObjectPSO.h"
+#include "RenderEnums.h"
 
 #include <memory>
 #include <wrl/client.h>
+#include <unordered_map>
 
+using namespace RenderEnums;
 using namespace DirectX;
 using namespace Microsoft::WRL;
 
-UnlitPSO::UnlitPSO(Device& device, D3D12_RT_FORMAT_ARRAY rtvFormats, std::shared_ptr<RootSignature> objectRootSignature, DXGI_FORMAT depthStencilFormat)
-	: m_ObjectRootSignature(objectRootSignature)
-{
-	CD3DX12_RASTERIZER_DESC rasterDesc { D3D12_DEFAULT };
-	rasterDesc.CullMode = D3D12_CULL_MODE_NONE;
+namespace {
+	std::unordered_map<RenderFlags, ComPtr<ID3D12PipelineState>> s_PSOMap {};
+}
 
+UnlitPSO::UnlitPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRAY rtvFormats, std::shared_ptr<RootSignature> objectRootSignature, DXGI_FORMAT depthStencilFormat)
+	: m_RootSignature(objectRootSignature)
+{
 	struct UnlitPipelineStateStream {
 		CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
 		CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT InputLayout;
@@ -35,16 +39,13 @@ UnlitPSO::UnlitPSO(Device& device, D3D12_RT_FORMAT_ARRAY rtvFormats, std::shared
 		CD3DX12_PIPELINE_STATE_STREAM_DS DS;
 		CD3DX12_PIPELINE_STATE_STREAM_PS PS;
 		CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
-
-		/// TEST
 		CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
+		CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_DESC SampleDesc;
 		CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL DepthStencilDesc;
-		///
-
 		CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER RasterDesc;
 	} pipelineStateStream;
 
-	pipelineStateStream.pRootSignature = m_ObjectRootSignature->GetD3D12RootSignature().Get();
+	pipelineStateStream.pRootSignature = m_RootSignature->GetD3D12RootSignature().Get();
 	pipelineStateStream.InputLayout = VertexInput::Get_POS_NORM_TAN_BIT_UV_InputLayout();
 	pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
 	pipelineStateStream.VS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_VS.cso");
@@ -52,26 +53,37 @@ UnlitPSO::UnlitPSO(Device& device, D3D12_RT_FORMAT_ARRAY rtvFormats, std::shared
 	pipelineStateStream.DS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_DS.cso");
 	pipelineStateStream.PS = AssetImporter::Get().GetCompiledShaderFromFile(L"Unlit_PS.cso");
 	pipelineStateStream.RTVFormats = rtvFormats;
+	pipelineStateStream.DSVFormat = depthStencilFormat;
+	pipelineStateStream.SampleDesc = sampleDesc;
+	auto depthStencilDesc = CD3DX12_DEPTH_STENCIL_DESC { D3D12_DEFAULT };
+	pipelineStateStream.DepthStencilDesc = depthStencilDesc;
+	CD3DX12_RASTERIZER_DESC rasterDesc { D3D12_DEFAULT };
 	pipelineStateStream.RasterDesc = rasterDesc;
 
-	/// TEST
-	pipelineStateStream.DSVFormat = depthStencilFormat;
-	auto depthStencilDesc = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	RenderFlags flags {};
+	ComPtr<ID3D12PipelineState> pso {};
+
+	/// Back Cull, depth enabled
+	flags = RenderFlags_None;
+	device.CreatePipelineState(pipelineStateStream, s_PSOMap[flags]);
+	
+	/// None Cull, depth disabled
+	// For outline effect 
+	// NOTE: disable MSAA because outline is rendered in post processing step
+	flags = RenderFlags_CullModeNone | RenderFlags_DepthDisable;
+	rasterDesc.CullMode = D3D12_CULL_MODE_NONE;
+	pipelineStateStream.RasterDesc = rasterDesc;
 	depthStencilDesc.DepthEnable = FALSE;
 	pipelineStateStream.DepthStencilDesc = depthStencilDesc;
-	///
-
-	device.CreatePipelineState(pipelineStateStream, m_PipelineState);
-
-	// Wireframe render PSO, still CULL_MODE_NONE
-	rasterDesc.FillMode = D3D12_FILL_MODE_WIREFRAME;
-	pipelineStateStream.RasterDesc = rasterDesc;
-	device.CreatePipelineState(pipelineStateStream, m_WireframePipelineState);
+	pipelineStateStream.SampleDesc = {1, 0};
+	device.CreatePipelineState(pipelineStateStream, s_PSOMap[flags]);
 }
 
-void UnlitPSO::SetPipelineState(CommandList& directCommandList) const {
-	directCommandList.SetPipelineState(m_PipelineState);
-	directCommandList.SetGraphicsRootSignature(m_ObjectRootSignature);
+void UnlitPSO::SetPipelineState(CommandList& directCommandList, RenderFlags renderFlags) const {
+	assert(s_PSOMap.find(renderFlags) != s_PSOMap.end() && "Invalid unlit render flags.");
+
+	directCommandList.SetPipelineState(s_PSOMap[renderFlags]);
+	directCommandList.SetGraphicsRootSignature(m_RootSignature);
 	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 }
 

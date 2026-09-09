@@ -6,6 +6,7 @@
 #include <d3d12.h>
 #include <memory>
 #include <wrl/client.h>
+#include "RenderEnums.h"
 
 using namespace Microsoft::WRL;
 
@@ -17,16 +18,14 @@ struct PBRTessellationProps;
 
 class UnlitPSO {
 public:
-	UnlitPSO(Device& device, D3D12_RT_FORMAT_ARRAY rtvFormats, std::shared_ptr<RootSignature> objectRootSignature, DXGI_FORMAT depthStencilFormat);
+	UnlitPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRAY rtvFormats, std::shared_ptr<RootSignature> objectRootSignature, DXGI_FORMAT depthStencilFormat);
 
-	void SetPipelineState(CommandList& directCommandList) const;
+	void SetPipelineState(CommandList& directCommandList, RenderEnums::RenderFlags renderFlags) const;
 	void SetWireframePipelineState(CommandList& directCommandList) const;
 
 	void UpdateResources(CommandList& directCommandList, const PBRVertexProps& vertexProps, const PBRTessellationProps& tessProps) const;
 
 private:
-	std::shared_ptr<RootSignature> m_ObjectRootSignature;
-	ComPtr<ID3D12PipelineState> m_PipelineState;
-	ComPtr<ID3D12PipelineState> m_WireframePipelineState;
+	std::shared_ptr<RootSignature> m_RootSignature;
 };
 

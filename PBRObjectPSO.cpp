@@ -6,7 +6,7 @@
 #include "DX12EngineCore/VertexInput.h"
 
 #include "AssetImporter.h"
-#include "RenderFlags.h"
+#include "RenderEnums.h"
 
 #include "d3d12.h"
 #include "d3dcommon.h"
@@ -85,11 +85,11 @@ PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT
 	CD3DX12_RASTERIZER_DESC rasterDesc { D3D12_DEFAULT };
 	hdrPipelineStateStream.RasterDesc = rasterDesc;
 
-	RenderFlags flags = RenderFlags_None;
-	ComPtr<ID3D12PipelineState> pso;
+	RenderFlags flags {};
+	ComPtr<ID3D12PipelineState> pso {};
 	
 	// Uniform tessellation PSO
-	/// Note: "No Tessellation" flag still uses uniform tessellation PSO as of now
+	/// Note: RenderFlags_NoTessellation still uses uniform tessellation PSO as of now
 	hdrPipelineStateStream.HS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_HS_UniformTess.cso");
 	device.CreatePipelineState(hdrPipelineStateStream, pso);
 	flags = RenderFlags_UniformTessellation;

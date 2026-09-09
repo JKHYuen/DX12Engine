@@ -422,7 +422,7 @@
     <ClInclude Include="PointLight.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="RenderFlags.h">
+    <ClInclude Include="RenderEnums.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

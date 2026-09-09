@@ -9,7 +9,7 @@
 #include <DirectXMath.h>
 #include <memory>
 #include <vector>
-#include "RenderFlags.h"
+#include "RenderEnums.h"
 
 using namespace DirectX;
 
@@ -23,7 +23,7 @@ struct alignas(16) PBRVertexProps {
 	XMFLOAT4X4 SRT;
 	XMFLOAT4X4 MVP;
 	XMFLOAT4   cameraPosition;
-	XMFLOAT4X4 directionalLightMVP;
+	XMFLOAT4X4 directionalLightMVP; // SRT from view/projection of directional light (for shadow mapping)
 	XMFLOAT2   uvScale;
 	float      heightMapMagnitude;
 	float      pad1;

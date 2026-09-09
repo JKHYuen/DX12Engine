@@ -146,7 +146,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	m_IBL_PSO = std::make_unique<ImageBasedLightingPSO>(*m_Device, *m_HDR_MSAA_RT);
 
 	m_Bloom_PSO = std::make_unique<BloomPSO>(*m_Device, *m_HDR_MSAA_RT);
-	m_Unlit_PSO = std::make_unique<UnlitPSO>(*m_Device, m_HDR_MSAA_RT->GetRenderTargetFormats(), m_PBR_PSO.get()->GetRootSignature(), sk_DepthStencilBufferFormat);
+	m_Unlit_PSO = std::make_unique<UnlitPSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RT->GetRenderTargetFormats(), m_PBR_PSO.get()->GetRootSignature(), sk_DepthStencilBufferFormat);
 	m_UnlitPrimitive_PSO = std::make_unique<UnlitPrimitivePSO>(*m_Device, m_HDR_MSAA_RT->GetRenderTargetFormats(), m_PBR_PSO.get()->GetRootSignature());
 	m_Tonemap_PSO = std::make_unique<TonemapPSO>(*m_Device, m_SwapChain->GetRenderTarget());
 	///

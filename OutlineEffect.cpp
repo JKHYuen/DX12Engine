@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <DirectXMath.h>
 #include <memory>
+#include "RenderEnums.h"
 
 OutlineEffect::OutlineEffect(Device& device, const RenderTarget& screenRenderTarget, UnlitPSO* outlinePSO, BloomPSO* bloomPSO)
 	: m_UnlitPSO(outlinePSO)
@@ -65,7 +66,7 @@ bool OutlineEffect::Render(CommandList& directCommandList, const UpdateEventArgs
 	GameObject* outlineObject = scene.GetPicker()->GetPickedObject();
 	if(outlineObject == nullptr) return false;
 
-	m_UnlitPSO->SetPipelineState(directCommandList);
+	m_UnlitPSO->SetPipelineState(directCommandList, RenderFlags_CullModeNone | RenderFlags_DepthDisable);
 	directCommandList.SetViewport(m_OutlineSilhouetteRT->GetViewport());
 	directCommandList.SetRenderTarget(*m_OutlineSilhouetteRT);
 	directCommandList.ClearTexture(m_OutlineSilhouetteRT->GetTexture(AttachmentPoint::Color0), Colors::Clear);

@@ -87,7 +87,7 @@ void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList,
 	m_Skybox->Render(directCommandList, *m_MainCamera);
 
 	/// TEST
-	//m_PointLight->RenderMesh(directCommandList, e, *m_MainCamera);
+	m_PointLight->RenderMesh(directCommandList, e, *m_MainCamera);
 	///
 
 	// Render scene objects

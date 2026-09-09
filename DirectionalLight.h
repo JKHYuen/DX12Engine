@@ -24,8 +24,6 @@ struct PBRTessellationProps;
 class DirectionalLight {
 public:
     // Root signature and Input layout is for shadow caster depth rendering on shadow map
-    // 
-    // Note: eulerDir is in radians
     struct DirectionalLightParams {
         std::shared_ptr<RootSignature> objectRootSignature;
         CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT depthRenderInputLayout;

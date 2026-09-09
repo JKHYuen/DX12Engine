@@ -15,7 +15,7 @@
 #include "GameObject.h"
 #include "OutlineEffect.h"
 #include "Picker.h"
-#include "RenderFlags.h"
+#include "RenderEnums.h"
 #include "Scene.h"
 #include "Skybox.h"
 #include "StringHelpers.h"
@@ -524,7 +524,7 @@ LSHIFT: Move fast\n\
 				if(ImGui::ColorEdit3("Light Color", s_SceneDirLightColor, kHDRColorEditFlags)) {
 					sceneLight.SetColor(s_SceneDirLightColor[0], s_SceneDirLightColor[1], s_SceneDirLightColor[2]);
 				}
-				ImGuiHDRColorEdit3Preview("##Light Color", s_SceneDirLightColor, kHDRColorEditFlags);
+				ImGuiHDRColorEdit3Preview("##LightColor", s_SceneDirLightColor, kHDRColorEditFlags);
 
 				if(ImGui::DragFloat2("Shadow Near/Far Z", s_ShadowNearFarZ, 0.1f, 0.1f, 10000.0f, "%.2f", kSliderFlags)) {
 					sceneLight.SetShadowNearFarZ({ s_ShadowNearFarZ[0], s_ShadowNearFarZ[1] });
@@ -537,7 +537,7 @@ LSHIFT: Move fast\n\
 				// Shadow debug
 				if(ImGui::TreeNode("Shadow Debug")) {
 					static float s_ImageScale = 0.25f;
-					ImGui::SliderFloat("##Directional Shadow Map Texture Scale", &s_ImageScale, 0.0, 1.0, "%.2fx");
+					ImGui::SliderFloat("##DirectionalShadowMapTextureScale", &s_ImageScale, 0.0, 1.0, "%.2fx");
 					ImVec2 imageSize = ImVec2(1920.0f * s_ImageScale, 1080.0f * s_ImageScale);
 
 					// Directional shadow map debug view
@@ -553,11 +553,16 @@ LSHIFT: Move fast\n\
 
 			if(ImGui::TreeNode("Point Lights")) {
 				static float s_PointLightColor[3];
+				static float s_PointLightTranslation[3];
 
-				//if(ImGui::ColorEdit3("Light Color", s_PointLightColor, kHDRColorEditFlags)) {
-				//	sceneLight.SetColor(s_PointLightColor[0], s_PointLightColor[1], s_PointLightColor[2]);
-				//}
-				//ImGuiHDRColorEdit3Preview("##Light Color", s_SceneDirLightColor, kHDRColorEditFlags);
+				if(ImGui::ColorEdit3("Light Color##PointLight", s_PointLightColor, kHDRColorEditFlags)) {
+					//sceneLight.SetColor(s_PointLightColor[0], s_PointLightColor[1], s_PointLightColor[2]);
+				}
+				ImGuiHDRColorEdit3Preview("##PointLightColor", s_PointLightColor, kHDRColorEditFlags);
+				if(ImGui::DragFloat3("Position", s_PointLightTranslation, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
+					//picked->SetTranslation(s_ObjTranslation[0], s_ObjTranslation[1], s_ObjTranslation[2]);
+				}
+
 				ImGui::TreePop();
 			}
 		}
@@ -621,6 +626,7 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 
 	static const ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
 
+	/// Note: this code is very boiler plate
 	static std::string s_ObjectName {}; // can't be string view, needs null terminated string for ImGui::Text
 	static std::wstring_view s_SelectedMat {};
 	static float s_ObjTranslation[3] {};

@@ -5,10 +5,7 @@
 
 #include <d3d12.h>
 #include <memory>
-#include <wrl/client.h>
-#include "RenderEnums.h"
-
-using namespace Microsoft::WRL;
+#include "RenderConstants.h"
 
 class Device;
 class RootSignature;

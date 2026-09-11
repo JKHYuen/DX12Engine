@@ -54,7 +54,7 @@ using namespace Microsoft::WRL;
 
 // static parameters
 namespace {
-	constexpr float sk_MouseSpeed = 0.05f;
+	constexpr float sk_MouseSpeed = 0.05f; // probably should be tweakable eventually
 
 	constexpr DXGI_FORMAT sk_HDRFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
 	constexpr DXGI_FORMAT sk_DepthStencilBufferFormat = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;

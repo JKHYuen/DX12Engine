@@ -13,7 +13,7 @@
 
 #include "DirectXCollision.h"
 #include "PBRObjectPSO.h"
-#include "RenderEnums.h"
+#include "RenderConstants.h"
 
 #include <DirectXMath.h>
 #include <memory>

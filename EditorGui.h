@@ -40,7 +40,6 @@ public:
 
 	/// Singleton
 	~EditorGui();
-
 	EditorGui() = delete;
 	EditorGui(const EditorGui&)			    = delete;
 	EditorGui& operator=(const EditorGui&)  = delete;

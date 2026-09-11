@@ -4,6 +4,7 @@
 #include "GameObject.h"
 #include "Picker.h" // unique_ptr member needs this for some reason, unsure why
 #include "PointLight.h"
+#include "RenderConstants.h"
 #include "Skybox.h"
 
 #include "DX12EngineCore\CommandList.h"
@@ -49,6 +50,11 @@ public:
 	};
 
 	const DirectionalLight* GetDirLight() const { return m_DirectionalLight.get(); }
+	const PointLight* GetPointLight(uint32_t idx) const { 
+		assert(idx < RenderGlobals::gk_MaxPointLightCount); 
+		return m_PointLights[idx].get();
+	}
+
 	const Skybox* GetSkybox() const { return m_Skybox.get(); }
 	const Picker* GetPicker() const { return m_Picker.get(); }
 
@@ -85,10 +91,7 @@ private:
 	std::vector<std::wstring> m_MaterialNames;
 
 	std::unique_ptr<DirectionalLight> m_DirectionalLight;
-
-	/// TEST
-	std::unique_ptr<PointLight> m_PointLight;
-	///
+	std::vector<std::unique_ptr<PointLight>> m_PointLights;
 
 	std::unique_ptr<Skybox> m_Skybox;
 	
@@ -97,6 +100,7 @@ private:
 	// Device owned by IGame
 	Device& m_Device;
 
+	/// TODO: try to get rid of need to store this variable
 	const IGame& m_Game;
 
 	std::unique_ptr<Picker> m_Picker;

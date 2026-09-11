@@ -15,7 +15,7 @@
 #include "GameObject.h"
 #include "OutlineEffect.h"
 #include "Picker.h"
-#include "RenderEnums.h"
+#include "RenderConstants.h"
 #include "Scene.h"
 #include "Skybox.h"
 #include "StringHelpers.h"
@@ -79,14 +79,6 @@ namespace {
 
 	// Stores all created GuiDescriptorAllocations created by "AllocateImageSRV()". Indices are enum "GuiSRVIndex".
 	std::vector<EditorGui::GuiDescriptorAllocation> s_ImageSRVs { EditorGui::ImGuiDebugSRVIndex::NumGuiSRVIndex };
-
-	void ImGuiHDRColorEdit3Preview(std::string_view s, float col[3], ImGuiColorEditFlags flags) {
-		ImGui::SameLine();
-		// Normalize HDR values to estimate of color for preview box
-		float colMax = std::max(col[0], std::max(col[1], col[2]));
-		ImVec4 buttonCol(col[0] / colMax, col[1] / colMax, col[2] / colMax, 1.0f);
-		ImGui::ColorButton(s.data(), buttonCol, flags);
-	}
 
 }
 
@@ -278,6 +270,16 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 			ImGui::PopTextWrapPos();
 			ImGui::EndTooltip();
 		}
+	};
+
+	static auto ImGuiHDRColorEdit3Preview = [](std::string_view s, float col[3], ImGuiColorEditFlags flags) {
+		ImGui::SameLine();
+		// Normalize HDR values to estimate of color for preview box
+		float colMax = std::max(col[0], std::max(col[1], col[2]));
+		ImVec4 buttonCol(col[0] / colMax, col[1] / colMax, col[2] / colMax, 1.0f);
+		ImGui::ColorButton(s.data(), buttonCol, flags);
+		ImGui::SameLine();
+		ImGui::TextDisabled("HDR");
 	};
 
 	struct ScrollingBuffer {
@@ -611,7 +613,7 @@ LSHIFT: Move fast\n\
 			ImGuiHDRColorEdit3Preview("##OutlineColor", s_OutlineCol, kHDRColorEditFlags);
 
 			ImGui::DragFloat("Intensity##Picker", &pickerBloomEffect->m_Intensity, 0.01f, 0.0f, 10.0f, "%.2f", kSliderFlags);
-			ImGui::DragFloat("Theshold##Picker", &pickerBloomEffect->m_Threshold, 0.01f, 0.0f, 100.0f, "%.2f", kSliderFlags);
+			ImGui::DragFloat("Threshold##Picker", &pickerBloomEffect->m_Threshold, 0.01f, 0.0f, 100.0f, "%.2f", kSliderFlags);
 			ImGui::DragFloat("Soft Theshold##Picker", &pickerBloomEffect->m_SoftThreshold, 0.01f, 0.0f, 100.0f, "%.2f", kSliderFlags);
 		}
 

@@ -13,7 +13,7 @@
 #include "d3dx12_pipeline_state_stream.h"
 #include "dxgiformat.h"
 #include "PBRObjectPSO.h"
-#include "RenderEnums.h"
+#include "RenderConstants.h"
 
 #include <memory>
 #include <wrl/client.h>

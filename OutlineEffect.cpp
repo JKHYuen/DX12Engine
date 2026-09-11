@@ -12,13 +12,13 @@
 #include "GameObject.h"
 #include "OutlineEffect.h"
 #include "Picker.h"
+#include "RenderConstants.h"
 #include "Scene.h"
 #include "UnlitPSO.h"
 
 #include <cstdint>
 #include <DirectXMath.h>
 #include <memory>
-#include "RenderEnums.h"
 
 OutlineEffect::OutlineEffect(Device& device, const RenderTarget& screenRenderTarget, UnlitPSO* outlinePSO, BloomPSO* bloomPSO)
 	: m_UnlitPSO(outlinePSO)

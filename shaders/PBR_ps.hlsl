@@ -5,6 +5,9 @@
 // Must change cubemap gen LOD count if this value is changed
 #define MAX_REFLECTION_LOD 9.0
 
+// Must match gk_MaxPointLightCount in RenderConstants.h
+#define MAX_POINT_LIGHT_COUNT 3
+
 cbuffer MaterialCB : register(b0, space1) {
     float UseParallaxShadow;
     float MinParallaxLayers;
@@ -15,10 +18,16 @@ cbuffer MaterialCB : register(b0, space1) {
     float ParallaxMagnitude;
 };
 
+struct PointLight {
+    float4 WorldPosition;
+    float4 ColorInvRadius; // x: r, y: g, z: b, a: inverse light radius (for shader optimization)
+};
+
 cbuffer LightCB : register(b1) {
     float4 Time;
     float4 DirLight; // vector of directional light
     float4 DirLightColor;
+    PointLight PointLights[MAX_POINT_LIGHT_COUNT];
 };
 
 Texture2D AlbedoTex                   : register(t0);
@@ -57,18 +66,17 @@ float DistributionGGX(float3 N, float3 H, float roughness) {
     float denom = (NdotH2 * (a2 - 1.0) + 1.0);
     denom = PI * denom * denom;
 
-    //return nom / denom;
-    return nom / max(denom, 0.00000001);
+    return nom / max(denom, 0.0001);
 }
 
 float GeometrySchlickGGX(float NdotV, float roughness) {
     float r = (roughness + 1.0);
     float k = (r * r) / 8.0;
 
-    float nom = NdotV;
+    float num = NdotV;
     float denom = NdotV * (1.0 - k) + k;
 
-    return nom / denom;
+    return num / max(denom, 0.0001);
 }
 
 float GeometrySmith(float NdotV, float NdotL, float roughness) {
@@ -85,7 +93,6 @@ float3 FresnelSchlickRoughness(float cosTheta, float3 f0, float roughness) {
     return f0 + (max(1.0 - roughness, f0) - f0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
-// lightDir and lightHalfVector given to avoid recalculation (half vector is calculated before this funciton for specular)
 float3 CalcReflectanceFromLight(const float3 lightDir, const float3 radiance, const float3 albedo, const float3 metallic, const float3 f0, const float roughness, const float3 normal, const float3 viewDirection, const float NdotV) {
     const float3 H = normalize(viewDirection + lightDir);
     const float NdotL = max(dot(normal, lightDir), 0.0);
@@ -93,11 +100,10 @@ float3 CalcReflectanceFromLight(const float3 lightDir, const float3 radiance, co
     // Cook-Torrance BRDF
     const float NDF = DistributionGGX(normal, H, roughness);
     const float G = GeometrySmith(NdotV, NdotL, roughness);
-    const float3 F = FresnelSchlick(max(dot(viewDirection, H), 0.0), f0);
+    const float3 F = FresnelSchlick(max(dot(H, viewDirection), 0.0), f0);
            
     const float3 numerator = NDF * G * F;
     const float denominator = 4.0 * NdotV * NdotL + 0.0001;
-    // Currently only from directional light
     const float3 specular = numerator / denominator;
     
     // (Bandaid Fix) Prevent artifacts from extremely bright pixels on perfectly smooth materials
@@ -219,12 +225,12 @@ float4 main(PixelInputType i) : SV_TARGET {
     const float ao = MaterialTex.Sample(AnisoWrapSampler, i.uv).r;
     const float metallic = MaterialTex.Sample(AnisoWrapSampler, i.uv).g;
     /// TODO: put this in CB
-    float minRoughness = 0.00;
+    float minRoughness = 0.01;
     const float roughness = max(minRoughness, MaterialTex.Sample(AnisoWrapSampler, i.uv).b);
 
     // Normal preprocess
     const float3 normalMap = NormalTex.Sample(AnisoWrapSampler, i.uv).xyz * 2.0 - 1.0;
-    float3x3 TBN = transpose(float3x3(i.tangent, i.bitangent, i.normal));
+    const float3x3 TBN = transpose(float3x3(i.tangent, i.bitangent, i.normal));
     const float3 normal = normalize(mul(TBN, normalMap));
     
     // Values used throughout shader
@@ -232,20 +238,26 @@ float4 main(PixelInputType i) : SV_TARGET {
     const float NdotV = max(dot(normal, viewDirection), 0.0);
     // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0 
     // of 0.04 and if it's a metal, use the albedo color as F0 (metallic workflow)    
-    const float3 F0 = lerp(0.04, albedo, metallic);
+    const float3 diaf0 = 0.04;
+    const float3 F0 = lerp(diaf0, albedo, metallic);
 
-/// CALCULATE PBR DIRECT LIGHTING (LO)
+/// PBR DIRECT LIGHTING (LO)
+    // Directional light
     const float3 dirLightLo = CalcReflectanceFromLight(-DirLight.xyz, DirLightColor.rgb, albedo, metallic, F0, roughness, normal, viewDirection, NdotV);
      
-    /// TODO: TEMP
-    float3 spotLightPos = float3(0, 0, 0);
-    float3 spotDir = spotLightPos - i.worldPosition.xyz;
-    float spotLightDist = length(spotDir);
-    float attenuation = 1.0 / (1.0 + 0.09 * spotLightDist + 0.032 * (spotLightDist * spotLightDist));
-    float3 radiance = float3(10, 0, 0);
-    /// END TEMP
-    const float3 spotLightLo = CalcReflectanceFromLight(spotDir, radiance * attenuation, albedo, metallic, F0, roughness, normal, viewDirection, NdotV);
-    //const float3 spotLightLo = 0;
+    // Point Lights
+    float3 pointLightLo = 0;
+    for (int idx = 0; idx < MAX_POINT_LIGHT_COUNT; idx++) {
+        // Attenuation formula from: https://google.github.io/filament/main/filament.html#attenuation-function
+        const float3 radiance = PointLights[idx].ColorInvRadius.xyz;
+        const float3 spotDir = PointLights[idx].WorldPosition.xyz - i.worldPosition.xyz;
+        const float distanceSquare = dot(spotDir, spotDir);
+        const float factor = distanceSquare * PointLights[idx].ColorInvRadius.a * PointLights[idx].ColorInvRadius.a;
+        const float smoothFactor = max(1.0 - factor * factor, 0.0);
+        const float attenuation = (smoothFactor * smoothFactor) / max(distanceSquare, 1e-4);
+        pointLightLo += CalcReflectanceFromLight(spotDir, radiance * attenuation, albedo, metallic, F0, roughness, normal, viewDirection, NdotV);
+    }
+    
 /// END CALCULATE PBR DIRECT LIGHTING (LO)
     
 /// IBL AMBIENT LIGHTING
@@ -270,7 +282,7 @@ float4 main(PixelInputType i) : SV_TARGET {
     // use screen coord of vertex position with directional light's view/projection, rescaled to [0,1]
     const float3 normalizedDirectionalLightViewPos = (i.directionalLightViewPosition.xyz / i.directionalLightViewPosition.w);
     const float2 projectTexCoord = float2(normalizedDirectionalLightViewPos.x, -normalizedDirectionalLightViewPos.y) * 0.5 + 0.5;
-    float lightDepthValue = normalizedDirectionalLightViewPos.z;
+    const float lightDepthValue = normalizedDirectionalLightViewPos.z;
         
     /// TODO: apply bias
     // Adaptive shadow bias
@@ -299,6 +311,5 @@ float4 main(PixelInputType i) : SV_TARGET {
         dirLightShadowFactor *= saturate(parallaxSelfShadowFactor);
     }
 /// END CALCULATE SHADOW 
-    
-    return float4(ambient + spotLightLo + dirLightLo * dirLightShadowFactor, 1);
+    return float4(ambient + pointLightLo + (dirLightLo * dirLightShadowFactor), 1);
 }

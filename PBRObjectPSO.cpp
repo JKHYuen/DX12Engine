@@ -6,7 +6,7 @@
 #include "DX12EngineCore/VertexInput.h"
 
 #include "AssetImporter.h"
-#include "RenderEnums.h"
+#include "RenderConstants.h"
 
 #include "d3d12.h"
 #include "d3dcommon.h"

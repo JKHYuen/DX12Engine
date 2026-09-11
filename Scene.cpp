@@ -15,10 +15,12 @@
 #include "GameObject.h"
 #include "ImGui.h"
 #include "KeyCodes.h"
+#include "PBRObjectPSO.h"
 #include "Picker.h"
+#include "PointLight.h"
+#include "RenderConstants.h"
 #include "Skybox.h"
 #include "UnlitPrimitivePSO.h"
-#include "PointLight.h"
 #include "UnlitPSO.h"
 
 #include <cstdint>
@@ -27,6 +29,8 @@
 #include <filesystem>
 #include <memory>
 #include <string>
+
+using namespace RenderGlobals;
 
 Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const DirectionalLight::DirectionalLightParams& dirLightParams, const Skybox::SkyboxParams& skyboxParams, UnlitPSO* unlitPSO, const IGame& game)
 	: m_Device(device)
@@ -55,9 +59,17 @@ Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeC
 	}
 
 	/// TEST
-	m_PointLight = std::make_unique<PointLight>(
-		XMFLOAT4 { 1.0f, 0.0f, 0.0f, 1.0f }, XMFLOAT3 {0.0f, 0.0f, 0.0f}, copyCommandList.GetSpherePrimitive(), m_UnlitPSO
-	);
+	m_PointLights.reserve(gk_MaxPointLightCount);
+	//for(uint32_t i = 0; i < gk_MaxPointLightCount; i++) {
+	//	m_PointLights.emplace_back(
+	//		std::make_unique<PointLight>(
+	//			XMFLOAT4{ 1.0f, 0.0f, 0.0f, 1.0f }, XMFLOAT3{ 0.0f, 0.0f, 0.0f }, 20.0f, copyCommandList.GetSpherePrimitive(), m_UnlitPSO
+	//		)
+	//	);
+	//}
+	m_PointLights.emplace_back(std::make_unique<PointLight>(XMFLOAT3 { 100.0f, 0.0f, 0.0f }, XMFLOAT3 { 0.0f, 5.0f, 7.0f }, 10.0f, copyCommandList.GetSpherePrimitive(), m_UnlitPSO));
+	m_PointLights.emplace_back(std::make_unique<PointLight>(XMFLOAT3 { 0.0f, 100.0f, 0.0f}, XMFLOAT3 { 5.0f, 5.0f, -5.0f }, 10.0f, copyCommandList.GetSpherePrimitive(), m_UnlitPSO));
+	m_PointLights.emplace_back(std::make_unique<PointLight>(XMFLOAT3 { 0.0f, 0.0f, 100.0f }, XMFLOAT3 { -5.0f, 5.0f, -5.0f }, 10.0f, copyCommandList.GetSpherePrimitive(), m_UnlitPSO));
 	///
 }
 
@@ -87,7 +99,9 @@ void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList,
 	m_Skybox->Render(directCommandList, *m_MainCamera);
 
 	/// TEST
-	m_PointLight->RenderMesh(directCommandList, e, *m_MainCamera);
+	for(uint32_t i = 0; i < gk_MaxPointLightCount; i++) {
+		m_PointLights[i]->RenderMesh(directCommandList, e, *m_MainCamera);
+	}
 	///
 
 	// Render scene objects

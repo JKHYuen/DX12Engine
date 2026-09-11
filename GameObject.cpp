@@ -8,6 +8,7 @@
 #include "DirectionalLight.h"
 #include "Events.h"
 #include "PBRObjectPSO.h"
+#include "RenderConstants.h"
 #include "Scene.h"
 #include "Skybox.h"
 #include "UnlitPrimitivePSO.h"
@@ -19,6 +20,7 @@
 #include <DirectXMath.h>
 #include <memory>
 #include <string>
+#include <cstdint>
 
 using namespace RenderEnums;
 using namespace DirectX;
@@ -159,6 +161,15 @@ void GameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e
 		m_PBRLightCB.Time = { (float)e.Time, (float)e.DeltaTime, 0.0f, 0.0f };
 		m_PBRLightCB.dirLight = scene.GetDirLight()->GetNormDirectionVector();
 		m_PBRLightCB.dirLightColor = scene.GetDirLight()->GetColor();
+
+		PointLightProps pl {};
+		for(uint32_t i = 0; i < RenderGlobals::gk_MaxPointLightCount; i++) {
+			XMFLOAT3 plWorldPos = scene.GetPointLight(i)->GetTranslation();
+			XMFLOAT3 plColor = scene.GetPointLight(i)->GetColor();
+			pl.worldPosition = XMFLOAT4(plWorldPos.x, plWorldPos.y, plWorldPos.z, 1.0f);
+			pl.colorInvRadius = XMFLOAT4(plColor.x, plColor.y, plColor.z, 1.0f / scene.GetPointLight(i)->GetRadius());
+			m_PBRLightCB.pointLights[i] = pl;
+		}
 	}
 
 	PBRMaterialProps materialProps {};

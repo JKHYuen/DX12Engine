@@ -9,7 +9,7 @@
 #include <DirectXMath.h>
 #include <memory>
 #include <vector>
-#include "RenderEnums.h"
+#include "RenderConstants.h"
 
 using namespace DirectX;
 
@@ -55,10 +55,16 @@ struct alignas(16) PBRMaterialProps {
 	float pad3;
 };
 
+struct alignas(16) PointLightProps {
+	XMFLOAT4 worldPosition;
+	XMFLOAT4 colorInvRadius; // x: r, y: g, z: b, a: inverse light radius (for shader optimization)
+};
+
 struct alignas(16) PBRLightProps {
 	XMFLOAT4 Time; // x: time, y: delta time
 	XMFLOAT4 dirLight;
 	XMFLOAT4 dirLightColor;
+	PointLightProps pointLights[RenderGlobals::gk_MaxPointLightCount];
 };
 
 class PBRObjectPSO {

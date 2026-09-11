@@ -1,7 +1,8 @@
 #include "Camera.h"
 #include "PBRObjectPSO.h"
 #include "PointLight.h"
-#include "RenderEnums.h"
+#include "RenderConstants.h"
+
 #include "UnlitPSO.h"
 
 #include "DX12EngineCore/CommandList.h"
@@ -15,9 +16,11 @@
 using namespace DirectX;
 using namespace RenderEnums;
 
-PointLight::PointLight(XMFLOAT4 color, XMFLOAT3 translation, std::shared_ptr<Mesh> visualizationMesh, UnlitPSO* unlitPSO)
+PointLight::PointLight(XMFLOAT3 color, XMFLOAT3 translation, float radius, std::shared_ptr<Mesh> visualizationMesh, UnlitPSO* unlitPSO)
 	: m_Color(color)
 	, m_Translation(translation)
+	, m_Radius(radius)
+	, m_VisualIntensity(0.3f)
 	, m_VisualizationMesh(visualizationMesh)
 	, m_UnlitPSO(unlitPSO)
 {}
@@ -34,7 +37,7 @@ void PointLight::RenderMesh(CommandList& directCommandList, const UpdateEventArg
 			viewCamera.Get_ProjectionMatrix()
 		)
 	);
-	vertexProps.color = m_Color;
+	vertexProps.color = XMFLOAT4(m_Color.x * m_VisualIntensity, m_Color.y * m_VisualIntensity, m_Color.z * m_VisualIntensity, 1.0f);
 
 	// Simple mesh render will not use tessellation, pass empty struct
 	PBRTessellationProps tessProps {};

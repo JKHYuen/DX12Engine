@@ -32,3 +32,7 @@ enum RenderFlags : uint32_t {
 ENUM_FLAG_OPERATORS(RenderFlags);
 
 }
+
+namespace RenderGlobals {
+	constexpr uint32_t gk_MaxPointLightCount = 3;
+}

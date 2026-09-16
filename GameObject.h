@@ -101,18 +101,16 @@ public:
 
 	XMFLOAT3 GetTranslation()   const { return m_Translation; };
 	// Radians!
-	XMFLOAT3 GetEulerRotation() const { return m_EulerRotation; };
+	XMFLOAT3 GetEulerRotation() const { return m_RadianEulerRotation; };
 	XMFLOAT3 GetScale()         const { return m_Scale; };
 
 	void SetTranslation(float x, float y, float z);
-	void SetEulerRotation(float x, float y, float z);
+	void SetEulerRotation(float x, float y, float z); // Radians!
 	void SetScale(float x, float y, float z);
 
-	/// Transform functions aren't very intuitive, good enough for now
 	void Translate(float x, float y, float z);   // Adds to world position values
-	void EulerRotate(float x, float y, float z); // Adds to euler angles
+	void XM_CALLCONV QuatRotate(FXMVECTOR quaternion);
 	void Scale(float x, float y, float z);       // Multiplies current scale (*not add)
-	/// 
 
 	std::string_view GetName() const      { return m_Name; }
 	void SetName(const std::string& name) { m_Name = name; }
@@ -138,11 +136,12 @@ private:
 	XMFLOAT4X4 m_RotationMat {};
 	XMFLOAT4X4 m_ScaleMat {};
 
+	/// TODO: test if operations saved is worth the space
 	// Cached and updated only when when rotation or scale matrix is updated (i.e. in translation and scale setters)
 	XMFLOAT4X4 m_SRMat;
 	
-	// Keep track of these separate from matrices for convenience
-	XMFLOAT3 m_Translation, m_EulerRotation /*Radians*/, m_Scale;
+	// Keep track of these separate from matrices for convenience (e.g. UI display)
+	XMFLOAT3 m_Translation, m_RadianEulerRotation /*Radians*/, m_Scale;
 
 	bool b_RenderThisFrame;
 

@@ -100,10 +100,6 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
 }
 
 void DirectionalLight::SetEulerAngles(float rotX, float rotY, float rotZ) {
-    if(rotX < 0) rotX += 360.0f;
-    if(rotY < 0) rotY += 360.0f;
-    if(rotZ < 0) rotZ += 360.0f;
-
     m_EulerAngles.x = std::fmod(rotX, 360.0f);
     m_EulerAngles.y = std::fmod(rotY, 360.0f);
     m_EulerAngles.z = std::fmod(rotZ, 360.0f);

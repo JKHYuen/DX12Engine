@@ -24,11 +24,15 @@
 #include "imgui_impl_dx12.h"
 #include "imgui_impl_win32.h"
 #include "implot.h"
+#include "imGuizmo.h"
 
 // IGame specific
 #include "DemoGame.h"
 
 #include <vector>
+#include <Logger.h>
+
+using namespace DirectX;
 
 namespace {
 	EditorGui* sp_Singleton = nullptr;
@@ -80,6 +84,16 @@ namespace {
 	// Stores all created GuiDescriptorAllocations created by "AllocateImageSRV()". Indices are enum "GuiSRVIndex".
 	std::vector<EditorGui::GuiDescriptorAllocation> s_ImageSRVs { EditorGui::ImGuiDebugSRVIndex::NumGuiSRVIndex };
 
+	auto ImGuiHelpMarker = [](const char* desc, bool b_IsSameLine = true, bool b_IsWarning = false) {
+		if(b_IsSameLine) ImGui::SameLine();
+		if(b_IsWarning)  ImGui::TextDisabled("(!)"); else ImGui::TextDisabled("(?)");
+		if(ImGui::BeginItemTooltip()) {
+			ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+			ImGui::TextUnformatted(desc);
+			ImGui::PopTextWrapPos();
+			ImGui::EndTooltip();
+		}
+	};
 }
 
 EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWND hwnd) {
@@ -248,6 +262,7 @@ void EditorGui::NewFrame() {
 	ImGui_ImplDX12_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
+	ImGuizmo::BeginFrame();
 }
 
 void EditorGui::Render(CommandList& directCommandList) {
@@ -260,17 +275,6 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 	static const ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
 	// HDR color picker is WIP in ImGui, color picker disabled since it doesn't support HDR. We will render preview box manually since the values need to be normalized.
 	static const ImGuiColorEditFlags kHDRColorEditFlags = ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoSmallPreview;
-
-	static auto ImGuiHelpMarker = [](const char* desc, bool b_IsSameLine = true, bool b_IsWarning = false) {
-		if(b_IsSameLine) ImGui::SameLine();
-		if(b_IsWarning)  ImGui::TextDisabled("(!)"); else ImGui::TextDisabled("(?)");
-		if(ImGui::BeginItemTooltip()) {
-			ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-			ImGui::TextUnformatted(desc);
-			ImGui::PopTextWrapPos();
-			ImGui::EndTooltip();
-		}
-	};
 
 	static auto ImGuiHDRColorEdit3Preview = [](std::string_view s, float col[3], ImGuiColorEditFlags flags) {
 		ImGui::SameLine();
@@ -553,6 +557,7 @@ LSHIFT: Move fast\n\
 				ImGui::TreePop();
 			}
 
+			/// TODO:
 			if(ImGui::TreeNode("Point Lights")) {
 				static float s_PointLightColor[3];
 				static float s_PointLightTranslation[3];
@@ -641,6 +646,7 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 	static int s_MinParallaxLayers {};
 	static int s_MaxParallaxLayers {};
 	static int s_TessRadioIdx = 0;
+	static float s_GizmoSRTMat[16];
 	static GameObject* s_LastPickedObject {};
 
 	// If newly picked object, update variables
@@ -678,6 +684,8 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 		else {
 			s_TessRadioIdx = 0;
 		}
+
+		ImGuizmo::RecomposeMatrixFromComponents(s_ObjTranslation, s_ObjDegreeEulerAngles, s_ObjScale, s_GizmoSRTMat);
 	}
 	s_LastPickedObject = picked;
 
@@ -713,15 +721,77 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 	}
 
 	ImGui::SeparatorText("Transform");
-	if(ImGui::DragFloat3("Position", s_ObjTranslation, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
-		picked->SetTranslation(s_ObjTranslation[0], s_ObjTranslation[1], s_ObjTranslation[2]);
-	}
-
-	if(ImGui::DragFloat3("Rotation", s_ObjDegreeEulerAngles, 0.1f, 0.0f, 360.0f, "%.2f", ImGuiSliderFlags_WrapAround)) {
-		picked->SetEulerRotation(XMConvertToRadians(s_ObjDegreeEulerAngles[0]), XMConvertToRadians(s_ObjDegreeEulerAngles[1]), XMConvertToRadians(s_ObjDegreeEulerAngles[2]));
-	}
-
 	{
+		static XMFLOAT4X4 s_CamViewMat;
+		static XMFLOAT4X4 s_CamProjMat;
+		XMStoreFloat4x4(&s_CamViewMat, scene.GetMainCamera().Get_ViewMatrix());
+		XMStoreFloat4x4(&s_CamProjMat, scene.GetMainCamera().Get_ProjectionMatrix());
+
+		static ImGuizmo::OPERATION s_CurrentGizmoOperation(ImGuizmo::TRANSLATE);
+
+		// Use ImGui key detection instead of this engine's key detection to keep things encapsulated 
+		if(ImGui::IsKeyPressed(ImGuiKey_T))
+			s_CurrentGizmoOperation = ImGuizmo::TRANSLATE;
+		if(ImGui::IsKeyPressed(ImGuiKey_R))
+			s_CurrentGizmoOperation = ImGuizmo::ROTATE;
+		if(ImGui::IsKeyPressed(ImGuiKey_F))
+			s_CurrentGizmoOperation = ImGuizmo::SCALE;
+
+		ImGui::AlignTextToFramePadding();
+		ImGuiHelpMarker("On-screen transform gizmo mode.\nNote: Mouse drag is less sensitive as scale values approach zero.\n\nKey shortcuts:\nT: Translate\nR: Rotation\nF: Scale", false); ImGui::SameLine();
+		ImGui::AlignTextToFramePadding();
+		ImGui::Text("Gizmo:"); 
+		ImGui::SameLine();
+		if(ImGui::RadioButton("Translate", s_CurrentGizmoOperation == ImGuizmo::TRANSLATE))
+			s_CurrentGizmoOperation = ImGuizmo::TRANSLATE;
+		ImGui::SameLine();
+		if(ImGui::RadioButton("Rotate", s_CurrentGizmoOperation == ImGuizmo::ROTATE))
+			s_CurrentGizmoOperation = ImGuizmo::ROTATE;
+		ImGui::SameLine();
+		if(ImGui::RadioButton("Scale", s_CurrentGizmoOperation == ImGuizmo::SCALE))
+			s_CurrentGizmoOperation = ImGuizmo::SCALE;
+
+		ImGuizmo::RecomposeMatrixFromComponents(s_ObjTranslation, s_ObjDegreeEulerAngles, s_ObjScale, s_GizmoSRTMat);
+		static float s_GizmoDeltaMat[16] {};
+		ImGuiIO& io = ImGui::GetIO();
+		ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+		if(ImGuizmo::Manipulate(*s_CamViewMat.m, *s_CamProjMat.m, s_CurrentGizmoOperation, ImGuizmo::WORLD, s_GizmoSRTMat, s_GizmoDeltaMat, NULL)) {
+			// Note: gizmo currently only supports world space, world space rotations require special care using values in s_GizmoDeltaMat, 
+			//       translation and scale is updated with s_GizmoSRTMat values for convenience since we need to update s_ObjTranslation and s_ObjScale 
+			static float rtDelta[3], dummyVec[3];
+			ImGuizmo::DecomposeMatrixToComponents(s_GizmoDeltaMat, dummyVec, rtDelta, dummyVec);
+			ImGuizmo::DecomposeMatrixToComponents(s_GizmoSRTMat, s_ObjTranslation, dummyVec, s_ObjScale);
+
+			picked->SetTranslation(s_ObjTranslation[0], s_ObjTranslation[1], s_ObjTranslation[2]);
+
+			// Note: "201" order of rotation indices to convert ImGuizmo rotation order to DirectX
+			picked->QuatRotate(XMQuaternionRotationRollPitchYaw(
+				XMConvertToRadians(rtDelta[2]), XMConvertToRadians(rtDelta[0]), XMConvertToRadians(rtDelta[1]))
+			);
+			XMFLOAT3 degreeEulerRotation = picked->GetEulerRotation();
+			degreeEulerRotation.x = XMConvertToDegrees(degreeEulerRotation.x);
+			degreeEulerRotation.y = XMConvertToDegrees(degreeEulerRotation.y);
+			degreeEulerRotation.z = XMConvertToDegrees(degreeEulerRotation.z);
+			// Convert values from [-180, 180] range from ImGuizmo to [0, 360] to match DragFloat3 below
+			degreeEulerRotation.x += degreeEulerRotation.x < 0.0f ? 360.0f : 0.0f;
+			degreeEulerRotation.y += degreeEulerRotation.y < 0.0f ? 360.0f : 0.0f;
+			degreeEulerRotation.z += degreeEulerRotation.z < 0.0f ? 360.0f : 0.0f;
+			memcpy(&s_ObjDegreeEulerAngles, &degreeEulerRotation, 3 * sizeof(float));
+
+			picked->SetScale(s_ObjScale[0], s_ObjScale[1], s_ObjScale[2]);
+			
+		}
+
+		if(ImGui::DragFloat3("Position", s_ObjTranslation, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
+			picked->SetTranslation(s_ObjTranslation[0], s_ObjTranslation[1], s_ObjTranslation[2]);
+		}
+
+		// Local rotation
+		if(ImGui::DragFloat3("Rotation", s_ObjDegreeEulerAngles, 0.1f, 0.0f, 360.0f, "%.2f", ImGuiSliderFlags_WrapAround)) {
+			picked->SetEulerRotation(XMConvertToRadians(s_ObjDegreeEulerAngles[0]), XMConvertToRadians(s_ObjDegreeEulerAngles[1]), XMConvertToRadians(s_ObjDegreeEulerAngles[2]));
+		}
+		ImGuiHelpMarker("Local euler rotation (degrees), use rotation gizmo for world rotation.");
+
 		if(ImGui::DragFloat3("Scale", s_ObjScale, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
 			picked->SetScale(s_ObjScale[0], s_ObjScale[1], s_ObjScale[2]);
 		}
@@ -739,7 +809,7 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 				picked->Scale(0.95f, 0.95f, 0.95f);
 			}
 			XMFLOAT3 scale = picked->GetScale();
-            memcpy(s_ObjScale, &scale, sizeof(float) * 3);
+			memcpy(s_ObjScale, &scale, sizeof(float) * 3);
 
 			lastMousePos = ImGui::GetMousePos().x;
 		}

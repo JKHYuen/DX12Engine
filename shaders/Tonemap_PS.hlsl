@@ -42,5 +42,7 @@ float4 main(PixelInputType i) : SV_TARGET {
     color.rgb = ReinhardJodieTMO(color.rgb);
     //color.rgb = HableTMO(color.rgb);
     
+    //float outline = step(0.2, fwidth(color)); // fun effect
+    
     return color;
 }

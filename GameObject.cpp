@@ -21,6 +21,7 @@
 #include <memory>
 #include <string>
 #include <cstdint>
+#include <Logger.h>
 
 using namespace RenderEnums;
 using namespace DirectX;
@@ -34,7 +35,7 @@ GameObject::GameObject(CommandList& copyCommandList, const EntityParams& params,
 	// Don't use setters (e.g. SetTranslation()) to initialize, this ensures AABB is initialized properly / avoids unneccesary calcs
 	m_Scale = params.scale;
 	XMStoreFloat4x4(&m_ScaleMat, XMMatrixScaling(params.scale.x, params.scale.y, params.scale.z));
-	m_EulerRotation = params.radianEulerRotation;
+	m_RadianEulerRotation = params.radianEulerRotation;
 	XMStoreFloat4x4(&m_RotationMat, XMMatrixRotationRollPitchYaw(params.radianEulerRotation.x, params.radianEulerRotation.y, params.radianEulerRotation.z));
 	m_Translation = params.translation;
 	XMStoreFloat4x4(&m_TranslationMat, XMMatrixTranslation(params.translation.x, params.translation.y, params.translation.z));
@@ -256,8 +257,19 @@ void GameObject::Translate(float x, float y, float z) {
 	SetTranslation(m_Translation.x + x, m_Translation.y + y, m_Translation.z + z);
 }
 
-void GameObject::EulerRotate(float x, float y, float z) {
-	SetEulerRotation(m_EulerRotation.x + x,m_EulerRotation.y + y, m_EulerRotation.z + z);
+void XM_CALLCONV GameObject::QuatRotate(FXMVECTOR quaternion) {
+	XMFLOAT4X4 tempMat {};
+	XMStoreFloat4x4(&tempMat, XMMatrixMultiply(XMLoadFloat4x4(&m_RotationMat), XMMatrixRotationQuaternion(quaternion)));
+
+	// Source: https://stackoverflow.com/a/67421550
+	DirectX::XMVECTOR from { XMVectorSet(tempMat._12, tempMat._31, 0.0f, 0.0f) };
+	DirectX::XMVECTOR to   { XMVectorSet(tempMat._22, tempMat._33, 0.0f, 0.0f) };
+	DirectX::XMVECTOR res  { XMVectorATan2(from, to) };
+	float roll  = XMVectorGetX(res);
+	float pitch = XMScalarASin(-tempMat._32);
+	float yaw   = XMVectorGetY(res);
+
+	SetEulerRotation(pitch, yaw, roll);
 }
 
 void GameObject::Scale(float x, float y, float z) {
@@ -275,9 +287,9 @@ void GameObject::SetTranslation(float x, float y, float z) {
 }
 
 void GameObject::SetEulerRotation(float x, float y, float z) {
-	m_EulerRotation = { x, y, z };
+	m_RadianEulerRotation = { x, y, z };
 	XMStoreFloat4x4(&m_RotationMat, XMMatrixRotationRollPitchYaw(x, y, z));
-	
+
 	// Update cached values
 	{
 		XMStoreFloat4x4(&m_SRMat, XMMatrixMultiply(XMLoadFloat4x4(&m_ScaleMat), XMLoadFloat4x4(&m_RotationMat)));
@@ -300,7 +312,8 @@ void GameObject::SetScale(float x, float y, float z) {
 // Note: currently does not support height map, might be a lot more expensive/inaccurate if we do
 // Scale and rotate all 8 vertices (for non-uniform scaling support) with object transformation matrices
 // then find new extents based on this new transformed AABB.
-// Kind of slow, only called when scaling or rotating object. Can be simplified if there is uniform scaling.
+// Kind of slow, only called when scaling or rotating object. 
+// Can be simplified if there is uniform scaling.
 void GameObject::RecalcAABB() {
 	// Start with original mesh extents at world origin
 	const XMFLOAT3& e = m_Mesh->GetExtents();

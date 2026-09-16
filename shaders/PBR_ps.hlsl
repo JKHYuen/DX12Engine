@@ -224,8 +224,10 @@ float4 main(PixelInputType i) : SV_TARGET {
     const float3 albedo = AlbedoTex.Sample(AnisoWrapSampler, i.uv).rgb;
     const float ao = MaterialTex.Sample(AnisoWrapSampler, i.uv).r;
     const float metallic = MaterialTex.Sample(AnisoWrapSampler, i.uv).g;
+    
+    // Perfectly smooth (zero roughness) materials can lose it's specular reflection since it is infinitely small (unsure if this is intended)
     /// TODO: put this in CB
-    float minRoughness = 0.01;
+    float minRoughness = 0.0;
     const float roughness = max(minRoughness, MaterialTex.Sample(AnisoWrapSampler, i.uv).b);
 
     // Normal preprocess
@@ -250,12 +252,12 @@ float4 main(PixelInputType i) : SV_TARGET {
     for (int idx = 0; idx < MAX_POINT_LIGHT_COUNT; idx++) {
         // Attenuation formula from: https://google.github.io/filament/main/filament.html#attenuation-function
         const float3 radiance = PointLights[idx].ColorInvRadius.xyz;
-        const float3 spotDir = PointLights[idx].WorldPosition.xyz - i.worldPosition.xyz;
-        const float distanceSquare = dot(spotDir, spotDir);
+        const float3 pointLightDir = PointLights[idx].WorldPosition.xyz - i.worldPosition.xyz;
+        const float distanceSquare = dot(pointLightDir, pointLightDir);
         const float factor = distanceSquare * PointLights[idx].ColorInvRadius.a * PointLights[idx].ColorInvRadius.a;
         const float smoothFactor = max(1.0 - factor * factor, 0.0);
         const float attenuation = (smoothFactor * smoothFactor) / max(distanceSquare, 1e-4);
-        pointLightLo += CalcReflectanceFromLight(spotDir, radiance * attenuation, albedo, metallic, F0, roughness, normal, viewDirection, NdotV);
+        pointLightLo += CalcReflectanceFromLight(pointLightDir, radiance * attenuation, albedo, metallic, F0, roughness, normal, viewDirection, NdotV);
     }
     
 /// END CALCULATE PBR DIRECT LIGHTING (LO)
@@ -311,5 +313,6 @@ float4 main(PixelInputType i) : SV_TARGET {
         dirLightShadowFactor *= saturate(parallaxSelfShadowFactor);
     }
 /// END CALCULATE SHADOW 
+    
     return float4(ambient + pointLightLo + (dirLightLo * dirLightShadowFactor), 1);
 }

@@ -15,6 +15,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <utility>
 
 class Camera;
 class Device;
@@ -24,7 +25,6 @@ class MouseButtonEventArgs;
 class KeyEventArgs;
 class UnlitPSO;
 class UnlitPrimitivePSO;
-class PointLight;
 
 class Scene {
 
@@ -60,11 +60,17 @@ public:
 
 	void ComputeSkyboxIBLs(CommandList& directCommandList);
 
-	/// TODO: figure out some proper game object storage, pointers to m_SceneObjects can be invalidated
-	template<class ...TArgs>
-	void AddGameObject(TArgs&&... tArgs) {
+	// Note: see comment on m_SceneObjects member
+	//template<class ...TArgs>
+	//void AddGameObject(TArgs&&... tArgs) {
+	//	assert(m_SceneObjects.size() < sk_MaxSceneObjects);
+	//	m_SceneObjects.emplace_back(std::make_unique(std::forward<TArgs>(tArgs)...));
+	//}
+
+	// Note: see comment on m_SceneObjects member
+	void AddGameObject(std::unique_ptr<GameObject> go) {
 		assert(m_SceneObjects.size() < sk_MaxSceneObjects);
-		m_SceneObjects.emplace_back(std::forward<TArgs>(tArgs)...);
+		m_SceneObjects.push_back(std::move(go));
 	}
 
 	void SetSkybox(CommandList& copyCommandList, CommandList& computeCommandList, const std::wstring& hdrTextureName);
@@ -75,15 +81,17 @@ public:
 	uint32_t GetWindowWidth()  const;
 	uint32_t GetWindowHeight() const;
 
+	// This probably shouldn't be in this class
 	void SetAABBRenderMode(AABBRenderMode mode) {m_AABBRenderMode = mode; }
 
 	Camera& GetMainCamera() const { return *m_MainCamera; }
 
 private:
-	static const int sk_MaxSceneObjects = 65536;
+	static const int sk_MaxSceneObjects = 65536; // arbitrary
 	/// TODO: Currently no system to validate destoyed objects, smarter storage needed
 	///       Same size objects should at least be grouped together in separate arrays in a real engine
-	std::vector<GameObject> m_SceneObjects;
+	///       This is difficult until I convert GameObject class hierarchy into component system.
+	std::vector<std::unique_ptr<GameObject>> m_SceneObjects;
 
 	bool mb_WireframeRender = false;
 

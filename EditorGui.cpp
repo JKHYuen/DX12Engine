@@ -1,3 +1,5 @@
+// EditorGui is currently only hardcoded to work with the "DemoGame" class
+
 #include "EditorGui.h"
 
 #include <DX12LibPCH.h>
@@ -13,9 +15,9 @@
 #include "Camera.h"
 #include "DirectionalLight.h"
 #include "GameObject.h"
+#include "PBRGameObject.h"
 #include "OutlineEffect.h"
 #include "Picker.h"
-#include "RenderConstants.h"
 #include "Scene.h"
 #include "Skybox.h"
 #include "StringHelpers.h"
@@ -31,6 +33,8 @@
 
 #include <vector>
 #include <Logger.h>
+#include "PointLight.h"
+#include <string>
 
 using namespace DirectX;
 
@@ -94,6 +98,107 @@ namespace {
 			ImGui::EndTooltip();
 		}
 	};
+
+	/// TODO: hide irrelevant components for point lights
+	// All params prefixed "s_" is static to object inspector and are out values
+	// C arrays are used for easy use with ImGui
+	void GameObjectTransform(const Scene& scene, GameObject* go, ImGuiSliderFlags kSliderFlags, float s_GizmoSRTMat[16], float s_ObjTranslation[3], float s_ObjDegreeEulerAngles[3], float s_ObjScale[3]) {
+		ImGui::SeparatorText("Transform");
+
+		static XMFLOAT4X4 s_CamViewMat;
+		static XMFLOAT4X4 s_CamProjMat;
+		XMStoreFloat4x4(&s_CamViewMat, scene.GetMainCamera().Get_ViewMatrix());
+		XMStoreFloat4x4(&s_CamProjMat, scene.GetMainCamera().Get_ProjectionMatrix());
+
+		static ImGuizmo::OPERATION s_CurrentGizmoOperation(ImGuizmo::TRANSLATE);
+
+		// Use ImGui key detection instead of this engine's key detection to keep things encapsulated 
+		if(ImGui::IsKeyPressed(ImGuiKey_T))
+			s_CurrentGizmoOperation = ImGuizmo::TRANSLATE;
+		if(ImGui::IsKeyPressed(ImGuiKey_R))
+			s_CurrentGizmoOperation = ImGuizmo::ROTATE;
+		if(ImGui::IsKeyPressed(ImGuiKey_F))
+			s_CurrentGizmoOperation = ImGuizmo::SCALE;
+
+		ImGui::AlignTextToFramePadding();
+		ImGuiHelpMarker("On-screen transform gizmo mode.\nNote: Mouse drag is less sensitive as scale values approach zero.\n\nKey shortcuts:\nT: Translate\nR: Rotation\nF: Scale", false); ImGui::SameLine();
+		ImGui::AlignTextToFramePadding();
+		ImGui::Text("Gizmo:");
+		ImGui::SameLine();
+		if(ImGui::RadioButton("Translate", s_CurrentGizmoOperation == ImGuizmo::TRANSLATE))
+			s_CurrentGizmoOperation = ImGuizmo::TRANSLATE;
+		ImGui::SameLine();
+		if(ImGui::RadioButton("Rotate", s_CurrentGizmoOperation == ImGuizmo::ROTATE))
+			s_CurrentGizmoOperation = ImGuizmo::ROTATE;
+		ImGui::SameLine();
+		if(ImGui::RadioButton("Scale", s_CurrentGizmoOperation == ImGuizmo::SCALE))
+			s_CurrentGizmoOperation = ImGuizmo::SCALE;
+
+		// Update s_GizmoSRTMat so gizmo translation and rotation is correct if values were changed
+		ImGuizmo::RecomposeMatrixFromComponents(s_ObjTranslation, s_ObjDegreeEulerAngles, s_ObjScale, s_GizmoSRTMat);
+
+		static float s_GizmoDeltaMat[16] {};
+		ImGuiIO& io = ImGui::GetIO();
+		ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+		if(ImGuizmo::Manipulate(*s_CamViewMat.m, *s_CamProjMat.m, s_CurrentGizmoOperation, ImGuizmo::WORLD, s_GizmoSRTMat, s_GizmoDeltaMat, NULL)) {
+			// Note: gizmo currently only supports world space, world space rotations require special care using values in s_GizmoDeltaMat, 
+			//       translation and scale are updated by decomposing s_GizmoSRTMat values for convenience since we need to update 
+			//       s_ObjTranslation and s_ObjScale anyways
+			static float rtDelta[3], dummyVec[3];
+			ImGuizmo::DecomposeMatrixToComponents(s_GizmoDeltaMat, dummyVec, rtDelta, dummyVec);
+			ImGuizmo::DecomposeMatrixToComponents(s_GizmoSRTMat, s_ObjTranslation, dummyVec, s_ObjScale);
+
+			go->SetScale(s_ObjScale[0], s_ObjScale[1], s_ObjScale[2]);
+			go->SetTranslation(s_ObjTranslation[0], s_ObjTranslation[1], s_ObjTranslation[2]);
+
+			// Note: "201" order of rotation indices to convert ImGuizmo rotation order to DirectX
+			go->QuatRotate(XMQuaternionRotationRollPitchYaw(
+				XMConvertToRadians(rtDelta[2]), XMConvertToRadians(rtDelta[0]), XMConvertToRadians(rtDelta[1]))
+			);
+			XMFLOAT3 degreeEulerRotation = go->GetEulerRotation();
+			degreeEulerRotation.x = XMConvertToDegrees(degreeEulerRotation.x);
+			degreeEulerRotation.y = XMConvertToDegrees(degreeEulerRotation.y);
+			degreeEulerRotation.z = XMConvertToDegrees(degreeEulerRotation.z);
+			// Convert values from [-180, 180] range from ImGuizmo to [0, 360] to match DragFloat3 below
+			// Need to manually update s_ObjDegreeEulerAngles since we're not using decomposition of s_GizmoSRTMat for rotations
+			s_ObjDegreeEulerAngles[0] = degreeEulerRotation.x + (degreeEulerRotation.x < 0.0f ? 360.0f : 0.0f);
+			s_ObjDegreeEulerAngles[1] = degreeEulerRotation.y + (degreeEulerRotation.y < 0.0f ? 360.0f : 0.0f);
+			s_ObjDegreeEulerAngles[2] = degreeEulerRotation.z + (degreeEulerRotation.z < 0.0f ? 360.0f : 0.0f);
+		}
+
+		if(ImGui::DragFloat3("Position", s_ObjTranslation, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
+			go->SetTranslation(s_ObjTranslation[0], s_ObjTranslation[1], s_ObjTranslation[2]);
+		}
+
+		// Local rotation
+		if(ImGui::DragFloat3("Rotation", s_ObjDegreeEulerAngles, 0.1f, 0.0f, 360.0f, "%.2f", ImGuiSliderFlags_WrapAround)) {
+			go->SetEulerRotation(XMConvertToRadians(s_ObjDegreeEulerAngles[0]), XMConvertToRadians(s_ObjDegreeEulerAngles[1]), XMConvertToRadians(s_ObjDegreeEulerAngles[2]));
+		}
+		ImGuiHelpMarker("Local euler rotation (degrees), use rotation gizmo for world rotation.");
+
+		if(ImGui::DragFloat3("Scale", s_ObjScale, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
+			go->SetScale(s_ObjScale[0], s_ObjScale[1], s_ObjScale[2]);
+		}
+		ImGui::SameLine();
+
+		/// Extremely hacky way to add a uniform scale drag, can't think of another way right now
+		ImGui::PushItemWidth(30);
+		static float _ {};
+		static float lastMousePos {};
+		if(ImGui::DragFloat("##ScaleDrag", &_, 0.001f, 0.0f, 1.0f, "<->", ImGuiSliderFlags_WrapAround)) {
+			if(ImGui::GetMousePos().x > lastMousePos) {
+				go->Scale(1.05f, 1.05f, 1.05f);
+			}
+			else {
+				go->Scale(0.95f, 0.95f, 0.95f);
+			}
+			XMFLOAT3 scale = go->GetScale();
+			memcpy(s_ObjScale, &scale, sizeof(float) * 3);
+
+			lastMousePos = ImGui::GetMousePos().x;
+		}
+		ImGui::PopItemWidth();
+	}
 }
 
 EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWND hwnd) {
@@ -572,6 +677,7 @@ LSHIFT: Move fast\n\
 
 				ImGui::TreePop();
 			}
+			///
 		}
 
 		// Bloom
@@ -628,8 +734,10 @@ LSHIFT: Move fast\n\
 }
 
 void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
-	GameObject* picked = scene.m_Picker->m_PickedObject;
 	if(!sb_ObjectInspectorState) return;
+
+	GameObject* pickedGameObject = scene.m_Picker->m_PickedObject;
+	if(pickedGameObject == nullptr) return;
 
 	static const ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
 
@@ -646,55 +754,72 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 	static int s_MinParallaxLayers {};
 	static int s_MaxParallaxLayers {};
 	static int s_TessRadioIdx = 0;
-	static float s_GizmoSRTMat[16];
+	static float s_GizmoSRTMat[16] {};
 	static GameObject* s_LastPickedObject {};
 
+	PointLight* pickedPointLight = dynamic_cast<PointLight*>(scene.m_Picker->m_PickedObject);
+	PBRGameObject* pickedPBRGameObject = dynamic_cast<PBRGameObject*>(scene.m_Picker->m_PickedObject);
+
 	// If newly picked object, update variables
-	if(picked != s_LastPickedObject) {
-		s_ObjectName = std::string { picked->GetName() };
-		s_ObjectName += "##ObjectInspector"; // appending this decouples window title and window ID
+	if(pickedGameObject != s_LastPickedObject) {
+		// GameObject (base class) vars 
+		{
+			s_ObjectName = std::string{ pickedGameObject->GetName()};
+			s_ObjectName += "##ObjectInspector"; // appending this decouples window title and window ID
 
-		s_SelectedMat = picked->m_RenderProps.pbrMatName;
+			// Transform
+			XMFLOAT3 translation = pickedGameObject->GetTranslation();
+			XMFLOAT3 degreeEulerRotation = pickedGameObject->GetEulerRotation();
+			degreeEulerRotation.x = XMConvertToDegrees(degreeEulerRotation.x);
+			degreeEulerRotation.y = XMConvertToDegrees(degreeEulerRotation.y);
+			degreeEulerRotation.z = XMConvertToDegrees(degreeEulerRotation.z);
+			XMFLOAT3 scale = pickedGameObject->GetScale();
+			memcpy(s_ObjTranslation, &translation, sizeof(float) * 3);
+			memcpy(s_ObjDegreeEulerAngles, &degreeEulerRotation, sizeof(float) * 3);
+			memcpy(s_ObjScale, &scale, sizeof(float) * 3);
 
-		XMFLOAT3 translation = picked->GetTranslation();
-		XMFLOAT3 degreeEulerRotation = picked->GetEulerRotation();
-		degreeEulerRotation.x = XMConvertToDegrees(degreeEulerRotation.x);
-		degreeEulerRotation.y = XMConvertToDegrees(degreeEulerRotation.y);
-		degreeEulerRotation.z = XMConvertToDegrees(degreeEulerRotation.z);
-		XMFLOAT3 scale = picked->GetScale();
-		memcpy(s_ObjTranslation, &translation, sizeof(float) * 3);
-		memcpy(s_ObjDegreeEulerAngles, &degreeEulerRotation, sizeof(float) * 3);
-		memcpy(s_ObjScale, &scale, sizeof(float) * 3);
-
-		XMFLOAT2 uvScale = picked->m_RenderProps.uvScale;
-		memcpy(s_UVScale, &uvScale, sizeof(float) * 2);
-
-		s_HeightMapMagnitude = picked->m_RenderProps.heightMapMagnitude;
-		s_ParallaxMagnitude  = picked->m_RenderProps.parallaxMagnitude;
-		s_UseParallaxShadows = picked->m_RenderProps.useParallaxShadow;
-		s_MinParallaxLayers  = picked->m_RenderProps.minParallaxLayers;
-		s_MaxParallaxLayers  = picked->m_RenderProps.maxParallaxLayers;
-
-		if(((picked->m_RenderProps.tessellationModeFlag) & RenderFlags_UniformTessellation) != 0) {
-			s_TessRadioIdx = 1;
-		}
-		else if(((picked->m_RenderProps.tessellationModeFlag) & RenderFlags_EdgeTessellation) != 0) {
-			s_TessRadioIdx = 2;
-		}
-		else {
-			s_TessRadioIdx = 0;
+			ImGuizmo::RecomposeMatrixFromComponents(s_ObjTranslation, s_ObjDegreeEulerAngles, s_ObjScale, s_GizmoSRTMat);
 		}
 
-		ImGuizmo::RecomposeMatrixFromComponents(s_ObjTranslation, s_ObjDegreeEulerAngles, s_ObjScale, s_GizmoSRTMat);
+		// PBRGameObject vars
+		if(pickedPBRGameObject != nullptr) {
+			s_SelectedMat = pickedPBRGameObject->m_RenderProps.pbrMatName;
+			XMFLOAT2 uvScale = pickedPBRGameObject->m_RenderProps.uvScale;
+			memcpy(s_UVScale, &uvScale, sizeof(float) * 2);
+
+			s_HeightMapMagnitude = pickedPBRGameObject->m_RenderProps.heightMapMagnitude;
+			s_ParallaxMagnitude = pickedPBRGameObject->m_RenderProps.parallaxMagnitude;
+			s_UseParallaxShadows = pickedPBRGameObject->m_RenderProps.useParallaxShadow;
+			s_MinParallaxLayers = pickedPBRGameObject->m_RenderProps.minParallaxLayers;
+			s_MaxParallaxLayers = pickedPBRGameObject->m_RenderProps.maxParallaxLayers;
+
+			if(((pickedPBRGameObject->m_RenderProps.tessellationModeFlag) & RenderFlags_UniformTessellation) != 0) {
+				s_TessRadioIdx = 1;
+			}
+			else if(((pickedPBRGameObject->m_RenderProps.tessellationModeFlag) & RenderFlags_EdgeTessellation) != 0) {
+				s_TessRadioIdx = 2;
+			}
+			else {
+				s_TessRadioIdx = 0;
+			}
+		}
+
 	}
-	s_LastPickedObject = picked;
+	s_LastPickedObject = pickedGameObject;
 
 	ImGui::SetNextWindowPos({ (float)scene.GetWindowWidth() * 0.8f, (float)scene.GetWindowHeight() * 0.05f }, ImGuiCond_Once);
 
-	// sb_ObjectInspectorState var is just to make window x button work
+	// sb_ObjectInspectorState var is just to make inspector window x button work
 	ImGui::Begin(s_ObjectName.c_str(), &sb_ObjectInspectorState, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
 	if(!sb_ObjectInspectorState) {
 		scene.m_Picker->ClearPickedObject();
+		ImGui::End();
+		return;
+	}
+	
+	/// If picked object is a point light, just show Transform editing UI
+	if(pickedPointLight != nullptr) {
+		GameObjectTransform(scene, pickedPointLight, kSliderFlags, s_GizmoSRTMat, s_ObjTranslation, s_ObjDegreeEulerAngles, s_ObjScale);
 		ImGui::End();
 		return;
 	}
@@ -710,7 +835,7 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 				auto& copyCommandQueue = device.GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 				auto copyCommandList = copyCommandQueue.GetCommandList();
 
-				picked->UpdatePBRShaderResourcesFromFile(*copyCommandList, s);
+				pickedPBRGameObject->UpdatePBRShaderResourcesFromFile(*copyCommandList, s);
 
 				copyCommandQueue.ExecuteCommandList(copyCommandList);
 				copyCommandQueue.FlushWait();
@@ -720,106 +845,13 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 		ImGui::EndTable();
 	}
 
-	ImGui::SeparatorText("Transform");
-	{
-		static XMFLOAT4X4 s_CamViewMat;
-		static XMFLOAT4X4 s_CamProjMat;
-		XMStoreFloat4x4(&s_CamViewMat, scene.GetMainCamera().Get_ViewMatrix());
-		XMStoreFloat4x4(&s_CamProjMat, scene.GetMainCamera().Get_ProjectionMatrix());
-
-		static ImGuizmo::OPERATION s_CurrentGizmoOperation(ImGuizmo::TRANSLATE);
-
-		// Use ImGui key detection instead of this engine's key detection to keep things encapsulated 
-		if(ImGui::IsKeyPressed(ImGuiKey_T))
-			s_CurrentGizmoOperation = ImGuizmo::TRANSLATE;
-		if(ImGui::IsKeyPressed(ImGuiKey_R))
-			s_CurrentGizmoOperation = ImGuizmo::ROTATE;
-		if(ImGui::IsKeyPressed(ImGuiKey_F))
-			s_CurrentGizmoOperation = ImGuizmo::SCALE;
-
-		ImGui::AlignTextToFramePadding();
-		ImGuiHelpMarker("On-screen transform gizmo mode.\nNote: Mouse drag is less sensitive as scale values approach zero.\n\nKey shortcuts:\nT: Translate\nR: Rotation\nF: Scale", false); ImGui::SameLine();
-		ImGui::AlignTextToFramePadding();
-		ImGui::Text("Gizmo:"); 
-		ImGui::SameLine();
-		if(ImGui::RadioButton("Translate", s_CurrentGizmoOperation == ImGuizmo::TRANSLATE))
-			s_CurrentGizmoOperation = ImGuizmo::TRANSLATE;
-		ImGui::SameLine();
-		if(ImGui::RadioButton("Rotate", s_CurrentGizmoOperation == ImGuizmo::ROTATE))
-			s_CurrentGizmoOperation = ImGuizmo::ROTATE;
-		ImGui::SameLine();
-		if(ImGui::RadioButton("Scale", s_CurrentGizmoOperation == ImGuizmo::SCALE))
-			s_CurrentGizmoOperation = ImGuizmo::SCALE;
-
-		ImGuizmo::RecomposeMatrixFromComponents(s_ObjTranslation, s_ObjDegreeEulerAngles, s_ObjScale, s_GizmoSRTMat);
-		static float s_GizmoDeltaMat[16] {};
-		ImGuiIO& io = ImGui::GetIO();
-		ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
-		if(ImGuizmo::Manipulate(*s_CamViewMat.m, *s_CamProjMat.m, s_CurrentGizmoOperation, ImGuizmo::WORLD, s_GizmoSRTMat, s_GizmoDeltaMat, NULL)) {
-			// Note: gizmo currently only supports world space, world space rotations require special care using values in s_GizmoDeltaMat, 
-			//       translation and scale is updated with s_GizmoSRTMat values for convenience since we need to update s_ObjTranslation and s_ObjScale 
-			static float rtDelta[3], dummyVec[3];
-			ImGuizmo::DecomposeMatrixToComponents(s_GizmoDeltaMat, dummyVec, rtDelta, dummyVec);
-			ImGuizmo::DecomposeMatrixToComponents(s_GizmoSRTMat, s_ObjTranslation, dummyVec, s_ObjScale);
-
-			picked->SetTranslation(s_ObjTranslation[0], s_ObjTranslation[1], s_ObjTranslation[2]);
-
-			// Note: "201" order of rotation indices to convert ImGuizmo rotation order to DirectX
-			picked->QuatRotate(XMQuaternionRotationRollPitchYaw(
-				XMConvertToRadians(rtDelta[2]), XMConvertToRadians(rtDelta[0]), XMConvertToRadians(rtDelta[1]))
-			);
-			XMFLOAT3 degreeEulerRotation = picked->GetEulerRotation();
-			degreeEulerRotation.x = XMConvertToDegrees(degreeEulerRotation.x);
-			degreeEulerRotation.y = XMConvertToDegrees(degreeEulerRotation.y);
-			degreeEulerRotation.z = XMConvertToDegrees(degreeEulerRotation.z);
-			// Convert values from [-180, 180] range from ImGuizmo to [0, 360] to match DragFloat3 below
-			degreeEulerRotation.x += degreeEulerRotation.x < 0.0f ? 360.0f : 0.0f;
-			degreeEulerRotation.y += degreeEulerRotation.y < 0.0f ? 360.0f : 0.0f;
-			degreeEulerRotation.z += degreeEulerRotation.z < 0.0f ? 360.0f : 0.0f;
-			memcpy(&s_ObjDegreeEulerAngles, &degreeEulerRotation, 3 * sizeof(float));
-
-			picked->SetScale(s_ObjScale[0], s_ObjScale[1], s_ObjScale[2]);
-			
-		}
-
-		if(ImGui::DragFloat3("Position", s_ObjTranslation, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
-			picked->SetTranslation(s_ObjTranslation[0], s_ObjTranslation[1], s_ObjTranslation[2]);
-		}
-
-		// Local rotation
-		if(ImGui::DragFloat3("Rotation", s_ObjDegreeEulerAngles, 0.1f, 0.0f, 360.0f, "%.2f", ImGuiSliderFlags_WrapAround)) {
-			picked->SetEulerRotation(XMConvertToRadians(s_ObjDegreeEulerAngles[0]), XMConvertToRadians(s_ObjDegreeEulerAngles[1]), XMConvertToRadians(s_ObjDegreeEulerAngles[2]));
-		}
-		ImGuiHelpMarker("Local euler rotation (degrees), use rotation gizmo for world rotation.");
-
-		if(ImGui::DragFloat3("Scale", s_ObjScale, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
-			picked->SetScale(s_ObjScale[0], s_ObjScale[1], s_ObjScale[2]);
-		}
-		ImGui::SameLine();
-
-		/// Extremely hacky way to add a uniform scale drag, can't think of another way right now
-		ImGui::PushItemWidth(30);
-		static float _ {};
-		static float lastMousePos {};
-		if(ImGui::DragFloat("##ScaleDrag", &_, 0.001f, 0.0f, 1.0f, "<->", ImGuiSliderFlags_WrapAround)) {
-			if(ImGui::GetMousePos().x > lastMousePos) {
-				picked->Scale(1.05f, 1.05f, 1.05f);
-			}
-			else {
-				picked->Scale(0.95f, 0.95f, 0.95f);
-			}
-			XMFLOAT3 scale = picked->GetScale();
-			memcpy(s_ObjScale, &scale, sizeof(float) * 3);
-
-			lastMousePos = ImGui::GetMousePos().x;
-		}
-		ImGui::PopItemWidth();
-	}
+	// Transform component
+	GameObjectTransform(scene, pickedPBRGameObject, kSliderFlags, s_GizmoSRTMat, s_ObjTranslation, s_ObjDegreeEulerAngles, s_ObjScale);
 
 	if(ImGui::CollapsingHeader("Shader Properties", ImGuiTreeNodeFlags_DefaultOpen)) {
 		{
 			if(ImGui::DragFloat2("UV Scale", s_UVScale, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
-				picked->m_RenderProps.uvScale = { s_UVScale[0], s_UVScale[1] };
+				pickedPBRGameObject->m_RenderProps.uvScale = { s_UVScale[0], s_UVScale[1] };
 			}
 			ImGui::SameLine();
 
@@ -829,12 +861,12 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 			static float lastMousePos {};
 			if(ImGui::DragFloat("##UVScaleDrag", &_, 0.001f, 0.0f, 1.0f, "<->", ImGuiSliderFlags_WrapAround)) {
 				if(ImGui::GetMousePos().x > lastMousePos) {
-					s_UVScale[0] = picked->m_RenderProps.uvScale.x += 0.05f;
-					s_UVScale[1] = picked->m_RenderProps.uvScale.y += 0.05f;
+					s_UVScale[0] = pickedPBRGameObject->m_RenderProps.uvScale.x += 0.05f;
+					s_UVScale[1] = pickedPBRGameObject->m_RenderProps.uvScale.y += 0.05f;
 				}
 				else {
-					s_UVScale[0] = picked->m_RenderProps.uvScale.x -= 0.05f;
-					s_UVScale[1] = picked->m_RenderProps.uvScale.y -= 0.05f;
+					s_UVScale[0] = pickedPBRGameObject->m_RenderProps.uvScale.x -= 0.05f;
+					s_UVScale[1] = pickedPBRGameObject->m_RenderProps.uvScale.y -= 0.05f;
 				}
 
 				lastMousePos = ImGui::GetMousePos().x;
@@ -843,7 +875,7 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 		}
 
 		if(ImGui::DragFloat("Height Map Magnitude", &s_HeightMapMagnitude, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
-			picked->m_RenderProps.heightMapMagnitude = s_HeightMapMagnitude;
+			pickedPBRGameObject->m_RenderProps.heightMapMagnitude = s_HeightMapMagnitude;
 		}
 		
 		ImGui::SeparatorText("Tessellation");
@@ -851,40 +883,40 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Mode:"); ImGui::SameLine();
 			if(ImGui::RadioButton("Off", &s_TessRadioIdx, 0)) {
-				picked->m_RenderProps.tessellationModeFlag = RenderFlags_NoTessellation;
+				pickedPBRGameObject->m_RenderProps.tessellationModeFlag = RenderFlags_NoTessellation;
 			}
 			ImGui::SameLine();
 			if(ImGui::RadioButton("Uniform", &s_TessRadioIdx, 1)) {
-				picked->m_RenderProps.tessellationModeFlag = RenderFlags_UniformTessellation;
+				pickedPBRGameObject->m_RenderProps.tessellationModeFlag = RenderFlags_UniformTessellation;
 			}
 			ImGui::SameLine();
 			if(ImGui::RadioButton("Distance Based Edge", &s_TessRadioIdx, 2)) {
-				picked->m_RenderProps.tessellationModeFlag = RenderFlags_EdgeTessellation;
+				pickedPBRGameObject->m_RenderProps.tessellationModeFlag = RenderFlags_EdgeTessellation;
 			}
 
 			if(s_TessRadioIdx == 1) {
-				if(ImGui::DragFloat("Tessellation Magnitude", &picked->m_RenderProps.tessellationMagnitude, 0.01f, 1.0f, 1000.0f, "%.2f", kSliderFlags)) {}
+				if(ImGui::DragFloat("Tessellation Magnitude", &pickedPBRGameObject->m_RenderProps.tessellationMagnitude, 0.01f, 1.0f, 1000.0f, "%.2f", kSliderFlags)) {}
 			}
 			else if(s_TessRadioIdx == 2) {
-				if(ImGui::DragFloat("Tessellation Edge Length", &picked->m_RenderProps.tessellationEdgeLength, 1.0f, 1.0f, 1000.0f, "%.1f", kSliderFlags)) {}
+				if(ImGui::DragFloat("Tessellation Edge Length", &pickedPBRGameObject->m_RenderProps.tessellationEdgeLength, 1.0f, 1.0f, 1000.0f, "%.1f", kSliderFlags)) {}
 			}
 		}
 
 		ImGui::SeparatorText("Parallax Occlusion Mapping");
 		{
 			if(ImGui::DragFloat("Parallax Magnitude", &s_ParallaxMagnitude, 0.001f, 0.0f, 1.0f, "%.3f", kSliderFlags)) {
-				picked->m_RenderProps.parallaxMagnitude = s_ParallaxMagnitude;
+				pickedPBRGameObject->m_RenderProps.parallaxMagnitude = s_ParallaxMagnitude;
 			}
 
 			if(ImGui::Checkbox("Enable Parallax Self Shadows", &s_UseParallaxShadows)) {
-				picked->m_RenderProps.useParallaxShadow = s_UseParallaxShadows;
+				pickedPBRGameObject->m_RenderProps.useParallaxShadow = s_UseParallaxShadows;
 			}
 
 			if(ImGui::DragInt("Min Parallax Layers", &s_MinParallaxLayers, 1.0f, 0, 100, "%d", kSliderFlags)) {
-				picked->m_RenderProps.minParallaxLayers = s_MinParallaxLayers;
+				pickedPBRGameObject->m_RenderProps.minParallaxLayers = s_MinParallaxLayers;
 			}
 			if(ImGui::DragInt("Max Parallax Layers", &s_MaxParallaxLayers, 1.0f, 0, 100, "%d", kSliderFlags)) {
-				picked->m_RenderProps.maxParallaxLayers = s_MaxParallaxLayers;
+				pickedPBRGameObject->m_RenderProps.maxParallaxLayers = s_MaxParallaxLayers;
 			}
 		}
 	}

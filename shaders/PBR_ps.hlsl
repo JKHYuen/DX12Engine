@@ -55,10 +55,25 @@ struct PixelInputType {
     float3 tangentViewDirection         : TEXCOORD4;
 };
 
+/// EXPERIMENTAL
+// Source: https://www.jcgt.org/published/0010/02/02/paper-lowres.pdf (Listing 5)
+float IsotropicNDFFiltering(float3 normal, float roughness2) {
+    float SIGMA2 = 0.15915494;
+    float KAPPA = 0.18;
+    float3 dndu = ddx(normal);
+    float3 dndv = ddy(normal);
+    float kernelRoughness2 = SIGMA2 * (dot(dndu, dndu) + dot(dndv, dndv));
+    float clampedKernelRoughness2 = min(kernelRoughness2, KAPPA);
+    float filteredRoughness2 = saturate(roughness2 + clampedKernelRoughness2);
+    return filteredRoughness2;
+}
+
 // Normal distribution function
 float DistributionGGX(float3 N, float3 H, float roughness) {
     float a = roughness * roughness;
     float a2 = a * a;
+    //float a2 = IsotropicNDFFiltering(N, a);
+    
     float NdotH = max(dot(N, H), 0.0);
     float NdotH2 = NdotH * NdotH;
 
@@ -313,6 +328,6 @@ float4 main(PixelInputType i) : SV_TARGET {
         dirLightShadowFactor *= saturate(parallaxSelfShadowFactor);
     }
 /// END CALCULATE SHADOW 
-    
+
     return float4(ambient + pointLightLo + (dirLightLo * dirLightShadowFactor), 1);
 }

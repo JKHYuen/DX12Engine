@@ -233,6 +233,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="PBRGameObject.cpp" />
     <ClCompile Include="ImageBasedLightingPSO.cpp" />
     <ClCompile Include="include\DX12LibPCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -310,6 +311,7 @@
     <ClInclude Include="DataArray.h" />
     <ClInclude Include="DX12EngineCore\IGame.h" />
     <ClInclude Include="EditorGui.h" />
+    <ClInclude Include="PBRGameObject.h" />
     <ClInclude Include="ImageBasedLightingPSO.h" />
     <ClInclude Include="include\DirectXTex.h" />
     <ClInclude Include="include\HighResolutionClock.h" />

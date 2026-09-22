@@ -1,4 +1,5 @@
 #include "Camera.h"
+#include "GameObject.h"
 #include "PBRObjectPSO.h"
 #include "PointLight.h"
 #include "RenderConstants.h"
@@ -12,24 +13,32 @@
 #include <DirectXMathConvert.inl>
 #include <DirectXMathMatrix.inl>
 #include <memory>
+#include <string>
 
 using namespace DirectX;
 using namespace RenderEnums;
 
-PointLight::PointLight(XMFLOAT3 color, XMFLOAT3 translation, float radius, std::shared_ptr<Mesh> visualizationMesh, UnlitPSO* unlitPSO)
-	: m_Color(color)
-	, m_Translation(translation)
+PointLight::PointLight(const std::string& name, XMFLOAT3 translation, XMFLOAT3 color, float radius, std::shared_ptr<Mesh> visualizationMesh, UnlitPSO* unlitPSO)
+	: GameObject(translation, 0.3f, visualizationMesh, name)
+	, m_Color(color)
 	, m_Radius(radius)
 	, m_VisualIntensity(0.3f)
+	, m_VisualMeshScale(0.3f)
 	, m_VisualizationMesh(visualizationMesh)
 	, m_UnlitPSO(unlitPSO)
+{}
+
+PointLight::PointLight(XMFLOAT3 translation, XMFLOAT3 color, float radius, std::shared_ptr<Mesh> visualizationMesh, UnlitPSO* unlitPSO)
+	: PointLight("Point Light", translation, color, radius, visualizationMesh, unlitPSO)
 {}
 
 void PointLight::RenderMesh(CommandList& directCommandList, const UpdateEventArgs& e, const Camera& viewCamera) {
 	m_UnlitPSO->SetPipelineState(directCommandList, RenderFlags_None);
 
 	PBRVertexProps vertexProps {};
-	XMStoreFloat4x4(&vertexProps.SRT, XMMatrixMultiply(XMMatrixScaling(0.3f, 0.3f, 0.3f), XMMatrixTranslation(m_Translation.x, m_Translation.y, m_Translation.z)));
+	XMStoreFloat4x4(&vertexProps.SRT, 
+		XMMatrixMultiply(XMMatrixScaling(m_VisualMeshScale, m_VisualMeshScale, m_VisualMeshScale), XMMatrixTranslation(m_Translation.x, m_Translation.y, m_Translation.z))
+	);
 	XMStoreFloat4x4(
 		&vertexProps.MVP,
 		XMMatrixMultiply(

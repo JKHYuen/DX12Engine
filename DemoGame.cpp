@@ -20,7 +20,7 @@
 #include "dxgiformat.h"
 #include "EditorGui.h"
 #include "Events.h"
-#include "GameObject.h"
+#include "PBRGameObject.h"
 #include "ImageBasedLightingPSO.h"
 #include "imgui.h"
 #include "KeyCodes.h"
@@ -48,6 +48,7 @@
 #include <filesystem>
 #include <DirectXMath.h>
 #include <Logger.h>
+#include "GameObject.h"
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -199,11 +200,10 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 		{
 			GameObject::EntityParams goParams {
 				"",
-				*m_DemoScene,
 				XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 0.0f, 0.0f)
 			};
 
-			GameObject::RenderProps goRenderProps {};
+			PBRGameObject::RenderProps goRenderProps {};
 			goRenderProps.pbrPSO = m_PBR_PSO.get();
 
 			goParams.name = "Sphere";
@@ -211,7 +211,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 			goParams.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
 			goParams.translation = XMFLOAT3(0.0f, 3.0f, 0.0f);
 			goRenderProps.heightMapMagnitude = 0.05f;
-			m_DemoScene->AddGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive());
+			m_DemoScene->AddGameObject(std::make_unique<PBRGameObject>(*m_DemoScene, *copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive()));
 
 			/// STRESS TEST
 			//const int s = 5;
@@ -232,14 +232,14 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 			goParams.translation = XMFLOAT3(-4.0f, 3.0f, 0.0f);
 			goRenderProps.pbrMatName = L"marble";
 			goRenderProps.heightMapMagnitude = 0.0f;
-			m_DemoScene->AddGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive());
+			m_DemoScene->AddGameObject(std::make_unique<PBRGameObject>(*m_DemoScene, *copyCommandList, goParams, goRenderProps, copyCommandList->GetSpherePrimitive()));
 
 			goParams.name = "Cube";
 			goParams.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
 			goParams.translation = XMFLOAT3(4.0f, 3.0f, 0.0f);
 			goRenderProps.pbrMatName = L"metal_grid";
 			goRenderProps.heightMapMagnitude = 0.0f;
-			m_DemoScene->AddGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetCubePrimitive());
+			m_DemoScene->AddGameObject(std::make_unique<PBRGameObject>(*m_DemoScene, *copyCommandList, goParams, goRenderProps, copyCommandList->GetCubePrimitive()));
 
 			// Test model import
 			{
@@ -251,7 +251,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 				std::wstring modelFilePath = (AssetImporter::Get().GetAssetPath() / L"models" / goRenderProps.pbrMatName / goRenderProps.pbrMatName).native() + L".obj";
 				auto importedMesh = AssetImporter::Get().ImportModel(*copyCommandList, modelFilePath);
 
-				m_DemoScene->AddGameObject(*copyCommandList, goParams, goRenderProps, importedMesh);
+				m_DemoScene->AddGameObject(std::make_unique<PBRGameObject>(*m_DemoScene, *copyCommandList, goParams, goRenderProps, importedMesh));
 			}
 
 			goParams.name = "Floor";
@@ -263,7 +263,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 			goRenderProps.parallaxMagnitude = 0.005f;
 			goRenderProps.useParallaxShadow = true;
 			goRenderProps.isShadowCaster = false;
-			m_DemoScene->AddGameObject(*copyCommandList, goParams, goRenderProps, copyCommandList->GetQuadPrimitive());
+			m_DemoScene->AddGameObject(std::make_unique<PBRGameObject>(*m_DemoScene, *copyCommandList, goParams, goRenderProps, copyCommandList->GetQuadPrimitive()));
 
 			copyCommandQueue.ExecuteCommandList(copyCommandList);
 		}

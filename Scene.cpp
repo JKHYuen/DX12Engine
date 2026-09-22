@@ -17,6 +17,7 @@
 #include "KeyCodes.h"
 #include "PBRObjectPSO.h"
 #include "Picker.h"
+#include "PBRGameObject.h"
 #include "PointLight.h"
 #include "RenderConstants.h"
 #include "Skybox.h"
@@ -67,9 +68,9 @@ Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeC
 	//		)
 	//	);
 	//}
-	m_PointLights.emplace_back(std::make_unique<PointLight>(XMFLOAT3 { 100.0f, 0.0f, 0.0f }, XMFLOAT3 { 0.0f, 5.0f, 7.0f }, 10.0f, copyCommandList.GetSpherePrimitive(), m_UnlitPSO));
-	m_PointLights.emplace_back(std::make_unique<PointLight>(XMFLOAT3 { 0.0f, 100.0f, 0.0f}, XMFLOAT3 { 5.0f, 5.0f, -5.0f }, 10.0f, copyCommandList.GetSpherePrimitive(), m_UnlitPSO));
-	m_PointLights.emplace_back(std::make_unique<PointLight>(XMFLOAT3 { 0.0f, 0.0f, 100.0f }, XMFLOAT3 { -5.0f, 5.0f, -5.0f }, 10.0f, copyCommandList.GetSpherePrimitive(), m_UnlitPSO));
+	m_PointLights.push_back(std::make_unique<PointLight>(XMFLOAT3 { 0.0f, 5.0f, 7.0f }, XMFLOAT3 { 100.0f, 0.0f, 0.0f }, 10.0f, copyCommandList.GetSpherePrimitive(), m_UnlitPSO));
+	m_PointLights.push_back(std::make_unique<PointLight>(XMFLOAT3 { 5.0f, 5.0f, -5.0f }, XMFLOAT3 { 0.0f, 100.0f, 0.0f }, 10.0f, copyCommandList.GetSpherePrimitive(), m_UnlitPSO));
+	m_PointLights.push_back(std::make_unique<PointLight>(XMFLOAT3 { -5.0f, 5.0f, -5.0f }, XMFLOAT3 { 0.0f, 0.0f, 100.0f }, 10.0f, copyCommandList.GetSpherePrimitive(), m_UnlitPSO));
 	///
 }
 
@@ -87,7 +88,9 @@ void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList,
 	// Render depth from directional light
 	m_DirectionalLight->SetShadowDepthPipelineStateAndRenderTarget(directCommandList);
 	for(auto& o : m_SceneObjects) {
-		o.RenderToDirectionalShadowMap(directCommandList, *m_DirectionalLight);
+		if(PBRGameObject* pbrO = dynamic_cast<PBRGameObject*>(o.get())) {
+			pbrO->RenderToDirectionalShadowMap(directCommandList, *m_DirectionalLight);
+		}
 	}
 
 	// Render skybox and objects with same render target
@@ -107,7 +110,9 @@ void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList,
 	// Render scene objects
 	// All game objects use the same PSO/root sig right now
 	for(auto& o : m_SceneObjects) {
-		o.Render(directCommandList, e, *this, mb_WireframeRender);
+		if(PBRGameObject* pbrO = dynamic_cast<PBRGameObject*>(o.get())) {
+			pbrO->Render(directCommandList, e, *this, mb_WireframeRender);
+		}
 	}
 }
 
@@ -123,13 +128,18 @@ void Scene::RenderBoundingBoxes(const RenderTarget& outputRT, CommandList& direc
 	constexpr XMFLOAT4 aabbColor = XMFLOAT4(0.1f, 1.0f, 0.1f, 1.0f);
 
 	if(m_AABBRenderMode == AABBRenderMode::PickedOnly) {
-		if(GameObject* picked = m_Picker->GetPickedObject())
-			picked->RenderBoundingBox(directCommandList, e, unlitPrimitivePSO, *this, aabbColor);
+		if(GameObject* picked = m_Picker->GetPickedObject()) {
+			if(PBRGameObject* pbrPicked = dynamic_cast<PBRGameObject*>(picked)) {
+				pbrPicked->RenderBoundingBox(directCommandList, e, unlitPrimitivePSO, *this, aabbColor);
+			}
+		}
 	}
 	// Render All AABBs
 	else {
 		for(auto& o : m_SceneObjects) {
-			o.RenderBoundingBox(directCommandList, e, unlitPrimitivePSO, *this, aabbColor);
+			if(PBRGameObject* pbrO = dynamic_cast<PBRGameObject*>(o.get())) {
+				pbrO->RenderBoundingBox(directCommandList, e, unlitPrimitivePSO, *this, aabbColor);
+			}
 		}
 	}
 

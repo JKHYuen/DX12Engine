@@ -1,43 +1,26 @@
 #pragma once
 
 /*
-	Renderable gameobject with mesh and textures
-	Simple implementation that currently only support objects using a specific PBR shader/pipeline
+	Game object with mesh and transform values, currently inherited by other classes like PBRGameObject and point lights. Eventually a Unity-esque component system will replace this class hierarchy
 	
 	NOTE:
 		- AABB does not support rotation updates currently (it's non-trivial)
 		- A dynamic component system should be used for render features
-			- "m_PBR_PSO" will probably need to be a polymorphic type eventually
 		- Can use dirty flag system for SRT/root sig updates
 */
 
 #include "DirectXCollision.h"
-#include "PBRObjectPSO.h"
-#include "RenderConstants.h"
 
 #include <DirectXMath.h>
 #include <memory>
 #include <string>
 #include <string_view>
-#include <vector>
 
 using namespace DirectX;
-using namespace RenderEnums;
 
-class CommandList;
-class DirectionalLight;
 class Mesh;
-class Texture;
 class Camera;
-class UpdateEventArgs;
 class Scene;
-class UnlitPSO;
-class UnlitPrimitivePSO;
-class PBRObjectPSO;
-
-struct PBRVertexProps;
-struct PBRLightProps;
-struct PBRTessellationProps;
 
 class GameObject {
 
@@ -47,57 +30,18 @@ public:
 	struct EntityParams {
 		// string passed by value for convenience e.g. when modifying instances of this struct
 		std::string name;
-		Scene& scene;
 
 		// Only support construction with radians for now
 		// This should ideally be a union with quaternion and radian representations, but will need some validation
 		XMFLOAT3 scale, radianEulerRotation, translation;
 	};
 
-	/// TODO: Should be able to use any PSO, not just PBRObjectPSO (need polymorphism) / component system
-	// Instance of RenderProps will be kept as member 
-	// Most of these values are controlled directly by EditorGui right now, not ideal see note in EditorGui.h
-	// This is to avoid writing tons of getter/setters
-	struct RenderProps {
-		std::wstring pbrMatName {};
-
-		bool isShadowCaster = true;
-
-		float heightMapMagnitude = 0.0f;
-
-		// using PBRRenderFlags out of convenience, this could be error prone
-		RenderFlags tessellationModeFlag = RenderFlags_UniformTessellation; 
-		float tessellationMagnitude = 1.0f;
-		float tessellationEdgeLength = 5.0f;
-
-		float parallaxMagnitude = 0.0f;
-		bool useParallaxShadow = false;
-		int minParallaxLayers = 8;
-		int maxParallaxLayers = 32;
-
-		XMFLOAT2 uvScale { 1.0f, 1.0f };
-
-		// PSOs are owned by DemoGame
-		PBRObjectPSO* pbrPSO {};
-	};
-
-	// NOTE: copy command list must still be executed after GameObject, this is to keep flexibility to batch copy commands together
-	// We don't use RenderProps&& so there isn't accidental object invalidation ofr the caller
+	// NOTE: copy command list must still be executed after GameObject (outside of constructor), this is to keep flexibility to batch copy commands together.
 	// Initialize with preconstructed mesh
-	GameObject(CommandList& copyCommandList, const EntityParams& params, const RenderProps& renderProps, std::shared_ptr<Mesh> mesh);
-
-	/// TODO: Initialize with mesh loaded from file
-	//GameObject(CommandList& copyCommandList, const EntityParams& params, const RenderProps& renderProps, const std::wstring& meshFilePath);
-
-	/// Things that should be in some sort of component system:
-	void Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, bool b_RenderWireframe = false);
-	void RenderSilhouette(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPSO* unlitPSO, XMFLOAT4 color);
-	void RenderBoundingBox(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPrimitivePSO* unlitPSO, const Scene& scene, XMFLOAT4 color);
-	void RenderToDirectionalShadowMap(CommandList& directCommandList, const DirectionalLight& directionalLight);
-
-	void UpdatePBRShaderResourcesFromFile(CommandList& copyCommandList, const std::wstring& pbrMatName);
-	void UpdateIBLShaderResources(const Scene& scene);
-	///
+	GameObject(const EntityParams& params, std::shared_ptr<Mesh> mesh);
+	// Simplified constructor for uniform scaled, unrotated objects
+	GameObject(XMFLOAT3 translation, float scale, std::shared_ptr<Mesh> mesh, const std::string& name);
+	virtual ~GameObject() = default;
 
 	XMFLOAT3 GetTranslation()   const { return m_Translation; };
 	// Radians!
@@ -118,10 +62,7 @@ public:
 	const BoundingBox& GetAABB() const { return m_AABB; }
 	std::shared_ptr<Mesh> GetMesh() const { return m_Mesh; }
 	
-private:
-	std::shared_ptr<Mesh> m_Mesh {};
-	std::vector<std::shared_ptr<Texture>> m_TextureResources { PBRObjectPSO::TextureIndex::NumTextures };
-	
+protected:
 	BoundingBox m_AABB {};
 
 	// Mesh local origin rotated by model's current rotation matrix
@@ -143,15 +84,11 @@ private:
 	// Keep track of these separate from matrices for convenience (e.g. UI display)
 	XMFLOAT3 m_Translation, m_RadianEulerRotation /*Radians*/, m_Scale;
 
-	bool b_RenderThisFrame;
+	bool mb_RenderThisFrame;
 
-	/// Things that should be in some sort of component system:
-	// Note: Stored CB members are shared between different rendering methods e.g. render bounding box, render silhoutte
-	PBRVertexProps m_PBRVertexCB {};
-	PBRLightProps m_PBRLightCB {};
-	PBRTessellationProps m_TessellationCB {};
+	std::shared_ptr<Mesh> m_Mesh {};
 
-	RenderProps m_RenderProps {};
-	///
+private:
+	void Initialize(const EntityParams& params, std::shared_ptr<Mesh> mesh);
 };
 

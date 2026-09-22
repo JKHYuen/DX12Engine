@@ -58,6 +58,7 @@ GameObject* Picker::MouseRaycast(Scene& scene, int mouseX, int mouseY, int windo
 	static int currentCacheIndex = 0;
 	bool b_RayCastHit = false;
 
+	// Mouse has not moved since last frame
 	if(mouseX == m_LastMousePos.first && mouseY == m_LastMousePos.second) {
 		if(m_RaycastCache.size() == 0) return nullptr;
 
@@ -67,6 +68,7 @@ GameObject* Picker::MouseRaycast(Scene& scene, int mouseX, int mouseY, int windo
 
 		b_RayCastHit = true;
 	}
+	// Mouse moved since last frame
 	else {
 		currentCacheIndex = 0;
 
@@ -79,16 +81,27 @@ GameObject* Picker::MouseRaycast(Scene& scene, int mouseX, int mouseY, int windo
 		XMVECTOR direction {};
 		GetPickerRayVectors(mouseX, mouseY, windowWidth, windowHeight, scene.GetMainCamera(), origin, direction);
 
-		for(GameObject& go : scene.m_SceneObjects) {
+		/// TODO: combine these loops
+		for(auto& go : scene.m_SceneObjects) {
 			float hitDistance = 0.0f;
-			if(go.GetAABB().Intersects(origin, direction, hitDistance)) {
+			if(go->GetAABB().Intersects(origin, direction, hitDistance)) {
 				b_RayCastHit = true;
-				m_RaycastCache.emplace_back(hitDistance, &go);
+				m_RaycastCache.emplace_back(hitDistance, go.get());
 			}
 		}
 
+		for(auto& pl : scene.m_PointLights) {
+			float hitDistance = 0.0f;
+			if(pl->GetAABB().Intersects(origin, direction, hitDistance)) {
+				b_RayCastHit = true;
+				m_RaycastCache.emplace_back(hitDistance, pl.get());
+			}
+		}
+		/// END TODO
+
 		if(b_RayCastHit) {
 			// Sort lowest to highest distance from camera
+			// Note: not using min heap (priority queue) for convenient indexing, can also use std::make_heap if sorting affects performance
 			std::sort(m_RaycastCache.begin(), m_RaycastCache.end(),
 				[](std::pair<float, GameObject*> a, std::pair<float, GameObject*> b) { return a.first < b.first; }
 			);

@@ -9,12 +9,12 @@
 #include "d3dx12_core.h"
 #include "EditorGui.h"
 #include "Events.h"
-#include "GameObject.h"
 #include "OutlineEffect.h"
 #include "Picker.h"
 #include "RenderConstants.h"
 #include "Scene.h"
 #include "UnlitPSO.h"
+#include "PBRGameObject.h"
 
 #include <cstdint>
 #include <DirectXMath.h>
@@ -63,7 +63,8 @@ bool OutlineEffect::Render(CommandList& directCommandList, const UpdateEventArgs
 	if(mb_DisableEffect) return false;
 
 	/// TODO: support outlining multiple objects
-	GameObject* outlineObject = scene.GetPicker()->GetPickedObject();
+	// Note: outlining will be disabled if not a PBRGameObject, this should be more generalized
+	PBRGameObject* outlineObject = dynamic_cast<PBRGameObject*>(scene.GetPicker()->GetPickedObject());
 	if(outlineObject == nullptr) return false;
 
 	m_UnlitPSO->SetPipelineState(directCommandList, RenderFlags_CullModeNone | RenderFlags_DepthDisable);

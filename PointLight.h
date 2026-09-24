@@ -20,7 +20,8 @@ class UpdateEventArgs;
 class Camera;
 
 class PointLight : public GameObject {
-	friend class EditorGUI;
+
+	friend class EditorGui;
 
 public:
 	PointLight(const std::string& name, XMFLOAT3 translation, XMFLOAT3 color, float radius, std::shared_ptr<Mesh> visualizationMesh, UnlitPSO* unlitPSO);
@@ -29,7 +30,7 @@ public:
 	void RenderMesh(CommandList& directCommandList, const UpdateEventArgs& e, const Camera& viewCamera);
 
 	XMFLOAT3 GetColor() const { return m_Color; };
-	void SetColor(XMFLOAT3 color) { m_Color = color; };
+	void SetColor(float r, float g, float b) { m_Color = XMFLOAT3(r, g, b); };
 
 	float GetRadius() const { return m_Radius; };
 	void SetRadius(float radius) { m_Radius = radius; };

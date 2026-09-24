@@ -7,7 +7,6 @@
 #include <DirectXMath.h>
 #include <memory>
 #include <Logger.h>
-#include <string_view>
 #include <string>
 
 using namespace DirectX;

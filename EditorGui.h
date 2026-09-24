@@ -5,7 +5,7 @@
 //       - Stored descriptors in this class is only used for ImGui debug textures
 
 // Singleton implementation for easy access to RegisterImageSRV() and FreeImageSRV() methods (used to display debug textures), too much dependency injection otherwise. Not static class for iniitialization control.
-// Encapsulation will inevitably break for debug UI, any class that needs to be displayed in debug UI will use "friend class EditorGui". This is so there is a normalized way to expose variables and avoids getters/setters/dependecy injection everywhere.
+// Encapsulation will inevitably break for debug UI, any class that needs to be displayed in debug UI will use "friend class EditorGui". This is so there is a normalized way to expose variables and avoids getters/setters/dependecy injection everywhere. Will explore some solution to invert dependency elegantly later.
 // This class should eventually support IGame instance switching, but it is currently coupled with DemoGame.h implementation.
 
 #include "d3d12.h"

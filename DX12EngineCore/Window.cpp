@@ -3,12 +3,6 @@
 #include "Window.h"
 
 #include "IGame.h"
-#include "Application.h"
-#include "CommandQueue.h"
-#include "CommandList.h"
-#include "RenderTarget.h"
-#include "ResourceStateTracker.h"
-#include "Texture.h"
 
 Window::Window(HWND hWnd, const std::wstring& windowName, int clientWidth, int clientHeight, IGame& game)
     : m_hWnd(hWnd)

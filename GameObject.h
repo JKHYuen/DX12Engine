@@ -49,12 +49,15 @@ public:
 	XMFLOAT3 GetScale()         const { return m_Scale; };
 
 	void SetTranslation(float x, float y, float z);
-	void SetEulerRotation(float x, float y, float z); // Radians!
+	// Radians!
+	void SetEulerRotation(float x, float y, float z); 
 	void SetScale(float x, float y, float z);
 
-	void Translate(float x, float y, float z);   // Adds to world position values
+	// Adds to world position values
+	void Translate(float x, float y, float z);   
 	void XM_CALLCONV QuatRotate(FXMVECTOR quaternion);
-	void Scale(float x, float y, float z);       // Multiplies current scale (*not add)
+	// Multiplies current scale (*not add)
+	void Scale(float x, float y, float z);       
 
 	std::string_view GetName() const      { return m_Name; }
 	void SetName(const std::string& name) { m_Name = name; }

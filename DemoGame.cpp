@@ -20,6 +20,7 @@
 #include "dxgiformat.h"
 #include "EditorGui.h"
 #include "Events.h"
+#include "GameObject.h"
 #include "PBRGameObject.h"
 #include "ImageBasedLightingPSO.h"
 #include "imgui.h"
@@ -48,7 +49,6 @@
 #include <filesystem>
 #include <DirectXMath.h>
 #include <Logger.h>
-#include "GameObject.h"
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -60,7 +60,7 @@ namespace {
 	constexpr DXGI_FORMAT sk_HDRFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
 	constexpr DXGI_FORMAT sk_DepthStencilBufferFormat = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 
-	static const std::wstring s_defaultSkyboxName = L"industrial_sunset_puresky_4k.hdr";
+	const std::wstring s_defaultSkyboxName = L"industrial_sunset_puresky_4k.hdr";
 
 	constexpr XMFLOAT3 s_StartingDirLightColor = XMFLOAT3(9.0f, 8.0f, 7.0f);
 	constexpr XMFLOAT3 s_StartingDirLightDegreeAngle = XMFLOAT3(140.0f, 230.0f, 0.0f);

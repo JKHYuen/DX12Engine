@@ -40,6 +40,11 @@ using namespace DirectX;
 
 namespace {
 	EditorGui* sp_Singleton = nullptr;
+
+	constexpr ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
+	// HDR color picker is WIP in ImGui, color picker disabled since it doesn't support HDR. 
+	// We will render preview box manually since the values need to be normalized.
+	constexpr ImGuiColorEditFlags kHDRColorEditFlags = ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoSmallPreview;
 	
 	const int sk_SRVHeapSize = 64;
 
@@ -84,11 +89,10 @@ namespace {
 
 	DescriptorHeapAllocator s_D3DSrvDescHeapAllocator {};
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> s_D3DSrvDescHeap {};
-
 	// Stores all created GuiDescriptorAllocations created by "AllocateImageSRV()". Indices are enum "GuiSRVIndex".
 	std::vector<EditorGui::GuiDescriptorAllocation> s_ImageSRVs { EditorGui::ImGuiDebugSRVIndex::NumGuiSRVIndex };
 
-	auto ImGuiHelpMarker = [](const char* desc, bool b_IsSameLine = true, bool b_IsWarning = false) {
+	void ImGuiHelpMarker(const char* desc, bool b_IsSameLine = true, bool b_IsWarning = false) {
 		if(b_IsSameLine) ImGui::SameLine();
 		if(b_IsWarning)  ImGui::TextDisabled("(!)"); else ImGui::TextDisabled("(?)");
 		if(ImGui::BeginItemTooltip()) {
@@ -99,25 +103,47 @@ namespace {
 		}
 	};
 
-	/// TODO: hide irrelevant components for point lights
+	void ImGuiHDRColorEdit3Preview(std::string_view s, float col[3], ImGuiColorEditFlags flags) {
+		ImGui::SameLine();
+		// Normalize HDR values to estimate of color for preview box
+		float colMax = std::max(col[0], std::max(col[1], col[2]));
+		ImVec4 buttonCol(col[0] / colMax, col[1] / colMax, col[2] / colMax, 1.0f);
+		ImGui::ColorButton(s.data(), buttonCol, flags);
+		ImGui::SameLine();
+		ImGui::TextDisabled("HDR");
+	}
+
+	// Not technically compatible with operations that aren't translate, rotate and/or scale, i.e. other ImGuizmo::OPERATION's
 	// All params prefixed "s_" is static to object inspector and are out values
 	// C arrays are used for easy use with ImGui
-	void GameObjectTransform(const Scene& scene, GameObject* go, ImGuiSliderFlags kSliderFlags, float s_GizmoSRTMat[16], float s_ObjTranslation[3], float s_ObjDegreeEulerAngles[3], float s_ObjScale[3]) {
+	void GameObjectTransform(const Scene& scene, GameObject* go, ImGuiSliderFlags kSliderFlags, float s_GizmoSRTMat[16], float s_ObjTranslation[3], float s_ObjDegreeEulerAngles[3], float s_ObjScale[3], ImGuizmo::OPERATION enabledOperationFlags = ImGuizmo::TRANSLATE | ImGuizmo::ROTATE | ImGuizmo::SCALE) {
 		ImGui::SeparatorText("Transform");
 
-		static XMFLOAT4X4 s_CamViewMat;
-		static XMFLOAT4X4 s_CamProjMat;
+		static XMFLOAT4X4 s_CamViewMat {};
+		static XMFLOAT4X4 s_CamProjMat {};
 		XMStoreFloat4x4(&s_CamViewMat, scene.GetMainCamera().Get_ViewMatrix());
 		XMStoreFloat4x4(&s_CamProjMat, scene.GetMainCamera().Get_ProjectionMatrix());
 
 		static ImGuizmo::OPERATION s_CurrentGizmoOperation(ImGuizmo::TRANSLATE);
 
+		bool enableTranslate = (enabledOperationFlags & ImGuizmo::TRANSLATE) == ImGuizmo::TRANSLATE;
+		bool enableRotate = (enabledOperationFlags & ImGuizmo::ROTATE) == ImGuizmo::ROTATE;
+		bool enableScale = (enabledOperationFlags & ImGuizmo::SCALE) == ImGuizmo::SCALE;
+
+		// If current operation mode (from a previous call) is not enabled for the current function call,
+		// use the first one that is enabled (arbitrary order below).
+		if((enabledOperationFlags & s_CurrentGizmoOperation) == 0) {
+			if(enableTranslate) s_CurrentGizmoOperation = ImGuizmo::TRANSLATE;
+			else if(enableRotate) s_CurrentGizmoOperation = ImGuizmo::ROTATE;
+			else if(enableScale) s_CurrentGizmoOperation = ImGuizmo::SCALE;
+		}
+
 		// Use ImGui key detection instead of this engine's key detection to keep things encapsulated 
-		if(ImGui::IsKeyPressed(ImGuiKey_T))
+		if(ImGui::IsKeyPressed(ImGuiKey_T) && enableTranslate)
 			s_CurrentGizmoOperation = ImGuizmo::TRANSLATE;
-		if(ImGui::IsKeyPressed(ImGuiKey_R))
+		if(ImGui::IsKeyPressed(ImGuiKey_R) && enableRotate)
 			s_CurrentGizmoOperation = ImGuizmo::ROTATE;
-		if(ImGui::IsKeyPressed(ImGuiKey_F))
+		if(ImGui::IsKeyPressed(ImGuiKey_F) && enableScale)
 			s_CurrentGizmoOperation = ImGuizmo::SCALE;
 
 		ImGui::AlignTextToFramePadding();
@@ -125,14 +151,20 @@ namespace {
 		ImGui::AlignTextToFramePadding();
 		ImGui::Text("Gizmo:");
 		ImGui::SameLine();
-		if(ImGui::RadioButton("Translate", s_CurrentGizmoOperation == ImGuizmo::TRANSLATE))
-			s_CurrentGizmoOperation = ImGuizmo::TRANSLATE;
-		ImGui::SameLine();
-		if(ImGui::RadioButton("Rotate", s_CurrentGizmoOperation == ImGuizmo::ROTATE))
-			s_CurrentGizmoOperation = ImGuizmo::ROTATE;
-		ImGui::SameLine();
-		if(ImGui::RadioButton("Scale", s_CurrentGizmoOperation == ImGuizmo::SCALE))
-			s_CurrentGizmoOperation = ImGuizmo::SCALE;
+		if(enableTranslate) {
+			if(ImGui::RadioButton("Translate", s_CurrentGizmoOperation == ImGuizmo::TRANSLATE))
+				s_CurrentGizmoOperation = ImGuizmo::TRANSLATE;
+		}
+		if(enableRotate) {
+			ImGui::SameLine();
+			if(ImGui::RadioButton("Rotate", s_CurrentGizmoOperation == ImGuizmo::ROTATE))
+				s_CurrentGizmoOperation = ImGuizmo::ROTATE;
+		}
+		if(enableScale) {
+			ImGui::SameLine();
+			if(ImGui::RadioButton("Scale", s_CurrentGizmoOperation == ImGuizmo::SCALE))
+				s_CurrentGizmoOperation = ImGuizmo::SCALE;
+		}
 
 		// Update s_GizmoSRTMat so gizmo translation and rotation is correct if values were changed
 		ImGuizmo::RecomposeMatrixFromComponents(s_ObjTranslation, s_ObjDegreeEulerAngles, s_ObjScale, s_GizmoSRTMat);
@@ -166,38 +198,41 @@ namespace {
 			s_ObjDegreeEulerAngles[2] = degreeEulerRotation.z + (degreeEulerRotation.z < 0.0f ? 360.0f : 0.0f);
 		}
 
-		if(ImGui::DragFloat3("Position", s_ObjTranslation, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
-			go->SetTranslation(s_ObjTranslation[0], s_ObjTranslation[1], s_ObjTranslation[2]);
-		}
-
-		// Local rotation
-		if(ImGui::DragFloat3("Rotation", s_ObjDegreeEulerAngles, 0.1f, 0.0f, 360.0f, "%.2f", ImGuiSliderFlags_WrapAround)) {
-			go->SetEulerRotation(XMConvertToRadians(s_ObjDegreeEulerAngles[0]), XMConvertToRadians(s_ObjDegreeEulerAngles[1]), XMConvertToRadians(s_ObjDegreeEulerAngles[2]));
-		}
-		ImGuiHelpMarker("Local euler rotation (degrees), use rotation gizmo for world rotation.");
-
-		if(ImGui::DragFloat3("Scale", s_ObjScale, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
-			go->SetScale(s_ObjScale[0], s_ObjScale[1], s_ObjScale[2]);
-		}
-		ImGui::SameLine();
-
-		/// Extremely hacky way to add a uniform scale drag, can't think of another way right now
-		ImGui::PushItemWidth(30);
-		static float _ {};
-		static float lastMousePos {};
-		if(ImGui::DragFloat("##ScaleDrag", &_, 0.001f, 0.0f, 1.0f, "<->", ImGuiSliderFlags_WrapAround)) {
-			if(ImGui::GetMousePos().x > lastMousePos) {
-				go->Scale(1.05f, 1.05f, 1.05f);
+		if(enableTranslate) {
+			if(ImGui::DragFloat3("Position", s_ObjTranslation, 0.01f, -FLT_MAX, FLT_MAX, "%.2f", kSliderFlags)) {
+				go->SetTranslation(s_ObjTranslation[0], s_ObjTranslation[1], s_ObjTranslation[2]);
 			}
-			else {
-				go->Scale(0.95f, 0.95f, 0.95f);
-			}
-			XMFLOAT3 scale = go->GetScale();
-			memcpy(s_ObjScale, &scale, sizeof(float) * 3);
-
-			lastMousePos = ImGui::GetMousePos().x;
 		}
-		ImGui::PopItemWidth();
+		if(enableRotate) {
+			// Local rotation
+			if(ImGui::DragFloat3("Rotation", s_ObjDegreeEulerAngles, 0.1f, 0.0f, 360.0f, "%.2f", ImGuiSliderFlags_WrapAround)) {
+				go->SetEulerRotation(XMConvertToRadians(s_ObjDegreeEulerAngles[0]), XMConvertToRadians(s_ObjDegreeEulerAngles[1]), XMConvertToRadians(s_ObjDegreeEulerAngles[2]));
+			}
+			ImGuiHelpMarker("Local euler rotation (degrees), use rotation gizmo for world rotation.");
+		}
+		if(enableScale) {
+			if(ImGui::DragFloat3("Scale", s_ObjScale, 0.01f, -FLT_MAX, FLT_MAX, "%.2f", kSliderFlags)) {
+				go->SetScale(s_ObjScale[0], s_ObjScale[1], s_ObjScale[2]);
+			}
+			ImGui::SameLine();
+			/// Extremely hacky way to add a uniform scale drag, can't think of another way right now
+			ImGui::PushItemWidth(30);
+			static float _ {};
+			static float lastMousePos {};
+			if(ImGui::DragFloat("##ScaleDrag", &_, 0.001f, 0.0f, 1.0f, "<->", ImGuiSliderFlags_WrapAround)) {
+				if(ImGui::GetMousePos().x > lastMousePos) {
+					go->Scale(1.05f, 1.05f, 1.05f);
+				}
+				else {
+					go->Scale(0.95f, 0.95f, 0.95f);
+				}
+				XMFLOAT3 scale = go->GetScale();
+				memcpy(s_ObjScale, &scale, sizeof(float) * 3);
+
+				lastMousePos = ImGui::GetMousePos().x;
+			}
+			ImGui::PopItemWidth();
+		}
 	}
 }
 
@@ -377,20 +412,6 @@ void EditorGui::Render(CommandList& directCommandList) {
 }
 
 void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& game) {
-	static const ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
-	// HDR color picker is WIP in ImGui, color picker disabled since it doesn't support HDR. We will render preview box manually since the values need to be normalized.
-	static const ImGuiColorEditFlags kHDRColorEditFlags = ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoSmallPreview;
-
-	static auto ImGuiHDRColorEdit3Preview = [](std::string_view s, float col[3], ImGuiColorEditFlags flags) {
-		ImGui::SameLine();
-		// Normalize HDR values to estimate of color for preview box
-		float colMax = std::max(col[0], std::max(col[1], col[2]));
-		ImVec4 buttonCol(col[0] / colMax, col[1] / colMax, col[2] / colMax, 1.0f);
-		ImGui::ColorButton(s.data(), buttonCol, flags);
-		ImGui::SameLine();
-		ImGui::TextDisabled("HDR");
-	};
-
 	struct ScrollingBuffer {
 		int MaxSize;
 		int Offset;
@@ -444,6 +465,7 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 				ImGui::Text(
 "\
 - Click and drag to change numeric values, double click to type in values\n\
+- Hover mouse over (?) or (!) icons for additional information\n\
 - Cursor and movement is disabled when menus are open\n\
 - Hold RIGHT CLICK when menus are open to reenable camera look and movement\n\
 - LEFT CLICK objects with menus open to enable object inspector\n\
@@ -455,6 +477,7 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
     F2: Toggle wireframe render mode\n\
    F11: Toggle fullscreen\n\
      V: Toggle Vsync\n\
+     X: Deselect clicked object\n\
   WASD: Camera movement\n\
     QE: Move camera up/down\n\
 LSHIFT: Move fast\n\
@@ -661,23 +684,6 @@ LSHIFT: Move fast\n\
 
 				ImGui::TreePop();
 			}
-
-			/// TODO:
-			if(ImGui::TreeNode("Point Lights")) {
-				static float s_PointLightColor[3];
-				static float s_PointLightTranslation[3];
-
-				if(ImGui::ColorEdit3("Light Color##PointLight", s_PointLightColor, kHDRColorEditFlags)) {
-					//sceneLight.SetColor(s_PointLightColor[0], s_PointLightColor[1], s_PointLightColor[2]);
-				}
-				ImGuiHDRColorEdit3Preview("##PointLightColor", s_PointLightColor, kHDRColorEditFlags);
-				if(ImGui::DragFloat3("Position", s_PointLightTranslation, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
-					//picked->SetTranslation(s_ObjTranslation[0], s_ObjTranslation[1], s_ObjTranslation[2]);
-				}
-
-				ImGui::TreePop();
-			}
-			///
 		}
 
 		// Bloom
@@ -733,28 +739,30 @@ LSHIFT: Move fast\n\
 	}
 }
 
+// Note: All GameObject inspector code is inlined in this function right now, this will be impractical with more types of game objects, it's ok for now for convenience
 void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 	if(!sb_ObjectInspectorState) return;
 
 	GameObject* pickedGameObject = scene.m_Picker->m_PickedObject;
 	if(pickedGameObject == nullptr) return;
 
-	static const ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
-
-	/// Note: this code is very boiler plate
+	/// Note: Following code is very boiler plate. Some values need preprocessing before use in ImGui.
+	///       ImGui needs C arrays which requires extra work, single numerical values rely on friend class access. (not ideal)
+	// GameObject (base class) vars 
 	static std::string s_ObjectName {}; // can't be string view, needs null terminated string for ImGui::Text
 	static std::wstring_view s_SelectedMat {};
 	static float s_ObjTranslation[3] {};
 	static float s_ObjDegreeEulerAngles[3] {};
 	static float s_ObjScale[3] {};
-	static float s_UVScale[2] {};
-	static float s_HeightMapMagnitude {};
-	static float s_ParallaxMagnitude {};
-	static bool  s_UseParallaxShadows {};
-	static int s_MinParallaxLayers {};
-	static int s_MaxParallaxLayers {};
-	static int s_TessRadioIdx = 0;
 	static float s_GizmoSRTMat[16] {};
+
+	// PBRGameObject vars
+	static float s_UVScale[2] {};
+	static int s_TessRadioIdx = 0;
+
+	// PointLight vars
+	static float s_PointLightColor[3] {};
+
 	static GameObject* s_LastPickedObject {};
 
 	PointLight* pickedPointLight = dynamic_cast<PointLight*>(scene.m_Picker->m_PickedObject);
@@ -787,12 +795,6 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 			XMFLOAT2 uvScale = pickedPBRGameObject->m_RenderProps.uvScale;
 			memcpy(s_UVScale, &uvScale, sizeof(float) * 2);
 
-			s_HeightMapMagnitude = pickedPBRGameObject->m_RenderProps.heightMapMagnitude;
-			s_ParallaxMagnitude = pickedPBRGameObject->m_RenderProps.parallaxMagnitude;
-			s_UseParallaxShadows = pickedPBRGameObject->m_RenderProps.useParallaxShadow;
-			s_MinParallaxLayers = pickedPBRGameObject->m_RenderProps.minParallaxLayers;
-			s_MaxParallaxLayers = pickedPBRGameObject->m_RenderProps.maxParallaxLayers;
-
 			if(((pickedPBRGameObject->m_RenderProps.tessellationModeFlag) & RenderFlags_UniformTessellation) != 0) {
 				s_TessRadioIdx = 1;
 			}
@@ -804,10 +806,18 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 			}
 		}
 
+		// PointLight vars
+		if(pickedPointLight) {
+			XMFLOAT3 color = pickedPointLight->GetColor();
+			memcpy(s_PointLightColor, &color, sizeof(float) * 3);
+		}
+
 	}
 	s_LastPickedObject = pickedGameObject;
 
+	// Default object inspector location
 	ImGui::SetNextWindowPos({ (float)scene.GetWindowWidth() * 0.8f, (float)scene.GetWindowHeight() * 0.05f }, ImGuiCond_Once);
+	ImGui::SetNextWindowSize({450.0f, 0.0f}, ImGuiCond_Once);
 
 	// sb_ObjectInspectorState var is just to make inspector window x button work
 	ImGui::Begin(s_ObjectName.c_str(), &sb_ObjectInspectorState, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
@@ -817,12 +827,30 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 		return;
 	}
 	
-	/// If picked object is a point light, just show Transform editing UI
+	/// Object inspector if picked object is a point light
 	if(pickedPointLight != nullptr) {
-		GameObjectTransform(scene, pickedPointLight, kSliderFlags, s_GizmoSRTMat, s_ObjTranslation, s_ObjDegreeEulerAngles, s_ObjScale);
+		GameObjectTransform(scene, pickedPointLight, kSliderFlags, s_GizmoSRTMat, s_ObjTranslation, s_ObjDegreeEulerAngles, s_ObjScale, ImGuizmo::TRANSLATE);
+
+		if(ImGui::ColorEdit3("Light Color##PointLight", s_PointLightColor, kHDRColorEditFlags)) {
+			pickedPointLight->SetColor(s_PointLightColor[0], s_PointLightColor[1], s_PointLightColor[2]);
+		}
+		ImGui::DragFloat("Radius##PointLight", &pickedPointLight->m_Radius, 0.1f, 0.0f, FLT_MAX, "%.1f", kSliderFlags);
+
+		ImGui::SeparatorText("Visualization (?)");
+		if(ImGui::BeginItemTooltip()) {
+			ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+			ImGui::TextUnformatted("Glowing spheres are not real scene objects, they serve as a visual indication of where point lights are located during scene editing. The following values edit these visualization objects.");
+			ImGui::PopTextWrapPos();
+			ImGui::EndTooltip();
+		}
+
+		ImGui::DragFloat("Glow Intensity##PointLight", &pickedPointLight->m_VisualIntensity, 0.1f, 0.0f, 100.0f, "%.1f", kSliderFlags);
+		ImGui::DragFloat("Scale##PointLight", &pickedPointLight->m_VisualMeshScale, 0.1f, 0.0f, FLT_MAX, "%.1f", kSliderFlags);
+		
 		ImGui::End();
 		return;
 	}
+	///
 
 	ImGui::SeparatorText("PBR Material");
 	if(ImGui::BeginTable("PBR Material Table", 4, ImGuiTableFlags_Borders)) {
@@ -874,9 +902,7 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 			ImGui::PopItemWidth();
 		}
 
-		if(ImGui::DragFloat("Height Map Magnitude", &s_HeightMapMagnitude, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
-			pickedPBRGameObject->m_RenderProps.heightMapMagnitude = s_HeightMapMagnitude;
-		}
+		ImGui::DragFloat("Height Map Magnitude", &pickedPBRGameObject->m_RenderProps.heightMapMagnitude, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags);
 		
 		ImGui::SeparatorText("Tessellation");
 		{
@@ -904,20 +930,10 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 
 		ImGui::SeparatorText("Parallax Occlusion Mapping");
 		{
-			if(ImGui::DragFloat("Parallax Magnitude", &s_ParallaxMagnitude, 0.001f, 0.0f, 1.0f, "%.3f", kSliderFlags)) {
-				pickedPBRGameObject->m_RenderProps.parallaxMagnitude = s_ParallaxMagnitude;
-			}
-
-			if(ImGui::Checkbox("Enable Parallax Self Shadows", &s_UseParallaxShadows)) {
-				pickedPBRGameObject->m_RenderProps.useParallaxShadow = s_UseParallaxShadows;
-			}
-
-			if(ImGui::DragInt("Min Parallax Layers", &s_MinParallaxLayers, 1.0f, 0, 100, "%d", kSliderFlags)) {
-				pickedPBRGameObject->m_RenderProps.minParallaxLayers = s_MinParallaxLayers;
-			}
-			if(ImGui::DragInt("Max Parallax Layers", &s_MaxParallaxLayers, 1.0f, 0, 100, "%d", kSliderFlags)) {
-				pickedPBRGameObject->m_RenderProps.maxParallaxLayers = s_MaxParallaxLayers;
-			}
+			ImGui::DragFloat("Parallax Magnitude", &pickedPBRGameObject->m_RenderProps.parallaxMagnitude, 0.001f, 0.0f, 1.0f, "%.3f", kSliderFlags);
+			ImGui::Checkbox("Enable Parallax Self Shadows", &pickedPBRGameObject->m_RenderProps.useParallaxShadow);
+			ImGui::DragInt("Min Parallax Layers", &pickedPBRGameObject->m_RenderProps.minParallaxLayers, 1.0f, 0, 100, "%d", kSliderFlags);
+			ImGui::DragInt("Max Parallax Layers", &pickedPBRGameObject->m_RenderProps.maxParallaxLayers, 1.0f, 0, 100, "%d", kSliderFlags);
 		}
 	}
 

@@ -2,6 +2,7 @@
 #include "GameObject.h"
 
 #include "DX12EngineCore/CommandList.h"
+#include "DX12EngineCore/Logger.h"
 #include "DX12EngineCore/Mesh.h"
 
 #include "AssetImporter.h"
@@ -20,7 +21,6 @@
 #include <memory>
 #include <string>
 #include <cstdint>
-#include <Logger.h>
 
 using namespace RenderEnums;
 using namespace DirectX;
@@ -102,7 +102,7 @@ void PBRGameObject::Render(CommandList& directCommandList, const UpdateEventArgs
 		XMFLOAT4X4 p = scene.GetDirLight()->GetOrthoMatrix();
 		XMMATRIX directionalLightViewMat = XMLoadFloat4x4(&v);
 		XMMATRIX directionalLightOrthoMat = XMLoadFloat4x4(&p);
-		XMStoreFloat4x4(&m_PBRVertexCB.directionalLightMVP,
+		XMStoreFloat4x4(&m_PBRLightCB.directionalLightMVP,
 			XMMatrixMultiply(
 				XMMatrixMultiply(XMLoadFloat4x4(&m_PBRVertexCB.SRT), directionalLightViewMat),
 				directionalLightOrthoMat

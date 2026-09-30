@@ -1,12 +1,6 @@
 // Cook-Torrance PBR based on https://learnopengl.com/PBR/Theory
 
-#define PI 3.14159265359f
-
-// Must change cubemap gen LOD count if this value is changed
-#define MAX_REFLECTION_LOD 9.0
-
-// Must match gk_MaxPointLightCount in RenderConstants.h
-#define MAX_POINT_LIGHT_COUNT 3
+#include "Common.hlsli"
 
 cbuffer MaterialCB : register(b0, space1) {
     float UseParallaxShadow;
@@ -55,7 +49,7 @@ struct PixelInputType {
     float3 tangentViewDirection         : TEXCOORD4;
 };
 
-/// EXPERIMENTAL
+/// CURRENTLY UNUSED, EXPERIMENTAL
 // Source: https://www.jcgt.org/published/0010/02/02/paper-lowres.pdf (Listing 5)
 float IsotropicNDFFiltering(float3 normal, float roughness2) {
     float SIGMA2 = 0.15915494;

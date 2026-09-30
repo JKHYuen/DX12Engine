@@ -23,7 +23,6 @@ struct alignas(16) PBRVertexProps {
 	XMFLOAT4X4 SRT;
 	XMFLOAT4X4 MVP;
 	XMFLOAT4   cameraPosition;
-	XMFLOAT4X4 directionalLightMVP; // SRT from view/projection of directional light (for shadow mapping)
 	XMFLOAT2   uvScale;
 	float      heightMapMagnitude;
 	float      pad1;
@@ -64,6 +63,7 @@ struct alignas(16) PBRLightProps {
 	XMFLOAT4 Time; // x: time, y: delta time
 	XMFLOAT4 dirLight;
 	XMFLOAT4 dirLightColor;
+	XMFLOAT4X4 directionalLightMVP; // SRT from view/projection of directional light (for shadow mapping)
 	PointLightProps pointLights[RenderGlobals::gk_MaxPointLightCount];
 };
 

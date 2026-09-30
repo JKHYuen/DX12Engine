@@ -43,6 +43,7 @@ public:
 private:
 	std::wstring m_SkyboxTextureName;
 
+	// Could be static
 	D3D12_SHADER_RESOURCE_VIEW_DESC m_CubeMapSRVDesc;
 
 	// PSO owned by DemoGame currently

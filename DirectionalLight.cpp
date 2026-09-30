@@ -4,37 +4,31 @@
 #include "DX12EngineCore/Device.h"
 #include "DX12EngineCore/Mesh.h"
 #include "DX12EngineCore/RenderTarget.h"
-#include "DX12EngineCore/RootSignature.h"
 #include "DX12EngineCore/Texture.h"
 
-#include "AssetImporter.h"
 #include "EditorGui.h"
 #include "PBRObjectPSO.h"
+#include "DepthPSO.h"
 
 #include "d3d12.h"
-#include "d3dcommon.h"
 #include "d3dx12_core.h"
-#include "d3dx12_default.h"
-#include "d3dx12_pipeline_state_stream.h"
 #include "dxgiformat.h"
 #include <cmath>
 #include <DirectXMath.h>
 #include <memory>
 #include <minwinbase.h>
-#include <wrl/client.h>
 
 using namespace DirectX;
-using namespace Microsoft::WRL;
 
 DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params)
     : m_Device(device)
-    , m_ObjectRootSignature(params.objectRootSignature)
     , m_ShadowBias(params.shadowBias)
     , m_Color(XMFLOAT4(params.color.x, params.color.y, params.color.z, 1.0f))
     , m_ViewPort(D3D12_VIEWPORT(0.0f, 0.0f, (float)params.shadowMapResolution, (float)params.shadowMapResolution, 0.0f, 1.0f))
     , m_LightDistance(params.shadowNearFarZ.y * 0.7f) // random heuristic
     , m_ShadowRenderDistance(params.shadowRenderDistance)
     , m_ShadowNearFarZ(params.shadowNearFarZ)
+    , m_DepthPSO(params.depthPSO)
 {
     m_DirectionalShadowMapRT = std::make_unique<RenderTarget>();
 
@@ -67,35 +61,6 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
         shadowMapDepthTexture->CreateShaderResourceView(srvDesc);
 
         EditorGui::Get().RegisterImageSRV(device, shadowMapDepthTexture, &srvDesc, EditorGui::ImGuiDebugSRVIndex::DirectionalShadowMap);
-    }
-
-    // Initialize PSO for rendering objects to depth (for shadow mapping)
-    // Note: currently hardcoded for PBR material
-    {
-        struct ShadowDepthPipelineStateStream {
-            CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE        pRootSignature;
-            CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT          InputLayout;
-            CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY    PrimitiveTopologyType;
-            CD3DX12_PIPELINE_STATE_STREAM_VS                    VS;
-            CD3DX12_PIPELINE_STATE_STREAM_HS                    HS;
-            CD3DX12_PIPELINE_STATE_STREAM_DS                    DS;
-            CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER            Rasterizer;
-            CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT  DSVFormat;
-        } shadowDepthPipelineStateStream;
-
-        CD3DX12_RASTERIZER_DESC rasterizerDesc(D3D12_DEFAULT);
-        rasterizerDesc.CullMode = D3D12_CULL_MODE_FRONT;
-
-        shadowDepthPipelineStateStream.pRootSignature = m_ObjectRootSignature->GetD3D12RootSignature().Get();
-        shadowDepthPipelineStateStream.InputLayout = params.depthRenderInputLayout;
-        shadowDepthPipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
-        shadowDepthPipelineStateStream.VS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_VS.cso");
-        shadowDepthPipelineStateStream.HS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_HS.cso");
-        shadowDepthPipelineStateStream.DS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_DS.cso");
-        shadowDepthPipelineStateStream.Rasterizer = rasterizerDesc;
-        shadowDepthPipelineStateStream.DSVFormat = m_DirectionalShadowMapRT->GetDepthStencilFormat();
-
-        m_Device.CreatePipelineState(shadowDepthPipelineStateStream, m_DepthRenderPSO);
     }
 }
 
@@ -143,9 +108,7 @@ void DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget(CommandList& d
     directCommandList.SetViewport(m_ViewPort);
     directCommandList.SetRenderTarget(*m_DirectionalShadowMapRT);
 
-    directCommandList.SetPipelineState(m_DepthRenderPSO);
-    directCommandList.SetGraphicsRootSignature(m_ObjectRootSignature);
-    directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+    m_DepthPSO->SetPipelineState(directCommandList);
 }
 
 void DirectionalLight::RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, PBRVertexProps vertexProps, const PBRTessellationProps& tessProps) const {

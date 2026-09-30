@@ -4,6 +4,7 @@
 #include "DX12EngineCore/CommandList.h"
 #include "DX12EngineCore/CommandQueue.h"
 #include "DX12EngineCore/Device.h"
+#include "DX12EngineCore/Logger.h"
 #include "DX12EngineCore/RenderTarget.h"
 #include "DX12EngineCore/SwapChain.h"
 #include "DX12EngineCore/Texture.h"
@@ -27,6 +28,7 @@
 #include "KeyCodes.h"
 #include "OutlineEffect.h"
 #include "PBRObjectPSO.h"
+#include "DepthPSO.h"
 #include "RenderTargetPair.h"
 #include "Scene.h"
 #include "Skybox.h"
@@ -42,13 +44,13 @@
 #endif
 #include <algorithm>
 
+
 #include <climits>
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <filesystem>
 #include <DirectXMath.h>
-#include <Logger.h>
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -145,6 +147,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	/// TODO: this should be managed somewhere else (AssetImporter?)
 	m_PBR_PSO = std::make_unique<PBRObjectPSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RT->GetRenderTargetFormats(), sk_DepthStencilBufferFormat);
 	m_IBL_PSO = std::make_unique<ImageBasedLightingPSO>(*m_Device, *m_HDR_MSAA_RT);
+	m_Depth_PSO = std::make_unique<DepthPSO>(*m_Device, m_PBR_PSO.get()->GetRootSignature());
 
 	m_Bloom_PSO = std::make_unique<BloomPSO>(*m_Device, *m_HDR_MSAA_RT);
 	m_Unlit_PSO = std::make_unique<UnlitPSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RT->GetRenderTargetFormats(), m_PBR_PSO.get()->GetRootSignature(), sk_DepthStencilBufferFormat);
@@ -161,14 +164,13 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 		auto copyCommandList = copyCommandQueue.GetCommandList();
 
 		DirectionalLight::DirectionalLightParams dirLightParams {
-			m_PBR_PSO->GetRootSignature(), // reuse PBR root signature for depth render
-			VertexInput::Get_POS_NORM_TAN_BIT_UV_InputLayout(),
 			s_StartingDirLightColor,
 			s_StartingDirLightDegreeAngle,
 			s_StartingShadowMapResolution,
 			s_StartingShadowDistance,
 			{s_StartingShadowMapNear, s_StartingShadowMapFar},
-			s_StartingShadowBias
+			s_StartingShadowBias,
+			m_Depth_PSO.get()
 		};
 
 		auto& computeCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE);

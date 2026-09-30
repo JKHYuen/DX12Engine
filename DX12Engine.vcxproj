@@ -114,6 +114,7 @@
     <ClCompile Include="BloomPSO.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="DemoGame.cpp" />
+    <ClCompile Include="DepthPSO.cpp" />
     <ClCompile Include="DirectionalLight.cpp" />
     <ClCompile Include="DX12EngineCore\Application.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
@@ -255,7 +256,7 @@
     <ClCompile Include="include\imgui\implot.cpp" />
     <ClCompile Include="include\imgui\implot_demo.cpp" />
     <ClCompile Include="include\imgui\implot_items.cpp" />
-    <ClCompile Include="Logger.cpp" />
+    <ClCompile Include="DX12EngineCore\Logger.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="OutlineEffect.cpp" />
     <ClCompile Include="PointLight.cpp" />
@@ -275,6 +276,7 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Colors.h" />
     <ClInclude Include="DemoGame.h" />
+    <ClInclude Include="DepthPSO.h" />
     <ClInclude Include="DirectionalLight.h" />
     <ClInclude Include="DX12EngineCore\Application.h" />
     <ClInclude Include="DX12EngineCore\Buffer.h" />
@@ -331,7 +333,7 @@
     <ClInclude Include="include\imgui\imstb_textedit.h" />
     <ClInclude Include="include\imgui\imstb_truetype.h" />
     <ClInclude Include="include\KeyCodes.h" />
-    <ClInclude Include="Logger.h" />
+    <ClInclude Include="DX12EngineCore\Logger.h" />
     <ClInclude Include="OutlineEffect.h" />
     <ClInclude Include="PointLight.h" />
     <ClInclude Include="RenderConstants.h" />
@@ -346,6 +348,11 @@
     <ClInclude Include="StringHelpers.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="shaders\Common.hlsli">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <FileType>Document</FileType>
+    </ClInclude>
     <FxCompile Include="shaders\PBR_HS_EdgeTess.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Hull</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.0</ShaderModel>

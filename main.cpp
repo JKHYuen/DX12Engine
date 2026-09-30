@@ -4,8 +4,8 @@
 #include "AssetImporter.h"
 #include "DemoGame.h"
 #include "DX12EngineCore/Application.h"
+#include "DX12EngineCore/Logger.h"
 #include "Helpers.h"
-#include "Logger.h"
 
 #include <dxgi1_3.h>
 #include <dxgidebug.h>

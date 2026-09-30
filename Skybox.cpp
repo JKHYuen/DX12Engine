@@ -14,10 +14,10 @@
 #include "d3d12.h"
 #include "d3dx12_core.h"
 #include "dxgiformat.h"
+#include "RenderConstants.h"
 
 #include <cmath>
 #include <DirectXMath.h>
-#include <DirectXMathConvert.inl>
 #include <DirectXMathMatrix.inl>
 #include <memory>
 #include <string>
@@ -33,23 +33,6 @@ namespace {
 	constexpr int sk_PrecomputedBRDFResolution  = 512;
 
 	constexpr DXGI_FORMAT sk_CubemapFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
-
-	constexpr XMFLOAT3 float3_000  {0.0f,   0.0f,  0.0f};
-	constexpr XMFLOAT3 float3_100  {1.0f,   0.0f,  0.0f};
-	constexpr XMFLOAT3 float3_010  {0.0f,   1.0f,  0.0f};
-	constexpr XMFLOAT3 float3_n100 {-1.0f,  0.0f,  0.0f};
-	constexpr XMFLOAT3 float3_00n1 {0.0f,   0.0f, -1.0f};
-	constexpr XMFLOAT3 float3_0n10 {0.0f,  -1.0f,  0.0f};
-	constexpr XMFLOAT3 float3_001  {0.0f,   0.0f,  1.0f};
-
-	const XMMATRIX s_CubeMapCaptureViewMats[] = {
-		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_100),  XMLoadFloat3(&float3_010)),
-		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_n100), XMLoadFloat3(&float3_010)),
-		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_010),  XMLoadFloat3(&float3_00n1)),
-		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_0n10),	XMLoadFloat3(&float3_001)),
-		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_001),	XMLoadFloat3(&float3_010)),
-		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_00n1), XMLoadFloat3(&float3_010)),
-	};
 }
 
 Skybox::Skybox(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const SkyboxParams& params)
@@ -184,7 +167,7 @@ void Skybox::ComputeIBLMaps(CommandList& directCommandList) {
 		directCommandList.SetShaderResourceView(1, 0, m_SkyCubemapTexture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 		for(int i = 0; i < 6; i++) {
-			auto viewMatrix = s_CubeMapCaptureViewMats[i];
+			auto viewMatrix = RenderGlobals::gk_CubeMapCaptureViewMats[i];
 			auto viewProjMatrix = viewMatrix * cubemapProjectionMat;
 
 			D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
@@ -213,7 +196,7 @@ void Skybox::ComputeIBLMaps(CommandList& directCommandList) {
 		for(int mipSlice = 0; mipSlice < sk_CubemapMipLevels; mipSlice++) {
 			double currMipScale = std::pow(0.5, mipSlice);
 			for(int i = 0; i < 6; i++) {
-				auto viewMatrix = s_CubeMapCaptureViewMats[i];
+				auto viewMatrix = RenderGlobals::gk_CubeMapCaptureViewMats[i];
 				auto viewProjMatrix = viewMatrix * cubemapProjectionMat;
 
 				D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};

@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <DirectXMath.h>
 
 namespace RenderEnums {
 
@@ -34,5 +35,25 @@ ENUM_FLAG_OPERATORS(RenderFlags);
 }
 
 namespace RenderGlobals {
+	using namespace DirectX;
+	namespace {
+		constexpr XMFLOAT3 float3_000  {  0.0f,   0.0f,  0.0f };
+		constexpr XMFLOAT3 float3_100  {  1.0f,   0.0f,  0.0f };
+		constexpr XMFLOAT3 float3_010  {  0.0f,   1.0f,  0.0f };
+		constexpr XMFLOAT3 float3_n100 { -1.0f,   0.0f,  0.0f };
+		constexpr XMFLOAT3 float3_00n1 {  0.0f,   0.0f, -1.0f };
+		constexpr XMFLOAT3 float3_0n10 {  0.0f,  -1.0f,  0.0f };
+		constexpr XMFLOAT3 float3_001  {  0.0f,   0.0f,  1.0f };
+	}
+
 	constexpr uint32_t gk_MaxPointLightCount = 3;
+
+	const XMMATRIX gk_CubeMapCaptureViewMats[] = {
+		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_100),  XMLoadFloat3(&float3_010)),
+		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_n100), XMLoadFloat3(&float3_010)),
+		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_010),  XMLoadFloat3(&float3_00n1)),
+		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_0n10),	XMLoadFloat3(&float3_001)),
+		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_001),	XMLoadFloat3(&float3_010)),
+		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_00n1), XMLoadFloat3(&float3_010)),
+	};
 }

@@ -22,10 +22,11 @@ class PBRObjectPSO;
 class UnlitPSO;
 class UnlitPrimitivePSO;
 class BloomPSO;
+class TonemapPSO;
+class DepthPSO;
 class BloomEffect;
 class OutlineEffect;
 class ImageBasedLightingPSO;
-class TonemapPSO;
 class ShaderResourceView;
 class RenderTargetPair;
 class RenderTarget;
@@ -65,6 +66,7 @@ private:
     /// TODO: figure out more generalized PSO loading system
     std::unique_ptr<PBRObjectPSO> m_PBR_PSO;
     std::unique_ptr<UnlitPSO> m_Unlit_PSO;
+    std::unique_ptr<DepthPSO> m_Depth_PSO;
     std::unique_ptr<UnlitPrimitivePSO> m_UnlitPrimitive_PSO;
     std::unique_ptr<ImageBasedLightingPSO> m_IBL_PSO;
     std::unique_ptr<BloomPSO> m_Bloom_PSO;

@@ -2,10 +2,10 @@
 
 #include "d3dx12_core.h"
 #include "Helpers.h"
-#include "Logger.h"
 #include "StringHelpers.h"
 
 #include "DX12EngineCore/CommandList.h"
+#include "DX12EngineCore/Logger.h"
 #include "DX12EngineCore/Mesh.h"
 #include "DX12EngineCore/VertexInput.h"
 

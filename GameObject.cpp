@@ -1,12 +1,13 @@
 #include "GameObject.h"
 
+#include "DX12EngineCore/Logger.h"
+
 #include "DX12EngineCore/Mesh.h"
 
 #include <array>
 #include <cmath>
 #include <DirectXMath.h>
 #include <memory>
-#include <Logger.h>
 #include <string>
 
 using namespace DirectX;

@@ -68,9 +68,22 @@ Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeC
 	//		)
 	//	);
 	//}
-	m_PointLights.push_back(std::make_unique<PointLight>(XMFLOAT3 { 0.0f, 5.0f, 7.0f }, XMFLOAT3 { 100.0f, 0.0f, 0.0f }, 10.0f, copyCommandList.GetSpherePrimitive(), m_UnlitPSO));
-	m_PointLights.push_back(std::make_unique<PointLight>(XMFLOAT3 { 5.0f, 5.0f, -5.0f }, XMFLOAT3 { 0.0f, 100.0f, 0.0f }, 10.0f, copyCommandList.GetSpherePrimitive(), m_UnlitPSO));
-	m_PointLights.push_back(std::make_unique<PointLight>(XMFLOAT3 { -5.0f, 5.0f, -5.0f }, XMFLOAT3 { 0.0f, 0.0f, 100.0f }, 10.0f, copyCommandList.GetSpherePrimitive(), m_UnlitPSO));
+	PointLight::PointLightParams pointLightParams {};
+	pointLightParams.translation        = XMFLOAT3 { 0.0f, 5.0f, 7.0f };
+	pointLightParams.color              = XMFLOAT3 { 100.0f, 0.0f, 0.0f };
+	pointLightParams.radius             = 10.0f;
+	pointLightParams.visualizationMesh  = copyCommandList.GetSpherePrimitive();
+	pointLightParams.unlitPSO           = unlitPSO;
+	pointLightParams.depthPSO           = dirLightParams.depthPSO;
+	m_PointLights.push_back(std::make_unique<PointLight>(device, pointLightParams));
+
+	pointLightParams.translation = XMFLOAT3 { 5.0f, 5.0f, -5.0f };
+	pointLightParams.color       = XMFLOAT3 { 0.0f, 100.0f, 0.0f };
+	m_PointLights.push_back(std::make_unique<PointLight>(device, pointLightParams));
+
+	pointLightParams.translation = XMFLOAT3 { -5.0f, 5.0f, -5.0f };
+	pointLightParams.color       = XMFLOAT3 { 0.0f, 0.0f, 100.0f };
+	m_PointLights.push_back(std::make_unique<PointLight>(device, pointLightParams));
 	///
 }
 

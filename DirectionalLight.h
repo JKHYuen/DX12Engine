@@ -3,13 +3,10 @@
 // Note: currently hardcoded to only render objects using PBRObjectsPSO
 
 #include "d3d12.h"
-#include "d3dx12_pipeline_state_stream.h"
 #include <DirectXMath.h>
 #include <memory>
-#include <wrl/client.h>
 
 using namespace DirectX;
-using namespace Microsoft::WRL;
 
 class ShaderResourceView;
 class CommandList;
@@ -18,6 +15,7 @@ class RenderTarget;
 class Texture;
 class Mesh;
 class Device;
+class DepthPSO;
 struct PBRVertexProps;
 struct PBRTessellationProps;
 
@@ -25,14 +23,14 @@ class DirectionalLight {
 public:
     // Root signature and Input layout is for shadow caster depth rendering on shadow map
     struct DirectionalLightParams {
-        std::shared_ptr<RootSignature> objectRootSignature;
-        CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT depthRenderInputLayout;
         XMFLOAT3 color;
         XMFLOAT3 eulerDegreeDir;
         int shadowMapResolution;
         float shadowRenderDistance;
         XMFLOAT2 shadowNearFarZ;
         float shadowBias;
+
+        DepthPSO* depthPSO;
     };
 
     DirectionalLight(Device& device, DirectionalLightParams params);
@@ -99,9 +97,6 @@ private:
     std::unique_ptr<RenderTarget> m_DirectionalShadowMapRT;
     ///
 
-    /// TODO: these members can be static
-    ComPtr<ID3D12PipelineState> m_DepthRenderPSO;
-    std::shared_ptr<RootSignature> m_ObjectRootSignature;
-    ///
+    DepthPSO* m_DepthPSO;
 };
 

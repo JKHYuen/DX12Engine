@@ -1,3 +1,4 @@
+#include "Common.hlsli"
 
 Texture2D MaterialTex         : register(t2); // alpha channel is height map
 SamplerState AnisoWrapSampler : register(s0);
@@ -6,12 +7,25 @@ cbuffer VertexCB : register(b0, space0) {
     matrix SRT;
     matrix MVP;
 	float4 cameraPosition;
-    matrix directionalLightMVP;
     float2 uvScale;
     float  heightMapMagnitude;
     float  pad1;
     float4 color;
 };
+
+struct PointLight {
+    float4 WorldPosition;
+    float4 ColorInvRadius; // x: r, y: g, z: b, a: inverse light radius (for shader optimization)
+};
+
+cbuffer LightCB : register(b1) {
+    float4 Time;
+    float4 DirLight; // vector of directional light
+    float4 DirLightColor;
+    matrix directionalLightMVP;
+    PointLight PointLights[MAX_POINT_LIGHT_COUNT];
+};
+
 
 struct PixelInputType {
     float4 position                     : SV_POSITION;

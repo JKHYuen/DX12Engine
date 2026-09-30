@@ -8,6 +8,7 @@
 #include "DX12EngineCore/CommandList.h"
 #include "DX12EngineCore/CommandQueue.h"
 #include "DX12EngineCore/Device.h"
+#include "DX12EngineCore/Logger.h"
 #include "DX12EngineCore/Resource.h"
 #include "DX12EngineCore/SwapChain.h"
 
@@ -32,7 +33,6 @@
 #include "DemoGame.h"
 
 #include <vector>
-#include <Logger.h>
 #include "PointLight.h"
 #include <string>
 

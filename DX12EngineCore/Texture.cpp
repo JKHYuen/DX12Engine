@@ -152,6 +152,16 @@ void Texture::CreateShaderResourceView(const D3D12_SHADER_RESOURCE_VIEW_DESC& sr
     d3d12Device->CreateShaderResourceView(m_d3d12Resource.Get(), &srvDesc, m_SRVAlloc.GetDescriptorHandle());
 }
 
+void Texture::CreateDepthStencilResourceView(const D3D12_DEPTH_STENCIL_VIEW_DESC& dsvDesc) {
+    assert(m_d3d12Resource);
+    auto d3d12Device = m_Device.GetD3D12Device();
+    CD3DX12_RESOURCE_DESC desc(m_d3d12Resource->GetDesc());
+    assert((desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0 && CheckDSVSupport());
+
+    m_DSVAlloc = m_Device.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+    d3d12Device->CreateDepthStencilView(m_d3d12Resource.Get(), &dsvDesc, m_DSVAlloc.GetDescriptorHandle());
+}
+
 D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetRenderTargetViewHandle() const {
     return m_RTVAlloc.GetDescriptorHandle();
 }

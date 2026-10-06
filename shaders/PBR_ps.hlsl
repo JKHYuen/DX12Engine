@@ -21,20 +21,26 @@ cbuffer LightCB : register(b1) {
     float4 Time;
     float4 DirLight; // vector of directional light
     float4 DirLightColor;
+    matrix directionalLightMVP;
     PointLight PointLights[MAX_POINT_LIGHT_COUNT];
 };
 
-Texture2D AlbedoTex                   : register(t0);
-Texture2D NormalTex                   : register(t1);
-Texture2D MaterialTex                 : register(t2); // [r: ao, g: metallic, b: roughness, a: height]
-TextureCube<float4> IrradianceCubemap : register(t3);
-TextureCube<float4> PrefilterCubemap  : register(t4);
-Texture2D BRDFLut                     : register(t5);
-Texture2D DirectionalShadowMap        : register(t6);
+Texture2D AlbedoTex                      : register(t0);
+Texture2D NormalTex                      : register(t1);
+Texture2D MaterialTex                    : register(t2); // [r: ao, g: metallic, b: roughness, a: height]
+TextureCube<float4> IrradianceCubemap    : register(t3);
+TextureCube<float4> PrefilterCubemap     : register(t4);
+Texture2D BRDFLut                        : register(t5);
+Texture2D DirectionalShadowMap           : register(t6);
 
-SamplerState AnisoWrapSampler                 : register(s0);
-SamplerState TrilinearClampSampler            : register(s1); // for BRDF lut
-SamplerComparisonState TrilinearBorderSampler : register(s2); // for directional shadow map
+// TODO: make this an array
+TextureCube<float4> PointLightShadowMap0 : register(t7);
+TextureCube<float4> PointLightShadowMap1 : register(t8);
+TextureCube<float4> PointLightShadowMap2 : register(t9);
+
+SamplerState AnisoWrapSampler                    : register(s0);
+SamplerState TrilinearClampSampler               : register(s1); // for BRDF lut
+SamplerComparisonState TrilinearBorderCmpSampler : register(s2); // for directional shadow map
 
 struct PixelInputType {
     float4 position                     : SV_POSITION;
@@ -253,10 +259,39 @@ float4 main(PixelInputType i) : SV_TARGET {
     const float3 F0 = lerp(diaf0, albedo, metallic);
 
 /// PBR DIRECT LIGHTING (LO)
-    // Directional light
-    const float3 dirLightLo = CalcReflectanceFromLight(-DirLight.xyz, DirLightColor.rgb, albedo, metallic, F0, roughness, normal, viewDirection, NdotV);
+    /// Directional light
+    float3 dirLightLo = CalcReflectanceFromLight(-DirLight.xyz, DirLightColor.rgb, albedo, metallic, F0, roughness, normal, viewDirection, NdotV);
+    
+    /// Calculate Directional Light Shadow
+    // Calculate the projected texture coordinates.
+    // use screen coord of interpolated vertex position with directional light's view/projection, rescaled to [0,1]
+    const float3 normalizedDirectionalLightViewPos = (i.directionalLightViewPosition.xyz / i.directionalLightViewPosition.w);
+    const float2 dirLighProjectTexCoord = float2(normalizedDirectionalLightViewPos.x, -normalizedDirectionalLightViewPos.y) * 0.5 + 0.5;
+    const float dirLightDepthValue = normalizedDirectionalLightViewPos.z;
+        
+    /// TODO: apply bias
+    // Adaptive shadow bias
+    //float shadowBias = max(0.05 * (1.0 - dot(normal, -DirLight.xyz)), 0.005);
+    //dirLightDepthValue = dirLightDepthValue - shadowBias;
+    
+    float dirLightShadowFactor = 0.0; // 0: in shadow, 1: not in shadow
+    if (dirLightDepthValue > 1.0) {
+        dirLightShadowFactor = 1.0;
+    }
+    else {
+        // Directional light shadowmap with basic PCF multisampling
+        for (int x = -1; x <= 1; x++) {
+            for (int y = -1; y <= 1; y++) {
+                dirLightShadowFactor += DirectionalShadowMap.SampleCmpLevelZero(TrilinearBorderCmpSampler, dirLighProjectTexCoord, dirLightDepthValue, float2(x, y));
+            }
+        }
+        dirLightShadowFactor /= 9.0;
+    }
+    
+    dirLightLo *= dirLightShadowFactor;
+    // End Directional Light
      
-    // Point Lights
+    /// Point Lights
     float3 pointLightLo = 0;
     for (int idx = 0; idx < MAX_POINT_LIGHT_COUNT; idx++) {
         // Attenuation formula from: https://google.github.io/filament/main/filament.html#attenuation-function
@@ -266,9 +301,26 @@ float4 main(PixelInputType i) : SV_TARGET {
         const float factor = distanceSquare * PointLights[idx].ColorInvRadius.a * PointLights[idx].ColorInvRadius.a;
         const float smoothFactor = max(1.0 - factor * factor, 0.0);
         const float attenuation = (smoothFactor * smoothFactor) / max(distanceSquare, 1e-4);
-        pointLightLo += CalcReflectanceFromLight(pointLightDir, radiance * attenuation, albedo, metallic, F0, roughness, normal, viewDirection, NdotV);
+        float3 currentPointLightLo = CalcReflectanceFromLight(pointLightDir, radiance * attenuation, albedo, metallic, F0, roughness, normal, viewDirection, NdotV);
+        
+        /// Calculate Point Light Shadows
+        float closestPointLightDepth = 0;
+        if(idx == 0) {
+            closestPointLightDepth = PointLightShadowMap0.Sample(AnisoWrapSampler, -pointLightDir).r;
+        }
+        else if(idx == 1) {
+            closestPointLightDepth = PointLightShadowMap1.Sample(AnisoWrapSampler, -pointLightDir).r;
+        }
+        else if(idx == 2) {
+            closestPointLightDepth = PointLightShadowMap2.Sample(AnisoWrapSampler, -pointLightDir).r;
+        }
+        
+        float pointLightShadowFactor = (length(pointLightDir) < closestPointLightDepth / PointLights[idx].ColorInvRadius.a) ? 1.0 : 0.0;
+        currentPointLightLo *= pointLightShadowFactor;
+        
+        pointLightLo += currentPointLightLo;
     }
-    
+    /// End Point Lights
 /// END CALCULATE PBR DIRECT LIGHTING (LO)
     
 /// IBL AMBIENT LIGHTING
@@ -287,41 +339,18 @@ float4 main(PixelInputType i) : SV_TARGET {
 
     const float3 ambient = (ambientDiffuse + ambientIndirectSpecular) * ao;
 /// END IBL AMBIENT LIGHTING
-    
-/// CALCULATE SHADOW (only directional Light for now)
-    // Calculate the projected texture coordinates.
-    // use screen coord of vertex position with directional light's view/projection, rescaled to [0,1]
-    const float3 normalizedDirectionalLightViewPos = (i.directionalLightViewPosition.xyz / i.directionalLightViewPosition.w);
-    const float2 projectTexCoord = float2(normalizedDirectionalLightViewPos.x, -normalizedDirectionalLightViewPos.y) * 0.5 + 0.5;
-    const float lightDepthValue = normalizedDirectionalLightViewPos.z;
-        
-    /// TODO: apply bias
-    // Adaptive shadow bias
-    //float shadowBias = max(0.05 * (1.0 - dot(normal, -DirLight.xyz)), 0.005);
-    //lightDepthValue = lightDepthValue - shadowBias;
-    
-    // Directional light shadowmap with basic PCF multisampling
-    float dirLightShadowFactor = 0.0; // 0: in shadow, 1: not in shadow
-    for (int x = -1; x <= 1; x++) {
-        for (int y = -1; y <= 1; y++) {
-            dirLightShadowFactor += DirectionalShadowMap.SampleCmpLevelZero(TrilinearBorderSampler, projectTexCoord, lightDepthValue, float2(x, y));
-        }
-    }
-    dirLightShadowFactor /= 9.0;
-    
-    if (lightDepthValue > 1.0)
-        dirLightShadowFactor = 1.0;
-    
-    // EXPERIMENTAL - Parallax occlusion self shadowing
+   
+/// EXPERIMENTAL - Parallax occlusion self shadowing
     if (ParallaxMagnitude != 0 && UseParallaxShadow != 0) {
-        /// TODO: make power factor tweakable
-        // Power factor added as a hacky way to make shadows more visible
+    /// TODO: make power factor tweakable
+    // Power factor added as a hacky way to make shadows more visible
         const float parallaxSelfShadowFactor = pow(CalcParallaxSoftShadowMultiplier(normalize(mul(-DirLight.xyz, TBN)), i.uv, 1.0 - MaterialTex.Sample(AnisoWrapSampler, i.uv).a), 16.0);
-        // Note: pow above causes invalid values sometimes (blows up bloom effect), this seems to only happen on specific materials
-        // saturate() ensures valid values
+    // Note: pow above causes invalid values sometimes (blows up bloom effect), this seems to only happen on specific materials
+    // saturate() ensures valid values
         dirLightShadowFactor *= saturate(parallaxSelfShadowFactor);
     }
-/// END CALCULATE SHADOW 
-
-    return float4(ambient + pointLightLo + (dirLightLo * dirLightShadowFactor), 1);
+///
+    
+    return float4(ambient + pointLightLo + dirLightLo, 1);
+    //return float4(pointLightLo, 1);
 }

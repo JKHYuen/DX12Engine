@@ -26,7 +26,6 @@ cbuffer LightCB : register(b1) {
     PointLight PointLights[MAX_POINT_LIGHT_COUNT];
 };
 
-
 struct PixelInputType {
     float4 position                     : SV_POSITION;
     float4 color                        : COLOR;

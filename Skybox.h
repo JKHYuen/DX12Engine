@@ -49,8 +49,6 @@ private:
 	// PSO owned by DemoGame currently
 	ImageBasedLightingPSO* m_IBL_PSO;
 
-	std::shared_ptr<Mesh> m_SkyboxCubeMesh;
-
 	std::shared_ptr<Texture> m_HDRPanoFromFileTexture;
 
 	// Function to create m_SkyCubemapTexture, needed when assigning new HDR pano texture

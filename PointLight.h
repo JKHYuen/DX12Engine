@@ -1,9 +1,12 @@
 #pragma once
+
 #include "GameObject.h" // Base Class
 
 #include <DirectXMath.h>
 #include <memory>
+#include <array>
 #include <string>
+#include "PBRObjectPSO.h"
 
 // This class should be a component of the GameObject class eventually, 
 // to get functionality like AABBs and basic transform functions easily.
@@ -13,6 +16,7 @@
 
 using namespace DirectX;
 
+class Device;
 class Mesh;
 class UnlitPSO;
 class CommandList;
@@ -43,6 +47,9 @@ public:
 	void SetShadowDepthPipelineStateAndRenderTarget(CommandList& directCommandList) const;
 	// pass vertexProps by value to copy and edit MVP to render from light's perspective
 	void RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, PBRVertexProps vertexProps, const PBRTessellationProps& tessProps) const;
+	void ClearShadowCubemap(CommandList& directCommandList);
+	
+	std::shared_ptr<Texture> GetShadowDepthTexture() const;
 
 	XMFLOAT3 GetColor() const { return m_Color; };
 	void SetColor(float r, float g, float b) { m_Color = XMFLOAT3(r, g, b); };
@@ -51,8 +58,6 @@ public:
 	void SetRadius(float radius) { m_Radius = radius; };
 
 private:	
-	std::unique_ptr<RenderTarget> m_ShadowCubemap_RT;
-
 	XMFLOAT3 m_Color;
 	float m_Radius;
 
@@ -62,5 +67,10 @@ private:
 
 	UnlitPSO* m_UnlitPSO;
 	DepthPSO* m_DepthPSO;
+
+	// For shadow mapping
+	std::unique_ptr<RenderTarget> m_ShadowCubemap_RT;
+	std::array<D3D12_DEPTH_STENCIL_VIEW_DESC, 6> m_CubemapDSVs;
+
 };
 

@@ -40,9 +40,10 @@ PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT
 		rootParameters[PBRRootParameters::LightCB].InitAsConstantBufferView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_ALL);
 		rootParameters[PBRRootParameters::TessellationCB].InitAsConstantBufferView(2, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_HULL);
 
-		CD3DX12_DESCRIPTOR_RANGE1 descriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, TextureIndex::NumTextures, 0);
+		CD3DX12_DESCRIPTOR_RANGE1 textureDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, TextureIndex::NumTextures, 0, 0);
+
 		/// used in vertex and pixel shaders
-		rootParameters[PBRRootParameters::Textures].InitAsDescriptorTable(1, &descriptorRange, D3D12_SHADER_VISIBILITY_ALL);
+		rootParameters[PBRRootParameters::Textures].InitAsDescriptorTable(1, &textureDescriptorRange, D3D12_SHADER_VISIBILITY_ALL);
 
 		CD3DX12_STATIC_SAMPLER_DESC anisotropicWrapSampler(0, D3D12_FILTER_ANISOTROPIC);
 		CD3DX12_STATIC_SAMPLER_DESC trilinearClampSampler(1, D3D12_FILTER_MIN_MAG_MIP_LINEAR,
@@ -52,7 +53,7 @@ PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT
 		CD3DX12_STATIC_SAMPLER_DESC samplers[] = { anisotropicWrapSampler, trilinearClampSampler, trilinearBorderSampler };
 
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription {};
-		rootSignatureDescription.Init_1_1(PBRRootParameters::NumPBRRootParameters, rootParameters, 3, samplers, 
+		rootSignatureDescription.Init_1_1(PBRRootParameters::NumPBRRootParameters, rootParameters, sizeof(samplers) / sizeof(samplers[0]), samplers,
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS);
 		m_RootSignature = std::make_shared<RootSignature>(device, rootSignatureDescription.Desc_1_1);
 	}

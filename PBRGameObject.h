@@ -19,6 +19,7 @@ using namespace RenderEnums;
 
 class CommandList;
 class DirectionalLight;
+class PointLight;
 class Mesh;
 class Texture;
 class UpdateEventArgs;
@@ -76,6 +77,7 @@ public:
 	void Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, bool b_RenderWireframe = false);
 	void RenderSilhouette(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPSO* unlitPSO, XMFLOAT4 color);
 	void RenderToDirectionalShadowMap(CommandList& directCommandList, const DirectionalLight& directionalLight);
+	void RenderToPointLightShadowMap(CommandList& directCommandList, const PointLight& pointLight);
 	// NOTE: commandlist is not executed here
 	void UpdatePBRShaderResourcesFromFile(CommandList& copyCommandList, const std::wstring& pbrMatName);
 	void UpdateIBLShaderResources(const Scene& scene);

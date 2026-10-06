@@ -58,7 +58,7 @@ public:
 
     XMFLOAT3 GetEulerAngles() const { return m_EulerAngles; }
 
-    XMFLOAT4X4 GetOrthoMatrix() const { return m_LightOrthoMatrix; }
+    XMFLOAT4X4 GetProjMatrix() const { return m_LightProjMat; }
     XMFLOAT4X4 GetViewMatrix() const { return m_LightViewMatrix; }
     D3D12_VIEWPORT GetViewPort() const { return m_ViewPort; }
 
@@ -90,7 +90,7 @@ private:
     XMFLOAT4 m_Color;
     XMFLOAT3 m_Translation; // only used for light view mat calculation
     XMFLOAT3 m_LookAt;
-    XMFLOAT4X4 m_LightOrthoMatrix;
+    XMFLOAT4X4 m_LightProjMat;
     XMFLOAT4X4 m_LightViewMatrix;
     D3D12_VIEWPORT m_ViewPort;
 

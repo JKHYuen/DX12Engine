@@ -85,7 +85,7 @@ public:
         * @param instanceCount The number of instances to draw.
         * @param startInstance The offset added to the instance ID when reading from the instance buffers.
         */
-    void Draw(CommandList& commandList, uint32_t instanceCount = 1, uint32_t startInstance = 0);
+    void Draw(CommandList& commandList, uint32_t instanceCount = 1, uint32_t startInstance = 0) const;
 
 private:
     BufferMap                    m_VertexBuffers;

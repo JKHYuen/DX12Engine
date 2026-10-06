@@ -31,6 +31,11 @@
   */
 
 
+// KHY Edit:
+//  - made automatic resource view creation on Texture creation optional
+//  - added functions to create resource view with specified description for more flexibility
+//  - these changes are mainly to support cubemap rendering, more elegant support is probably better
+
 #include "Resource.h"
 #include "DescriptorAllocation.h"
 
@@ -59,6 +64,11 @@ public:
      * Create non-default SRV
      */
     void CreateShaderResourceView(const D3D12_SHADER_RESOURCE_VIEW_DESC& srvDesc);
+
+    /**
+     * Create non-default DSV
+     */
+    void CreateDepthStencilResourceView(const D3D12_DEPTH_STENCIL_VIEW_DESC& srvDesc);
 
     /**
      * Get the RTV for the texture.

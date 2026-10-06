@@ -1,8 +1,9 @@
-#include "Camera.h"
-#include "GameObject.h"
-#include "PBRObjectPSO.h"
 #include "PointLight.h"
 
+#include "Camera.h"
+#include "EditorGui.h"
+#include "GameObject.h"
+#include "PBRObjectPSO.h"
 #include "RenderConstants.h"
 #include "DepthPSO.h"
 #include "UnlitPSO.h"
@@ -42,7 +43,11 @@ PointLight::PointLight(Device& device, const std::string& name, PointLightParams
 		6, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
 	);
 
-	auto shadowCubemap = std::make_shared<Texture>(device, shadowCubemapDesc);
+	D3D12_CLEAR_VALUE depthClearValue {};
+	depthClearValue.Format = DXGI_FORMAT_D32_FLOAT;
+	depthClearValue.DepthStencil = { 1.0f, 0 };
+
+	auto shadowCubemap = std::make_shared<Texture>(device, shadowCubemapDesc, &depthClearValue);
 
 	std::wstring wName {};
 	StringConvert::String_To_WideString(name, wName);
@@ -50,6 +55,24 @@ PointLight::PointLight(Device& device, const std::string& name, PointLightParams
 
 	m_ShadowCubemap_RT = std::make_unique<RenderTarget>();
 	m_ShadowCubemap_RT->AttachTexture(AttachmentPoint::DepthStencil, shadowCubemap);
+
+	// Create cubemap SRV for shadow map reading
+	D3D12_SHADER_RESOURCE_VIEW_DESC cubeMapSRVDesc {};
+	cubeMapSRVDesc.Format = DXGI_FORMAT_R32_FLOAT;
+	cubeMapSRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	cubeMapSRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+	cubeMapSRVDesc.TextureCube.MipLevels = -1;
+	shadowCubemap->CreateShaderResourceView(cubeMapSRVDesc);
+
+	for(int i = 0; i < 6; i++) {
+		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc {};
+		dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
+		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+		dsvDesc.Texture2DArray.MipSlice = 0;
+		dsvDesc.Texture2DArray.FirstArraySlice = i;
+		dsvDesc.Texture2DArray.ArraySize = 1;
+		m_CubemapDSVs[i] = dsvDesc;
+	}
 }
 
 PointLight::PointLight(Device& device, PointLightParams params)
@@ -80,18 +103,55 @@ void PointLight::RenderMesh(CommandList& directCommandList, const UpdateEventArg
 }
 
 void PointLight::SetShadowDepthPipelineStateAndRenderTarget(CommandList& directCommandList) const {
-	//directCommandList.ClearDepthStencilTexture(m_DirectionalShadowMapRT->GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
-	//directCommandList.SetViewport(m_ViewPort);
-	//directCommandList.SetRenderTarget(*m_ShadowCubemap_RT);
-
-	//m_DepthPSO->SetPipelineState(directCommandList);
+	m_DepthPSO->SetPipelineState(directCommandList);
 }
 
 void PointLight::RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, PBRVertexProps vertexProps, const PBRTessellationProps& tessProps) const {
-	//// Use directional light view/proj matrix and all other copied values from vertexProps
-	//XMStoreFloat4x4(&vertexProps.MVP, XMLoadFloat4x4(&vertexProps.SRT) * XMLoadFloat4x4(&m_LightViewMatrix) * XMLoadFloat4x4(&m_LightOrthoMatrix));
+	/// TODO: near, far values probably need to be tweaked
+	static XMMATRIX cubemapProjectionMat = XMMatrixPerspectiveFovLH(XMConvertToRadians(90.0f), 1.0f, 0.01f, m_Radius);
+	static D3D12_VIEWPORT viewport = { 0.0f, 0.0f, sk_ShadowCubemapResolution, sk_ShadowCubemapResolution, 0.0f, 0.1f };
 
-	//directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::PBRRootParameters::VertexCB, vertexProps);
-	//directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::PBRRootParameters::TessellationCB, tessProps);
-	//mesh.Draw(directCommandList);
+	static constexpr XMFLOAT3 float3_100 { 1.0f,  0.0f,  0.0f };
+	static constexpr XMFLOAT3 float3_010 { 0.0f,  1.0f,  0.0f };
+	static constexpr XMFLOAT3 float3_n100 { -1.0f,  0.0f,  0.0f };
+	static constexpr XMFLOAT3 float3_00n1 { 0.0f,  0.0f, -1.0f };
+	static constexpr XMFLOAT3 float3_0n10 { 0.0f, -1.0f,  0.0f };
+	static constexpr XMFLOAT3 float3_001 { 0.0f,  0.0f,  1.0f };
+
+	XMMATRIX cubeMapCaptureViewMats[] = {
+		XMMatrixLookAtLH(XMLoadFloat3(&m_Translation), XMLoadFloat3(&m_Translation) + XMLoadFloat3(&float3_100),  XMLoadFloat3(&float3_010)),
+		XMMatrixLookAtLH(XMLoadFloat3(&m_Translation), XMLoadFloat3(&m_Translation) + XMLoadFloat3(&float3_n100), XMLoadFloat3(&float3_010)),
+		XMMatrixLookAtLH(XMLoadFloat3(&m_Translation), XMLoadFloat3(&m_Translation) + XMLoadFloat3(&float3_010),  XMLoadFloat3(&float3_00n1)),
+		XMMatrixLookAtLH(XMLoadFloat3(&m_Translation), XMLoadFloat3(&m_Translation) + XMLoadFloat3(&float3_0n10), XMLoadFloat3(&float3_001)),
+		XMMatrixLookAtLH(XMLoadFloat3(&m_Translation), XMLoadFloat3(&m_Translation) + XMLoadFloat3(&float3_001),  XMLoadFloat3(&float3_010)),
+		XMMatrixLookAtLH(XMLoadFloat3(&m_Translation), XMLoadFloat3(&m_Translation) + XMLoadFloat3(&float3_00n1), XMLoadFloat3(&float3_010)),
+	};
+
+	/// TODO: make this work 
+	for(int i = 0; i < 6; i++) {
+		m_ShadowCubemap_RT->GetTexture(AttachmentPoint::DepthStencil)->CreateDepthStencilResourceView(m_CubemapDSVs[i]);
+		directCommandList.SetRenderTarget(*m_ShadowCubemap_RT);
+
+		// Note: this will only clear current array slice because of dsv above 
+		//directCommandList.ClearDepthStencilTexture(m_ShadowCubemap_RT->GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
+		directCommandList.SetViewport(viewport);
+
+		// Use Point light view/proj matrix with other copied values from vertexProps
+		XMStoreFloat4x4(&vertexProps.MVP, XMLoadFloat4x4(&vertexProps.SRT) * cubeMapCaptureViewMats[i] * cubemapProjectionMat);
+
+		directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::PBRRootParameters::VertexCB, vertexProps);
+		directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::PBRRootParameters::TessellationCB, tessProps);
+		mesh.Draw(directCommandList);
+	}
+}
+
+void PointLight::ClearShadowCubemap(CommandList& directCommandList) {
+	for(int i = 0; i < 6; i++) {
+		m_ShadowCubemap_RT->GetTexture(AttachmentPoint::DepthStencil)->CreateDepthStencilResourceView(m_CubemapDSVs[i]);
+		directCommandList.ClearDepthStencilTexture(m_ShadowCubemap_RT->GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
+	}
+}
+
+std::shared_ptr<Texture> PointLight::GetShadowDepthTexture() const {
+	return m_ShadowCubemap_RT->GetTexture(AttachmentPoint::DepthStencil);
 }

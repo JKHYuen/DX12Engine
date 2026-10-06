@@ -10,6 +10,7 @@
 #include "DirectionalLight.h"
 #include "Events.h"
 #include "PBRObjectPSO.h"
+#include "PointLight.h"
 #include "RenderConstants.h"
 #include "Scene.h"
 #include "Skybox.h"
@@ -36,6 +37,12 @@ PBRGameObject::PBRGameObject(Scene& scene, CommandList& copyCommandList, const G
 	m_TextureResources[PBRObjectPSO::PrefilterCubemap] = scene.GetSkybox()->GetPrefilterTexture();
 	m_TextureResources[PBRObjectPSO::BRDFLut] = scene.GetSkybox()->Get_BRDF_LUT_Texture();
 	m_TextureResources[PBRObjectPSO::DirectionalShadowMap] = scene.GetDirLight()->GetShadowMapTexture();
+
+	/// TODO: TEMP
+	m_TextureResources[PBRObjectPSO::PointLightShadowMap0] = scene.GetPointLight(0)->GetShadowDepthTexture();
+	m_TextureResources[PBRObjectPSO::PointLightShadowMap1] = scene.GetPointLight(1)->GetShadowDepthTexture();
+	m_TextureResources[PBRObjectPSO::PointLightShadowMap2] = scene.GetPointLight(2)->GetShadowDepthTexture();
+	///
 }
 
 /// TODO: somehow make this compatible with assimp loading
@@ -98,17 +105,6 @@ void PBRGameObject::Render(CommandList& directCommandList, const UpdateEventArgs
 			)
 		);
 
-		XMFLOAT4X4 v = scene.GetDirLight()->GetViewMatrix();
-		XMFLOAT4X4 p = scene.GetDirLight()->GetOrthoMatrix();
-		XMMATRIX directionalLightViewMat = XMLoadFloat4x4(&v);
-		XMMATRIX directionalLightOrthoMat = XMLoadFloat4x4(&p);
-		XMStoreFloat4x4(&m_PBRLightCB.directionalLightMVP,
-			XMMatrixMultiply(
-				XMMatrixMultiply(XMLoadFloat4x4(&m_PBRVertexCB.SRT), directionalLightViewMat),
-				directionalLightOrthoMat
-			)
-		);
-
 		XMStoreFloat4(&m_PBRVertexCB.cameraPosition, scene.GetMainCamera().Get_Translation());
 
 		m_PBRVertexCB.uvScale = m_RenderProps.uvScale;
@@ -139,12 +135,24 @@ void PBRGameObject::Render(CommandList& directCommandList, const UpdateEventArgs
 		m_PBRLightCB.dirLight = scene.GetDirLight()->GetNormDirectionVector();
 		m_PBRLightCB.dirLightColor = scene.GetDirLight()->GetColor();
 
+		XMFLOAT4X4 v = scene.GetDirLight()->GetViewMatrix();
+		XMFLOAT4X4 p = scene.GetDirLight()->GetProjMatrix();
+		XMMATRIX directionalLightViewMat = XMLoadFloat4x4(&v);
+		XMMATRIX directionalLightProjMat = XMLoadFloat4x4(&p);
+		XMStoreFloat4x4(&m_PBRLightCB.directionalLightMVP,
+			XMMatrixMultiply(
+				XMMatrixMultiply(XMLoadFloat4x4(&m_PBRVertexCB.SRT), directionalLightViewMat),
+				directionalLightProjMat
+			)
+		);
+
 		PointLightProps pl {};
 		for(uint32_t i = 0; i < RenderGlobals::gk_MaxPointLightCount; i++) {
 			XMFLOAT3 plWorldPos = scene.GetPointLight(i)->GetTranslation();
 			XMFLOAT3 plColor = scene.GetPointLight(i)->GetColor();
 			pl.worldPosition = XMFLOAT4(plWorldPos.x, plWorldPos.y, plWorldPos.z, 1.0f);
 			pl.colorInvRadius = XMFLOAT4(plColor.x, plColor.y, plColor.z, 1.0f / scene.GetPointLight(i)->GetRadius());
+
 			m_PBRLightCB.pointLights[i] = pl;
 		}
 	}
@@ -203,6 +211,12 @@ void PBRGameObject::RenderToDirectionalShadowMap(CommandList& directCommandList,
 	}
 
 	directionalLight.RenderObjectToDepth(directCommandList, *m_Mesh, m_PBRVertexCB, m_TessellationCB);
+}
+
+void PBRGameObject::RenderToPointLightShadowMap(CommandList& directCommandList, const PointLight& pointLight) {
+	if(!m_RenderProps.isShadowCaster) return;
+
+	pointLight.RenderObjectToDepth(directCommandList, *m_Mesh, m_PBRVertexCB, m_TessellationCB);
 }
 
 void PBRGameObject::RenderBoundingBox(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPrimitivePSO* unlitPrimitivePSO, const Scene& scene, XMFLOAT4 color) {

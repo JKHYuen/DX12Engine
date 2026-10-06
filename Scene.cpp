@@ -75,15 +75,15 @@ Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeC
 	pointLightParams.visualizationMesh  = copyCommandList.GetSpherePrimitive();
 	pointLightParams.unlitPSO           = unlitPSO;
 	pointLightParams.depthPSO           = dirLightParams.depthPSO;
-	m_PointLights.push_back(std::make_unique<PointLight>(device, pointLightParams));
+	m_PointLights.push_back(std::make_unique<PointLight>(device, "PointLight0", pointLightParams));
 
 	pointLightParams.translation = XMFLOAT3 { 5.0f, 5.0f, -5.0f };
 	pointLightParams.color       = XMFLOAT3 { 0.0f, 100.0f, 0.0f };
-	m_PointLights.push_back(std::make_unique<PointLight>(device, pointLightParams));
+	m_PointLights.push_back(std::make_unique<PointLight>(device, "PointLight1", pointLightParams));
 
 	pointLightParams.translation = XMFLOAT3 { -5.0f, 5.0f, -5.0f };
 	pointLightParams.color       = XMFLOAT3 { 0.0f, 0.0f, 100.0f };
-	m_PointLights.push_back(std::make_unique<PointLight>(device, pointLightParams));
+	m_PointLights.push_back(std::make_unique<PointLight>(device, "PointLight2", pointLightParams));
 	///
 }
 
@@ -106,6 +106,18 @@ void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList,
 		}
 	}
 
+	/// TODO: Finish this
+	m_PointLights[0]->SetShadowDepthPipelineStateAndRenderTarget(directCommandList);
+	for(int i = 0; i < RenderGlobals::gk_MaxPointLightCount; i++) {
+		m_PointLights[i]->ClearShadowCubemap(directCommandList);
+		for(auto& o : m_SceneObjects) {
+			if(PBRGameObject* pbrO = dynamic_cast<PBRGameObject*>(o.get())) {
+				pbrO->RenderToPointLightShadowMap(directCommandList, *m_PointLights[i]);
+			}
+		}
+	}
+	///
+
 	// Render skybox and objects with same render target
 	directCommandList.ClearTexture(outputRT.GetTexture(AttachmentPoint::Color0), Colors::DefaultBackground);
 	directCommandList.ClearDepthStencilTexture(outputRT.GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL);
@@ -115,6 +127,7 @@ void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList,
 	m_Skybox->Render(directCommandList, *m_MainCamera);
 
 	/// TEST
+	// Render point light shadow maps
 	for(uint32_t i = 0; i < gk_MaxPointLightCount; i++) {
 		m_PointLights[i]->RenderMesh(directCommandList, e, *m_MainCamera);
 	}

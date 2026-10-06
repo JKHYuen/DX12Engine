@@ -77,33 +77,43 @@ public:
 		LightCB,          // ConstantBuffer<LightProps>    LightCB        : register(b1);
 		TessellationCB,   // ConstantBuffer<LightProps>    TessellationCB : register(b2);
 
-		Textures,         // Texture2D AlbedoTex		 : register(t0);
-						  // Texture2D NormalTex		 : register(t1);
-						  // Texture2D MaterialTex		 : register(t2); [r: ao, g: metallic, b: roughness, a: height]
-						  // Texture2D IrradianceCubemap : register(t3);
-						  // Texture2D PrefilterCubemap	 : register(t4);
-						  // Texture2D BRDFLut			 : register(t5);
+		Textures,         // Texture2D AlbedoTex		    : register(t0);
+						  // Texture2D NormalTex		    : register(t1);
+						  // Texture2D MaterialTex		    : register(t2); [r: ao, g: metallic, b: roughness, a: height]
+						  // Texture2D IrradianceCubemap    : register(t3);
+						  // Texture2D PrefilterCubemap	    : register(t4);
+						  // Texture2D BRDFLut			    : register(t5);
+						  // Texture2D DirectionalShadowMap : register(t6);
+
+						  /// TODO: TEMP
+						  // PointLightShadowMap0 : register(t7);
+						  // PointLightShadowMap1 : register(t8);
+						  // PointLightShadowMap2 : register(t9);
+						  ///
 
 		NumPBRRootParameters
 	};
 
 	/// Expected indices for "pbrTextures" param in UpdateResources() function
-	// Static textures only
 	enum TextureIndex {
-        AlbedoTex,
+		AlbedoTex,
 		NormalTex,
 		MaterialTex, // r: AO, g: metallic, b: roughness, a: height 
 		IrradianceCubemap,
 		PrefilterCubemap,
 		BRDFLut,
 		DirectionalShadowMap,
+		
+		/// TODO: TEMP
+		PointLightShadowMap0,
+		PointLightShadowMap1,
+		PointLightShadowMap2,
+		///
 
 		NumTextures
 	};
 
-	std::shared_ptr<RootSignature> GetRootSignature() const {
-		return m_RootSignature;
-	}
+	std::shared_ptr<RootSignature> GetRootSignature() const { return m_RootSignature; }
 		
 	void SetPipelineState(CommandList& directCommandList, RenderEnums::RenderFlags renderFlags) const;
 

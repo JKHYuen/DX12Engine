@@ -32,7 +32,7 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
 {
     m_DirectionalShadowMapRT = std::make_unique<RenderTarget>();
 
-    XMStoreFloat4x4(&m_LightOrthoMatrix, XMMatrixOrthographicLH(m_ShadowRenderDistance, m_ShadowRenderDistance, m_ShadowNearFarZ.x, m_ShadowNearFarZ.y));
+    XMStoreFloat4x4(&m_LightProjMat, XMMatrixOrthographicLH(m_ShadowRenderDistance, m_ShadowRenderDistance, m_ShadowNearFarZ.x, m_ShadowNearFarZ.y));
     SetEulerAngles(params.eulerDegreeDir.x, params.eulerDegreeDir.y, params.eulerDegreeDir.z);
 
     // Create directional light shadow map
@@ -48,20 +48,19 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
     shadowMapDepthTexture->SetName(L"Directional Light Shadow Map");
     m_DirectionalShadowMapRT->AttachTexture(AttachmentPoint::DepthStencil, shadowMapDepthTexture);
 
-    // Initialize ImGui SRV for debug
-    {
-        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
-        ZeroMemory(&srvDesc, sizeof(srvDesc));
-        srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
-        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-        srvDesc.Texture2D.MipLevels = 1;
-        srvDesc.Texture2D.MostDetailedMip = 0;
-        srvDesc.Texture2D.PlaneSlice = 0;
-        srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-        shadowMapDepthTexture->CreateShaderResourceView(srvDesc);
+    // Create SRV for shadow map read and GUI debug
+    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
+    ZeroMemory(&srvDesc, sizeof(srvDesc));
+    srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    srvDesc.Texture2D.MipLevels = 1;
+    srvDesc.Texture2D.MostDetailedMip = 0;
+    srvDesc.Texture2D.PlaneSlice = 0;
+    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    shadowMapDepthTexture->CreateShaderResourceView(srvDesc);
 
-        EditorGui::Get().RegisterImageSRV(device, shadowMapDepthTexture, &srvDesc, EditorGui::ImGuiDebugSRVIndex::DirectionalShadowMap);
-    }
+    // Initialize ImGui SRV for debug
+    EditorGui::Get().RegisterImageSRV(device, shadowMapDepthTexture, &srvDesc, EditorGui::ImGuiDebugSRVIndex::DirectionalShadowMap);
 }
 
 void DirectionalLight::SetEulerAngles(float rotX, float rotY, float rotZ) {
@@ -95,12 +94,12 @@ void DirectionalLight::SetQuaternionAngle(XMVECTOR rotationQuaternion) {
 
 void DirectionalLight::SetShadowNearFarZ(XMFLOAT2 nearFarZ) {
     m_ShadowNearFarZ = nearFarZ;
-    XMStoreFloat4x4(&m_LightOrthoMatrix, XMMatrixOrthographicLH(m_ShadowRenderDistance, m_ShadowRenderDistance, m_ShadowNearFarZ.x, m_ShadowNearFarZ.y));
+    XMStoreFloat4x4(&m_LightProjMat, XMMatrixOrthographicLH(m_ShadowRenderDistance, m_ShadowRenderDistance, m_ShadowNearFarZ.x, m_ShadowNearFarZ.y));
 }
 
 void DirectionalLight::SetShadowRenderDistance(float distance) {
     m_ShadowRenderDistance = distance;
-    XMStoreFloat4x4(&m_LightOrthoMatrix, XMMatrixOrthographicLH(m_ShadowRenderDistance, m_ShadowRenderDistance, m_ShadowNearFarZ.x, m_ShadowNearFarZ.y));
+    XMStoreFloat4x4(&m_LightProjMat, XMMatrixOrthographicLH(m_ShadowRenderDistance, m_ShadowRenderDistance, m_ShadowNearFarZ.x, m_ShadowNearFarZ.y));
 }
 
 void DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget(CommandList& directCommandList) const {
@@ -113,7 +112,7 @@ void DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget(CommandList& d
 
 void DirectionalLight::RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, PBRVertexProps vertexProps, const PBRTessellationProps& tessProps) const {
     // Use directional light view/proj matrix and all other copied values from vertexProps
-    XMStoreFloat4x4(&vertexProps.MVP, XMLoadFloat4x4(&vertexProps.SRT) * XMLoadFloat4x4(&m_LightViewMatrix) * XMLoadFloat4x4(&m_LightOrthoMatrix));
+    XMStoreFloat4x4(&vertexProps.MVP, XMLoadFloat4x4(&vertexProps.SRT) * XMLoadFloat4x4(&m_LightViewMatrix) * XMLoadFloat4x4(&m_LightProjMat));
 
     directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::PBRRootParameters::VertexCB, vertexProps);
     directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::PBRRootParameters::TessellationCB, tessProps);

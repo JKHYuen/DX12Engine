@@ -44,7 +44,7 @@ public:
 
 	void RenderMesh(CommandList& directCommandList, const UpdateEventArgs& e, const Camera& viewCamera);
 
-	void SetShadowDepthPipelineStateAndRenderTarget(CommandList& directCommandList) const;
+	void SetShadowDepthPipelineState(CommandList& directCommandList) const;
 	// pass vertexProps by value to copy and edit MVP to render from light's perspective
 	void RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, PBRVertexProps vertexProps, const PBRTessellationProps& tessProps) const;
 	void ClearShadowCubemap(CommandList& directCommandList);

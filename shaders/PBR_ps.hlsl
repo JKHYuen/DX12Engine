@@ -40,7 +40,7 @@ TextureCube<float4> PointLightShadowMap2 : register(t9);
 
 SamplerState AnisoWrapSampler                    : register(s0);
 SamplerState TrilinearClampSampler               : register(s1); // for BRDF lut
-SamplerComparisonState TrilinearBorderCmpSampler : register(s2); // for directional shadow map
+SamplerComparisonState TrilinearClampCmpSampler : register(s2); // for directional shadow map
 
 struct PixelInputType {
     float4 position                     : SV_POSITION;
@@ -274,15 +274,12 @@ float4 main(PixelInputType i) : SV_TARGET {
     //float shadowBias = max(0.05 * (1.0 - dot(normal, -DirLight.xyz)), 0.005);
     //dirLightDepthValue = dirLightDepthValue - shadowBias;
     
-    float dirLightShadowFactor = 0.0; // 0: in shadow, 1: not in shadow
-    if (dirLightDepthValue > 1.0) {
-        dirLightShadowFactor = 1.0;
-    }
-    else {
+    float dirLightShadowFactor = 1.0; // 0: in shadow, 1: not in shadow
+    if (dirLightDepthValue < 1.0) {
         // Directional light shadowmap with basic PCF multisampling
         for (int x = -1; x <= 1; x++) {
             for (int y = -1; y <= 1; y++) {
-                dirLightShadowFactor += DirectionalShadowMap.SampleCmpLevelZero(TrilinearBorderCmpSampler, dirLighProjectTexCoord, dirLightDepthValue, float2(x, y));
+                dirLightShadowFactor += DirectionalShadowMap.SampleCmpLevelZero(TrilinearClampCmpSampler, dirLighProjectTexCoord, dirLightDepthValue, float2(x, y));
             }
         }
         dirLightShadowFactor /= 9.0;
@@ -315,7 +312,8 @@ float4 main(PixelInputType i) : SV_TARGET {
             closestPointLightDepth = PointLightShadowMap2.Sample(AnisoWrapSampler, -pointLightDir).r;
         }
         
-        float pointLightShadowFactor = (length(pointLightDir) < closestPointLightDepth / PointLights[idx].ColorInvRadius.a) ? 1.0 : 0.0;
+        float pointLightShadowFactor = 1.0;
+        pointLightShadowFactor = length(pointLightDir) > (closestPointLightDepth) ? 1.0 : 0.0;
         currentPointLightLo *= pointLightShadowFactor;
         
         pointLightLo += currentPointLightLo;

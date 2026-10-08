@@ -107,7 +107,7 @@ void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList,
 	}
 
 	/// TODO: Finish this
-	m_PointLights[0]->SetShadowDepthPipelineStateAndRenderTarget(directCommandList);
+	m_PointLights[0]->SetShadowDepthPipelineState(directCommandList);
 	for(int i = 0; i < RenderGlobals::gk_MaxPointLightCount; i++) {
 		m_PointLights[i]->ClearShadowCubemap(directCommandList);
 		for(auto& o : m_SceneObjects) {

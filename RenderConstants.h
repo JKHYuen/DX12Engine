@@ -38,6 +38,7 @@ ENUM_FLAG_OPERATORS(RenderFlags);
 namespace RenderGlobals {
 	inline constexpr uint32_t gk_MaxPointLightCount = 3;
 
+	// Convenient const vectors for cubemap rendering
 	inline constexpr DirectX::XMFLOAT3 float3_000  {  0.0f,  0.0f,  0.0f };
 	inline constexpr DirectX::XMFLOAT3 float3_100  {  1.0f,  0.0f,  0.0f };
 	inline constexpr DirectX::XMFLOAT3 float3_010  {  0.0f,  1.0f,  0.0f };
@@ -45,14 +46,4 @@ namespace RenderGlobals {
 	inline constexpr DirectX::XMFLOAT3 float3_00n1 {  0.0f,  0.0f, -1.0f };
 	inline constexpr DirectX::XMFLOAT3 float3_0n10 {  0.0f, -1.0f,  0.0f };
 	inline constexpr DirectX::XMFLOAT3 float3_001  {  0.0f,  0.0f,  1.0f };
-
-	inline const DirectX::XMMATRIX gk_CubeMapCaptureViewMats[] = {
-		DirectX::XMMatrixLookAtLH(DirectX::XMLoadFloat3(&float3_000), DirectX::XMLoadFloat3(&float3_100),  DirectX::XMLoadFloat3(&float3_010)),
-		DirectX::XMMatrixLookAtLH(DirectX::XMLoadFloat3(&float3_000), DirectX::XMLoadFloat3(&float3_n100), DirectX::XMLoadFloat3(&float3_010)),
-		DirectX::XMMatrixLookAtLH(DirectX::XMLoadFloat3(&float3_000), DirectX::XMLoadFloat3(&float3_010),  DirectX::XMLoadFloat3(&float3_00n1)),
-		DirectX::XMMatrixLookAtLH(DirectX::XMLoadFloat3(&float3_000), DirectX::XMLoadFloat3(&float3_0n10), DirectX::XMLoadFloat3(&float3_001)),
-		DirectX::XMMatrixLookAtLH(DirectX::XMLoadFloat3(&float3_000), DirectX::XMLoadFloat3(&float3_001),  DirectX::XMLoadFloat3(&float3_010)),
-		DirectX::XMMatrixLookAtLH(DirectX::XMLoadFloat3(&float3_000), DirectX::XMLoadFloat3(&float3_00n1), DirectX::XMLoadFloat3(&float3_010)),
-	};
-
 }

@@ -47,6 +47,7 @@ public:
     // Creates COMMITTED resource (through resource constructor), 
     // automatically added to resource state tracker ONLY if first constructor is used (i.e. one that accepts const D3D12_RESOURCE_DESC& resourceDesc)
     // b_CreateDefaultView: optionally creates descriptor (resource view) based on resourceDesc/resource description
+    // clearValue is for optimized clear if clear command matches this value
     Texture(Device& device, const D3D12_RESOURCE_DESC& resourceDesc, const D3D12_CLEAR_VALUE* clearValue = nullptr, bool b_CreateDefaultView = true);
     Texture(Device& device, Microsoft::WRL::ComPtr<ID3D12Resource> resource, const D3D12_CLEAR_VALUE* clearValue = nullptr, bool b_CreateDefaultView = true);
 

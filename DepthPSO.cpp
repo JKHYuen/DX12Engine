@@ -24,11 +24,15 @@ DepthPSO::DepthPSO(Device& device, std::shared_ptr<RootSignature> objectRootSign
         CD3DX12_PIPELINE_STATE_STREAM_HS                    HS;
         CD3DX12_PIPELINE_STATE_STREAM_DS                    DS;
         CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER            Rasterizer;
+        CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL         DepthStencil;
         CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT  DSVFormat;
     } depthPipelineStateStream;
 
     CD3DX12_RASTERIZER_DESC rasterizerDesc(D3D12_DEFAULT);
     rasterizerDesc.CullMode = D3D12_CULL_MODE_FRONT;
+
+    CD3DX12_DEPTH_STENCIL_DESC depthStencilDesc(D3D12_DEFAULT);
+    depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_GREATER;
 
     depthPipelineStateStream.pRootSignature = objectRootSignature->GetD3D12RootSignature().Get();
     depthPipelineStateStream.InputLayout = VertexInput::Get_POS_NORM_TAN_BIT_UV_InputLayout();
@@ -37,6 +41,7 @@ DepthPSO::DepthPSO(Device& device, std::shared_ptr<RootSignature> objectRootSign
     depthPipelineStateStream.HS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_HS.cso");
     depthPipelineStateStream.DS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_DS.cso");
     depthPipelineStateStream.Rasterizer = rasterizerDesc;
+    depthPipelineStateStream.DepthStencil = depthStencilDesc;
     depthPipelineStateStream.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 
     device.CreatePipelineState(depthPipelineStateStream, m_PSO);

@@ -32,7 +32,7 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
 {
     m_DirectionalShadowMapRT = std::make_unique<RenderTarget>();
 
-    XMStoreFloat4x4(&m_LightProjMat, XMMatrixOrthographicLH(m_ShadowRenderDistance, m_ShadowRenderDistance, m_ShadowNearFarZ.y, m_ShadowNearFarZ.x));
+    XMStoreFloat4x4(&m_LightProjMat, XMMatrixOrthographicLH(m_ShadowRenderDistance, m_ShadowRenderDistance, m_ShadowNearFarZ.x, m_ShadowNearFarZ.y));
     SetEulerAngles(params.eulerDegreeDir.x, params.eulerDegreeDir.y, params.eulerDegreeDir.z);
 
     // Create directional light shadow map
@@ -42,7 +42,7 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
 
     D3D12_CLEAR_VALUE depthClearValue {};
     depthClearValue.Format = DXGI_FORMAT_D32_FLOAT;
-    depthClearValue.DepthStencil = { 0.0f, 0 };
+    depthClearValue.DepthStencil = { 1.0f, 0 };
 
     auto shadowMapDepthTexture = std::make_shared<Texture>(m_Device, shadowMapDesc, &depthClearValue);
     shadowMapDepthTexture->SetName(L"Directional Light Shadow Map");
@@ -103,7 +103,7 @@ void DirectionalLight::SetShadowRenderDistance(float distance) {
 }
 
 void DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget(CommandList& directCommandList) const {
-    directCommandList.ClearDepthStencilTexture(m_DirectionalShadowMapRT->GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH, 0.0f);
+    directCommandList.ClearDepthStencilTexture(m_DirectionalShadowMapRT->GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
     directCommandList.SetViewport(m_ViewPort);
     directCommandList.SetRenderTarget(*m_DirectionalShadowMapRT);
 

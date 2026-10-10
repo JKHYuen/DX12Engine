@@ -46,7 +46,7 @@ PointLight::PointLight(Device& device, const std::string& name, PointLightParams
 
 	D3D12_CLEAR_VALUE depthClearValue {};
 	depthClearValue.Format = DXGI_FORMAT_D32_FLOAT;
-	depthClearValue.DepthStencil = { 0.0f, 0 };
+	depthClearValue.DepthStencil = { 1.0f, 0 };
 
 	auto shadowCubemap = std::make_shared<Texture>(device, shadowCubemapDesc, &depthClearValue);
 
@@ -105,15 +105,15 @@ void PointLight::RenderMesh(CommandList& directCommandList, const UpdateEventArg
 
 // Could be a static function
 void PointLight::SetShadowDepthPipelineState(CommandList& directCommandList) const {
-	m_DepthPSO->SetPipelineState(directCommandList);
+	m_DepthPSO->SetPipelineState(directCommandList, true);
 
-	constexpr D3D12_VIEWPORT sk_Viewport { 0.0f, 0.0f, sk_ShadowCubemapResolution, sk_ShadowCubemapResolution, 1.0, 0.0f };
+	constexpr D3D12_VIEWPORT sk_Viewport { 0.0f, 0.0f, sk_ShadowCubemapResolution, sk_ShadowCubemapResolution, 1.0f, 0.0f };
 	directCommandList.SetViewport(sk_Viewport);
 }
 
 void PointLight::RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, PBRVertexProps vertexProps, const PBRTessellationProps& tessProps) const {
 	/// TODO: near, far values probably need to be tweaked
-	static XMMATRIX cubemapProjectionMat = XMMatrixPerspectiveFovLH(XMConvertToRadians(90.0f), 1.0f, m_Radius, 0.01f);
+	static XMMATRIX cubemapProjectionMat = XMMatrixPerspectiveFovLH(XMConvertToRadians(90.0f), 1.0f, 0.01f, m_Radius);
 
 	XMMATRIX cubeMapCaptureViewMats[] = {
 		XMMatrixLookAtLH(XMLoadFloat3(&m_Translation), XMLoadFloat3(&m_Translation) + XMLoadFloat3(&float3_100),  XMLoadFloat3(&float3_010)),
@@ -123,6 +123,11 @@ void PointLight::RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh,
 		XMMatrixLookAtLH(XMLoadFloat3(&m_Translation), XMLoadFloat3(&m_Translation) + XMLoadFloat3(&float3_001),  XMLoadFloat3(&float3_010)),
 		XMMatrixLookAtLH(XMLoadFloat3(&m_Translation), XMLoadFloat3(&m_Translation) + XMLoadFloat3(&float3_00n1), XMLoadFloat3(&float3_010)),
 	};
+
+	// Using first slot of light props in PBR root sig, kind of hacky
+	PBRLightProps lightProps {};
+	lightProps.pointLights[0].worldPosition = XMFLOAT4(m_Translation.x, m_Translation.y, m_Translation.z, 1.0f);
+	lightProps.pointLights[0].colorInvRadius = XMFLOAT4(m_Color.x, m_Color.y, m_Color.z, 1.0f / m_Radius);
 
 	/// TODO: make this work 
 	for(int i = 0; i < 6; i++) {
@@ -134,6 +139,7 @@ void PointLight::RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh,
 
 		directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::PBRRootParameters::VertexCB, vertexProps);
 		directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::PBRRootParameters::TessellationCB, tessProps);
+		directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::PBRRootParameters::LightCB, lightProps);
 		mesh.Draw(directCommandList);
 	}
 }
@@ -141,7 +147,7 @@ void PointLight::RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh,
 void PointLight::ClearShadowCubemap(CommandList& directCommandList) {
 	for(int i = 0; i < 6; i++) {
 		m_ShadowCubemap_RT->GetTexture(AttachmentPoint::DepthStencil)->CreateDepthStencilResourceView(m_CubemapDSVs[i]);
-		directCommandList.ClearDepthStencilTexture(m_ShadowCubemap_RT->GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH, 0.0f);
+		directCommandList.ClearDepthStencilTexture(m_ShadowCubemap_RT->GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH, 1.0f);
 	}
 }
 

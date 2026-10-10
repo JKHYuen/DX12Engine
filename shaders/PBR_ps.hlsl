@@ -21,7 +21,7 @@ cbuffer LightCB : register(b1) {
     float4 Time;
     float4 DirLight; // vector of directional light
     float4 DirLightColor;
-    matrix directionalLightMVP;
+    matrix DirectionalLightMVP;
     PointLight PointLights[MAX_POINT_LIGHT_COUNT];
 };
 
@@ -40,7 +40,7 @@ TextureCube<float4> PointLightShadowMap2 : register(t9);
 
 SamplerState AnisoWrapSampler                    : register(s0);
 SamplerState TrilinearClampSampler               : register(s1); // for BRDF lut
-SamplerComparisonState TrilinearClampCmpSampler : register(s2); // for directional shadow map
+SamplerComparisonState TrilinearBorderCmpSampler : register(s2); // for directional shadow map
 
 struct PixelInputType {
     float4 position                     : SV_POSITION;
@@ -279,7 +279,7 @@ float4 main(PixelInputType i) : SV_TARGET {
         // Directional light shadowmap with basic PCF multisampling
         for (int x = -1; x <= 1; x++) {
             for (int y = -1; y <= 1; y++) {
-                dirLightShadowFactor += DirectionalShadowMap.SampleCmpLevelZero(TrilinearClampCmpSampler, dirLighProjectTexCoord, dirLightDepthValue, float2(x, y));
+                dirLightShadowFactor += DirectionalShadowMap.SampleCmpLevelZero(TrilinearBorderCmpSampler, dirLighProjectTexCoord, dirLightDepthValue, float2(x, y));
             }
         }
         dirLightShadowFactor /= 9.0;
@@ -301,7 +301,8 @@ float4 main(PixelInputType i) : SV_TARGET {
         float3 currentPointLightLo = CalcReflectanceFromLight(pointLightDir, radiance * attenuation, albedo, metallic, F0, roughness, normal, viewDirection, NdotV);
         
         /// Calculate Point Light Shadows
-        float closestPointLightDepth = 0;
+        // TODO: make cubemaps an array
+        float closestPointLightDepth = 0.0;
         if(idx == 0) {
             closestPointLightDepth = PointLightShadowMap0.Sample(AnisoWrapSampler, -pointLightDir).r;
         }
@@ -312,8 +313,8 @@ float4 main(PixelInputType i) : SV_TARGET {
             closestPointLightDepth = PointLightShadowMap2.Sample(AnisoWrapSampler, -pointLightDir).r;
         }
         
-        float pointLightShadowFactor = 1.0;
-        pointLightShadowFactor = length(pointLightDir) > (closestPointLightDepth) ? 1.0 : 0.0;
+        const float plShadowBias = 0.05f;
+        const float pointLightShadowFactor = (length(pointLightDir) + plShadowBias) < (closestPointLightDepth / PointLights[idx].ColorInvRadius.a) ? 1.0 : 0.0;
         currentPointLightLo *= pointLightShadowFactor;
         
         pointLightLo += currentPointLightLo;
@@ -350,5 +351,4 @@ float4 main(PixelInputType i) : SV_TARGET {
 ///
     
     return float4(ambient + pointLightLo + dirLightLo, 1);
-    //return float4(pointLightLo, 1);
 }

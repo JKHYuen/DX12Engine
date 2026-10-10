@@ -22,7 +22,7 @@ cbuffer LightCB : register(b1) {
     float4 Time;
     float4 DirLight; // vector of directional light
     float4 DirLightColor;
-    matrix directionalLightMVP;
+    matrix DirectionalLightMVP;
     PointLight PointLights[MAX_POINT_LIGHT_COUNT];
 };
 
@@ -100,7 +100,7 @@ PixelInputType main(
     o.tangentViewDirection = mul(TBN, cameraPosition.xyz - o.worldPosition.xyz);
     ///
     
-    o.directionalLightViewPosition = mul(directionalLightMVP, vertexPosition);
+    o.directionalLightViewPosition = mul(DirectionalLightMVP, vertexPosition);
     
     o.color = color;
     

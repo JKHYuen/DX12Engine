@@ -8,7 +8,6 @@
 #include "AssetImporter.h"
 #include "d3d12.h"
 #include "dxgiformat.h"
-#include "PBRObjectPSO.h"
 
 #include <memory>
 #include <d3dx12_pipeline_state_stream.h>
@@ -23,16 +22,13 @@ DepthPSO::DepthPSO(Device& device, std::shared_ptr<RootSignature> objectRootSign
         CD3DX12_PIPELINE_STATE_STREAM_VS                    VS;
         CD3DX12_PIPELINE_STATE_STREAM_HS                    HS;
         CD3DX12_PIPELINE_STATE_STREAM_DS                    DS;
+        CD3DX12_PIPELINE_STATE_STREAM_PS                    PS;
         CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER            Rasterizer;
-        CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL         DepthStencil;
         CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT  DSVFormat;
     } depthPipelineStateStream;
 
     CD3DX12_RASTERIZER_DESC rasterizerDesc(D3D12_DEFAULT);
     rasterizerDesc.CullMode = D3D12_CULL_MODE_FRONT;
-
-    CD3DX12_DEPTH_STENCIL_DESC depthStencilDesc(D3D12_DEFAULT);
-    depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_GREATER;
 
     depthPipelineStateStream.pRootSignature = objectRootSignature->GetD3D12RootSignature().Get();
     depthPipelineStateStream.InputLayout = VertexInput::Get_POS_NORM_TAN_BIT_UV_InputLayout();
@@ -41,19 +37,18 @@ DepthPSO::DepthPSO(Device& device, std::shared_ptr<RootSignature> objectRootSign
     depthPipelineStateStream.HS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_HS.cso");
     depthPipelineStateStream.DS = AssetImporter::Get().GetCompiledShaderFromFile(L"PBR_DS.cso");
     depthPipelineStateStream.Rasterizer = rasterizerDesc;
-    depthPipelineStateStream.DepthStencil = depthStencilDesc;
     depthPipelineStateStream.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 
     device.CreatePipelineState(depthPipelineStateStream, m_PSO);
+
+    // Create seperate PSO for point light depth rendering that uses PS to modify depth
+    depthPipelineStateStream.PS = AssetImporter::Get().GetCompiledShaderFromFile(L"PointLightShadowDepthWrite_PS.cso");
+    device.CreatePipelineState(depthPipelineStateStream, m_PointLightPSO);
 }
 
-void DepthPSO::SetPipelineState(CommandList& directCommandList) const {
-    directCommandList.SetPipelineState(m_PSO);
+void DepthPSO::SetPipelineState(CommandList& directCommandList, bool b_PointLightShadowDepth) const {
+    directCommandList.SetPipelineState(b_PointLightShadowDepth ? m_PointLightPSO : m_PSO);
     directCommandList.SetGraphicsRootSignature(m_RootSignature);
     directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 }
 
-void DepthPSO::UpdateResources(CommandList& directCommandList, const PBRVertexProps& vertexProps, const PBRTessellationProps& tessProps) const {
-    directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::VertexCB, vertexProps);
-    directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::TessellationCB, tessProps);
-}

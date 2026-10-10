@@ -498,7 +498,7 @@
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)compiled_shaders/%(Filename).cso</ObjectFileOutput>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)compiled_shaders/%(Filename).cso</ObjectFileOutput>
     </FxCompile>
-    <FxCompile Include="shaders\ShadowDepthWrite_PS.hlsl">
+    <FxCompile Include="shaders\PointLightShadowDepthWrite_PS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/Zi /Fd shader_pdbs\ %(AdditionalOptions)</AdditionalOptions>

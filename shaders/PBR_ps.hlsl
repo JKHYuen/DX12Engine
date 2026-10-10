@@ -298,26 +298,39 @@ float4 main(PixelInputType i) : SV_TARGET {
         const float factor = distanceSquare * PointLights[idx].ColorInvRadius.a * PointLights[idx].ColorInvRadius.a;
         const float smoothFactor = max(1.0 - factor * factor, 0.0);
         const float attenuation = (smoothFactor * smoothFactor) / max(distanceSquare, 1e-4);
-        float3 currentPointLightLo = CalcReflectanceFromLight(pointLightDir, radiance * attenuation, albedo, metallic, F0, roughness, normal, viewDirection, NdotV);
+        const float3 currentPointLightLo = CalcReflectanceFromLight(pointLightDir, radiance * attenuation, albedo, metallic, F0, roughness, normal, viewDirection, NdotV);
         
         /// Calculate Point Light Shadows
-        // TODO: make cubemaps an array
-        float closestPointLightDepth = 0.0;
-        if(idx == 0) {
-            closestPointLightDepth = PointLightShadowMap0.Sample(AnisoWrapSampler, -pointLightDir).r;
-        }
-        else if(idx == 1) {
-            closestPointLightDepth = PointLightShadowMap1.Sample(AnisoWrapSampler, -pointLightDir).r;
-        }
-        else if(idx == 2) {
-            closestPointLightDepth = PointLightShadowMap2.Sample(AnisoWrapSampler, -pointLightDir).r;
-        }
+        // Note: SampleCmpLevelZero with offset (see direcitonal light shadow map) is not supported for cubemaps in HLSL
+        //       Vector offset should be more random (poisson disk?).
         
-        const float plShadowBias = 0.05f;
-        const float pointLightShadowFactor = (length(pointLightDir) + plShadowBias) < (closestPointLightDepth / PointLights[idx].ColorInvRadius.a) ? 1.0 : 0.0;
-        currentPointLightLo *= pointLightShadowFactor;
+        //float width, height, numOfLevels;
+        //PointLightShadowMap0.GetDimensions(0, width, height, numOfLevels);
+        //float2 cubemapTexelSize = 1.0 / width;
         
-        pointLightLo += currentPointLightLo;
+        // this should scale with cubemap resolution, but using this value for now for sufficently soft shadows
+        const float2 cubemapTexelSize = 0.01; 
+        
+        float pointLightShadowFactor = 0.0;
+        for(int x = -1; x <= 1; x++) {
+            for(int y = -1; y <= 1; y++) {
+                const float3 offsetDir = -pointLightDir + float3(cubemapTexelSize.xy, 0) * float3(x, y, 0);
+                const float depthValue = length(pointLightDir) * PointLights[idx].ColorInvRadius.a;
+                // TODO: make cubemaps an array
+                if(idx == 0) {
+                    pointLightShadowFactor += PointLightShadowMap0.SampleCmpLevelZero(TrilinearBorderCmpSampler, offsetDir, depthValue).r;
+                }
+                else if(idx == 1) {
+                    pointLightShadowFactor += PointLightShadowMap1.SampleCmpLevelZero(TrilinearBorderCmpSampler, offsetDir, depthValue).r;
+                }
+                else {
+                    pointLightShadowFactor += PointLightShadowMap2.SampleCmpLevelZero(TrilinearBorderCmpSampler, offsetDir, depthValue).r;
+                }
+
+            }
+        }
+        pointLightShadowFactor /= 9.0;
+        pointLightLo += currentPointLightLo * pointLightShadowFactor;
     }
     /// End Point Lights
 /// END CALCULATE PBR DIRECT LIGHTING (LO)
@@ -350,5 +363,6 @@ float4 main(PixelInputType i) : SV_TARGET {
     }
 ///
     
+    return float4(pointLightLo, 1);
     return float4(ambient + pointLightLo + dirLightLo, 1);
 }

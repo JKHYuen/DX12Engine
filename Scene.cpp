@@ -71,7 +71,7 @@ Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeC
 	PointLight::PointLightParams pointLightParams {};
 	pointLightParams.translation        = XMFLOAT3 { 0.0f, 5.0f, 7.0f };
 	pointLightParams.color              = XMFLOAT3 { 100.0f, 0.0f, 0.0f };
-	pointLightParams.radius             = 10.0f;
+	pointLightParams.radius             = 20.0f;
 	pointLightParams.visualizationMesh  = copyCommandList.GetSpherePrimitive();
 	pointLightParams.unlitPSO           = unlitPSO;
 	pointLightParams.depthPSO           = dirLightParams.depthPSO;

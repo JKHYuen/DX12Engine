@@ -363,6 +363,5 @@ float4 main(PixelInputType i) : SV_TARGET {
     }
 ///
     
-    return float4(pointLightLo, 1);
     return float4(ambient + pointLightLo + dirLightLo, 1);
 }

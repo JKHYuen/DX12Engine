@@ -6,7 +6,7 @@
 */
 
 #include "GameObject.h" // Base Class
-#include "PBRObjectPSO.h"
+#include "PbrPSO.h"
 #include "RenderConstants.h"
 
 #include <DirectXMath.h>
@@ -26,7 +26,7 @@ class UpdateEventArgs;
 class Scene;
 class UnlitPSO;
 class UnlitPrimitivePSO;
-class PBRObjectPSO;
+class PbrPSO;
 
 struct PBRVertexProps;
 struct PBRLightProps;
@@ -60,13 +60,13 @@ public:
 		XMFLOAT2 uvScale { 1.0f, 1.0f };
 
 		// PSOs are owned by DemoGame
-		PBRObjectPSO* pbrPSO {};
+		PbrPSO* pbrPSO {};
 	};
 
 	// NOTE: copy command list must still be executed after GameObject (outside of constructor), this is to keep flexibility to batch copy commands together.
 	// We don't use RenderProps&& so there isn't accidental object invalidation for the caller.
 	// Initialize with preconstructed mesh
-	PBRGameObject(Scene& scene, CommandList& copyCommandList, const GameObject::EntityParams& params, const RenderProps& renderProps, std::shared_ptr<Mesh> mesh);
+	PBRGameObject(const Scene& scene, CommandList& copyCommandList, const GameObject::EntityParams& params, const RenderProps& renderProps, std::shared_ptr<Mesh> mesh);
 
 	/// TODO: Initialize with mesh loaded from file
 	//GameObject(CommandList& copyCommandList, const GameObject::EntityParams& params, const RenderProps& renderProps, const std::wstring& meshFilePath);
@@ -85,7 +85,7 @@ public:
 private:
 	RenderProps m_RenderProps {};
 
-	std::vector<std::shared_ptr<Texture>> m_TextureResources { PBRObjectPSO::TextureIndex::NumTextures };
+	std::vector<std::shared_ptr<Texture>> m_TextureResources { PbrPSO::TextureIndex::NumTextures };
 	// Note: Stored CB members are shared between different rendering methods e.g. render bounding box, render silhoutte
 	PBRVertexProps m_PBRVertexCB {};
 	PBRLightProps m_PBRLightCB {};

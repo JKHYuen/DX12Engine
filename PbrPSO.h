@@ -3,12 +3,14 @@
 /*
 	PSO for rendering PBR objects.
 	This and other "PSO" classes are ad hoc and a more generalized implementation will be needed in the future.
+
+	xxxProps structs could be in class for better encapsulation and less namespace pollution, but it is kept outside of class
+	so they don't need to be included in headers. 
 */
 
 #include <d3d12.h>
 #include <DirectXMath.h>
 #include <memory>
-#include <vector>
 #include "RenderConstants.h"
 
 using namespace DirectX;
@@ -33,8 +35,8 @@ struct alignas(16) PBRTessellationProps {
 	XMFLOAT4   cameraPosition;
 	XMFLOAT4X4 SRT;
 	/// CURRENTLY UNUSED
-	/// TODO: only if we want per triangle culling, shader code is also commented out for now because
-	///       AABBs used for culling currently do not work with height maps
+	/// TODO: only if we want per triangle culling, where performance gains are situational. Shader code is also commented out for now.
+	///		   Note: AABBs used for culling currently do not work with height maps
 	XMFLOAT4   cullingPlanes[4]; 
 	float      cullBias;
 	/// END UNUSED
@@ -67,9 +69,9 @@ struct alignas(16) PBRLightProps {
 	PointLightProps pointLights[RenderGlobals::gk_MaxPointLightCount];
 };
 
-class PBRObjectPSO {
+class PbrPSO {
 public:
-	PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRAY rtvFormat, DXGI_FORMAT depthFormat);
+	PbrPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRAY rtvFormat, DXGI_FORMAT depthFormat);
 
 	enum PBRRootParameters {
 		VertexCB,         // ConstantBuffer<VertexProps>   VertexCB	      : register(b0m space0);
@@ -94,7 +96,7 @@ public:
 		NumPBRRootParameters
 	};
 
-	/// Expected indices for "pbrTextures" param in UpdateResources() function
+	/// Expected indices for texture resources
 	enum TextureIndex {
 		AlbedoTex,
 		NormalTex,
@@ -116,8 +118,6 @@ public:
 	std::shared_ptr<RootSignature> GetRootSignature() const { return m_RootSignature; }
 		
 	void SetPipelineState(CommandList& directCommandList, RenderEnums::RenderFlags renderFlags) const;
-
-	void UpdateResources(CommandList& directCommandList, const std::vector<std::shared_ptr<Texture>>& pbrTextures, const PBRVertexProps& vertexProps, const PBRTessellationProps& tessProps, const PBRMaterialProps& materialProps, const PBRLightProps& lightProp);
 
 private:
 	std::shared_ptr<RootSignature> m_RootSignature;

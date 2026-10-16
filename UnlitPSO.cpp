@@ -12,7 +12,6 @@
 #include "d3dx12_default.h"
 #include "d3dx12_pipeline_state_stream.h"
 #include "dxgiformat.h"
-#include "PBRObjectPSO.h"
 #include "RenderConstants.h"
 
 #include <memory>
@@ -85,9 +84,4 @@ void UnlitPSO::SetPipelineState(CommandList& directCommandList, RenderFlags rend
 	directCommandList.SetPipelineState(s_PSOMap[renderFlags]);
 	directCommandList.SetGraphicsRootSignature(m_RootSignature);
 	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
-}
-
-void UnlitPSO::UpdateResources(CommandList& directCommandList, const PBRVertexProps& vertexProps, const PBRTessellationProps& tessProps) const {
-	directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::VertexCB, vertexProps);
-	directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::TessellationCB, tessProps);
 }

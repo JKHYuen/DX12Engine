@@ -18,7 +18,7 @@ class SwapChain;
 class Window;
 class EditorGui;
 class Skybox;
-class PBRObjectPSO;
+class PbrPSO;
 class UnlitPSO;
 class UnlitPrimitivePSO;
 class BloomPSO;
@@ -64,7 +64,7 @@ private:
     std::shared_ptr<SwapChain> m_SwapChain;
 
     /// TODO: figure out more generalized PSO loading system
-    std::unique_ptr<PBRObjectPSO> m_PBR_PSO;
+    std::unique_ptr<PbrPSO> m_PBR_PSO;
     std::unique_ptr<UnlitPSO> m_Unlit_PSO;
     std::unique_ptr<DepthPSO> m_Depth_PSO;
     std::unique_ptr<UnlitPrimitivePSO> m_UnlitPrimitive_PSO;

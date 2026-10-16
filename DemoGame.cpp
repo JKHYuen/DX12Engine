@@ -27,7 +27,7 @@
 #include "imgui.h"
 #include "KeyCodes.h"
 #include "OutlineEffect.h"
-#include "PBRObjectPSO.h"
+#include "PbrPSO.h"
 #include "DepthPSO.h"
 #include "RenderTargetPair.h"
 #include "Scene.h"
@@ -145,7 +145,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 
 	/// Create PSOs 
 	/// TODO: this should be managed somewhere else (AssetImporter?)
-	m_PBR_PSO = std::make_unique<PBRObjectPSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RT->GetRenderTargetFormats(), sk_DepthStencilBufferFormat);
+	m_PBR_PSO = std::make_unique<PbrPSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RT->GetRenderTargetFormats(), sk_DepthStencilBufferFormat);
 	m_IBL_PSO = std::make_unique<ImageBasedLightingPSO>(*m_Device, *m_HDR_MSAA_RT);
 	m_Depth_PSO = std::make_unique<DepthPSO>(*m_Device, m_PBR_PSO.get()->GetRootSignature());
 

@@ -20,8 +20,6 @@ public:
 	void SetPipelineState(CommandList& directCommandList, RenderEnums::RenderFlags renderFlags) const;
 	void SetWireframePipelineState(CommandList& directCommandList) const;
 
-	void UpdateResources(CommandList& directCommandList, const PBRVertexProps& vertexProps, const PBRTessellationProps& tessProps) const;
-
 private:
 	std::shared_ptr<RootSignature> m_RootSignature;
 };

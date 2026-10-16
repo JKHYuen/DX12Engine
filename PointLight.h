@@ -6,7 +6,7 @@
 #include <memory>
 #include <array>
 #include <string>
-#include "PBRObjectPSO.h"
+#include "PbrPSO.h"
 
 // This class should be a component of the GameObject class eventually, 
 // to get functionality like AABBs and basic transform functions easily.

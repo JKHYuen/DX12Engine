@@ -15,7 +15,7 @@
 #include "GameObject.h"
 #include "ImGui.h"
 #include "KeyCodes.h"
-#include "PBRObjectPSO.h"
+#include "PbrPSO.h"
 #include "Picker.h"
 #include "PBRGameObject.h"
 #include "PointLight.h"

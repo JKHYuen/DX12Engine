@@ -36,6 +36,7 @@ ENUM_FLAG_OPERATORS(RenderFlags);
 }
 
 namespace RenderGlobals {
+	// This should eventually be tweakable for forward rendering, unused for deferred rendering
 	inline constexpr uint32_t gk_MaxPointLightCount = 3;
 
 	// Convenient const vectors for cubemap rendering

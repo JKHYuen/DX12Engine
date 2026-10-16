@@ -21,8 +21,6 @@ public:
 	void SetPipelineState(CommandList& directCommandList) const;
 	void SetWireframePipelineState(CommandList& directCommandList) const;
 
-	void UpdateResources(CommandList& directCommandList, const PBRVertexProps& vertexProps) const;
-
 private:
 	std::shared_ptr<RootSignature> m_ObjectRootSignature;
 	ComPtr<ID3D12PipelineState> m_PipelineState;

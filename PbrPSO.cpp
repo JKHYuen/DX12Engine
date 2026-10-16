@@ -1,4 +1,4 @@
-#include "PBRObjectPSO.h"
+#include "PbrPSO.h"
 
 #include "DX12EngineCore/CommandList.h"
 #include "DX12EngineCore/Device.h"
@@ -30,7 +30,7 @@ namespace {
 	std::unordered_map<RenderFlags, ComPtr<ID3D12PipelineState>> s_PSOMap {};
 }
 
-PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRAY rtvFormat, DXGI_FORMAT depthStencilFormat) {
+PbrPSO::PbrPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRAY rtvFormat, DXGI_FORMAT depthStencilFormat) {
 	// Create PBR root signature
 	{
 		CD3DX12_ROOT_PARAMETER1 rootParameters[PBRRootParameters::NumPBRRootParameters] {};
@@ -122,24 +122,10 @@ PBRObjectPSO::PBRObjectPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT
 	s_PSOMap[flags] = pso;
 }
 
-void PBRObjectPSO::SetPipelineState(CommandList& directCommandList, RenderFlags renderFlags) const {
+void PbrPSO::SetPipelineState(CommandList& directCommandList, RenderFlags renderFlags) const {
 	assert(s_PSOMap.find(renderFlags) != s_PSOMap.end() && "Invalid PBR render flags.");
 
 	directCommandList.SetPipelineState(s_PSOMap[renderFlags]);
 	directCommandList.SetGraphicsRootSignature(m_RootSignature);
 	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
-}
-
-void PBRObjectPSO::UpdateResources(CommandList& directCommandList, const std::vector<std::shared_ptr<Texture>>& pbrTextures, const PBRVertexProps& vertexProps, const PBRTessellationProps& tessProps, const PBRMaterialProps& materialProps, const PBRLightProps& lightProps) {
-	assert((pbrTextures.size() == TextureIndex::NumTextures) && "Incorrect number of PBR textures.");
-
-	// Note: may have performance increase if these are only updated when needed
-	directCommandList.SetGraphicsDynamicConstantBuffer(PBRRootParameters::VertexCB, vertexProps);
-	directCommandList.SetGraphicsDynamicConstantBuffer(PBRRootParameters::TessellationCB, tessProps);
-	directCommandList.SetGraphicsDynamicConstantBuffer(PBRRootParameters::MaterialCB, materialProps);
-	directCommandList.SetGraphicsDynamicConstantBuffer(PBRRootParameters::LightCB, lightProps);
-
-	for(int i = 0; i < TextureIndex::NumTextures; i++) {
-		directCommandList.SetShaderResourceView(PBRRootParameters::Textures, i, pbrTextures[i], D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE);
-	}
 }

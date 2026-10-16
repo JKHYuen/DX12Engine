@@ -3,7 +3,7 @@
 #include "Camera.h"
 #include "EditorGui.h"
 #include "GameObject.h"
-#include "PBRObjectPSO.h"
+#include "PbrPSO.h"
 #include "RenderConstants.h"
 #include "DepthPSO.h"
 #include "UnlitPSO.h"
@@ -98,8 +98,8 @@ void PointLight::RenderMesh(CommandList& directCommandList, const UpdateEventArg
 
 	// Simple mesh render will not use tessellation, pass empty struct
 	PBRTessellationProps tessProps {};
-
-	m_UnlitPSO->UpdateResources(directCommandList, vertexProps, tessProps);
+	directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::VertexCB, vertexProps);
+	directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::TessellationCB, tessProps);
 	m_VisualizationMesh->Draw(directCommandList);
 }
 
@@ -137,9 +137,9 @@ void PointLight::RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh,
 		// Use Point light view/proj matrix with other copied values from vertexProps
 		XMStoreFloat4x4(&vertexProps.MVP, XMLoadFloat4x4(&vertexProps.SRT) * cubeMapCaptureViewMats[i] * cubemapProjectionMat);
 
-		directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::PBRRootParameters::VertexCB, vertexProps);
-		directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::PBRRootParameters::TessellationCB, tessProps);
-		directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::PBRRootParameters::LightCB, lightProps);
+		directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::PBRRootParameters::VertexCB, vertexProps);
+		directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::PBRRootParameters::TessellationCB, tessProps);
+		directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::PBRRootParameters::LightCB, lightProps);
 		mesh.Draw(directCommandList);
 	}
 }

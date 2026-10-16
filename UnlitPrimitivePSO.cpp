@@ -11,7 +11,7 @@
 #include "d3dx12_core.h"
 #include "d3dx12_default.h"
 #include "d3dx12_pipeline_state_stream.h"
-#include "PBRObjectPSO.h"
+#include "PbrPSO.h"
 
 #include <memory>
 #include <wrl/client.h>
@@ -61,8 +61,4 @@ void UnlitPrimitivePSO::SetWireframePipelineState(CommandList& directCommandList
 	directCommandList.SetPipelineState(m_WireframePipelineState);
 	directCommandList.SetGraphicsRootSignature(m_ObjectRootSignature);
 	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-}
-
-void UnlitPrimitivePSO::UpdateResources(CommandList& directCommandList, const PBRVertexProps& vertexProps) const {
-	directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::VertexCB, vertexProps);
 }

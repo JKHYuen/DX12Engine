@@ -7,7 +7,7 @@
 #include "DX12EngineCore/Texture.h"
 
 #include "EditorGui.h"
-#include "PBRObjectPSO.h"
+#include "PbrPSO.h"
 #include "DepthPSO.h"
 
 #include "d3d12.h"
@@ -114,8 +114,8 @@ void DirectionalLight::RenderObjectToDepth(CommandList& directCommandList, Mesh&
     // Use directional light view/proj matrix and all other copied values from vertexProps
     XMStoreFloat4x4(&vertexProps.MVP, XMLoadFloat4x4(&vertexProps.SRT) * XMLoadFloat4x4(&m_LightViewMatrix) * XMLoadFloat4x4(&m_LightProjMat));
 
-    directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::PBRRootParameters::VertexCB, vertexProps);
-    directCommandList.SetGraphicsDynamicConstantBuffer(PBRObjectPSO::PBRRootParameters::TessellationCB, tessProps);
+    directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::PBRRootParameters::VertexCB, vertexProps);
+    directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::PBRRootParameters::TessellationCB, tessProps);
     mesh.Draw(directCommandList);
 }
 

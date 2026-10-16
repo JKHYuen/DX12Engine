@@ -264,7 +264,7 @@
     <ClCompile Include="TonemapPSO.cpp" />
     <ClCompile Include="UnlitPrimitivePSO.cpp" />
     <ClCompile Include="UnlitPSO.cpp" />
-    <ClCompile Include="PBRObjectPSO.cpp" />
+    <ClCompile Include="PbrPSO.cpp" />
     <ClCompile Include="Picker.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Skybox.cpp" />
@@ -341,7 +341,7 @@
     <ClInclude Include="TonemapPSO.h" />
     <ClInclude Include="UnlitPrimitivePSO.h" />
     <ClInclude Include="UnlitPSO.h" />
-    <ClInclude Include="PBRObjectPSO.h" />
+    <ClInclude Include="PbrPSO.h" />
     <ClInclude Include="Picker.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="Skybox.h" />

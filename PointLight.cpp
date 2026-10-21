@@ -65,6 +65,9 @@ PointLight::PointLight(Device& device, const std::string& name, PointLightParams
 	cubeMapSRVDesc.TextureCube.MipLevels = -1;
 	shadowCubemap->CreateShaderResourceView(cubeMapSRVDesc);
 
+	// Create shadow cubemap DSV for shadow writing
+	std::vector<D3D12_DEPTH_STENCIL_VIEW_DESC> dsvDescs {};
+	dsvDescs.reserve(6);
 	for(int i = 0; i < 6; i++) {
 		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc {};
 		dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
@@ -72,8 +75,10 @@ PointLight::PointLight(Device& device, const std::string& name, PointLightParams
 		dsvDesc.Texture2DArray.MipSlice = 0;
 		dsvDesc.Texture2DArray.FirstArraySlice = i;
 		dsvDesc.Texture2DArray.ArraySize = 1;
-		m_CubemapDSVs[i] = dsvDesc;
+		dsvDescs.push_back(dsvDesc);
 	}
+	shadowCubemap->CreateDepthStencilView(dsvDescs);
+
 }
 
 PointLight::PointLight(Device& device, PointLightParams params)
@@ -124,15 +129,13 @@ void PointLight::RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh,
 		XMMatrixLookAtLH(XMLoadFloat3(&m_Translation), XMLoadFloat3(&m_Translation) + XMLoadFloat3(&float3_00n1), XMLoadFloat3(&float3_010)),
 	};
 
-	// Using first slot of light props in PBR root sig, kind of hacky
+	// Using first slot of light props in PBR root sig - hacky solution
 	PBRLightProps lightProps {};
 	lightProps.pointLights[0].worldPosition = XMFLOAT4(m_Translation.x, m_Translation.y, m_Translation.z, 1.0f);
 	lightProps.pointLights[0].colorInvRadius = XMFLOAT4(m_Color.x, m_Color.y, m_Color.z, 1.0f / m_Radius);
 
-	/// TODO: make this work 
 	for(int i = 0; i < 6; i++) {
-		m_ShadowCubemap_RT->GetTexture(AttachmentPoint::DepthStencil)->CreateDepthStencilResourceView(m_CubemapDSVs[i]);
-		directCommandList.SetRenderTarget(*m_ShadowCubemap_RT);
+		directCommandList.SetRenderTarget(*m_ShadowCubemap_RT, i);
 
 		// Use Point light view/proj matrix with other copied values from vertexProps
 		XMStoreFloat4x4(&vertexProps.MVP, XMLoadFloat4x4(&vertexProps.SRT) * cubeMapCaptureViewMats[i] * cubemapProjectionMat);
@@ -145,10 +148,7 @@ void PointLight::RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh,
 }
 
 void PointLight::ClearShadowCubemap(CommandList& directCommandList) {
-	for(int i = 0; i < 6; i++) {
-		m_ShadowCubemap_RT->GetTexture(AttachmentPoint::DepthStencil)->CreateDepthStencilResourceView(m_CubemapDSVs[i]);
-		directCommandList.ClearDepthStencilTexture(m_ShadowCubemap_RT->GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH, 1.0f);
-	}
+	directCommandList.ClearDepthStencilTexture(m_ShadowCubemap_RT->GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
 }
 
 std::shared_ptr<Texture> PointLight::GetShadowDepthTexture() const {

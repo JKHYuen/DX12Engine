@@ -105,8 +105,8 @@ void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList,
 			pbrO->RenderToDirectionalShadowMap(directCommandList, *m_DirectionalLight);
 		}
 	}
-
-	/// TODO: Finish this
+	
+	// Render depth from each point light (cubemap)
 	m_PointLights[0]->SetShadowDepthPipelineState(directCommandList);
 	for(int i = 0; i < RenderGlobals::gk_MaxPointLightCount; i++) {
 		m_PointLights[i]->ClearShadowCubemap(directCommandList);
@@ -116,7 +116,6 @@ void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList,
 			}
 		}
 	}
-	///
 
 	// Render skybox and objects with same render target
 	directCommandList.ClearTexture(outputRT.GetTexture(AttachmentPoint::Color0), Colors::DefaultBackground);

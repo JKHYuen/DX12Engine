@@ -33,8 +33,8 @@
 
 // KHY Edit:
 //  - made automatic resource view creation on Texture creation optional
-//  - added functions to create resource view with specified description for more flexibility
-//  - these changes are mainly to support cubemap rendering, more elegant support is probably better
+//  - added functions to create resource views with specified description and count for more flexibility
+//  - these changes are mainly to support cubemap rendering
 
 #include "Resource.h"
 #include "DescriptorAllocation.h"
@@ -69,28 +69,29 @@ public:
     /**
      * Create non-default DSV
      */
-    void CreateDepthStencilResourceView(const D3D12_DEPTH_STENCIL_VIEW_DESC& srvDesc);
+    void CreateDepthStencilView(const std::vector<D3D12_DEPTH_STENCIL_VIEW_DESC>& dsvDescs);
 
     /**
      * Get the RTV for the texture.
      */
-    D3D12_CPU_DESCRIPTOR_HANDLE GetRenderTargetViewHandle() const;
+    D3D12_CPU_DESCRIPTOR_HANDLE GetRenderTargetViewHandle(uint32_t offset = 0U) const;
 
     /**
      * Get the DSV for the texture.
      */
-    D3D12_CPU_DESCRIPTOR_HANDLE GetDepthStencilViewHandle() const;
+    D3D12_CPU_DESCRIPTOR_HANDLE GetDepthStencilViewHandle(uint32_t offset = 0U) const;
+    uint32_t GetDepthStencilViewHandleCount() const;
 
     /**
-     * Get the default SRV for the texture.
+     * Get the SRV for the texture.
      */
-    D3D12_CPU_DESCRIPTOR_HANDLE GetShaderResourceViewHandle() const;
+    D3D12_CPU_DESCRIPTOR_HANDLE GetShaderResourceViewHandle(uint32_t offset = 0U) const;
 
     /**
      * Get the UAV for the texture at a specific mip level.
      * Note: Only only supported for 1D and 2D textures.
      */
-    D3D12_CPU_DESCRIPTOR_HANDLE GetUnorderedAccessViewHandle(uint32_t mip) const;
+    D3D12_CPU_DESCRIPTOR_HANDLE GetUnorderedAccessViewHandle(uint32_t offset) const;
 
     bool CheckSRVSupport() const {
         return CheckFormatSupport(D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE);

@@ -8,6 +8,55 @@
 
 using namespace Microsoft::WRL;
 
+namespace {
+    // Get a UAV description that matches the resource description.
+    // Note: arraySlice and planeSlice is unused, this function is currently only used for mip generation (see CommandList::GenerateMips_UAV) 
+    D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(const D3D12_RESOURCE_DESC& resDesc, UINT mipSlice, UINT arraySlice = 0,
+        UINT planeSlice = 0) {
+        D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+        uavDesc.Format = resDesc.Format;
+
+        switch(resDesc.Dimension) {
+        case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
+            if(resDesc.DepthOrArraySize > 1) {
+                uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
+                uavDesc.Texture1DArray.ArraySize = resDesc.DepthOrArraySize - arraySlice;
+                uavDesc.Texture1DArray.FirstArraySlice = arraySlice;
+                uavDesc.Texture1DArray.MipSlice = mipSlice;
+            }
+            else {
+                uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1D;
+                uavDesc.Texture1D.MipSlice = mipSlice;
+            }
+            break;
+        case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
+            if(resDesc.DepthOrArraySize > 1) {
+                uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+                uavDesc.Texture2DArray.ArraySize = resDesc.DepthOrArraySize - arraySlice;
+                uavDesc.Texture2DArray.FirstArraySlice = arraySlice;
+                uavDesc.Texture2DArray.PlaneSlice = planeSlice;
+                uavDesc.Texture2DArray.MipSlice = mipSlice;
+            }
+            else {
+                uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+                uavDesc.Texture2D.PlaneSlice = planeSlice;
+                uavDesc.Texture2D.MipSlice = mipSlice;
+            }
+            break;
+        case D3D12_RESOURCE_DIMENSION_TEXTURE3D:
+            uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
+            uavDesc.Texture3D.WSize = resDesc.DepthOrArraySize - arraySlice;
+            uavDesc.Texture3D.FirstWSlice = arraySlice;
+            uavDesc.Texture3D.MipSlice = mipSlice;
+            break;
+        default:
+            throw std::exception("Invalid resource dimension.");
+        }
+
+        return uavDesc;
+    }
+}
+
 Texture::Texture(Device& device, const D3D12_RESOURCE_DESC& resourceDesc, const D3D12_CLEAR_VALUE* clearValue, bool b_CreateDefaultView)
     : Resource(device, resourceDesc, clearValue)
     , m_Width { static_cast<uint32_t>(resourceDesc.Width)  }
@@ -53,52 +102,6 @@ void Texture::Resize(uint32_t width, uint32_t height, uint32_t depthOrArraySize)
     }
 }
 
-// Get a UAV description that matches the resource description.
-D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(const D3D12_RESOURCE_DESC& resDesc, UINT mipSlice, UINT arraySlice = 0,
-    UINT planeSlice = 0) {
-    D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-    uavDesc.Format = resDesc.Format;
-
-    switch(resDesc.Dimension) {
-    case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
-        if(resDesc.DepthOrArraySize > 1) {
-            uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
-            uavDesc.Texture1DArray.ArraySize = resDesc.DepthOrArraySize - arraySlice;
-            uavDesc.Texture1DArray.FirstArraySlice = arraySlice;
-            uavDesc.Texture1DArray.MipSlice = mipSlice;
-        }
-        else {
-            uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1D;
-            uavDesc.Texture1D.MipSlice = mipSlice;
-        }
-        break;
-    case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
-        if(resDesc.DepthOrArraySize > 1) {
-            uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
-            uavDesc.Texture2DArray.ArraySize = resDesc.DepthOrArraySize - arraySlice;
-            uavDesc.Texture2DArray.FirstArraySlice = arraySlice;
-            uavDesc.Texture2DArray.PlaneSlice = planeSlice;
-            uavDesc.Texture2DArray.MipSlice = mipSlice;
-        }
-        else {
-            uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-            uavDesc.Texture2D.PlaneSlice = planeSlice;
-            uavDesc.Texture2D.MipSlice = mipSlice;
-        }
-        break;
-    case D3D12_RESOURCE_DIMENSION_TEXTURE3D:
-        uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
-        uavDesc.Texture3D.WSize = resDesc.DepthOrArraySize - arraySlice;
-        uavDesc.Texture3D.FirstWSlice = arraySlice;
-        uavDesc.Texture3D.MipSlice = mipSlice;
-        break;
-    default:
-        throw std::exception("Invalid resource dimension.");
-    }
-
-    return uavDesc;
-}
-
 void Texture::CreateDefaultViews() {
     if(m_d3d12Resource) {
         auto d3d12Device = m_Device.GetD3D12Device();
@@ -132,50 +135,50 @@ void Texture::CreateDefaultViews() {
 
 void Texture::CreateRenderTargetView(const D3D12_RENDER_TARGET_VIEW_DESC& rtvDesc) {
     assert(m_d3d12Resource);
-    auto d3d12Device = m_Device.GetD3D12Device();
-    CD3DX12_RESOURCE_DESC desc(m_d3d12Resource->GetDesc());
-    assert((desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET) != 0 && CheckRTVSupport());
-    
+    assert((m_d3d12Resource->GetDesc().Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET) != 0 && CheckRTVSupport());
+
     m_RTVAlloc = m_Device.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-    d3d12Device->CreateRenderTargetView(m_d3d12Resource.Get(), &rtvDesc, m_RTVAlloc.GetDescriptorHandle());
+    m_Device.GetD3D12Device()->CreateRenderTargetView(m_d3d12Resource.Get(), &rtvDesc, m_RTVAlloc.GetDescriptorHandle());
 }
 
 void Texture::CreateShaderResourceView(const D3D12_SHADER_RESOURCE_VIEW_DESC& srvDesc) {
     assert(m_d3d12Resource);
-    auto d3d12Device = m_Device.GetD3D12Device();
-    CD3DX12_RESOURCE_DESC desc(m_d3d12Resource->GetDesc());
 
-    /// TODO: add this assert back when shadow mapping is fixed
-    //assert((desc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE) == 0 && CheckSRVSupport());
+    /// TODO: unsure why this assert fails when shadow mapping
+    //assert((m_d3d12Resource->GetDesc().Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE) == 0 && CheckSRVSupport());
 
     m_SRVAlloc = m_Device.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    d3d12Device->CreateShaderResourceView(m_d3d12Resource.Get(), &srvDesc, m_SRVAlloc.GetDescriptorHandle());
+    m_Device.GetD3D12Device()->CreateShaderResourceView(m_d3d12Resource.Get(), &srvDesc, m_SRVAlloc.GetDescriptorHandle());
 }
 
-void Texture::CreateDepthStencilResourceView(const D3D12_DEPTH_STENCIL_VIEW_DESC& dsvDesc) {
+void Texture::CreateDepthStencilView(const std::vector<D3D12_DEPTH_STENCIL_VIEW_DESC>& dsvDescs) {
     assert(m_d3d12Resource);
-    auto d3d12Device = m_Device.GetD3D12Device();
-    CD3DX12_RESOURCE_DESC desc(m_d3d12Resource->GetDesc());
-    assert((desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0 && CheckDSVSupport());
+    assert((m_d3d12Resource->GetDesc().Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0 && CheckDSVSupport());
 
-    m_DSVAlloc = m_Device.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-    d3d12Device->CreateDepthStencilView(m_d3d12Resource.Get(), &dsvDesc, m_DSVAlloc.GetDescriptorHandle());
+    m_DSVAlloc = m_Device.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, dsvDescs.size());
+    for(int i = 0; i < dsvDescs.size(); i++) {
+        m_Device.GetD3D12Device()->CreateDepthStencilView(m_d3d12Resource.Get(), &dsvDescs[i], m_DSVAlloc.GetDescriptorHandle(i));
+    }
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetRenderTargetViewHandle() const {
-    return m_RTVAlloc.GetDescriptorHandle();
+D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetRenderTargetViewHandle(uint32_t offset) const {
+    return m_RTVAlloc.GetDescriptorHandle(offset);
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetDepthStencilViewHandle() const {
-    return m_DSVAlloc.GetDescriptorHandle();
+D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetDepthStencilViewHandle(uint32_t offset) const {
+    return m_DSVAlloc.GetDescriptorHandle(offset);
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetShaderResourceViewHandle() const {
-    return m_SRVAlloc.GetDescriptorHandle();
+uint32_t Texture::GetDepthStencilViewHandleCount() const {
+    return m_DSVAlloc.GetNumHandles();
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetUnorderedAccessViewHandle(uint32_t mip) const {
-    return m_UAVAlloc.GetDescriptorHandle(mip);
+D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetShaderResourceViewHandle(uint32_t offset) const {
+    return m_SRVAlloc.GetDescriptorHandle(offset);
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetUnorderedAccessViewHandle(uint32_t offset) const {
+    return m_UAVAlloc.GetDescriptorHandle(offset);
 }
 
 bool Texture::HasAlpha() const {

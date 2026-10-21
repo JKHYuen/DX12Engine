@@ -70,7 +70,6 @@ private:
 
 	// For shadow mapping
 	std::unique_ptr<RenderTarget> m_ShadowCubemap_RT;
-	std::array<D3D12_DEPTH_STENCIL_VIEW_DESC, 6> m_CubemapDSVs;
 
 };
 

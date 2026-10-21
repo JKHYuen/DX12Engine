@@ -36,6 +36,8 @@
 // Changed made: 
 //  - Added simple Texture and Mesh cache
 //  - Simplified load texture function
+//  - Removed automatic commandlist switching in PanoToCubemapCompute
+//  - Added descriptor offsetting when setting render target
 
 #include "VertexInput.h"
 
@@ -439,9 +441,9 @@ public:
     );
 
     /**
-     * Set the render targets for the graphics rendering pipeline.
+     * Set the render targets for the graphics rendering pipeline. Param "offset" is offset of descriptor allocation.
      */
-    void SetRenderTarget(const RenderTarget& renderTarget);
+    void SetRenderTarget(const RenderTarget& renderTarget, uint32_t offset = 0U);
 
     /**
      * Draw geometry.

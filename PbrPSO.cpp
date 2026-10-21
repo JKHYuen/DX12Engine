@@ -19,7 +19,6 @@
 #include <cassert>
 #include <memory>
 #include <unordered_map>
-#include <vector>
 #include <wrl/client.h>
 
 using namespace RenderEnums;

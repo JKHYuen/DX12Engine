@@ -651,7 +651,10 @@ void CommandList::ClearDepthStencilTexture(const std::shared_ptr<Texture>& textu
 	assert(texture);
 
 	TransitionBarrier(texture, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, true);
-	m_d3d12CommandList->ClearDepthStencilView(texture->GetDepthStencilViewHandle(), clearFlags, depth, stencil, 0, nullptr);
+
+	for(int i = 0; i < texture->GetDepthStencilViewHandleCount(); i++) {
+		m_d3d12CommandList->ClearDepthStencilView(texture->GetDepthStencilViewHandle(i), clearFlags, depth, stencil, 0, nullptr);
+	}
 
 	TrackResource(texture);
 }
@@ -980,7 +983,7 @@ void CommandList::SetConstantBufferView(uint32_t rootParameterIndex, uint32_t de
 		rootParameterIndex, descriptorOffset, 1, cbv->GetDescriptorHandle());
 }
 
-void CommandList::SetRenderTarget(const RenderTarget& renderTarget) {
+void CommandList::SetRenderTarget(const RenderTarget& renderTarget, uint32_t offset) {
 	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> renderTargetDescriptors;
 	renderTargetDescriptors.reserve(AttachmentPoint::NumAttachmentPoints);
 
@@ -992,7 +995,7 @@ void CommandList::SetRenderTarget(const RenderTarget& renderTarget) {
 
 		if(texture) {
 			TransitionBarrier(texture, D3D12_RESOURCE_STATE_RENDER_TARGET);
-			renderTargetDescriptors.push_back(texture->GetRenderTargetViewHandle());
+			renderTargetDescriptors.push_back(texture->GetRenderTargetViewHandle(offset));
 
 			TrackResource(texture);
 		}
@@ -1003,7 +1006,7 @@ void CommandList::SetRenderTarget(const RenderTarget& renderTarget) {
 	CD3DX12_CPU_DESCRIPTOR_HANDLE depthStencilDescriptor(D3D12_DEFAULT);
 	if(depthTexture) {
 		TransitionBarrier(depthTexture, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-		depthStencilDescriptor = depthTexture->GetDepthStencilViewHandle();
+		depthStencilDescriptor = depthTexture->GetDepthStencilViewHandle(offset);
 
 		TrackResource(depthTexture);
 	}

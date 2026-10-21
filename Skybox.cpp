@@ -184,7 +184,7 @@ void Skybox::ComputeIBLMaps(CommandList& directCommandList) {
 			rtvDesc.Texture2DArray.MipSlice = 0;
 			rtvDesc.Texture2DArray.FirstArraySlice = i;
 			rtvDesc.Texture2DArray.ArraySize = 1;
-			m_IrradianceConvolutionCubemap_RT->GetTexture(AttachmentPoint::Color0)->CreateRenderTargetView(rtvDesc);
+			m_IrradianceConvolutionCubemap_RT->GetTexture(AttachmentPoint::Color0)->CreateRenderTargetView({rtvDesc});
 
 			// Note: this will only clear current array slice because of rtv above 
 			directCommandList.ClearTexture(m_IrradianceConvolutionCubemap_RT->GetTexture(AttachmentPoint::Color0), Colors::DebugMagenta);
@@ -214,7 +214,7 @@ void Skybox::ComputeIBLMaps(CommandList& directCommandList) {
 				rtvDesc.Texture2DArray.MipSlice = mipSlice;
 				rtvDesc.Texture2DArray.FirstArraySlice = i;
 				rtvDesc.Texture2DArray.ArraySize = 1;
-				m_PrefilterCubemap_RT->GetTexture(AttachmentPoint::Color0)->CreateRenderTargetView(rtvDesc);
+				m_PrefilterCubemap_RT->GetTexture(AttachmentPoint::Color0)->CreateRenderTargetView({rtvDesc});
 
 				// Note: this will only clear current array slice because of rtv above 
 				directCommandList.ClearTexture(m_PrefilterCubemap_RT->GetTexture(AttachmentPoint::Color0), Colors::DebugMagenta);

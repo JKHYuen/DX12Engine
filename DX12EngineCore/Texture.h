@@ -59,12 +59,7 @@ public:
     /**
      * Create non-default RTV
      */
-    void CreateRenderTargetView(const D3D12_RENDER_TARGET_VIEW_DESC& rtvDesc);
-
-    /**
-     * Create non-default SRV
-     */
-    void CreateShaderResourceView(const D3D12_SHADER_RESOURCE_VIEW_DESC& srvDesc);
+    void CreateRenderTargetView(const std::vector<D3D12_RENDER_TARGET_VIEW_DESC>& rtvDescs);
 
     /**
      * Create non-default DSV
@@ -72,9 +67,15 @@ public:
     void CreateDepthStencilView(const std::vector<D3D12_DEPTH_STENCIL_VIEW_DESC>& dsvDescs);
 
     /**
+     * Create non-default SRV
+     */
+    void CreateShaderResourceView(const D3D12_SHADER_RESOURCE_VIEW_DESC& srvDesc);
+
+    /**
      * Get the RTV for the texture.
      */
     D3D12_CPU_DESCRIPTOR_HANDLE GetRenderTargetViewHandle(uint32_t offset = 0U) const;
+    uint32_t GetRenderTargetViewHandleCount() const;
 
     /**
      * Get the DSV for the texture.

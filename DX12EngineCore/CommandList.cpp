@@ -642,7 +642,10 @@ void CommandList::ClearTexture(const std::shared_ptr<Texture>& texture, const fl
 	assert(texture);
 
 	TransitionBarrier(texture, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, true);
-	m_d3d12CommandList->ClearRenderTargetView(texture->GetRenderTargetViewHandle(), clearColor, 0, nullptr);
+
+	for(int i = 0; i < texture->GetRenderTargetViewHandleCount(); i++) {
+		m_d3d12CommandList->ClearRenderTargetView(texture->GetRenderTargetViewHandle(i), clearColor, 0, nullptr);
+	}
 
 	TrackResource(texture);
 }

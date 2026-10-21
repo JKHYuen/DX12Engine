@@ -441,7 +441,9 @@ public:
     );
 
     /**
-     * Set the render targets for the graphics rendering pipeline. Param "offset" is offset of descriptor allocation.
+     * Set the render targets for the graphics rendering pipeline. 
+     * Param "offset" is offset of descriptor allocation.
+     * NOTE: offset applies to color AND depth render target
      */
     void SetRenderTarget(const RenderTarget& renderTarget, uint32_t offset = 0U);
 

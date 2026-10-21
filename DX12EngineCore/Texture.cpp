@@ -133,22 +133,14 @@ void Texture::CreateDefaultViews() {
     }
 }
 
-void Texture::CreateRenderTargetView(const D3D12_RENDER_TARGET_VIEW_DESC& rtvDesc) {
+void Texture::CreateRenderTargetView(const std::vector<D3D12_RENDER_TARGET_VIEW_DESC>& rtvDescs) {
     assert(m_d3d12Resource);
     assert((m_d3d12Resource->GetDesc().Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET) != 0 && CheckRTVSupport());
 
-    m_RTVAlloc = m_Device.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-    m_Device.GetD3D12Device()->CreateRenderTargetView(m_d3d12Resource.Get(), &rtvDesc, m_RTVAlloc.GetDescriptorHandle());
-}
-
-void Texture::CreateShaderResourceView(const D3D12_SHADER_RESOURCE_VIEW_DESC& srvDesc) {
-    assert(m_d3d12Resource);
-
-    /// TODO: unsure why this assert fails when shadow mapping
-    //assert((m_d3d12Resource->GetDesc().Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE) == 0 && CheckSRVSupport());
-
-    m_SRVAlloc = m_Device.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    m_Device.GetD3D12Device()->CreateShaderResourceView(m_d3d12Resource.Get(), &srvDesc, m_SRVAlloc.GetDescriptorHandle());
+    m_RTVAlloc = m_Device.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, rtvDescs.size());
+    for(int i = 0; i < rtvDescs.size(); i++) {
+        m_Device.GetD3D12Device()->CreateRenderTargetView(m_d3d12Resource.Get(), &rtvDescs[i], m_RTVAlloc.GetDescriptorHandle(i));
+    }
 }
 
 void Texture::CreateDepthStencilView(const std::vector<D3D12_DEPTH_STENCIL_VIEW_DESC>& dsvDescs) {
@@ -161,8 +153,22 @@ void Texture::CreateDepthStencilView(const std::vector<D3D12_DEPTH_STENCIL_VIEW_
     }
 }
 
+void Texture::CreateShaderResourceView(const D3D12_SHADER_RESOURCE_VIEW_DESC& srvDesc) {
+    assert(m_d3d12Resource);
+
+    /// TODO: unsure why this assert fails when shadow mapping, no DirectX warnings during runtime
+    //assert((m_d3d12Resource->GetDesc().Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE) == 0 && CheckSRVSupport());
+
+    m_SRVAlloc = m_Device.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    m_Device.GetD3D12Device()->CreateShaderResourceView(m_d3d12Resource.Get(), &srvDesc, m_SRVAlloc.GetDescriptorHandle());
+}
+
 D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetRenderTargetViewHandle(uint32_t offset) const {
     return m_RTVAlloc.GetDescriptorHandle(offset);
+}
+
+uint32_t Texture::GetRenderTargetViewHandleCount() const {
+    return m_RTVAlloc.GetNumHandles();
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetDepthStencilViewHandle(uint32_t offset) const {

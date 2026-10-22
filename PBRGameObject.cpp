@@ -15,7 +15,6 @@
 #include "Scene.h"
 #include "Skybox.h"
 #include "UnlitPSO.h"
-#include "UnlitPrimitivePSO.h"
 
 #include "d3d12.h"
 #include <DirectXMath.h>
@@ -239,9 +238,7 @@ void PBRGameObject::RenderBoundingBox(CommandList& directCommandList, const Upda
 	);
 
 	m_PBRVertexCB.color = color;
-	m_PBRVertexCB.color = XMFLOAT4(0.1f, 1.0f, 0.1f, 1.0f);
 
 	directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::PBRRootParameters::VertexCB, m_PBRVertexCB);
 	directCommandList.GetCubePrimitive()->Draw(directCommandList);
 }
-

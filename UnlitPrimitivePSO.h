@@ -12,7 +12,6 @@ using namespace Microsoft::WRL;
 class Device;
 class RootSignature;
 class CommandList;
-struct PBRVertexProps;
 
 class UnlitPrimitivePSO {
 public:

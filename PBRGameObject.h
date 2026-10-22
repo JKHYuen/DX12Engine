@@ -28,10 +28,6 @@ class UnlitPSO;
 class UnlitPrimitivePSO;
 class PbrPSO;
 
-struct PBRVertexProps;
-struct PBRLightProps;
-struct PBRTessellationProps;
-
 class PBRGameObject : public GameObject {
 
 	friend class EditorGui;

@@ -74,25 +74,25 @@ public:
 	PbrPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRAY rtvFormat, DXGI_FORMAT depthFormat);
 
 	enum PBRRootParameters {
-		VertexCB,         // ConstantBuffer<PBRVertexProps>       VertexCB	     : register(b0m space0);
-		MaterialCB,       // ConstantBuffer<PBRMaterialProps>     MaterialCB     : register(b0, space1);
-		LightCB,          // ConstantBuffer<PBRLightProps>        LightCB        : register(b1);
-		TessellationCB,   // ConstantBuffer<PBRTessellationProps> TessellationCB : register(b2);
+		VertexCB,       // ConstantBuffer<PBRVertexProps>       VertexCB	   : register(b0m space0);
+		MaterialCB,     // ConstantBuffer<PBRMaterialProps>     MaterialCB     : register(b0, space1);
+		LightCB,        // ConstantBuffer<PBRLightProps>        LightCB        : register(b1);
+		TessellationCB, // ConstantBuffer<PBRTessellationProps> TessellationCB : register(b2);
 
-		PBRTextures, // Texture2D AlbedoTex		    : register(t0);
-						  // Texture2D NormalTex		    : register(t1);
-						  // Texture2D MaterialTex		    : register(t2); [r: ao, g: metallic, b: roughness, a: height]
-						  // Texture2D IrradianceCubemap    : register(t3);
-						  // Texture2D PrefilterCubemap	    : register(t4);
-						  // Texture2D BRDFLut			    : register(t5);
-						  // Texture2D DirectionalShadowMap : register(t6);
+		PBRTextures,    // Texture2D AlbedoTex		      : register(t0);
+						// Texture2D NormalTex		      : register(t1);
+						// Texture2D MaterialTex		  : register(t2); [r: ao, g: metallic, b: roughness, a: height]
+						// Texture2D IrradianceCubemap    : register(t3);
+						// Texture2D PrefilterCubemap	  : register(t4);
+						// Texture2D BRDFLut			  : register(t5);
+						// Texture2D DirectionalShadowMap : register(t6);
 
 		PointLightShadowMaps, // TextureCube PointLightShadowMaps[MAX_POINT_LIGHT_COUNT] : register(t7);
 
 		NumPBRRootParameters
 	};
 
-	/// Expected indices for texture resources
+	/// Expected indices for PBRTextures root parameter
 	enum TextureIndex {
 		AlbedoTex,
 		NormalTex,

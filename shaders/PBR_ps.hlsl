@@ -33,10 +33,7 @@ TextureCube<float4> PrefilterCubemap     : register(t4);
 Texture2D BRDFLut                        : register(t5);
 Texture2D DirectionalShadowMap           : register(t6);
 
-// TODO: make this an array
-TextureCube<float4> PointLightShadowMap0 : register(t7);
-TextureCube<float4> PointLightShadowMap1 : register(t8);
-TextureCube<float4> PointLightShadowMap2 : register(t9);
+TextureCube<float4> PointLightShadowMaps[MAX_POINT_LIGHT_COUNT] : register(t7);
 
 SamplerState AnisoWrapSampler                    : register(s0);
 SamplerState TrilinearClampSampler               : register(s1); // for BRDF lut
@@ -301,32 +298,22 @@ float4 main(PixelInputType i) : SV_TARGET {
         const float3 currentPointLightLo = CalcReflectanceFromLight(pointLightDir, radiance * attenuation, albedo, metallic, F0, roughness, normal, viewDirection, NdotV);
         
         /// Calculate Point Light Shadows
-        // Note: SampleCmpLevelZero with offset (see direcitonal light shadow map) is not supported for cubemaps in HLSL
-        //       Vector offset should be more random (poisson disk?).
-        
+        // Note:  
+        //  - SampleCmpLevelZero with offset (see direcitonal light shadow map) is not supported for cubemaps in HLSL.
+        //  - Vector offset should be more random (poisson disk?).
+
+        // cubemapTexelSize should scale with cubemap resolution, but using this value for now for sufficently soft shadows
+        const float2 cubemapTexelSize = 0.01; 
         //float width, height, numOfLevels;
         //PointLightShadowMap0.GetDimensions(0, width, height, numOfLevels);
-        //float2 cubemapTexelSize = 1.0 / width;
-        
-        // this should scale with cubemap resolution, but using this value for now for sufficently soft shadows
-        const float2 cubemapTexelSize = 0.01; 
+        //const float2 cubemapTexelSize = 1.0 / width;
         
         float pointLightShadowFactor = 0.0;
         for(int x = -1; x <= 1; x++) {
             for(int y = -1; y <= 1; y++) {
                 const float3 offsetDir = -pointLightDir + float3(cubemapTexelSize.xy, 0) * float3(x, y, 0);
                 const float depthValue = length(pointLightDir) * PointLights[idx].ColorInvRadius.a;
-                // TODO: make cubemaps an array
-                if(idx == 0) {
-                    pointLightShadowFactor += PointLightShadowMap0.SampleCmpLevelZero(TrilinearBorderCmpSampler, offsetDir, depthValue).r;
-                }
-                else if(idx == 1) {
-                    pointLightShadowFactor += PointLightShadowMap1.SampleCmpLevelZero(TrilinearBorderCmpSampler, offsetDir, depthValue).r;
-                }
-                else {
-                    pointLightShadowFactor += PointLightShadowMap2.SampleCmpLevelZero(TrilinearBorderCmpSampler, offsetDir, depthValue).r;
-                }
-
+                pointLightShadowFactor += PointLightShadowMaps[idx].SampleCmpLevelZero(TrilinearBorderCmpSampler, offsetDir, depthValue).r;
             }
         }
         pointLightShadowFactor /= 9.0;

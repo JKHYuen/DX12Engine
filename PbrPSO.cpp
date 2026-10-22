@@ -33,16 +33,18 @@ PbrPSO::PbrPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRA
 	// Create PBR root signature
 	{
 		CD3DX12_ROOT_PARAMETER1 rootParameters[PBRRootParameters::NumPBRRootParameters] {};
-		// D3D12_SHADER_VISIBILITY_ALL for simplicity, currently used in DS and VS in different pipelines (m_RootSignature is resued)
+		// Currently used in DS and VS in different pipelines (m_RootSignature is resued)
 		rootParameters[PBRRootParameters::VertexCB].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_ALL);
 		rootParameters[PBRRootParameters::MaterialCB].InitAsConstantBufferView(0, 1, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_PIXEL);
 		rootParameters[PBRRootParameters::LightCB].InitAsConstantBufferView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_ALL);
 		rootParameters[PBRRootParameters::TessellationCB].InitAsConstantBufferView(2, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_HULL);
 
+		// used in domain and pixel shaders
 		CD3DX12_DESCRIPTOR_RANGE1 textureDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, TextureIndex::NumTextures, 0, 0);
+		rootParameters[PBRRootParameters::PBRTextures].InitAsDescriptorTable(1, &textureDescriptorRange, D3D12_SHADER_VISIBILITY_ALL);
 
-		/// used in vertex and pixel shaders
-		rootParameters[PBRRootParameters::Textures].InitAsDescriptorTable(1, &textureDescriptorRange, D3D12_SHADER_VISIBILITY_ALL);
+		CD3DX12_DESCRIPTOR_RANGE1 pointLightDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, RenderGlobals::gk_MaxPointLightCount, TextureIndex::NumTextures, 0);
+		rootParameters[PBRRootParameters::PointLightShadowMaps].InitAsDescriptorTable(1, &pointLightDescriptorRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
 		CD3DX12_STATIC_SAMPLER_DESC anisotropicWrapSampler(0, D3D12_FILTER_ANISOTROPIC);
 		CD3DX12_STATIC_SAMPLER_DESC trilinearClampSampler(1, D3D12_FILTER_MIN_MAG_MIP_LINEAR,
@@ -127,4 +129,14 @@ void PbrPSO::SetPipelineState(CommandList& directCommandList, RenderFlags render
 	directCommandList.SetPipelineState(s_PSOMap[renderFlags]);
 	directCommandList.SetGraphicsRootSignature(m_RootSignature);
 	directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+}
+
+void PbrPSO::UnbindAllSRVs(CommandList& directCommandList) {
+	for(int i = 0; i < TextureIndex::NumTextures; i++) {
+		directCommandList.SetNullShaderResourceView(PBRRootParameters::PBRTextures, i);
+	}
+
+	for(int i = 0; i < RenderGlobals::gk_MaxPointLightCount; i++) {
+		directCommandList.SetNullShaderResourceView(PBRRootParameters::PointLightShadowMaps, i);
+	}
 }

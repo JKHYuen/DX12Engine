@@ -44,7 +44,7 @@
   *  @see https://msdn.microsoft.com/en-us/library/dn899226(v=vs.85).aspx#implicit_state_transitions
   */
 
-// NOTE: This implementation is not entirely robust.
+// KHY NOTE: This implementation is not entirely robust.
 //       1. The "ResourceBarrier" function only records subresource states to ResourceState.Subresourcestate map that are individually changed 
 //          (i.e. a barrier not using D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) if the resource is first encountered in a command list.
 //          This is done in the line :
@@ -56,7 +56,6 @@
 //       2. ms_GlobalResourceState leaves dangling pointers (by original design, stated in https://www.3dgep.com/learning-directx-12-3/)
 //          since "RemoveGlobalResourceState" and related garbage cleanup functions have been commented out. This is untouched from the 
 //          original source code. It is assumed that it is an unfinished feature.
-// -KHY
 
 #include <d3d12.h>
 

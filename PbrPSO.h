@@ -74,12 +74,12 @@ public:
 	PbrPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRAY rtvFormat, DXGI_FORMAT depthFormat);
 
 	enum PBRRootParameters {
-		VertexCB,         // ConstantBuffer<VertexProps>   VertexCB	      : register(b0m space0);
-		MaterialCB,       // ConstantBuffer<MaterialProps> MaterialCB     : register(b0, space1);
-		LightCB,          // ConstantBuffer<LightProps>    LightCB        : register(b1);
-		TessellationCB,   // ConstantBuffer<LightProps>    TessellationCB : register(b2);
+		VertexCB,         // ConstantBuffer<PBRVertexProps>       VertexCB	     : register(b0m space0);
+		MaterialCB,       // ConstantBuffer<PBRMaterialProps>     MaterialCB     : register(b0, space1);
+		LightCB,          // ConstantBuffer<PBRLightProps>        LightCB        : register(b1);
+		TessellationCB,   // ConstantBuffer<PBRTessellationProps> TessellationCB : register(b2);
 
-		Textures,         // Texture2D AlbedoTex		    : register(t0);
+		PBRTextures, // Texture2D AlbedoTex		    : register(t0);
 						  // Texture2D NormalTex		    : register(t1);
 						  // Texture2D MaterialTex		    : register(t2); [r: ao, g: metallic, b: roughness, a: height]
 						  // Texture2D IrradianceCubemap    : register(t3);
@@ -87,11 +87,7 @@ public:
 						  // Texture2D BRDFLut			    : register(t5);
 						  // Texture2D DirectionalShadowMap : register(t6);
 
-						  /// TODO: TEMP
-						  // PointLightShadowMap0 : register(t7);
-						  // PointLightShadowMap1 : register(t8);
-						  // PointLightShadowMap2 : register(t9);
-						  ///
+		PointLightShadowMaps, // TextureCube PointLightShadowMaps[MAX_POINT_LIGHT_COUNT] : register(t7);
 
 		NumPBRRootParameters
 	};
@@ -105,19 +101,16 @@ public:
 		PrefilterCubemap,
 		BRDFLut,
 		DirectionalShadowMap,
-		
-		/// TODO: TEMP
-		PointLightShadowMap0,
-		PointLightShadowMap1,
-		PointLightShadowMap2,
-		///
 
-		NumTextures
+		NumTextures,
 	};
 
 	std::shared_ptr<RootSignature> GetRootSignature() const { return m_RootSignature; }
 		
 	void SetPipelineState(CommandList& directCommandList, RenderEnums::RenderFlags renderFlags) const;
+
+	// Set all SRVs slots in this pipeline to null srv
+	void UnbindAllSRVs(CommandList& directCommandList);
 
 private:
 	std::shared_ptr<RootSignature> m_RootSignature;

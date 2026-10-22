@@ -153,6 +153,8 @@ void Skybox::Render(CommandList& directCommandList, const Camera& camera) {
 	directCommandList.GetCubePrimitive()->Draw(directCommandList);
 }
 
+// NOTE: rtvs are allocated in loops (rather than preallocated), this keeps code relatively simple,
+//       shouldn't be a performance issue since this function is only called occasionally
 void Skybox::ComputeIBLMaps(CommandList& directCommandList) {
 	XMMATRIX cubemapProjectionMat = XMMatrixPerspectiveFovLH(XMConvertToRadians(90.0f), 1.0f, 0.1f, 10.0f);
 

@@ -59,15 +59,8 @@ Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeC
 		m_MaterialNames.emplace_back(entry.path().filename().c_str());
 	}
 
-	/// TEST
+	/// Default test point light properties
 	m_PointLights.reserve(gk_MaxPointLightCount);
-	//for(uint32_t i = 0; i < gk_MaxPointLightCount; i++) {
-	//	m_PointLights.emplace_back(
-	//		std::make_unique<PointLight>(
-	//			XMFLOAT4{ 1.0f, 0.0f, 0.0f, 1.0f }, XMFLOAT3{ 0.0f, 0.0f, 0.0f }, 20.0f, copyCommandList.GetSpherePrimitive(), m_UnlitPSO
-	//		)
-	//	);
-	//}
 	PointLight::PointLightParams pointLightParams {};
 	pointLightParams.translation        = XMFLOAT3 { 0.0f, 5.0f, 7.0f };
 	pointLightParams.color              = XMFLOAT3 { 100.0f, 0.0f, 0.0f };
@@ -125,12 +118,10 @@ void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList,
 
 	m_Skybox->Render(directCommandList, *m_MainCamera);
 
-	/// TEST
 	// Render point light shadow maps
 	for(uint32_t i = 0; i < gk_MaxPointLightCount; i++) {
 		m_PointLights[i]->RenderMesh(directCommandList, e, *m_MainCamera);
 	}
-	///
 
 	// Render scene objects
 	// All game objects use the same PSO/root sig right now
@@ -155,7 +146,7 @@ void Scene::RenderBoundingBoxes(const RenderTarget& outputRT, CommandList& direc
 	if(m_AABBRenderMode == AABBRenderMode::PickedOnly) {
 		if(GameObject* picked = m_Picker->GetPickedObject()) {
 			if(PBRGameObject* pbrPicked = dynamic_cast<PBRGameObject*>(picked)) {
-				pbrPicked->RenderBoundingBox(directCommandList, e, unlitPrimitivePSO, *this, aabbColor);
+				pbrPicked->RenderBoundingBox(directCommandList, e, *this, aabbColor);
 			}
 		}
 	}
@@ -163,7 +154,7 @@ void Scene::RenderBoundingBoxes(const RenderTarget& outputRT, CommandList& direc
 	else {
 		for(auto& o : m_SceneObjects) {
 			if(PBRGameObject* pbrO = dynamic_cast<PBRGameObject*>(o.get())) {
-				pbrO->RenderBoundingBox(directCommandList, e, unlitPrimitivePSO, *this, aabbColor);
+				pbrO->RenderBoundingBox(directCommandList, e, *this, aabbColor);
 			}
 		}
 	}

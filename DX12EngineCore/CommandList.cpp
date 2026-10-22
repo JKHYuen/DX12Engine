@@ -638,6 +638,7 @@ void CommandList::PanoToCubemapCompute(const std::shared_ptr<Texture>& cubemapTe
 	}
 }
 
+// NOTE: clears ALL RTVs in texture
 void CommandList::ClearTexture(const std::shared_ptr<Texture>& texture, const float clearColor[4]) {
 	assert(texture);
 
@@ -650,6 +651,7 @@ void CommandList::ClearTexture(const std::shared_ptr<Texture>& texture, const fl
 	TrackResource(texture);
 }
 
+// NOTE: clears ALL DSVs in texture
 void CommandList::ClearDepthStencilTexture(const std::shared_ptr<Texture>& texture, D3D12_CLEAR_FLAGS clearFlags, float depth, uint8_t stencil) {
 	assert(texture);
 

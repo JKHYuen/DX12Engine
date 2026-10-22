@@ -72,7 +72,7 @@ public:
 	//GameObject(CommandList& copyCommandList, const GameObject::EntityParams& params, const RenderProps& renderProps, const std::wstring& meshFilePath);
 
 	// Consider moving this to base clsass
-	void RenderBoundingBox(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPrimitivePSO* unlitPSO, const Scene& scene, XMFLOAT4 color);
+	void RenderBoundingBox(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, XMFLOAT4 color);
 
 	void Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, bool b_RenderWireframe = false);
 	void RenderSilhouette(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPSO* unlitPSO, XMFLOAT4 color);
@@ -85,7 +85,9 @@ public:
 private:
 	RenderProps m_RenderProps {};
 
-	std::vector<std::shared_ptr<Texture>> m_TextureResources { PbrPSO::TextureIndex::NumTextures };
+	std::vector<std::shared_ptr<Texture>> m_MaterialTextureResources { PbrPSO::TextureIndex::NumTextures };
+	std::vector<std::shared_ptr<Texture>> m_PointLightTextureResources { RenderGlobals::gk_MaxPointLightCount };
+
 	// Note: Stored CB members are shared between different rendering methods e.g. render bounding box, render silhoutte
 	PBRVertexProps m_PBRVertexCB {};
 	PBRLightProps m_PBRLightCB {};

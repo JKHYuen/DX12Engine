@@ -13,6 +13,9 @@
 int CALLBACK wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ PWSTR lpCmdLine, _In_ int nCmdShow) {
     int retCode = 0;
 
+    // Initialize basic global console logger
+    Logger::InitializeConsole();
+
 #if defined( _DEBUG )
     // Enable DirectX debug layer
     Microsoft::WRL::ComPtr<ID3D12Debug> debugInterface;
@@ -21,9 +24,6 @@ int CALLBACK wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 #endif
 
     AssetImporter::Initialize();
-
-    // Initialize basic global console logger
-    Logger::InitializeConsole();
 
     Application::Initialize(hInstance);
     {

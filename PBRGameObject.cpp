@@ -34,16 +34,14 @@ PBRGameObject::PBRGameObject(const Scene& scene, CommandList& copyCommandList, c
 	UpdatePBRShaderResourcesFromFile(copyCommandList, m_RenderProps.pbrMatName);
 
 	// Set rest of textures not updated in UpdateShaderResources()
-	m_TextureResources[PbrPSO::IrradianceCubemap] = scene.GetSkybox()->GetIrradianceTexture();
-	m_TextureResources[PbrPSO::PrefilterCubemap] = scene.GetSkybox()->GetPrefilterTexture();
-	m_TextureResources[PbrPSO::BRDFLut] = scene.GetSkybox()->Get_BRDF_LUT_Texture();
-	m_TextureResources[PbrPSO::DirectionalShadowMap] = scene.GetDirLight()->GetShadowMapTexture();
+	m_MaterialTextureResources[PbrPSO::IrradianceCubemap] = scene.GetSkybox()->GetIrradianceTexture();
+	m_MaterialTextureResources[PbrPSO::PrefilterCubemap] = scene.GetSkybox()->GetPrefilterTexture();
+	m_MaterialTextureResources[PbrPSO::BRDFLut] = scene.GetSkybox()->Get_BRDF_LUT_Texture();
+	m_MaterialTextureResources[PbrPSO::DirectionalShadowMap] = scene.GetDirLight()->GetShadowMapTexture();
 
-	/// TODO: TEMP
-	m_TextureResources[PbrPSO::PointLightShadowMap0] = scene.GetPointLight(0)->GetShadowDepthTexture();
-	m_TextureResources[PbrPSO::PointLightShadowMap1] = scene.GetPointLight(1)->GetShadowDepthTexture();
-	m_TextureResources[PbrPSO::PointLightShadowMap2] = scene.GetPointLight(2)->GetShadowDepthTexture();
-	///
+	for(int i = 0; i < RenderGlobals::gk_MaxPointLightCount; i++) {
+		m_PointLightTextureResources[i] = scene.GetPointLight(i)->GetShadowDepthTexture();
+	}
 }
 
 /// TODO: somehow make this compatible with assimp loading
@@ -54,20 +52,20 @@ void PBRGameObject::UpdatePBRShaderResourcesFromFile(CommandList& copyCommandLis
 
 	// Load Resources
 	// NOTE: commandlist is not executed here
-	m_TextureResources[PbrPSO::AlbedoTex] =
+	m_MaterialTextureResources[PbrPSO::AlbedoTex] =
 		copyCommandList.LoadTextureFromFile(matPathPrefix + L"_albedo.tga", true);
-	m_TextureResources[PbrPSO::NormalTex] =
+	m_MaterialTextureResources[PbrPSO::NormalTex] =
 		copyCommandList.LoadTextureFromFile(matPathPrefix + L"_normal.tga", false);
-	m_TextureResources[PbrPSO::MaterialTex] =
+	m_MaterialTextureResources[PbrPSO::MaterialTex] =
 		copyCommandList.LoadTextureFromFile(matPathPrefix + L"_mat.tga", false);
 }
 
 void PBRGameObject::UpdateIBLShaderResources(const Scene& scene) {
-	m_TextureResources[PbrPSO::IrradianceCubemap] = scene.GetSkybox()->GetIrradianceTexture();
-	m_TextureResources[PbrPSO::PrefilterCubemap] = scene.GetSkybox()->GetPrefilterTexture();
+	m_MaterialTextureResources[PbrPSO::IrradianceCubemap] = scene.GetSkybox()->GetIrradianceTexture();
+	m_MaterialTextureResources[PbrPSO::PrefilterCubemap] = scene.GetSkybox()->GetPrefilterTexture();
 
 	/// TODO: this should be cached, it never changes
-	m_TextureResources[PbrPSO::BRDFLut] = scene.GetSkybox()->Get_BRDF_LUT_Texture();
+	m_MaterialTextureResources[PbrPSO::BRDFLut] = scene.GetSkybox()->Get_BRDF_LUT_Texture();
 }
 
 /// TODO: load from file with meshFileName
@@ -172,13 +170,16 @@ void PBRGameObject::Render(CommandList& directCommandList, const UpdateEventArgs
 	{
 		// Note: may have performance increase if these are only updated when needed
 		directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::PBRRootParameters::VertexCB, m_PBRVertexCB);
-		directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::TessellationCB, m_TessellationCB);
-		directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::MaterialCB, materialProps);
-		directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::LightCB, m_PBRLightCB);
+		directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::PBRRootParameters::TessellationCB, m_TessellationCB);
+		directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::PBRRootParameters::MaterialCB, materialProps);
+		directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::PBRRootParameters::LightCB, m_PBRLightCB);
 
-		assert((m_TextureResources.size() == PbrPSO::TextureIndex::NumTextures) && "Incorrect number of PBR textures.");
 		for(int i = 0; i < PbrPSO::TextureIndex::NumTextures; i++) {
-			directCommandList.SetShaderResourceView(PbrPSO::PBRRootParameters::Textures, i, m_TextureResources[i], D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE);
+			directCommandList.SetShaderResourceView(PbrPSO::PBRRootParameters::PBRTextures, i, m_MaterialTextureResources[i], D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE);
+		}
+
+		for(int i = 0; i < RenderGlobals::gk_MaxPointLightCount; i++) {
+			directCommandList.SetShaderResourceView(PbrPSO::PBRRootParameters::PointLightShadowMaps, i, m_PointLightTextureResources[i], D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE);
 		}
 
 		m_Mesh->Draw(directCommandList);
@@ -188,43 +189,28 @@ void PBRGameObject::Render(CommandList& directCommandList, const UpdateEventArgs
 // Only used for outline effect
 void PBRGameObject::RenderSilhouette(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPSO* unlitPSO, XMFLOAT4 color) {
 	// Set all but MaterialTex to null SRVs (we need MaterialTex for height map)
-	for(int i = 0; i < PbrPSO::TextureIndex::NumTextures; i++) {
-		if(i != PbrPSO::TextureIndex::MaterialTex) {
-			directCommandList.SetNullShaderResourceView(PbrPSO::PBRRootParameters::Textures, i);
-		}
-		else {
-			directCommandList.SetShaderResourceView(
-				PbrPSO::PBRRootParameters::Textures, PbrPSO::TextureIndex::MaterialTex,
-				m_TextureResources[PbrPSO::TextureIndex::MaterialTex], D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE
-			);
-		}
-	}
+	m_RenderProps.pbrPSO->UnbindAllSRVs(directCommandList);
+	directCommandList.SetShaderResourceView(PbrPSO::PBRRootParameters::PBRTextures, PbrPSO::TextureIndex::MaterialTex, m_MaterialTextureResources[PbrPSO::TextureIndex::MaterialTex], D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE);
 
 	m_PBRVertexCB.color = color;
 
-	directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::VertexCB, m_PBRVertexCB);
-	directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::TessellationCB, m_TessellationCB);
+	directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::PBRRootParameters::VertexCB, m_PBRVertexCB);
+	directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::PBRRootParameters::TessellationCB, m_TessellationCB);
 
 	m_Mesh->Draw(directCommandList);
 }
 
 // assume we are in right rendering pipeline (see DirectionalLight::SetShadowDepthPipelineStateAndRenderTarget)
 void PBRGameObject::RenderToDirectionalShadowMap(CommandList& directCommandList, const DirectionalLight& directionalLight) {
-	// Need a smarter shadow cull than just tying it to object frustum culling, shadows will cull in camera
-	// will revisit after CSM is implemented
+	/// TODO: Need a smarter shadow cull than just object frustum culling, shadows will cull in camera
+	/// will revisit after CSM is implemented
 	//if(!b_RenderThisFrame) return;
 
 	if(!m_RenderProps.isShadowCaster) return;
 
 	// Set all but MaterialTex to null SRVs (we need MaterialTex for height map)
-	for(int i = 0; i < PbrPSO::TextureIndex::NumTextures; i++) {
-		if(i != PbrPSO::TextureIndex::MaterialTex) {
-			directCommandList.SetNullShaderResourceView(PbrPSO::PBRRootParameters::Textures, i);
-		}
-		else {
-			directCommandList.SetShaderResourceView(PbrPSO::PBRRootParameters::Textures, i, m_TextureResources[i], D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE);
-		}
-	}
+	m_RenderProps.pbrPSO->UnbindAllSRVs(directCommandList);
+	directCommandList.SetShaderResourceView(PbrPSO::PBRRootParameters::PBRTextures, PbrPSO::TextureIndex::MaterialTex, m_MaterialTextureResources[PbrPSO::TextureIndex::MaterialTex], D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE);
 
 	directionalLight.RenderObjectToDepth(directCommandList, *m_Mesh, m_PBRVertexCB, m_TessellationCB);
 }
@@ -235,13 +221,11 @@ void PBRGameObject::RenderToPointLightShadowMap(CommandList& directCommandList, 
 	pointLight.RenderObjectToDepth(directCommandList, *m_Mesh, m_PBRVertexCB, m_TessellationCB);
 }
 
-void PBRGameObject::RenderBoundingBox(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPrimitivePSO* unlitPrimitivePSO, const Scene& scene, XMFLOAT4 color) {
+void PBRGameObject::RenderBoundingBox(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, XMFLOAT4 color) {
 	if(!mb_RenderThisFrame) return;
 
 	// Set all textures to null SRVs
-	for(int i = 0; i < PbrPSO::TextureIndex::NumTextures; i++) {
-		directCommandList.SetNullShaderResourceView(PbrPSO::PBRRootParameters::Textures, i);
-	}
+	m_RenderProps.pbrPSO->UnbindAllSRVs(directCommandList);
 
 	XMMATRIX aabbSRT = XMMatrixMultiply(
 		XMMatrixScaling(2.0f * m_AABB.Extents.x, 2.0f * m_AABB.Extents.y, 2.0f * m_AABB.Extents.z),
@@ -255,8 +239,9 @@ void PBRGameObject::RenderBoundingBox(CommandList& directCommandList, const Upda
 	);
 
 	m_PBRVertexCB.color = color;
+	m_PBRVertexCB.color = XMFLOAT4(0.1f, 1.0f, 0.1f, 1.0f);
 
-	directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::VertexCB, m_PBRVertexCB);
+	directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::PBRRootParameters::VertexCB, m_PBRVertexCB);
 	directCommandList.GetCubePrimitive()->Draw(directCommandList);
 }
 

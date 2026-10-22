@@ -321,7 +321,7 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 
 	// Update the camera transform if ImGui is not showing, unless right click is held
 	// Note: Also check if camera transforms are actually needed, camera class is optimized with dirty flags (includes frustum building)
-	if(!EditorGui::Get().GetUIVisibilityState() || m_RightClickPressed) {
+	if((!EditorGui::Get().GetUIVisibilityState() || m_RightClickPressed) && Application::Get().GetCursorClientAreaLockState()) {
 		// Camera TRANSLATION
 		if(!(m_Left == 0 && m_Right == 0 && m_Up == 0 && m_Down == 0 && m_Forward == 0 && m_Backward == 0)) {
 			float speedMultipler = m_LeftShiftPressed ? 32.0f : 8.0f;

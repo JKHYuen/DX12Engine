@@ -932,6 +932,7 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 		{
 			ImGui::DragFloat("Parallax Magnitude", &pickedPBRGameObject->m_RenderProps.parallaxMagnitude, 0.001f, 0.0f, 1.0f, "%.3f", kSliderFlags);
 			ImGui::Checkbox("Enable Parallax Self Shadows", &pickedPBRGameObject->m_RenderProps.useParallaxShadow);
+			ImGuiHelpMarker("Subtle effect that is expensive to calculate, only applies to directional light.");
 			ImGui::DragInt("Min Parallax Layers", &pickedPBRGameObject->m_RenderProps.minParallaxLayers, 1.0f, 0, 100, "%d", kSliderFlags);
 			ImGui::DragInt("Max Parallax Layers", &pickedPBRGameObject->m_RenderProps.maxParallaxLayers, 1.0f, 0, 100, "%d", kSliderFlags);
 		}

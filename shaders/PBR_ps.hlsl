@@ -281,7 +281,6 @@ float4 main(PixelInputType i) : SV_TARGET {
         }
         dirLightShadowFactor /= 9.0;
     }
-    
     dirLightLo *= dirLightShadowFactor;
     // End Directional Light
      
@@ -340,13 +339,14 @@ float4 main(PixelInputType i) : SV_TARGET {
 /// END IBL AMBIENT LIGHTING
    
 /// EXPERIMENTAL - Parallax occlusion self shadowing
+/// NOTE: only applied to directional light, applying to all lights would be too expensive
     if (ParallaxMagnitude != 0 && UseParallaxShadow != 0) {
     /// TODO: make power factor tweakable
     // Power factor added as a hacky way to make shadows more visible
         const float parallaxSelfShadowFactor = pow(CalcParallaxSoftShadowMultiplier(normalize(mul(-DirLight.xyz, TBN)), i.uv, 1.0 - MaterialTex.Sample(AnisoWrapSampler, i.uv).a), 16.0);
     // Note: pow above causes invalid values sometimes (blows up bloom effect), this seems to only happen on specific materials
     // saturate() ensures valid values
-        dirLightShadowFactor *= saturate(parallaxSelfShadowFactor);
+        dirLightLo *= saturate(parallaxSelfShadowFactor);
     }
 ///
     

@@ -116,13 +116,13 @@ namespace {
 	// Not technically compatible with operations that aren't translate, rotate and/or scale, i.e. other ImGuizmo::OPERATION's
 	// All params prefixed "s_" is static to object inspector and are out values
 	// C arrays are used for easy use with ImGui
-	void GameObjectTransform(const Scene& scene, GameObject* go, ImGuiSliderFlags kSliderFlags, float s_GizmoSRTMat[16], float s_ObjTranslation[3], float s_ObjDegreeEulerAngles[3], float s_ObjScale[3], ImGuizmo::OPERATION enabledOperationFlags = ImGuizmo::TRANSLATE | ImGuizmo::ROTATE | ImGuizmo::SCALE) {
+	void GameObjectTransform(const Camera& mainCamera, GameObject* go, ImGuiSliderFlags kSliderFlags, float s_GizmoSRTMat[16], float s_ObjTranslation[3], float s_ObjDegreeEulerAngles[3], float s_ObjScale[3], ImGuizmo::OPERATION enabledOperationFlags = ImGuizmo::TRANSLATE | ImGuizmo::ROTATE | ImGuizmo::SCALE) {
 		ImGui::SeparatorText("Transform");
 
 		static XMFLOAT4X4 s_CamViewMat {};
 		static XMFLOAT4X4 s_CamProjMat {};
-		XMStoreFloat4x4(&s_CamViewMat, scene.GetMainCamera().Get_ViewMatrix());
-		XMStoreFloat4x4(&s_CamProjMat, scene.GetMainCamera().Get_ProjectionMatrix());
+		XMStoreFloat4x4(&s_CamViewMat, mainCamera.Get_ViewMatrix());
+		XMStoreFloat4x4(&s_CamProjMat, mainCamera.Get_ProjectionMatrix());
 
 		static ImGuizmo::OPERATION s_CurrentGizmoOperation(ImGuizmo::TRANSLATE);
 
@@ -489,8 +489,22 @@ LSHIFT: Move fast\n\
 			ImGui::Spacing();
 		}
 
+		/// TEST
+		if(ImGui::TreeNode("Debug Camera")) {
+			static float imageScale = 0.25f;
+			ImGui::SliderFloat("##Debug Camera Texture Scale", &imageScale, 0.0, 1.0, "%.2fx");
+			ImVec2 imageSize = ImVec2(1920.0f * imageScale, 1080.0f * imageScale);
+
+			ImGui::Image(
+				(ImTextureID)GetImageSRVAllocation(EditorGui::ImGuiDebugSRVIndex::DebugCamera).gpuHandle.ptr,
+				imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f)
+			);
+			ImGui::TreePop();
+		}
+		/// END TEST
+
 		if(ImGui::CollapsingHeader("Performance", ImGuiTreeNodeFlags_DefaultOpen)) {
-			ImGui::TextDisabled("Resolution: %d x %d", game.GetWindowWidth(), game.GetWindowHeight());
+			ImGui::TextDisabled("Resolution: %d x %d", game.m_WindowWidth, game.m_WindowHeight);
 			const DXGI_ADAPTER_DESC3& adapterDesc = device.GetAdapterDesc();
 			ImGui::TextDisabled("%s %d MB", device.GetAdapterName().c_str(), adapterDesc.DedicatedVideoMemory / 1024 / 1024);
 			ImGui::TextDisabled("Shared Memory %d MB", adapterDesc.SharedSystemMemory / 1024 / 1024);
@@ -581,9 +595,9 @@ LSHIFT: Move fast\n\
 			scene.SetAABBRenderMode((Scene::AABBRenderMode)aabbRadioIdx);
 
 			// FOV Slider
-			static float s_FOV = scene.GetMainCamera().Get_FoV();
+			static float s_FOV = game.m_MainCamera->Get_FoV();
 			if(ImGui::SliderFloat("Vertical FOV", &s_FOV, 12.0f, 90.0f)) {
-				scene.GetMainCamera().Set_FoV(s_FOV);
+				game.m_MainCamera->Set_FoV(s_FOV);
 			}
 		}
 		
@@ -739,11 +753,10 @@ LSHIFT: Move fast\n\
 	}
 }
 
-// Note: All GameObject inspector code is inlined in this function right now, this will be impractical with more types of game objects, it's ok for now for convenience
-void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
+void EditorGui::DrawObjectInspector(Device& device, const DemoGame& game) {
 	if(!sb_ObjectInspectorState) return;
 
-	GameObject* pickedGameObject = scene.m_Picker->m_PickedObject;
+	GameObject* pickedGameObject = game.m_Picker->m_PickedObject;
 	if(pickedGameObject == nullptr) return;
 
 	/// Note: Following code is very boiler plate. Some values need preprocessing before use in ImGui.
@@ -765,8 +778,8 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 
 	static GameObject* s_LastPickedObject {};
 
-	PointLight* pickedPointLight = dynamic_cast<PointLight*>(scene.m_Picker->m_PickedObject);
-	PBRGameObject* pickedPBRGameObject = dynamic_cast<PBRGameObject*>(scene.m_Picker->m_PickedObject);
+	PointLight* pickedPointLight = dynamic_cast<PointLight*>(game.m_Picker->m_PickedObject);
+	PBRGameObject* pickedPBRGameObject = dynamic_cast<PBRGameObject*>(game.m_Picker->m_PickedObject);
 
 	// If newly picked object, update variables
 	if(pickedGameObject != s_LastPickedObject) {
@@ -816,20 +829,20 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 	s_LastPickedObject = pickedGameObject;
 
 	// Default object inspector location
-	ImGui::SetNextWindowPos({ (float)scene.GetWindowWidth() * 0.8f, (float)scene.GetWindowHeight() * 0.05f }, ImGuiCond_Once);
+	ImGui::SetNextWindowPos({ (float)game.m_WindowWidth * 0.8f, (float)game.m_WindowHeight * 0.05f }, ImGuiCond_Once);
 	ImGui::SetNextWindowSize({450.0f, 0.0f}, ImGuiCond_Once);
 
 	// sb_ObjectInspectorState var is just to make inspector window x button work
 	ImGui::Begin(s_ObjectName.c_str(), &sb_ObjectInspectorState, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
 	if(!sb_ObjectInspectorState) {
-		scene.m_Picker->ClearPickedObject();
+		game.m_Picker->ClearPickedObject();
 		ImGui::End();
 		return;
 	}
 	
 	/// Object inspector if picked object is a point light
 	if(pickedPointLight != nullptr) {
-		GameObjectTransform(scene, pickedPointLight, kSliderFlags, s_GizmoSRTMat, s_ObjTranslation, s_ObjDegreeEulerAngles, s_ObjScale, ImGuizmo::TRANSLATE);
+		GameObjectTransform(*game.m_MainCamera, pickedPointLight, kSliderFlags, s_GizmoSRTMat, s_ObjTranslation, s_ObjDegreeEulerAngles, s_ObjScale, ImGuizmo::TRANSLATE);
 
 		if(ImGui::ColorEdit3("Light Color##PointLight", s_PointLightColor, kHDRColorEditFlags)) {
 			pickedPointLight->SetColor(s_PointLightColor[0], s_PointLightColor[1], s_PointLightColor[2]);
@@ -854,7 +867,8 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 
 	ImGui::SeparatorText("PBR Material");
 	if(ImGui::BeginTable("PBR Material Table", 4, ImGuiTableFlags_Borders)) {
-		for(const auto& s : scene.m_MaterialNames) {
+		// Note: this access of m_MaterialNames is very spaghetti
+		for(const auto& s : game.m_DemoScene->m_MaterialNames) {
 			ImGui::TableNextColumn();
 
 			static std::string fileName {};
@@ -874,7 +888,7 @@ void EditorGui::DrawObjectInspector(Device& device, const Scene& scene) {
 	}
 
 	// Transform component
-	GameObjectTransform(scene, pickedPBRGameObject, kSliderFlags, s_GizmoSRTMat, s_ObjTranslation, s_ObjDegreeEulerAngles, s_ObjScale);
+	GameObjectTransform(*game.m_MainCamera, pickedPBRGameObject, kSliderFlags, s_GizmoSRTMat, s_ObjTranslation, s_ObjDegreeEulerAngles, s_ObjScale);
 
 	if(ImGui::CollapsingHeader("Shader Properties", ImGuiTreeNodeFlags_DefaultOpen)) {
 		{

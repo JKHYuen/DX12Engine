@@ -20,6 +20,7 @@
 #include <memory>
 #include <unordered_map>
 #include <wrl/client.h>
+#include <iterator>
 
 using namespace RenderEnums;
 using namespace DirectX;
@@ -54,7 +55,7 @@ PbrPSO::PbrPSO(Device& device, DXGI_SAMPLE_DESC sampleDesc, D3D12_RT_FORMAT_ARRA
 		CD3DX12_STATIC_SAMPLER_DESC samplers[] = { anisotropicWrapSampler, trilinearClampSampler, trilinearBorderCmpSampler };
 
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription {};
-		rootSignatureDescription.Init_1_1(PBRRootParameters::NumPBRRootParameters, rootParameters, sizeof(samplers) / sizeof(samplers[0]), samplers,
+		rootSignatureDescription.Init_1_1(PBRRootParameters::NumPBRRootParameters, rootParameters, std::size(samplers), samplers,
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS);
 		m_RootSignature = std::make_shared<RootSignature>(device, rootSignatureDescription.Desc_1_1);
 	}

@@ -3,6 +3,7 @@
 // Wrapper for Dear ImGui Debug UI
 // Note: - Seperate free list allocator and static SRV descriptor heap used instead of DynamicDescriptorHeap in main engine for simplicity
 //       - Stored descriptors in this class is only used for ImGui debug textures
+//       - debug texture aspect ratio is locked to 16:9
 
 // Singleton implementation for easy access to RegisterImageSRV() and FreeImageSRV() methods (used to display debug textures), too much dependency injection otherwise. Not static class for iniitialization control.
 // Encapsulation will inevitably break for debug UI, any class that needs to be displayed in debug UI will use "friend class EditorGui". This is so there is a normalized way to expose variables and avoids getters/setters/dependecy injection everywhere. Will explore some solution to invert dependency elegantly later.
@@ -33,7 +34,7 @@ public:
 		None, // "Null" value to give this enum a default value, useful if storing these enums
 		DirectionalShadowMap,
 		BloomPrefilter,
-		OutlineBloomPrefilter,
+		DebugCamera,
 
 		NumGuiSRVIndex
 	};
@@ -80,7 +81,7 @@ public:
 	// Different IGame's will need to write different versions of this function.
 	// For game switching support, this function probably has to exist elsewhere.
 	void DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& game);
-	void DrawObjectInspector(Device& device, const Scene& scene);
+	void DrawObjectInspector(Device& device, const DemoGame& game);
 
 private:
 	EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWND hwnd);

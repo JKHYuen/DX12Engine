@@ -102,7 +102,9 @@ void Camera::Rotate(FXMVECTOR quaternion) {
     m_ViewDirty = true;
 }
 
-// Note: XMVector4NormalizeEst is used
+// Note: 
+//   - XMVector4NormalizeEst is used
+//   - currently only used for frustum culling, cameras that don't have culling enabled this may be doing unneccesary calculations
 // Adapted from https://rastertek.com/dx11win10tut23.html
 // Far culling frustum plane is same as camera's, need to edit projection matrix if custom distance needed
 void Camera::UpdateFrustum() {

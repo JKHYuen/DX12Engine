@@ -15,8 +15,6 @@
 #include "GameObject.h"
 #include "ImGui.h"
 #include "KeyCodes.h"
-#include "PbrPSO.h"
-#include "Picker.h"
 #include "PBRGameObject.h"
 #include "PointLight.h"
 #include "RenderConstants.h"
@@ -36,22 +34,12 @@ using namespace RenderGlobals;
 Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeCommandList, const DirectionalLight::DirectionalLightParams& dirLightParams, const Skybox::SkyboxParams& skyboxParams, UnlitPSO* unlitPSO, const IGame& game)
 	: m_Device(device)
 	, m_UnlitPSO(unlitPSO)
-	, m_Game(game)
 	, m_AABBRenderMode(AABBRenderMode::None)
 {
 	m_DirectionalLight = std::make_unique<DirectionalLight>(device, dirLightParams);
 	m_Skybox = std::make_unique<Skybox>(device, copyCommandList, computeCommandList, skyboxParams);
-	m_MainCamera = std::make_unique<Camera>();
-
-	// arbitrary default camera position
-	XMVECTOR cameraPos    = XMVectorSet(0, 5, -20, 1);
-	XMVECTOR cameraTarget = XMVectorSet(0, 5, 0, 1);
-	XMVECTOR cameraUp     = XMVectorSet(0, 1, 0, 0);
-	m_MainCamera->Set_LookAt(cameraPos, cameraTarget, cameraUp);
 
 	m_SceneObjects.reserve(sk_MaxSceneObjects);
-
-	m_Picker = std::make_unique<Picker>();
 
 	// Get all material names from asset folder (mostly for testing, scene instance should only hold used materials)
 	// Note: wide strings from file system is supported, but it can not be properly displayed with ImGui
@@ -88,8 +76,8 @@ void Scene::SetSkybox(CommandList& copyCommandList, CommandList& computeCommandL
 	m_Skybox->SetCubemap(m_Device, copyCommandList, computeCommandList, hdrTextureName);
 }
 
-void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e) {
-	m_MainCamera->UpdateFrustum();
+void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e, Camera& camera, uint32_t windowWidth, uint32_t windowHeight, bool b_EnableFrustumCulling) {
+	camera.UpdateFrustum();
 
 	// Render depth from directional light
 	m_DirectionalLight->SetShadowDepthPipelineStateAndRenderTarget(directCommandList);
@@ -116,23 +104,23 @@ void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList,
 	directCommandList.SetViewport(outputRT.GetViewport());
 	directCommandList.SetRenderTarget(outputRT);
 
-	m_Skybox->Render(directCommandList, *m_MainCamera);
+	m_Skybox->Render(directCommandList, camera);
 
-	// Render point light shadow maps
+	// Render point light visualization meshes (debug)
 	for(uint32_t i = 0; i < gk_MaxPointLightCount; i++) {
-		m_PointLights[i]->RenderMesh(directCommandList, e, *m_MainCamera);
+		m_PointLights[i]->RenderVisualizationMesh(directCommandList, e, camera);
 	}
 
 	// Render scene objects
 	// All game objects use the same PSO/root sig right now
 	for(auto& o : m_SceneObjects) {
 		if(PBRGameObject* pbrO = dynamic_cast<PBRGameObject*>(o.get())) {
-			pbrO->Render(directCommandList, e, *this, mb_WireframeRender);
+			pbrO->Render(directCommandList, e, *this, camera, windowWidth, windowHeight, b_EnableFrustumCulling, mb_WireframeRender);
 		}
 	}
 }
 
-void Scene::RenderBoundingBoxes(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e, UnlitPrimitivePSO* unlitPrimitivePSO) {
+void Scene::RenderBoundingBoxes(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e, const Camera& camera, UnlitPrimitivePSO* unlitPrimitivePSO, GameObject* pickedObject) {
 	if(m_AABBRenderMode == AABBRenderMode::None) return;
 
 	unlitPrimitivePSO->SetWireframePipelineState(directCommandList);
@@ -144,9 +132,9 @@ void Scene::RenderBoundingBoxes(const RenderTarget& outputRT, CommandList& direc
 	constexpr XMFLOAT4 aabbColor = XMFLOAT4(0.1f, 1.0f, 0.1f, 1.0f);
 
 	if(m_AABBRenderMode == AABBRenderMode::PickedOnly) {
-		if(GameObject* picked = m_Picker->GetPickedObject()) {
+		if(GameObject* picked = pickedObject) {
 			if(PBRGameObject* pbrPicked = dynamic_cast<PBRGameObject*>(picked)) {
-				pbrPicked->RenderBoundingBox(directCommandList, e, *this, aabbColor);
+				pbrPicked->RenderBoundingBox(directCommandList, e, camera, aabbColor);
 			}
 		}
 	}
@@ -154,47 +142,19 @@ void Scene::RenderBoundingBoxes(const RenderTarget& outputRT, CommandList& direc
 	else {
 		for(auto& o : m_SceneObjects) {
 			if(PBRGameObject* pbrO = dynamic_cast<PBRGameObject*>(o.get())) {
-				pbrO->RenderBoundingBox(directCommandList, e, *this, aabbColor);
+				pbrO->RenderBoundingBox(directCommandList, e, camera, aabbColor);
 			}
 		}
 	}
 
 }
 
-/// TODO: store ref to these values so we don't have to store m_Game
-uint32_t Scene::GetWindowWidth() const { return m_Game.GetWindowWidth(); }
-uint32_t Scene::GetWindowHeight() const { return m_Game.GetWindowHeight(); }
-
-void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
-	// Gameobject raycast picking for object inspector GUI, gameobjects are outlined if picked
-	// Disabled if:
-	//   - ImGui mouse event is occuring i.e. mouse is hovered on top of a ImGui element
-	//	 - or ImGui UI is not open
-	if(e.Button == MouseButtonEventArgs::Left) {
-		if(EditorGui::Get().GetUIVisibilityState() && !ImGui::GetIO().WantCaptureMouse) {
-			// Update picked object
-			m_Picker->MouseRaycast(*this, e.X, e.Y, m_Game.GetWindowWidth(), m_Game.GetWindowHeight());
-		}
-
-		// Unpick object if mouse clicked and editor UI is not open
-		if(!EditorGui::Get().GetUIVisibilityState()) {
-			if(const GameObject* go = m_Picker->GetPickedObject()) {
-				m_Picker->ClearPickedObject();
-			}
-		}
-	}
-}
+void Scene::OnMouseButtonReleased(const MouseButtonEventArgs& e) {}
 
 void Scene::OnKeyPressed(const KeyEventArgs& e) {}
 
 void Scene::OnKeyReleased(const KeyEventArgs& e) {
 	switch(e.Key) {
-		case KeyCode::X: 
-			if(const GameObject* go = m_Picker->GetPickedObject()) {
-				m_Picker->ClearPickedObject();
-			}
-		break;
-
 		case KeyCode::F2:
 			mb_WireframeRender = !mb_WireframeRender;
 			break;

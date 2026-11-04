@@ -24,6 +24,8 @@ class Mesh;
 class Texture;
 class UpdateEventArgs;
 class Scene;
+class Skybox;
+class Camera;
 class UnlitPSO;
 class UnlitPrimitivePSO;
 class PbrPSO;
@@ -67,16 +69,16 @@ public:
 	/// TODO: Initialize with mesh loaded from file
 	//GameObject(CommandList& copyCommandList, const GameObject::EntityParams& params, const RenderProps& renderProps, const std::wstring& meshFilePath);
 
-	// Consider moving this to base clsass
-	void RenderBoundingBox(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, XMFLOAT4 color);
+	// Consider moving this to base class
+	void RenderBoundingBox(CommandList& directCommandList, const UpdateEventArgs& e, const Camera& camera, XMFLOAT4 color);
 
-	void Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, bool b_RenderWireframe = false);
-	void RenderSilhouette(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPSO* unlitPSO, XMFLOAT4 color);
+	void Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, const Camera& camera, uint32_t windowWidth, uint32_t windowHeight, bool b_EnableFrustumCull = true, bool b_RenderWireframe = false);
+	void RenderSilhouette(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPSO* unlitPSO, XMFLOAT4 color, const Camera& camera);
 	void RenderToDirectionalShadowMap(CommandList& directCommandList, const DirectionalLight& directionalLight);
 	void RenderToPointLightShadowMap(CommandList& directCommandList, const PointLight& pointLight);
 	// NOTE: commandlist is not executed here
 	void UpdatePBRShaderResourcesFromFile(CommandList& copyCommandList, const std::wstring& pbrMatName);
-	void UpdateIBLShaderResources(const Scene& scene);
+	void UpdateIBLShaderResources(const Skybox& skybox);
 
 private:
 	RenderProps m_RenderProps {};

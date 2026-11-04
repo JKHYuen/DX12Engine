@@ -10,6 +10,7 @@
 #include <vector> 
 
 class Scene;
+class Camera;
 class GameObject;
 
 class Picker {
@@ -21,7 +22,7 @@ public:
 
 	// Raycast intersection test with all objects in a scene, results are cached and cleared when mouse moves.
 	// Only checks GameObject type and assumes it has a valid AABB
-	GameObject* MouseRaycast(Scene& scene, int mouseX, int mouseY, int windowWidth, int windowHeight);
+	GameObject* MouseRaycast(Scene& scene, const Camera& camera, int mouseX, int mouseY, int windowWidth, int windowHeight);
 
 	// Note: returned object not const
 	GameObject* GetPickedObject() const { return m_PickedObject; };

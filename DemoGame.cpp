@@ -17,18 +17,19 @@
 #include "Camera.h"
 #include "d3d12.h"
 #include "d3dx12_core.h"
+#include "DepthPSO.h"
 #include "DirectionalLight.h"
 #include "dxgiformat.h"
 #include "EditorGui.h"
 #include "Events.h"
 #include "GameObject.h"
-#include "PBRGameObject.h"
 #include "ImageBasedLightingPSO.h"
 #include "imgui.h"
 #include "KeyCodes.h"
 #include "OutlineEffect.h"
+#include "PBRGameObject.h"
 #include "PbrPSO.h"
-#include "DepthPSO.h"
+#include "Picker.h"
 #include "RenderTargetPair.h"
 #include "Scene.h"
 #include "Skybox.h"
@@ -99,18 +100,37 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	// Create EditorGui singleton
 	EditorGui::Initialize(*m_Device, sk_HDRFormat, SwapChain::sk_BufferCount, m_Window->GetWindowHandle());
 
+	m_Picker = std::make_unique<Picker>();
+
+	// Camera initialization
+	{
+		m_MainCamera = std::make_unique<Camera>();
+		m_DebugCamera = std::make_unique<Camera>();
+
+		// arbitrary default camera position
+		XMVECTOR cameraPos = XMVectorSet(0, 5, -20, 1);
+		XMVECTOR cameraTarget = XMVectorSet(0, 5, 0, 1);
+		XMVECTOR cameraUp = XMVectorSet(0, 1, 0, 0);
+		m_MainCamera->Set_LookAt(cameraPos, cameraTarget, cameraUp);
+		m_DebugCamera->Set_LookAt(cameraPos, cameraTarget, cameraUp);
+	}
+
 	// Create screen RenderTargets
 	m_PostProcessRTs = std::make_unique<RenderTargetPair>(*m_Device, sk_HDRFormat, windowWidth, windowHeight);
-	m_HDR_MSAA_RT = std::make_unique<RenderTarget>();
+	m_HDR_MS_RT = std::make_unique<RenderTarget>();
+	m_DebugView_MS_RT = std::make_unique<RenderTarget>();
+
+	// MSAA resolve target for debug view
+	m_DebugViewRT = std::make_unique<RenderTarget>();
 
 	/// TODO: Tweakable MSAA
 	DXGI_SAMPLE_DESC multiSampleDesc = m_Device->GetMultisampleQualityLevels(sk_HDRFormat);
 
 	m_SwapChain = std::make_shared<SwapChain>(*m_Device, m_Window->GetWindowHandle(), m_IsVsync, sk_HDRFormat);
 
-	// Create render targets
+	// Create render target textures
 	{
-		// color buffer
+		// color texture resource
 		auto colorDesc = CD3DX12_RESOURCE_DESC::Tex2D(
 			sk_HDRFormat, m_WindowWidth, m_WindowHeight, 1, 1, multiSampleDesc.Count, multiSampleDesc.Quality, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
 		);
@@ -122,10 +142,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 		colorClearValue.Color[2] = 0.7f;
 		colorClearValue.Color[3] = 1.0f;
 
-		auto colorTexture = std::make_shared<Texture>(*m_Device, colorDesc, &colorClearValue);
-		colorTexture->SetName(L"Color Render Target");
-
-		// depth stencil buffer
+		// depth stencil texture resource
 		auto depthStencilDesc = CD3DX12_RESOURCE_DESC::Tex2D(
 			sk_DepthStencilBufferFormat, m_WindowWidth, m_WindowHeight, 1, 1, multiSampleDesc.Count, multiSampleDesc.Quality,
 			D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
@@ -135,27 +152,55 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 		depthClearValue.Format = depthStencilDesc.Format;
 		depthClearValue.DepthStencil = { 1.0f, 0 };
 
+		auto colorTexture = std::make_shared<Texture>(*m_Device, colorDesc, &colorClearValue);
+		colorTexture->SetName(L"MS Color Render Target");
+		m_HDR_MS_RT->AttachTexture(AttachmentPoint::Color0, colorTexture);
 		auto depthStencilTexture = std::make_shared<Texture>(*m_Device, depthStencilDesc, &depthClearValue);
-		depthStencilTexture->SetName(L"Depth Stencil Render Target");
+		depthStencilTexture->SetName(L"MS Depth Stencil Render Target");
+		m_HDR_MS_RT->AttachTexture(AttachmentPoint::DepthStencil, depthStencilTexture);
+		
+		// Debug camera textures
+		// NOTE: debug camera will also use MSAA for now for PSO simplicity
+		{
+			auto debugColorMSTexture = std::make_shared<Texture>(*m_Device, colorDesc, &colorClearValue);
+			debugColorMSTexture->SetName(L"MS Debug Color Render Target");
+			m_DebugView_MS_RT->AttachTexture(AttachmentPoint::Color0, debugColorMSTexture);
+			auto debugDepthStencilMSTexture = std::make_shared<Texture>(*m_Device, depthStencilDesc, &depthClearValue);
+			debugDepthStencilMSTexture->SetName(L"MS Debug Depth Stencil Render Target");
+			m_DebugView_MS_RT->AttachTexture(AttachmentPoint::DepthStencil, debugDepthStencilMSTexture);
 
-		m_HDR_MSAA_RT->AttachTexture(AttachmentPoint::Color0, colorTexture);
-		m_HDR_MSAA_RT->AttachTexture(AttachmentPoint::DepthStencil, depthStencilTexture);
+			colorDesc.SampleDesc.Count = 1;
+			colorDesc.SampleDesc.Quality = 0;
+			auto debugMSResolveTargetTexture = std::make_shared<Texture>(*m_Device, colorDesc, &colorClearValue);
+			debugMSResolveTargetTexture->SetName(L"Debug Render Target");
+			m_DebugViewRT->AttachTexture(AttachmentPoint::Color0, debugMSResolveTargetTexture);
+
+			D3D12_SHADER_RESOURCE_VIEW_DESC debugSRVDesc {};
+			ZeroMemory(&debugSRVDesc, sizeof(debugSRVDesc));
+			debugSRVDesc.Format = sk_HDRFormat;
+			debugSRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+			debugSRVDesc.Texture2D.MipLevels = 1;
+			debugSRVDesc.Texture2D.MostDetailedMip = 0;
+			debugSRVDesc.Texture2D.PlaneSlice = 0;
+			debugSRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			EditorGui::Get().RegisterImageSRV(*m_Device, debugMSResolveTargetTexture, &debugSRVDesc, EditorGui::ImGuiDebugSRVIndex::DebugCamera);
+		}
 	}
 
-	/// Create PSOs 
+	// Create PSOs 
 	/// TODO: this should be managed somewhere else (AssetImporter?)
-	m_PBR_PSO = std::make_unique<PbrPSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RT->GetRenderTargetFormats(), sk_DepthStencilBufferFormat);
-	m_IBL_PSO = std::make_unique<ImageBasedLightingPSO>(*m_Device, *m_HDR_MSAA_RT);
-	m_Depth_PSO = std::make_unique<DepthPSO>(*m_Device, m_PBR_PSO.get()->GetRootSignature());
+	{
+		m_PBR_PSO = std::make_unique<PbrPSO>(*m_Device, multiSampleDesc, m_HDR_MS_RT->GetRenderTargetFormats(), sk_DepthStencilBufferFormat);
+		m_IBL_PSO = std::make_unique<ImageBasedLightingPSO>(*m_Device, *m_HDR_MS_RT);
+		m_Depth_PSO = std::make_unique<DepthPSO>(*m_Device, m_PBR_PSO.get()->GetRootSignature());
+		m_Bloom_PSO = std::make_unique<BloomPSO>(*m_Device, *m_HDR_MS_RT);
+		m_Unlit_PSO = std::make_unique<UnlitPSO>(*m_Device, multiSampleDesc, m_HDR_MS_RT->GetRenderTargetFormats(), m_PBR_PSO.get()->GetRootSignature(), sk_DepthStencilBufferFormat);
+		m_UnlitPrimitive_PSO = std::make_unique<UnlitPrimitivePSO>(*m_Device, m_HDR_MS_RT->GetRenderTargetFormats(), m_PBR_PSO.get()->GetRootSignature());
+		m_Tonemap_PSO = std::make_unique<TonemapPSO>(*m_Device, m_SwapChain->GetRenderTarget());
+	}
 
-	m_Bloom_PSO = std::make_unique<BloomPSO>(*m_Device, *m_HDR_MSAA_RT);
-	m_Unlit_PSO = std::make_unique<UnlitPSO>(*m_Device, multiSampleDesc, m_HDR_MSAA_RT->GetRenderTargetFormats(), m_PBR_PSO.get()->GetRootSignature(), sk_DepthStencilBufferFormat);
-	m_UnlitPrimitive_PSO = std::make_unique<UnlitPrimitivePSO>(*m_Device, m_HDR_MSAA_RT->GetRenderTargetFormats(), m_PBR_PSO.get()->GetRootSignature());
-	m_Tonemap_PSO = std::make_unique<TonemapPSO>(*m_Device, m_SwapChain->GetRenderTarget());
-	///
-
-	m_BloomEffect = std::make_unique<BloomEffect>(*m_Device, *m_HDR_MSAA_RT, m_Bloom_PSO.get(), 16, 0.5f, 80.0f, 0.9f, XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), EditorGui::ImGuiDebugSRVIndex::BloomPrefilter);
-	m_OutlineEffect = std::make_unique<OutlineEffect>(*m_Device, *m_HDR_MSAA_RT, m_Unlit_PSO.get(), m_Bloom_PSO.get());
+	m_BloomEffect = std::make_unique<BloomEffect>(*m_Device, *m_HDR_MS_RT, m_Bloom_PSO.get(), 16, 0.5f, 80.0f, 0.9f, XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), true);
+	m_OutlineEffect = std::make_unique<OutlineEffect>(*m_Device, *m_HDR_MS_RT, m_Unlit_PSO.get(), m_Bloom_PSO.get());
 
 	auto& copyCommandQueue = m_Device->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
 	// Load Assets (COPY operations)
@@ -294,11 +339,13 @@ void DemoGame::OnResize(const ResizeEventArgs& e) {
 	m_SwapChain->Resize(m_WindowWidth, m_WindowHeight);
 
 	float aspectRatio = m_WindowWidth / (float)m_WindowHeight;
-	m_DemoScene->GetMainCamera().Set_Projection(m_DemoScene->GetMainCamera().Get_FoV(), aspectRatio, s_ZNear, s_ZFar);
+	m_MainCamera->Set_Projection(m_MainCamera->Get_FoV(), aspectRatio, s_ZNear, s_ZFar);
 
-	m_HDR_MSAA_RT->Resize(m_WindowWidth, m_WindowHeight);
-
+	m_HDR_MS_RT->Resize(m_WindowWidth, m_WindowHeight);
 	m_PostProcessRTs->Resize(m_WindowWidth, m_WindowHeight);
+	
+	m_DebugView_MS_RT->Resize(m_WindowWidth, m_WindowHeight);
+	m_DebugViewRT->Resize(m_WindowWidth, m_WindowHeight);
 
 	m_BloomEffect->ResizeRenderTargets(m_WindowWidth, m_WindowHeight);
 	m_OutlineEffect->ResizeRenderTargets(m_WindowWidth, m_WindowHeight);
@@ -334,7 +381,7 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 			XMVECTOR cameraTranslation =
 				XMVector3Normalize(XMVECTORF32 { m_Right - m_Left, m_Up - m_Down, m_Forward - m_Backward, 1.0f })
 				* speedMultipler * (float)e.DeltaTime;
-			m_DemoScene->GetMainCamera().Translate(cameraTranslation);
+			m_MainCamera->Translate(cameraTranslation);
 		}
 		
 		// Camera ROTATION
@@ -343,7 +390,7 @@ void DemoGame::OnUpdate(const UpdateEventArgs& e) {
 		static float s_LastYaw {};
 		if(!(s_LastPitch == m_CameraPitch && s_LastYaw == m_CameraYaw)) {
 			XMVECTOR cameraRotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(-m_CameraPitch), XMConvertToRadians(-m_CameraYaw), 0.0f);
-			m_DemoScene->GetMainCamera().Set_Rotation(cameraRotation);
+			m_MainCamera->Set_Rotation(cameraRotation);
 		}
 		s_LastPitch = m_CameraPitch;
 		s_LastYaw = m_CameraYaw;
@@ -358,18 +405,21 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 
 	directCommandList->SetScissorRect(m_DefaultScissorRect);
 
-	/// Render Scene
-	// Perform HDR rendering to multisampled render target
-	m_DemoScene->Render(*m_HDR_MSAA_RT, *directCommandList, e);
-
-	/// Resolve the MSAA render target to intermediate render target before post processing
-	// KNOWN BUG: Clearing m_PostProcessRTs->GetInputRT() is probably not necessary here, however,
-	//		      attempting to clearing inputRT here breaks transition barriers for later renders for some reason
-	//            (i.e. RT is stuck in render target state even though SetShaderResourceView() function should be taking care of state transition)
+	/// Render Scene (HDR Multisampled render and resolve)
+	// Main Camera view
+	m_DemoScene->Render(*m_HDR_MS_RT, *directCommandList, e, *m_MainCamera, m_WindowWidth, m_WindowHeight);
 	directCommandList->ResolveSubresource(
 		m_PostProcessRTs->GetInputRT().GetTexture(AttachmentPoint::Color0),
-		m_HDR_MSAA_RT->GetTexture(AttachmentPoint::Color0)
+		m_HDR_MS_RT->GetTexture(AttachmentPoint::Color0)
 	);
+
+	// DEBUG VIEW
+	m_DemoScene->Render(*m_DebugView_MS_RT, *directCommandList, e, *m_DebugCamera, m_WindowWidth, m_WindowHeight);
+	directCommandList->ResolveSubresource(
+		m_DebugViewRT->GetTexture(AttachmentPoint::Color0),
+		m_DebugView_MS_RT->GetTexture(AttachmentPoint::Color0)
+	);
+
 
 	/// Post Processing / UI
 	// Note: 
@@ -387,7 +437,7 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 		m_PostProcessRTs->SwapRTs();
 
 		// Game object outline effect (if any)
-		if(m_OutlineEffect->Render(*directCommandList, e, *m_DemoScene, m_PostProcessRTs->GetInputRT(), m_PostProcessRTs->GetOutputRT())) {
+		if(m_OutlineEffect->Render(*directCommandList, e, m_PostProcessRTs->GetInputRT(), m_PostProcessRTs->GetOutputRT(), m_Picker->GetPickedObject(), *m_MainCamera)) {
 			m_PostProcessRTs->SwapRTs();
 		}
 
@@ -405,7 +455,7 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 		}
 
 		// Render AABB visualization (if any)
-		m_DemoScene->RenderBoundingBoxes(m_SwapChain->GetRenderTarget(), *directCommandList, e, m_UnlitPrimitive_PSO.get());
+		m_DemoScene->RenderBoundingBoxes(m_SwapChain->GetRenderTarget(), *directCommandList, e, *m_MainCamera, m_UnlitPrimitive_PSO.get(), m_Picker->GetPickedObject());
 	}
 
 	/// Draw ImGui
@@ -420,7 +470,7 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 		// Keeping these functions separate for flexibility (as opposed to moving them into one function in EditorGui)
 		EditorGui::Get().NewFrame();
 		EditorGui::Get().DrawGameDebugUI(*m_Device, *m_DemoScene, *this);
-		EditorGui::Get().DrawObjectInspector(*m_Device, *m_DemoScene);
+		EditorGui::Get().DrawObjectInspector(*m_Device, *this);
 		EditorGui::Get().Render(*directCommandList);
 	}
 
@@ -455,6 +505,23 @@ void DemoGame::OnMouseButtonPressed(const MouseButtonEventArgs& e) {
 
 void DemoGame::OnMouseButtonReleased(const MouseButtonEventArgs& e) {
 	m_DemoScene->OnMouseButtonReleased(e);
+	// Gameobject raycast picking for object inspector GUI, gameobjects are outlined if picked
+	// Disabled if:
+	//   - ImGui mouse event is occuring i.e. mouse is hovered on top of a ImGui element
+	//	 - or ImGui UI is not open
+	if(e.Button == MouseButtonEventArgs::Left) {
+		if(EditorGui::Get().GetUIVisibilityState() && !ImGui::GetIO().WantCaptureMouse) {
+			// Update picked object
+			m_Picker->MouseRaycast(*m_DemoScene, *m_MainCamera, e.X, e.Y, m_WindowWidth, m_WindowHeight);
+		}
+
+		// Unpick object if mouse clicked and editor UI is not open
+		if(!EditorGui::Get().GetUIVisibilityState()) {
+			if(const GameObject* go = m_Picker->GetPickedObject()) {
+				m_Picker->ClearPickedObject();
+			}
+		}
+	}
 
 	if(e.Button == MouseButtonEventArgs::Left) {
 		m_LeftClickPressed = false;
@@ -576,13 +643,19 @@ void DemoGame::OnKeyReleased(const KeyEventArgs& e) {
 		case KeyCode::ControlKey:
 			m_LeftControlPressed = false;
 			break;
+
+		case KeyCode::X:
+			if(const GameObject* go = m_Picker->GetPickedObject()) {
+				m_Picker->ClearPickedObject();
+			}
+			break;
 	}
 }
 
 void DemoGame::OnMouseWheel(const MouseWheelEventArgs& e) {
 	if(!EditorGui::Get().GetUIVisibilityState()) {
-		auto fov = m_DemoScene->GetMainCamera().Get_FoV();
+		auto fov = m_MainCamera->Get_FoV();
 		fov = std::clamp(fov - e.WheelDelta, s_MinYFOV, s_MaxYFOV);
-		m_DemoScene->GetMainCamera().Set_FoV(fov);
+		m_MainCamera->Set_FoV(fov);
 	}
 }

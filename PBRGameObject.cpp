@@ -59,12 +59,12 @@ void PBRGameObject::UpdatePBRShaderResourcesFromFile(CommandList& copyCommandLis
 		copyCommandList.LoadTextureFromFile(matPathPrefix + L"_mat.tga", false);
 }
 
-void PBRGameObject::UpdateIBLShaderResources(const Scene& scene) {
-	m_MaterialTextureResources[PbrPSO::IrradianceCubemap] = scene.GetSkybox()->GetIrradianceTexture();
-	m_MaterialTextureResources[PbrPSO::PrefilterCubemap] = scene.GetSkybox()->GetPrefilterTexture();
+void PBRGameObject::UpdateIBLShaderResources(const Skybox& skybox) {
+	m_MaterialTextureResources[PbrPSO::IrradianceCubemap] = skybox.GetIrradianceTexture();
+	m_MaterialTextureResources[PbrPSO::PrefilterCubemap] = skybox.GetPrefilterTexture();
 
 	/// TODO: this should be cached, it never changes
-	m_MaterialTextureResources[PbrPSO::BRDFLut] = scene.GetSkybox()->Get_BRDF_LUT_Texture();
+	m_MaterialTextureResources[PbrPSO::BRDFLut] = skybox.Get_BRDF_LUT_Texture();
 }
 
 /// TODO: load from file with meshFileName
@@ -72,11 +72,10 @@ void PBRGameObject::UpdateIBLShaderResources(const Scene& scene) {
 //
 //}
 
-void PBRGameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, bool b_WireframeRender) {
-	// Frustum check is only done here, other render functions rely on b_RenderThisFrame.
-	// This means other render functions may respond a frame late (depending on call order) but we don't need to do frustum check multiple times a frame
-	/// TODO: add bias value (derived from heightMapMagnitude)
-	if(!scene.GetMainCamera().CheckAABBInFrustum(m_AABB, 0.0f)) {
+void PBRGameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, const Camera& camera, uint32_t windowWidth, uint32_t windowHeight, bool b_EnableFustrumCull, bool b_WireframeRender) {
+	// Frustum culling check is done here, b_RenderThisFrame will be updated so other relevant renders like outline and AABB visualization will be culled as well. This is so we don't need to do frustum check multiple times a frame.
+	// NOTE: frustum culling (CheckAABBInFrustum()) currently ignores height map displacement
+	if(b_EnableFustrumCull && !camera.CheckAABBInFrustum(m_AABB, 0.0f)) {
 		mb_RenderThisFrame = false;
 		return;
 	}
@@ -98,12 +97,12 @@ void PBRGameObject::Render(CommandList& directCommandList, const UpdateEventArgs
 		XMStoreFloat4x4(
 			&m_PBRVertexCB.MVP,
 			XMMatrixMultiply(
-				XMMatrixMultiply(XMLoadFloat4x4(&m_PBRVertexCB.SRT), scene.GetMainCamera().Get_ViewMatrix()),
-				scene.GetMainCamera().Get_ProjectionMatrix()
+				XMMatrixMultiply(XMLoadFloat4x4(&m_PBRVertexCB.SRT), camera.Get_ViewMatrix()),
+				camera.Get_ProjectionMatrix()
 			)
 		);
 
-		XMStoreFloat4(&m_PBRVertexCB.cameraPosition, scene.GetMainCamera().Get_Translation());
+		XMStoreFloat4(&m_PBRVertexCB.cameraPosition, camera.Get_Translation());
 
 		m_PBRVertexCB.uvScale = m_RenderProps.uvScale;
 		m_PBRVertexCB.heightMapMagnitude = m_RenderProps.heightMapMagnitude;
@@ -112,9 +111,9 @@ void PBRGameObject::Render(CommandList& directCommandList, const UpdateEventArgs
 
 	// Tessellation Props
 	{
-		XMStoreFloat4(&m_TessellationCB.cameraPosition, scene.GetMainCamera().Get_Translation());
+		XMStoreFloat4(&m_TessellationCB.cameraPosition, camera.Get_Translation());
 		m_TessellationCB.SRT = m_PBRVertexCB.SRT;
-		m_TessellationCB.screenDimensions = { (float)scene.GetWindowWidth() , (float)scene.GetWindowHeight() };
+		m_TessellationCB.screenDimensions = { (float)windowWidth , (float)windowHeight };
 
 		// Note: if wrong flag is used, tessellation will simply be turned off
 		if(((m_RenderProps.tessellationModeFlag) & RenderFlags_UniformTessellation) != 0) {
@@ -186,10 +185,19 @@ void PBRGameObject::Render(CommandList& directCommandList, const UpdateEventArgs
 }
 
 // Only used for outline effect
-void PBRGameObject::RenderSilhouette(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPSO* unlitPSO, XMFLOAT4 color) {
+void PBRGameObject::RenderSilhouette(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPSO* unlitPSO, XMFLOAT4 color, const Camera& camera) {
 	// Set all but MaterialTex to null SRVs (we need MaterialTex for height map)
 	m_RenderProps.pbrPSO->UnbindAllSRVs(directCommandList);
 	directCommandList.SetShaderResourceView(PbrPSO::PBRRootParameters::PBRTextures, PbrPSO::TextureIndex::MaterialTex, m_MaterialTextureResources[PbrPSO::TextureIndex::MaterialTex], D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE);
+
+	XMStoreFloat4x4(
+		&m_PBRVertexCB.MVP,
+		XMMatrixMultiply(
+			XMMatrixMultiply(XMLoadFloat4x4(&m_PBRVertexCB.SRT), camera.Get_ViewMatrix()),
+			camera.Get_ProjectionMatrix()
+		)
+	);
+	XMStoreFloat4(&m_PBRVertexCB.cameraPosition, camera.Get_Translation());
 
 	m_PBRVertexCB.color = color;
 
@@ -220,7 +228,7 @@ void PBRGameObject::RenderToPointLightShadowMap(CommandList& directCommandList, 
 	pointLight.RenderObjectToDepth(directCommandList, *m_Mesh, m_PBRVertexCB, m_TessellationCB);
 }
 
-void PBRGameObject::RenderBoundingBox(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, XMFLOAT4 color) {
+void PBRGameObject::RenderBoundingBox(CommandList& directCommandList, const UpdateEventArgs& e, const Camera& camera, XMFLOAT4 color) {
 	if(!mb_RenderThisFrame) return;
 
 	// Set all textures to null SRVs
@@ -233,8 +241,8 @@ void PBRGameObject::RenderBoundingBox(CommandList& directCommandList, const Upda
 
 	// Reusing m_PBRVertexCB for convenience, this means we need to make sure it gets updated every frame for different rendering pipelines
 	XMStoreFloat4x4(&m_PBRVertexCB.MVP, XMMatrixMultiply(
-		XMMatrixMultiply(aabbSRT, scene.GetMainCamera().Get_ViewMatrix()),
-		scene.GetMainCamera().Get_ProjectionMatrix())
+		XMMatrixMultiply(aabbSRT, camera.Get_ViewMatrix()),
+		camera.Get_ProjectionMatrix())
 	);
 
 	m_PBRVertexCB.color = color;

@@ -54,7 +54,7 @@ Picker::Picker() :
 
 // Cache all intersection hits and sort by raycast hit distance.
 // If mouse has not moved, loop through all cached raycast hits.
-GameObject* Picker::MouseRaycast(Scene& scene, int mouseX, int mouseY, int windowWidth, int windowHeight) {
+GameObject* Picker::MouseRaycast(Scene& scene, const Camera& camera, int mouseX, int mouseY, int windowWidth, int windowHeight) {
 	static int currentCacheIndex = 0;
 	bool b_RayCastHit = false;
 
@@ -79,7 +79,7 @@ GameObject* Picker::MouseRaycast(Scene& scene, int mouseX, int mouseY, int windo
 
 		XMVECTOR origin {};
 		XMVECTOR direction {};
-		GetPickerRayVectors(mouseX, mouseY, windowWidth, windowHeight, scene.GetMainCamera(), origin, direction);
+		GetPickerRayVectors(mouseX, mouseY, windowWidth, windowHeight, camera, origin, direction);
 
 		/// TODO: combine these loops
 		for(auto& go : scene.m_SceneObjects) {

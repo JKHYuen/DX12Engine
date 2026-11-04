@@ -20,7 +20,8 @@ class BloomEffect {
 	friend class EditorGui;
 
 public:
-	BloomEffect(Device& device, const RenderTarget& screenRenderTarget, BloomPSO* pso, int maxIterations = 16, float intensity = 0.5f, float threshold = 80.0f, float softThreshold = 0.9f, XMFLOAT4 colorMultiply = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), EditorGui::ImGuiDebugSRVIndex debugID = EditorGui::ImGuiDebugSRVIndex::BloomPrefilter);
+	// Bloom effect is used on different effects, only one debug texture is supported for now. Use b_CreateDebugTexture to create debug texture. If multiple BloomEffects enable b_CreateDebugTexture, debug texture will be overwritten.
+	BloomEffect(Device& device, const RenderTarget& screenRenderTarget, BloomPSO* pso, int maxIterations = 16, float intensity = 0.5f, float threshold = 80.0f, float softThreshold = 0.9f, XMFLOAT4 colorMultiply = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), bool b_CreateDebugTexture = false);
 
 	// "blendRenderTarget" is an optional render target if we want a texture other than inputRenderTarget to be blended with on the last render pass.
 	// (Last render pass uses outputRenderTarget as render target and adds m_SamplingRenderTargets[0] and blendRenderTarget/inputRenderTarget together with intensity multiplier to apply bloom)
@@ -37,7 +38,7 @@ private:
 	float m_SoftThreshold;
 	XMFLOAT4 m_ColorMultiply;
 	
-	EditorGui::ImGuiDebugSRVIndex m_DebugID;
+	bool mb_HasDebugTexture;
 
 	// Creates new render target at index idx in m_SamplingRenderTargets, SRV and RTV created as well
 	void CreateSamplingRenderTarget(size_t idx, uint32_t textureWidth, uint32_t textureHeight);

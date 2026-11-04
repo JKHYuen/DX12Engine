@@ -15,7 +15,7 @@
 #include <format>
 #include <memory>
 
-BloomEffect::BloomEffect(Device& device, const RenderTarget& screenRenderTarget, BloomPSO* pso, int maxIterations, float intensity, float threshold, float softThreshold, XMFLOAT4 colorMultiply, EditorGui::ImGuiDebugSRVIndex debugID) :
+BloomEffect::BloomEffect(Device& device, const RenderTarget& screenRenderTarget, BloomPSO* pso, int maxIterations, float intensity, float threshold, float softThreshold, XMFLOAT4 colorMultiply, bool b_CreateDebugTexture) :
 	m_TextureFormat     { screenRenderTarget.GetRenderTargetFormats().RTFormats[AttachmentPoint::Color0] },
 	m_MaxIterationCount { maxIterations },
 	m_IterationCount    { maxIterations },
@@ -25,7 +25,7 @@ BloomEffect::BloomEffect(Device& device, const RenderTarget& screenRenderTarget,
 	m_ColorMultiply     { colorMultiply },
 	m_PSO               { pso },
 	m_Device            { device },
-	m_DebugID           { debugID }
+	mb_HasDebugTexture  { b_CreateDebugTexture }
 {
 	uint32_t textureWidth  = screenRenderTarget.GetTexture(AttachmentPoint::Color0)->GetWidth();
 	uint32_t textureHeight = screenRenderTarget.GetTexture(AttachmentPoint::Color0)->GetHeight();
@@ -55,7 +55,9 @@ BloomEffect::BloomEffect(Device& device, const RenderTarget& screenRenderTarget,
 	}
 
 	// Create Debug SRV
-	EditorGui::Get().RegisterImageSRV(device, m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0), &m_DefaultSRVDesc, m_DebugID);
+	if(mb_HasDebugTexture) {
+		EditorGui::Get().RegisterImageSRV(device, m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0), &m_DefaultSRVDesc, EditorGui::ImGuiDebugSRVIndex::BloomPrefilter);
+	}
 }
 
 void BloomEffect::CreateSamplingRenderTarget(size_t idx, uint32_t textureWidth, uint32_t textureHeight) {
@@ -186,6 +188,9 @@ void BloomEffect::ResizeRenderTargets(uint32_t width, uint32_t height) {
 		}
 	}
 
-	EditorGui::Get().RegisterImageSRV(m_Device, m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0), &m_DefaultSRVDesc, m_DebugID);
+	// m_SamplingRenderTargets textures get reconstructed in CreateSamplingRenderTarget(), must update debug texture
+	if(mb_HasDebugTexture) {
+		EditorGui::Get().RegisterImageSRV(m_Device, m_SamplingRenderTargets[0].GetTexture(AttachmentPoint::Color0), &m_DefaultSRVDesc, EditorGui::ImGuiDebugSRVIndex::BloomPrefilter);
+	}
 }
 

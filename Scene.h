@@ -2,7 +2,6 @@
 #include "DirectionalLight.h"
 #include "Events.h"
 #include "GameObject.h"
-#include "Picker.h" // unique_ptr member needs this for some reason, unsure why
 #include "PointLight.h"
 #include "RenderConstants.h"
 #include "Skybox.h"
@@ -19,6 +18,7 @@
 
 class Camera;
 class Device;
+class GameObject;
 class UnlitPSO;
 class IGame;
 class MouseButtonEventArgs;
@@ -56,7 +56,6 @@ public:
 	}
 
 	const Skybox* GetSkybox() const { return m_Skybox.get(); }
-	const Picker* GetPicker() const { return m_Picker.get(); }
 
 	void ComputeSkyboxIBLs(CommandList& directCommandList);
 
@@ -74,25 +73,25 @@ public:
 	}
 
 	void SetSkybox(CommandList& copyCommandList, CommandList& computeCommandList, const std::wstring& hdrTextureName);
-
-	void Render(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e);	
-	void RenderBoundingBoxes(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e, UnlitPrimitivePSO* unlitPrimitivePSO);
 	
-	uint32_t GetWindowWidth()  const;
-	uint32_t GetWindowHeight() const;
+	// Window width and height only used for shader buffers that need it, this is the most straight forward way to pass it for now
+	void Render(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e, Camera& camera, uint32_t windowWidth, uint32_t windowHeight, bool b_EnableFrustumCulling = true);
+	// pickedObject can be nullptr
+	void RenderBoundingBoxes(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e, const Camera& camera, UnlitPrimitivePSO* unlitPrimitivePSO, GameObject* pickedObject);
 
 	// This probably shouldn't be in this class
 	void SetAABBRenderMode(AABBRenderMode mode) {m_AABBRenderMode = mode; }
 
-	Camera& GetMainCamera() const { return *m_MainCamera; }
+	//Camera& GetMainCamera() const { return *m_MainCamera; }
 
 private:
 	static const int sk_MaxSceneObjects = 65536; // arbitrary
-	/// TODO: Currently no system to validate destoyed objects, smarter storage needed
-	///       Same size objects should at least be grouped together in separate arrays in a real engine
-	///       This is difficult until I convert GameObject class hierarchy into component system.
+	/// TODO: Currently no system to validate destoyed objects, smarter storage needed.
+	///       Same size objects should at least be grouped together (value storage) in separate arrays in a real engine.
+	///       This is difficult until I convert GameObject class hierarchy into a component system.
 	std::vector<std::unique_ptr<GameObject>> m_SceneObjects;
 
+	// Maybe move this to a more relevant class (IGame?)
 	bool mb_WireframeRender = false;
 
 	// All materials used in this scene, currently just loads all material names in asset folder
@@ -102,16 +101,9 @@ private:
 	std::vector<std::unique_ptr<PointLight>> m_PointLights;
 
 	std::unique_ptr<Skybox> m_Skybox;
-	
-	std::unique_ptr<Camera> m_MainCamera;
 
 	// Device owned by IGame
 	Device& m_Device;
-
-	/// TODO: try to get rid of need to store this variable
-	const IGame& m_Game;
-
-	std::unique_ptr<Picker> m_Picker;
 
 	/// TODO: refactor access to PSO 
 	// Only for point light visualization

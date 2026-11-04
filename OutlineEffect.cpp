@@ -10,15 +10,14 @@
 #include "EditorGui.h"
 #include "Events.h"
 #include "OutlineEffect.h"
-#include "Picker.h"
 #include "RenderConstants.h"
-#include "Scene.h"
 #include "UnlitPSO.h"
 #include "PBRGameObject.h"
 
 #include <cstdint>
 #include <DirectXMath.h>
 #include <memory>
+#include "GameObject.h"
 
 OutlineEffect::OutlineEffect(Device& device, const RenderTarget& screenRenderTarget, UnlitPSO* outlinePSO, BloomPSO* bloomPSO)
 	: m_UnlitPSO(outlinePSO)
@@ -51,7 +50,7 @@ OutlineEffect::OutlineEffect(Device& device, const RenderTarget& screenRenderTar
 	
 	// Note: starting outline color is hardcoded here, can be modified with in app GUI after initialization
 	XMFLOAT4 defaultOutlineColor { 15.0f, 10.0f, 0.0f, 1.0f }; // HDR yellow color
-	m_BloomEffect = std::make_unique<BloomEffect>(device, screenRenderTarget, bloomPSO, 2, 1.0f, 1.0f, 1.5f, defaultOutlineColor, EditorGui::OutlineBloomPrefilter);
+	m_BloomEffect = std::make_unique<BloomEffect>(device, screenRenderTarget, bloomPSO, 2, 1.0f, 1.0f, 1.5f, defaultOutlineColor);
 }
 
 void OutlineEffect::ResizeRenderTargets(uint32_t width, uint32_t height) {
@@ -59,12 +58,12 @@ void OutlineEffect::ResizeRenderTargets(uint32_t width, uint32_t height) {
 	m_OutlineSilhouetteRT->Resize(width, height);
 }
 
-bool OutlineEffect::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, const RenderTarget& blendRenderTarget, const RenderTarget& outputRenderTarget) {
+bool OutlineEffect::Render(CommandList& directCommandList, const UpdateEventArgs& e, const RenderTarget& blendRenderTarget, const RenderTarget& outputRenderTarget, GameObject* pickedObject, const Camera& camera) {
 	if(mb_DisableEffect) return false;
 
 	/// TODO: support outlining multiple objects
 	// Note: outlining will be disabled if not a PBRGameObject, this should be more generalized
-	PBRGameObject* outlineObject = dynamic_cast<PBRGameObject*>(scene.GetPicker()->GetPickedObject());
+	PBRGameObject* outlineObject = dynamic_cast<PBRGameObject*>(pickedObject);
 	if(outlineObject == nullptr) return false;
 
 	m_UnlitPSO->SetPipelineState(directCommandList, RenderFlags_CullModeNone | RenderFlags_DepthDisable);
@@ -74,7 +73,7 @@ bool OutlineEffect::Render(CommandList& directCommandList, const UpdateEventArgs
 
 	// Render object silhouette to intermediate RT
 	// Note: unlit color has to be white, outline color added in bloom stage
-	outlineObject->RenderSilhouette(directCommandList, e, m_UnlitPSO, XMFLOAT4(1.0, 1.0, 1.0, 1.0));
+	outlineObject->RenderSilhouette(directCommandList, e, m_UnlitPSO, XMFLOAT4(1.0, 1.0, 1.0, 1.0), camera);
 
 	// Bloom (blur) rendered silhoutte
 	m_BloomEffect->Render(directCommandList, *m_OutlineSilhouetteRT, outputRenderTarget, &blendRenderTarget, true);

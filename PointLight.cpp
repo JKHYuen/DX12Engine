@@ -1,7 +1,6 @@
 #include "PointLight.h"
 
 #include "Camera.h"
-#include "EditorGui.h"
 #include "GameObject.h"
 #include "PbrPSO.h"
 #include "RenderConstants.h"
@@ -65,7 +64,7 @@ PointLight::PointLight(Device& device, const std::string& name, PointLightParams
 	cubeMapSRVDesc.TextureCube.MipLevels = -1;
 	shadowCubemap->CreateShaderResourceView(cubeMapSRVDesc);
 
-	// Create shadow cubemap DSV for shadow writing
+	// Create shadow cubemap DSVs for shadow writing
 	std::vector<D3D12_DEPTH_STENCIL_VIEW_DESC> dsvDescs {};
 	dsvDescs.reserve(6);
 	for(int i = 0; i < 6; i++) {
@@ -85,7 +84,7 @@ PointLight::PointLight(Device& device, PointLightParams params)
 	: PointLight(device, "Point Light", params)
 {}
 
-void PointLight::RenderMesh(CommandList& directCommandList, const UpdateEventArgs& e, const Camera& viewCamera) {
+void PointLight::RenderVisualizationMesh(CommandList& directCommandList, const UpdateEventArgs& e, const Camera& viewCamera) {
 	m_UnlitPSO->SetPipelineState(directCommandList, RenderFlags_None);
 
 	PBRVertexProps vertexProps {};
@@ -103,7 +102,7 @@ void PointLight::RenderMesh(CommandList& directCommandList, const UpdateEventArg
 
 	// Simple mesh render will not use tessellation, pass empty struct
 	PBRTessellationProps tessProps {};
-	directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::VertexCB, vertexProps);
+	directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::PBRRootParameters::VertexCB, vertexProps);
 	directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::TessellationCB, tessProps);
 	m_VisualizationMesh->Draw(directCommandList);
 }

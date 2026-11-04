@@ -4,7 +4,6 @@
 
 #include <DirectXMath.h>
 #include <memory>
-#include <array>
 #include <string>
 #include "PbrPSO.h"
 
@@ -36,13 +35,13 @@ public:
 		float radius;
 		std::shared_ptr<Mesh> visualizationMesh;
 		UnlitPSO* unlitPSO;
-		DepthPSO* depthPSO;
+		DepthPSO* depthPSO; // for shadow cubemap depth render
 	};
 
 	PointLight(Device& device, const std::string& name, PointLightParams params);
 	PointLight(Device& device, PointLightParams params);
 
-	void RenderMesh(CommandList& directCommandList, const UpdateEventArgs& e, const Camera& viewCamera);
+	void RenderVisualizationMesh(CommandList& directCommandList, const UpdateEventArgs& e, const Camera& viewCamera);
 
 	void SetShadowDepthPipelineState(CommandList& directCommandList) const;
 	// pass vertexProps by value to copy and edit MVP to render from light's perspective

@@ -17,6 +17,7 @@ class Device;
 class SwapChain;
 class Window;
 class EditorGui;
+class Camera;
 class Skybox;
 class PbrPSO;
 class UnlitPSO;
@@ -28,6 +29,7 @@ class BloomEffect;
 class OutlineEffect;
 class ImageBasedLightingPSO;
 class ShaderResourceView;
+class Picker;
 class RenderTargetPair;
 class RenderTarget;
 
@@ -50,14 +52,18 @@ public:
     void OnMouseButtonPressed(const MouseButtonEventArgs& e)  override;
     void OnMouseButtonReleased(const MouseButtonEventArgs& e) override;
 
-    uint32_t GetWindowWidth()  const override { return m_WindowWidth;  }
-    uint32_t GetWindowHeight() const override { return m_WindowHeight; }
-
 private:
     void OnRender(const UpdateEventArgs& e);
 
+    std::unique_ptr<Picker> m_Picker;
+
+    std::unique_ptr<Camera> m_MainCamera;
+    std::unique_ptr<Camera> m_DebugCamera;
+
     std::unique_ptr<RenderTargetPair> m_PostProcessRTs;
-    std::unique_ptr<RenderTarget> m_HDR_MSAA_RT;
+    std::unique_ptr<RenderTarget> m_HDR_MS_RT;
+    std::unique_ptr<RenderTarget> m_DebugView_MS_RT;
+    std::unique_ptr<RenderTarget> m_DebugViewRT;
 
     std::shared_ptr<Device>    m_Device;
     std::shared_ptr<Window>    m_Window;

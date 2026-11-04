@@ -11,7 +11,7 @@ class BloomEffect;
 class GameObject;
 class CommandList;
 class UpdateEventArgs;
-class Scene;
+class Camera;
 
 class OutlineEffect {
 
@@ -20,8 +20,9 @@ class OutlineEffect {
 public:
 	OutlineEffect(Device& device, const RenderTarget& screenRenderTarget, UnlitPSO* outlinePSO, BloomPSO* bloomPSO);
 
-	// blendRenderTarget is prerendered frame, outline is rendered on top of this
-	bool Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, const RenderTarget& blendRenderTarget, const RenderTarget& outputRenderTarget);
+	// blendRenderTarget is prerendered frame, outline is rendered on top of this.
+	// pickedObject can be nullptr
+	bool Render(CommandList& directCommandList, const UpdateEventArgs& e, const RenderTarget& blendRenderTarget, const RenderTarget& outputRenderTarget, GameObject* pickedObject, const Camera& camera);
 
 	void ResizeRenderTargets(uint32_t width, uint32_t height);
 

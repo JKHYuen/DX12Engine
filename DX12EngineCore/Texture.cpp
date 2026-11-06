@@ -82,7 +82,6 @@ void Texture::Resize(uint32_t width, uint32_t height, uint32_t depthOrArraySize)
         resDesc.Width = std::max(width, 1u);
         resDesc.Height = std::max(height, 1u);
         resDesc.DepthOrArraySize = depthOrArraySize;
-        /// TODO: doesn't look right
         resDesc.MipLevels = resDesc.SampleDesc.Count > 1 ? 1 : 0;
 
         auto d3d12Device = m_Device.GetD3D12Device();
@@ -98,6 +97,7 @@ void Texture::Resize(uint32_t width, uint32_t height, uint32_t depthOrArraySize)
 
         ResourceStateTracker::AddGlobalResourceState(m_d3d12Resource.Get(), D3D12_RESOURCE_STATE_COMMON);
 
+        /// TODO: this can be buggy with non-default SRV/UAVs used for rendering 
         CreateDefaultViews();
     }
 }
@@ -117,12 +117,13 @@ void Texture::CreateDefaultViews() {
             m_DSVAlloc = m_Device.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
             d3d12Device->CreateDepthStencilView(m_d3d12Resource.Get(), nullptr, m_DSVAlloc.GetDescriptorHandle());
         }
+        /// TODO: this is rarely useful, CreateShaderResourceView() should be the only way to make SRVs, similarly with UAVs
         // Create SRV
         if((desc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE) == 0 && CheckSRVSupport()) {
             m_SRVAlloc = m_Device.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
             d3d12Device->CreateShaderResourceView(m_d3d12Resource.Get(), nullptr, m_SRVAlloc.GetDescriptorHandle());
         }
-        // Create UAV for each mip (only supported for 1D and 2D textures).
+        // Create UAV for each mip (only supported for 1D and 2D textures)
         if((desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS) != 0 && CheckUAVSupport() && desc.DepthOrArraySize == 1) {
             m_UAVAlloc = m_Device.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, desc.MipLevels);
             for(int i = 0; i < desc.MipLevels; ++i) {
@@ -155,10 +156,6 @@ void Texture::CreateDepthStencilView(const std::vector<D3D12_DEPTH_STENCIL_VIEW_
 
 void Texture::CreateShaderResourceView(const D3D12_SHADER_RESOURCE_VIEW_DESC& srvDesc) {
     assert(m_d3d12Resource);
-
-    /// TODO: unsure why this assert fails when shadow mapping, no DirectX warnings during runtime
-    //assert((m_d3d12Resource->GetDesc().Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE) == 0 && CheckSRVSupport());
-
     m_SRVAlloc = m_Device.AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     m_Device.GetD3D12Device()->CreateShaderResourceView(m_d3d12Resource.Get(), &srvDesc, m_SRVAlloc.GetDescriptorHandle());
 }

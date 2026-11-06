@@ -72,10 +72,10 @@ void PBRGameObject::UpdateIBLShaderResources(const Skybox& skybox) {
 //
 //}
 
-void PBRGameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, const Camera& camera, uint32_t windowWidth, uint32_t windowHeight, bool b_EnableFustrumCull, bool b_WireframeRender) {
+void PBRGameObject::Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, const Camera& camera, uint32_t windowWidth, uint32_t windowHeight, bool b_WireframeRender) {
 	// Frustum culling check is done here, b_RenderThisFrame will be updated so other relevant renders like outline and AABB visualization will be culled as well. This is so we don't need to do frustum check multiple times a frame.
 	// NOTE: frustum culling (CheckAABBInFrustum()) currently ignores height map displacement
-	if(b_EnableFustrumCull && !camera.CheckAABBInFrustum(m_AABB, 0.0f)) {
+	if(!camera.CheckAABBInFrustum(m_AABB, 0.0f)) {
 		mb_RenderThisFrame = false;
 		return;
 	}

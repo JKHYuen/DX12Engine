@@ -74,7 +74,8 @@ namespace {
 	constexpr float s_StartingShadowDistance      = 35.0f;
 	constexpr float s_StartingShadowBias          = 0.001f;
 
-	// Projection Matrix
+	// Camera Projection Matrix Values
+	constexpr float sk_DefaultFOV = 45.0f;
 	float s_MinYFOV = 12.0f;
 	float s_MaxYFOV = 90.0f;
 	float s_ZNear   = 0.1f;
@@ -104,8 +105,9 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 
 	// Camera initialization
 	{
-		m_MainCamera = std::make_unique<Camera>();
-		m_DebugCamera = std::make_unique<Camera>();
+		float aspectRatio = m_WindowWidth / (float)m_WindowHeight;
+		m_MainCamera = std::make_unique<Camera>(sk_DefaultFOV, aspectRatio, s_ZNear, s_ZFar);
+		m_DebugCamera = std::make_unique<Camera>(sk_DefaultFOV, aspectRatio, s_ZNear, s_ZFar);
 
 		// arbitrary default camera position
 		XMVECTOR cameraPos = XMVectorSet(0, 5, -20, 1);
@@ -119,9 +121,6 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	m_PostProcessRTs = std::make_unique<RenderTargetPair>(*m_Device, sk_HDRFormat, windowWidth, windowHeight);
 	m_HDR_MS_RT = std::make_unique<RenderTarget>();
 	m_DebugView_MS_RT = std::make_unique<RenderTarget>();
-
-	// MSAA resolve target for debug view
-	m_DebugViewRT = std::make_unique<RenderTarget>();
 
 	/// TODO: Tweakable MSAA
 	DXGI_SAMPLE_DESC multiSampleDesc = m_Device->GetMultisampleQualityLevels(sk_HDRFormat);
@@ -169,21 +168,21 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 			debugDepthStencilMSTexture->SetName(L"MS Debug Depth Stencil Render Target");
 			m_DebugView_MS_RT->AttachTexture(AttachmentPoint::DepthStencil, debugDepthStencilMSTexture);
 
-			colorDesc.SampleDesc.Count = 1;
-			colorDesc.SampleDesc.Quality = 0;
-			auto debugMSResolveTargetTexture = std::make_shared<Texture>(*m_Device, colorDesc, &colorClearValue);
-			debugMSResolveTargetTexture->SetName(L"Debug Render Target");
-			m_DebugViewRT->AttachTexture(AttachmentPoint::Color0, debugMSResolveTargetTexture);
+			// Debug texture will be MS resolve target of debugColorMSTexture, does not need to be a render target
+			auto debugColorDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+				sk_HDRFormat, m_WindowWidth, m_WindowHeight, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_NONE
+			);
+			m_DebugViewTexture = std::make_shared<Texture>(*m_Device, debugColorDesc);
+			m_DebugViewTexture->SetName(L"Debug Render Target");
 
+			// EditorGui::Get().RegisterImageSRV is technically done in OnResize() function on first frame, keeping this to be clear
 			D3D12_SHADER_RESOURCE_VIEW_DESC debugSRVDesc {};
-			ZeroMemory(&debugSRVDesc, sizeof(debugSRVDesc));
 			debugSRVDesc.Format = sk_HDRFormat;
 			debugSRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 			debugSRVDesc.Texture2D.MipLevels = 1;
 			debugSRVDesc.Texture2D.MostDetailedMip = 0;
-			debugSRVDesc.Texture2D.PlaneSlice = 0;
 			debugSRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-			EditorGui::Get().RegisterImageSRV(*m_Device, debugMSResolveTargetTexture, &debugSRVDesc, EditorGui::ImGuiDebugSRVIndex::DebugCamera);
+			EditorGui::Get().RegisterImageSRV(*m_Device, m_DebugViewTexture, &debugSRVDesc, EditorGui::ImGuiDebugSRVIndex::DebugCamera);
 		}
 	}
 
@@ -332,6 +331,7 @@ uint32_t DemoGame::Run() {
 	return retCode;
 }
 
+// NOTE: OnResize is (seemingly) guaranteed to be called on the first frame by windows message loop
 void DemoGame::OnResize(const ResizeEventArgs& e) {
 	m_WindowWidth  = std::max(1u, e.Width);
 	m_WindowHeight = std::max(1u, e.Height);
@@ -341,11 +341,25 @@ void DemoGame::OnResize(const ResizeEventArgs& e) {
 	float aspectRatio = m_WindowWidth / (float)m_WindowHeight;
 	m_MainCamera->Set_Projection(m_MainCamera->Get_FoV(), aspectRatio, s_ZNear, s_ZFar);
 
+	/// TODO: low priority - make fov tweakable
+	m_DebugCamera->Set_Projection(sk_DefaultFOV, aspectRatio, s_ZNear, s_ZFar);
+
 	m_HDR_MS_RT->Resize(m_WindowWidth, m_WindowHeight);
 	m_PostProcessRTs->Resize(m_WindowWidth, m_WindowHeight);
 	
 	m_DebugView_MS_RT->Resize(m_WindowWidth, m_WindowHeight);
-	m_DebugViewRT->Resize(m_WindowWidth, m_WindowHeight);
+
+	m_DebugViewTexture->Resize(m_WindowWidth, m_WindowHeight);
+
+	// NOTE: We have to reassign SRV for ImGui texture display since resource gets detroyed/recreated when resized. 
+	//       This is inconvenient, but needed for current implementation.
+	D3D12_SHADER_RESOURCE_VIEW_DESC debugSRVDesc{};
+	debugSRVDesc.Format = sk_HDRFormat;
+	debugSRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	debugSRVDesc.Texture2D.MipLevels = 1;
+	debugSRVDesc.Texture2D.MostDetailedMip = 0;
+	debugSRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	EditorGui::Get().RegisterImageSRV(*m_Device, m_DebugViewTexture, &debugSRVDesc, EditorGui::ImGuiDebugSRVIndex::DebugCamera);
 
 	m_BloomEffect->ResizeRenderTargets(m_WindowWidth, m_WindowHeight);
 	m_OutlineEffect->ResizeRenderTargets(m_WindowWidth, m_WindowHeight);
@@ -416,10 +430,9 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 	// DEBUG VIEW
 	m_DemoScene->Render(*m_DebugView_MS_RT, *directCommandList, e, *m_DebugCamera, m_WindowWidth, m_WindowHeight);
 	directCommandList->ResolveSubresource(
-		m_DebugViewRT->GetTexture(AttachmentPoint::Color0),
+		m_DebugViewTexture,
 		m_DebugView_MS_RT->GetTexture(AttachmentPoint::Color0)
 	);
-
 
 	/// Post Processing / UI
 	// Note: 

@@ -72,7 +72,7 @@ public:
 	// Consider moving this to base class
 	void RenderBoundingBox(CommandList& directCommandList, const UpdateEventArgs& e, const Camera& camera, XMFLOAT4 color);
 
-	void Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, const Camera& camera, uint32_t windowWidth, uint32_t windowHeight, bool b_EnableFrustumCull = true, bool b_RenderWireframe = false);
+	void Render(CommandList& directCommandList, const UpdateEventArgs& e, const Scene& scene, const Camera& camera, uint32_t windowWidth, uint32_t windowHeight, bool b_RenderWireframe = false);
 	void RenderSilhouette(CommandList& directCommandList, const UpdateEventArgs& e, UnlitPSO* unlitPSO, XMFLOAT4 color, const Camera& camera);
 	void RenderToDirectionalShadowMap(CommandList& directCommandList, const DirectionalLight& directionalLight);
 	void RenderToPointLightShadowMap(CommandList& directCommandList, const PointLight& pointLight);

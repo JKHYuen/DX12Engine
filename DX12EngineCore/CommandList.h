@@ -154,7 +154,7 @@ public:
      * Resolve a multisampled resource into a non-multisampled resource.
      */
     void ResolveSubresource(
-        const std::shared_ptr<Resource>&, const std::shared_ptr<Resource>&,
+        const std::shared_ptr<Resource>& dstRes, const std::shared_ptr<Resource>& srcRes,
         uint32_t dstSubresource = 0, uint32_t srcSubresource = 0
     );
 

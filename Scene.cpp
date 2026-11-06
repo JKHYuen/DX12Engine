@@ -76,7 +76,7 @@ void Scene::SetSkybox(CommandList& copyCommandList, CommandList& computeCommandL
 	m_Skybox->SetCubemap(m_Device, copyCommandList, computeCommandList, hdrTextureName);
 }
 
-void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e, Camera& camera, uint32_t windowWidth, uint32_t windowHeight, bool b_EnableFrustumCulling) {
+void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e, Camera& camera, uint32_t windowWidth, uint32_t windowHeight) {
 	camera.UpdateFrustum();
 
 	// Render depth from directional light
@@ -115,7 +115,7 @@ void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList,
 	// All game objects use the same PSO/root sig right now
 	for(auto& o : m_SceneObjects) {
 		if(PBRGameObject* pbrO = dynamic_cast<PBRGameObject*>(o.get())) {
-			pbrO->Render(directCommandList, e, *this, camera, windowWidth, windowHeight, b_EnableFrustumCulling, mb_WireframeRender);
+			pbrO->Render(directCommandList, e, *this, camera, windowWidth, windowHeight, mb_WireframeRender);
 		}
 	}
 }

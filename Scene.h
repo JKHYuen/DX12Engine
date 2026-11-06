@@ -75,7 +75,7 @@ public:
 	void SetSkybox(CommandList& copyCommandList, CommandList& computeCommandList, const std::wstring& hdrTextureName);
 	
 	// Window width and height only used for shader buffers that need it, this is the most straight forward way to pass it for now
-	void Render(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e, Camera& camera, uint32_t windowWidth, uint32_t windowHeight, bool b_EnableFrustumCulling = true);
+	void Render(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e, Camera& camera, uint32_t windowWidth, uint32_t windowHeight);
 	// pickedObject can be nullptr
 	void RenderBoundingBoxes(const RenderTarget& outputRT, CommandList& directCommandList, const UpdateEventArgs& e, const Camera& camera, UnlitPrimitivePSO* unlitPrimitivePSO, GameObject* pickedObject);
 

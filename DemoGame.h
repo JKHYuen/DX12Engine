@@ -63,7 +63,7 @@ private:
     std::unique_ptr<RenderTargetPair> m_PostProcessRTs;
     std::unique_ptr<RenderTarget> m_HDR_MS_RT;
     std::unique_ptr<RenderTarget> m_DebugView_MS_RT;
-    std::unique_ptr<RenderTarget> m_DebugViewRT;
+    std::shared_ptr<Texture> m_DebugViewTexture;
 
     std::shared_ptr<Device>    m_Device;
     std::shared_ptr<Window>    m_Window;

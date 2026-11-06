@@ -315,8 +315,8 @@ EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWN
 
 	ImVec4 accentColor1   = ImVec4(0.1f, 0.13f, 0.2f, 1.0f);
 	ImVec4 accentColor1_h = ImVec4(0.12f, 0.15f, 0.22f, 1.0f);
-	ImVec4 accentColor3   = ImVec4(0.15f, 0.18f, 0.25f, 1.0f);
-	ImVec4 accentColor3_h = ImVec4(0.17f, 0.20f, 0.27f, 1.0f);
+	ImVec4 accentColor2   = ImVec4(0.15f, 0.18f, 0.25f, 1.0f);
+	ImVec4 accentColor2_h = ImVec4(0.17f, 0.20f, 0.27f, 1.0f);
 	//style.Colors[ImGuiCol_WindowBg]             = accentColor1;
 	//style.Colors[ImGuiCol_Border]               = ImVec4(0.31f, 0.31f, 1.00f, 0.00f);
 	//style.Colors[ImGuiCol_BorderShadow]         = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
@@ -332,14 +332,14 @@ EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWN
 	//style.Colors[ImGuiCol_ScrollbarGrabHovered] = accentColor1_h;
 	//style.Colors[ImGuiCol_ScrollbarGrabActive]  = accentColor1;
 	//style.Colors[ImGuiCol_CheckMark]            = accentColor1;
-	style.Colors[ImGuiCol_SliderGrab]            = accentColor3;
+	style.Colors[ImGuiCol_SliderGrab]            = accentColor2;
 	//style.Colors[ImGuiCol_SliderGrabActive]      = accentColor3;
-	//style.Colors[ImGuiCol_Button]               = ImVec4(0.47f, 0.77f, 0.83f, 0.14f);
-	//style.Colors[ImGuiCol_ButtonHovered]        = accentColor1;
-	//style.Colors[ImGuiCol_ButtonActive]         = accentColor1;
-	style.Colors[ImGuiCol_Header]               = accentColor3;
-	style.Colors[ImGuiCol_HeaderHovered]        = accentColor3_h;
-	style.Colors[ImGuiCol_HeaderActive]         = accentColor3_h;
+	style.Colors[ImGuiCol_Button]               = accentColor2;
+	style.Colors[ImGuiCol_ButtonHovered]        = accentColor1;
+	style.Colors[ImGuiCol_ButtonActive]         = accentColor2_h;
+	style.Colors[ImGuiCol_Header]               = accentColor2;
+	style.Colors[ImGuiCol_HeaderHovered]        = accentColor2_h;
+	style.Colors[ImGuiCol_HeaderActive]         = accentColor2_h;
 	//style.Colors[ImGuiCol_Separator]            = ImVec4(0.14f, 0.16f, 0.19f, 1.00f);
 	style.Colors[ImGuiCol_SeparatorHovered]     = accentColor1_h;
 	style.Colors[ImGuiCol_SeparatorActive]      = accentColor1;
@@ -441,9 +441,11 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 	};
 
 	if(sb_ShowDebugWindow) {
+		ImGui::SetNextWindowPos({ (float)game.m_WindowWidth * 0.01f, (float)game.m_WindowHeight * 0.01f }, ImGuiCond_Once);
+
 		// b_CurrentDebugWindowState added only for x button to work
 		bool b_CurrentDebugWindowState = sb_ShowDebugWindow;
-		ImGui::Begin("DX12 Engine", &b_CurrentDebugWindowState, ImGuiWindowFlags_NoCollapse);
+		ImGui::Begin("DX12 Engine", &b_CurrentDebugWindowState);
 		sb_ShowDebugWindow = b_CurrentDebugWindowState;
 
 		// Exit button / Font scaler
@@ -489,19 +491,26 @@ LSHIFT: Move fast\n\
 			ImGui::Spacing();
 		}
 
-		/// TEST
-		if(ImGui::TreeNode("Debug Camera")) {
-			static float imageScale = 0.25f;
-			ImGui::SliderFloat("##Debug Camera Texture Scale", &imageScale, 0.0, 1.0, "%.2fx");
-			ImVec2 imageSize = ImVec2(1920.0f * imageScale, 1080.0f * imageScale);
+		// Debug Camera
+		{
+			static bool sb_OpenDebugCameraWindow = false;
+			if(sb_OpenDebugCameraWindow) {
+				if(ImGui::Button("Close Debug Camera")) {
+					sb_OpenDebugCameraWindow = false;
+				}
 
-			ImGui::Image(
-				(ImTextureID)GetImageSRVAllocation(EditorGui::ImGuiDebugSRVIndex::DebugCamera).gpuHandle.ptr,
-				imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f)
-			);
-			ImGui::TreePop();
+				ImGui::SetNextWindowPos({ (float)game.m_WindowWidth * 0.99f, (float)game.m_WindowHeight * 0.99f }, ImGuiCond_Once, {1.0f, 1.0f});
+				ImGui::Begin("Debug Camera", &sb_OpenDebugCameraWindow, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_AlwaysAutoResize);
+				static float imageScale = 0.25f;
+				ImageWithSRV("##Debug Camera Texture Scale", ImGuiDebugSRVIndex::DebugCamera, game.m_WindowWidth, game.m_WindowHeight, imageScale);
+				ImGui::End();
+			}
+			else {
+				if(ImGui::Button("Open Debug Camera")) {
+					sb_OpenDebugCameraWindow = true;
+				}
+			}
 		}
-		/// END TEST
 
 		if(ImGui::CollapsingHeader("Performance", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::TextDisabled("Resolution: %d x %d", game.m_WindowWidth, game.m_WindowHeight);
@@ -684,15 +693,8 @@ LSHIFT: Move fast\n\
 
 				// Shadow debug
 				if(ImGui::TreeNode("Shadow Debug")) {
-					static float s_ImageScale = 0.25f;
-					ImGui::SliderFloat("##DirectionalShadowMapTextureScale", &s_ImageScale, 0.0, 1.0, "%.2fx");
-					ImVec2 imageSize = ImVec2(1920.0f * s_ImageScale, 1080.0f * s_ImageScale);
-
-					// Directional shadow map debug view
-					ImGui::Image(
-						(ImTextureID)GetImageSRVAllocation(EditorGui::ImGuiDebugSRVIndex::DirectionalShadowMap).gpuHandle.ptr,
-						imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f)
-					);
+					static float imageScale = 0.1f;
+					ImageWithSRV("##DirectionalShadowMapTextureScale", ImGuiDebugSRVIndex::DirectionalShadowMap, scene.m_DirectionalLight->GetViewPort().Width, scene.m_DirectionalLight->GetViewPort().Height, imageScale);
 					ImGui::TreePop();
 				}
 
@@ -713,13 +715,7 @@ LSHIFT: Move fast\n\
 			// Might have something to do with alpha blending when ImGui theme has transparency
 			if(ImGui::TreeNode("Prefilter Debug")) {
 				static float imageScale = 0.25f;
-				ImGui::SliderFloat("##Bloom Texture Scale", &imageScale, 0.0, 1.0, "%.2fx");
-				ImVec2 imageSize = ImVec2(1920.0f * imageScale, 1080.0f * imageScale);
-
-				ImGui::Image(
-					(ImTextureID)GetImageSRVAllocation(EditorGui::ImGuiDebugSRVIndex::BloomPrefilter).gpuHandle.ptr,
-					imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f)
-				);
+				ImageWithSRV("##Bloom Texture Scale", ImGuiDebugSRVIndex::BloomPrefilter, game.m_WindowWidth, game.m_WindowHeight, imageScale);
 				ImGui::TreePop();
 			}
 		}
@@ -954,4 +950,14 @@ void EditorGui::DrawObjectInspector(Device& device, const DemoGame& game) {
 
 	/// Object Inspector Window End
 	ImGui::End();
+}
+
+void EditorGui::ImageWithSRV(const char* label, ImGuiDebugSRVIndex srvIndex, uint32_t baseWidth, uint32_t baseHeight, float& outImageScale) {
+	ImGui::SliderFloat(label, &outImageScale, 0.0, 1.0, "%.2fx");
+	ImVec2 imageSize = ImVec2(baseWidth * outImageScale, baseHeight * outImageScale);
+
+	ImGui::Image(
+		(ImTextureID)GetImageSRVAllocation(srvIndex).gpuHandle.ptr,
+		imageSize, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f)
+	);
 }

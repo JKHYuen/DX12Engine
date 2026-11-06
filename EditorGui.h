@@ -86,6 +86,8 @@ public:
 private:
 	EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWND hwnd);
 
+	void ImageWithSRV(const char* label, ImGuiDebugSRVIndex srvIndex, uint32_t baseWidth, uint32_t baseHeight, float& outImageScale);
+
 	bool sb_ShowDebugWindow = false;
 	bool sb_ObjectInspectorState = false;
 	bool sb_PickerEnabled = false; // See comment on SetPickerState()

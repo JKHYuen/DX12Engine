@@ -81,7 +81,6 @@ GameObject* Picker::MouseRaycast(Scene& scene, const Camera& camera, int mouseX,
 		XMVECTOR direction {};
 		GetPickerRayVectors(mouseX, mouseY, windowWidth, windowHeight, camera, origin, direction);
 
-		/// TODO: combine these loops
 		for(auto& go : scene.m_SceneObjects) {
 			float hitDistance = 0.0f;
 			if(go->GetAABB().Intersects(origin, direction, hitDistance)) {
@@ -90,6 +89,8 @@ GameObject* Picker::MouseRaycast(Scene& scene, const Camera& camera, int mouseX,
 			}
 		}
 
+		// Polymorphism can be used for point lights with above loop since they are GameObjects, 
+		// but they are kept seperate for 
 		for(auto& pl : scene.m_PointLights) {
 			float hitDistance = 0.0f;
 			if(pl->GetAABB().Intersects(origin, direction, hitDistance)) {
@@ -97,7 +98,6 @@ GameObject* Picker::MouseRaycast(Scene& scene, const Camera& camera, int mouseX,
 				m_RaycastCache.emplace_back(hitDistance, pl.get());
 			}
 		}
-		/// END TODO
 
 		if(b_RayCastHit) {
 			// Sort lowest to highest distance from camera

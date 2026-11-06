@@ -73,8 +73,12 @@ public:
     void XM_CALLCONV Translate(DirectX::FXMVECTOR translation, Space space = Space::Local);
     void Rotate(DirectX::FXMVECTOR quaternion);
 
-
     void UpdateFrustum();
+
+    // See m_FrustumPlanesOverride comment
+    void SetFrustumOverride(const std::array<DirectX::XMFLOAT4, 6>* overrideFrustum) { m_FrustumPlanesOverride = overrideFrustum; };
+
+    const std::array<DirectX::XMFLOAT4, 6>& GetFrustum() const { return m_FrustumPlanes; };
 
     // Bias is for vertex displacement factor
     bool CheckAABBInFrustum(const DirectX::BoundingBox& aabb, float bias) const;
@@ -97,6 +101,11 @@ protected:
     AlignedData* pData;
 
     std::array<DirectX::XMFLOAT4, 6> m_FrustumPlanes {};
+
+    // Used if a different frustum other than this camera's is to be used for an operation.
+    // Only CheckAABBInFrustum() uses this, using a member var rather then a param in the relevant function because it simplifies render code. Will refactor if needed.
+    // m_FrustumPlanes is kept and updated
+    const std::array<DirectX::XMFLOAT4, 6>* m_FrustumPlanesOverride {};
 
     // projection parameters
     float m_vFOV;   

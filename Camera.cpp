@@ -169,52 +169,54 @@ void Camera::UpdateFrustum() {
 }
 
 bool Camera::CheckAABBInFrustum(const BoundingBox& aabb, float bias) const {
+    const std::array<DirectX::XMFLOAT4, 6>& frustum = m_FrustumPlanesOverride ? *m_FrustumPlanesOverride : m_FrustumPlanes;
+
     for(int i = 0; i < 6; i++) {
-        if (m_FrustumPlanes[i].x * (aabb.Center.x - aabb.Extents.x) +
-            m_FrustumPlanes[i].y * (aabb.Center.y - aabb.Extents.y) +
-            m_FrustumPlanes[i].z * (aabb.Center.z - aabb.Extents.z) + m_FrustumPlanes[i].w >= -bias) {
+        if (frustum[i].x * (aabb.Center.x - aabb.Extents.x) +
+            frustum[i].y * (aabb.Center.y - aabb.Extents.y) +
+            frustum[i].z * (aabb.Center.z - aabb.Extents.z) + frustum[i].w >= -bias) {
             continue;
         }
 
-        if (m_FrustumPlanes[i].x * (aabb.Center.x + aabb.Extents.x) +
-            m_FrustumPlanes[i].y * (aabb.Center.y - aabb.Extents.y) +
-            m_FrustumPlanes[i].z * (aabb.Center.z - aabb.Extents.z) + m_FrustumPlanes[i].w >= -bias) {
+        if (frustum[i].x * (aabb.Center.x + aabb.Extents.x) +
+            frustum[i].y * (aabb.Center.y - aabb.Extents.y) +
+            frustum[i].z * (aabb.Center.z - aabb.Extents.z) + frustum[i].w >= -bias) {
             continue;
         }
 
-        if (m_FrustumPlanes[i].x * (aabb.Center.x - aabb.Extents.x) +
-            m_FrustumPlanes[i].y * (aabb.Center.y + aabb.Extents.y) +
-            m_FrustumPlanes[i].z * (aabb.Center.z - aabb.Extents.z) + m_FrustumPlanes[i].w >= -bias) {
+        if (frustum[i].x * (aabb.Center.x - aabb.Extents.x) +
+            frustum[i].y * (aabb.Center.y + aabb.Extents.y) +
+            frustum[i].z * (aabb.Center.z - aabb.Extents.z) + frustum[i].w >= -bias) {
             continue;
         }
 
-        if (m_FrustumPlanes[i].x * (aabb.Center.x - aabb.Extents.x) +
-            m_FrustumPlanes[i].y * (aabb.Center.y - aabb.Extents.y) +
-            m_FrustumPlanes[i].z * (aabb.Center.z + aabb.Extents.z) + m_FrustumPlanes[i].w >= -bias) {
+        if (frustum[i].x * (aabb.Center.x - aabb.Extents.x) +
+            frustum[i].y * (aabb.Center.y - aabb.Extents.y) +
+            frustum[i].z * (aabb.Center.z + aabb.Extents.z) + frustum[i].w >= -bias) {
             continue;
         }
 
-        if (m_FrustumPlanes[i].x * (aabb.Center.x + aabb.Extents.x) +
-            m_FrustumPlanes[i].y * (aabb.Center.y + aabb.Extents.y) +
-            m_FrustumPlanes[i].z * (aabb.Center.z - aabb.Extents.z) + m_FrustumPlanes[i].w >= -bias) {
+        if (frustum[i].x * (aabb.Center.x + aabb.Extents.x) +
+            frustum[i].y * (aabb.Center.y + aabb.Extents.y) +
+            frustum[i].z * (aabb.Center.z - aabb.Extents.z) + frustum[i].w >= -bias) {
             continue;
         }
 
-        if (m_FrustumPlanes[i].x * (aabb.Center.x + aabb.Extents.x) +
-            m_FrustumPlanes[i].y * (aabb.Center.y - aabb.Extents.y) +
-            m_FrustumPlanes[i].z * (aabb.Center.z + aabb.Extents.z) + m_FrustumPlanes[i].w >= -bias) {
+        if (frustum[i].x * (aabb.Center.x + aabb.Extents.x) +
+            frustum[i].y * (aabb.Center.y - aabb.Extents.y) +
+            frustum[i].z * (aabb.Center.z + aabb.Extents.z) + frustum[i].w >= -bias) {
             continue;
         }
 
-        if (m_FrustumPlanes[i].x * (aabb.Center.x - aabb.Extents.x) +
-            m_FrustumPlanes[i].y * (aabb.Center.y + aabb.Extents.y) +
-            m_FrustumPlanes[i].z * (aabb.Center.z + aabb.Extents.z) + m_FrustumPlanes[i].w >= -bias) {
+        if (frustum[i].x * (aabb.Center.x - aabb.Extents.x) +
+            frustum[i].y * (aabb.Center.y + aabb.Extents.y) +
+            frustum[i].z * (aabb.Center.z + aabb.Extents.z) + frustum[i].w >= -bias) {
             continue;
         }
 
-        if (m_FrustumPlanes[i].x * (aabb.Center.x + aabb.Extents.x) +
-            m_FrustumPlanes[i].y * (aabb.Center.y + aabb.Extents.y) +
-            m_FrustumPlanes[i].z * (aabb.Center.z + aabb.Extents.z) + m_FrustumPlanes[i].w >= -bias) {
+        if (frustum[i].x * (aabb.Center.x + aabb.Extents.x) +
+            frustum[i].y * (aabb.Center.y + aabb.Extents.y) +
+            frustum[i].z * (aabb.Center.z + aabb.Extents.z) + frustum[i].w >= -bias) {
             continue;
         }
 

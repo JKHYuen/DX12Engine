@@ -115,6 +115,8 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 		XMVECTOR cameraUp = XMVectorSet(0, 1, 0, 0);
 		m_MainCamera->Set_LookAt(cameraPos, cameraTarget, cameraUp);
 		m_DebugCamera->Set_LookAt(cameraPos, cameraTarget, cameraUp);
+
+		m_DebugCamera->SetFrustumOverride(&m_MainCamera->GetFrustum());
 	}
 
 	// Create screen RenderTargets

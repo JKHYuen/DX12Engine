@@ -57,6 +57,7 @@ void XM_CALLCONV GameObject::QuatRotate(FXMVECTOR quaternion) {
 	XMFLOAT4X4 tempMat {};
 	XMStoreFloat4x4(&tempMat, XMMatrixMultiply(XMLoadFloat4x4(&m_RotationMat), XMMatrixRotationQuaternion(quaternion)));
 
+	// Get roll, pitch, yaw from rotation matrix 
 	// Source: https://stackoverflow.com/a/67421550
 	DirectX::XMVECTOR from { XMVectorSet(tempMat._12, tempMat._31, 0.0f, 0.0f) };
 	DirectX::XMVECTOR to   { XMVectorSet(tempMat._22, tempMat._33, 0.0f, 0.0f) };

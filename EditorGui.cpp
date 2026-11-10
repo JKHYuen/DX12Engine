@@ -113,6 +113,7 @@ namespace {
 		ImGui::TextDisabled("HDR");
 	}
 
+	// Note: this is a static function with static variables
 	// Not technically compatible with operations that aren't translate, rotate and/or scale, i.e. other ImGuizmo::OPERATION's
 	// All params prefixed "s_" is static to object inspector and are out values
 	// C arrays are used for easy use with ImGui
@@ -173,8 +174,8 @@ namespace {
 		ImGuiIO& io = ImGui::GetIO();
 		ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
 		if(ImGuizmo::Manipulate(*s_CamViewMat.m, *s_CamProjMat.m, s_CurrentGizmoOperation, ImGuizmo::WORLD, s_GizmoSRTMat, s_GizmoDeltaMat, NULL)) {
-			// Note: gizmo currently only supports world space, world space rotations require special care using values in s_GizmoDeltaMat, 
-			//       translation and scale are updated by decomposing s_GizmoSRTMat values for convenience since we need to update 
+			// Note: gizmo currently only supports world space, world space rotations require special care using values in s_GizmoDeltaMat. 
+			//       Translation and scale are updated by decomposing s_GizmoSRTMat values for convenience since we need to update 
 			//       s_ObjTranslation and s_ObjScale anyways
 			static float rtDelta[3], dummyVec[3];
 			ImGuizmo::DecomposeMatrixToComponents(s_GizmoDeltaMat, dummyVec, rtDelta, dummyVec);
@@ -234,6 +235,9 @@ namespace {
 			ImGui::PopItemWidth();
 		}
 	}
+
+	// This can be a member variable
+	bool sb_EnableDirLightGizmo = false;
 }
 
 EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWND hwnd) {
@@ -511,6 +515,7 @@ LSHIFT: Move fast\n\
 				}
 			}
 		}
+		ImGuiHelpMarker("Fixed camera with post processing disabled, mainly used to show frustum culling currently.");
 
 		if(ImGui::CollapsingHeader("Performance", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::TextDisabled("Resolution: %d x %d", game.m_WindowWidth, game.m_WindowHeight);
@@ -653,7 +658,7 @@ LSHIFT: Move fast\n\
 			ImGui::SetNextItemOpen(true, ImGuiTreeNodeFlags_DefaultOpen);
 			if(ImGui::TreeNode("Directional Light")) {
 				static DirectionalLight& sceneLight = *(scene.m_DirectionalLight);
-				static float s_SceneDirLightEulerAngle[2];
+				static float s_SceneDirLightEulerDegreeAngle[2];
 				static float s_SceneDirLightColor[3];
 				static float s_ShadowNearFarZ[2];
 				static float s_ShadowRenderDistance;
@@ -662,8 +667,8 @@ LSHIFT: Move fast\n\
 				if(!sb_DirInit) {
 					sb_DirInit = true;
 
-					XMFLOAT3 startingDirAngles = sceneLight.GetEulerAngles();
-					memcpy(s_SceneDirLightEulerAngle, &startingDirAngles, sizeof(float) * 2);
+					XMFLOAT3 startingDirAngles = sceneLight.GetEulerDegreeAngles();
+					memcpy(s_SceneDirLightEulerDegreeAngle, &startingDirAngles, sizeof(float) * 2);
 
 					XMFLOAT4 startingSceneLightColor = sceneLight.GetColor();
 					memcpy(s_SceneDirLightColor, &startingSceneLightColor, sizeof(float) * 3);
@@ -674,8 +679,65 @@ LSHIFT: Move fast\n\
 					s_ShadowRenderDistance = sceneLight.GetShadowRenderDistance();
 				}
 
-				if(ImGui::DragFloat2("Direction", s_SceneDirLightEulerAngle, 0.1f, 0.0f, 360.0f, "%.2f", kSliderFlags | ImGuiSliderFlags_WrapAround)) {
-					sceneLight.SetEulerAngles(s_SceneDirLightEulerAngle[0], s_SceneDirLightEulerAngle[1], 0.0f);
+
+				if(ImGui::DragFloat2("Direction", s_SceneDirLightEulerDegreeAngle, 0.1f, 0.0f, 360.0f, "%.2f", kSliderFlags | ImGuiSliderFlags_WrapAround)) {
+					sceneLight.SetEulerDegreeAngles(s_SceneDirLightEulerDegreeAngle[0], s_SceneDirLightEulerDegreeAngle[1], 0.0f);
+				}
+
+				ImGui::SameLine();
+
+				// Direction Light Rotate Gizmo
+				{
+					if(sb_EnableDirLightGizmo) {
+						if(ImGui::Button("Close Gizmo")) {
+							sb_EnableDirLightGizmo = false;
+						}
+						static float s_DirGizmoModelMat[16]{};
+						static float s_DirGizmoDeltaMat[16]{};
+						static float s_GizmoEulerDegreeAngleDelta[3]{};
+
+						static float s_DummyVec[3]{};
+
+						// Position dir light rotation gizmo in front of camera every frame
+						{
+							XMFLOAT3 gizmoTranslation{};
+							XMVECTOR gizmoPositionVec = game.m_MainCamera->Get_Translation();
+							gizmoPositionVec += XMVector3Rotate(XMVectorSet(0, 0, 5, 1), game.m_MainCamera->Get_Rotation());
+							XMStoreFloat3(&gizmoTranslation, gizmoPositionVec);
+							float gizmoTranslationArr[3]{ gizmoTranslation.x, gizmoTranslation.y, gizmoTranslation.z };
+							ImGuizmo::RecomposeMatrixFromComponents(gizmoTranslationArr, s_DummyVec, s_DummyVec, s_DirGizmoModelMat);
+						}
+						
+						// Render dir light gizmo and update rotation values
+						static XMFLOAT4X4 s_CamViewMat{};
+						static XMFLOAT4X4 s_CamProjMat{};
+						XMStoreFloat4x4(&s_CamViewMat, game.m_MainCamera->Get_ViewMatrix());
+						XMStoreFloat4x4(&s_CamProjMat, game.m_MainCamera->Get_ProjectionMatrix());
+						ImGuiIO& io = ImGui::GetIO();
+						ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+
+						float defaultRotLineThickness = ImGuizmo::GetStyle().RotationLineThickness;
+						ImGuizmo::GetStyle().RotationLineThickness = 6.0f;
+						if(ImGuizmo::Manipulate(*s_CamViewMat.m, *s_CamProjMat.m, ImGuizmo::ROTATE_X | ImGuizmo::ROTATE_Y, ImGuizmo::WORLD, s_DirGizmoModelMat, s_DirGizmoDeltaMat)) {
+							ImGuizmo::DecomposeMatrixToComponents(s_DirGizmoDeltaMat, s_DummyVec, s_GizmoEulerDegreeAngleDelta, s_DummyVec);
+							s_SceneDirLightEulerDegreeAngle[0] += s_GizmoEulerDegreeAngleDelta[2];
+							s_SceneDirLightEulerDegreeAngle[0] += s_SceneDirLightEulerDegreeAngle[0] < 0.0f ? 360.0f : 0.0f;
+							s_SceneDirLightEulerDegreeAngle[1] += s_GizmoEulerDegreeAngleDelta[0];
+							s_SceneDirLightEulerDegreeAngle[1] += s_SceneDirLightEulerDegreeAngle[1] < 0.0f ? 360.0f : 0.0f;
+
+							s_SceneDirLightEulerDegreeAngle[0] = std::fmod(s_SceneDirLightEulerDegreeAngle[0], 360.0f);
+							s_SceneDirLightEulerDegreeAngle[1] = std::fmod(s_SceneDirLightEulerDegreeAngle[1], 360.0f);
+
+							sceneLight.SetEulerDegreeAngles(s_SceneDirLightEulerDegreeAngle[0], s_SceneDirLightEulerDegreeAngle[1], 0.0f);
+						}
+						ImGuizmo::GetStyle().RotationLineThickness = defaultRotLineThickness;
+					}
+					else {
+						if(ImGui::Button("Open Gizmo")) {
+							if(sb_ObjectInspectorState) game.m_Picker->ClearPickedObject();
+							sb_EnableDirLightGizmo = true;
+						}
+					}
 				}
 
 				if(ImGui::ColorEdit3("Light Color", s_SceneDirLightColor, kHDRColorEditFlags)) {
@@ -755,6 +817,8 @@ void EditorGui::DrawObjectInspector(Device& device, const DemoGame& game) {
 	GameObject* pickedGameObject = game.m_Picker->m_PickedObject;
 	if(pickedGameObject == nullptr) return;
 
+	sb_EnableDirLightGizmo = false;
+
 	/// Note: Following code is very boiler plate. Some values need preprocessing before use in ImGui.
 	///       ImGui needs C arrays which requires extra work, single numerical values rely on friend class access. (not ideal)
 	// GameObject (base class) vars 
@@ -774,8 +838,8 @@ void EditorGui::DrawObjectInspector(Device& device, const DemoGame& game) {
 
 	static GameObject* s_LastPickedObject {};
 
-	PointLight* pickedPointLight = dynamic_cast<PointLight*>(game.m_Picker->m_PickedObject);
-	PBRGameObject* pickedPBRGameObject = dynamic_cast<PBRGameObject*>(game.m_Picker->m_PickedObject);
+	PointLight* pickedPointLight = dynamic_cast<PointLight*>(pickedGameObject);
+	PBRGameObject* pickedPBRGameObject = dynamic_cast<PBRGameObject*>(pickedGameObject);
 
 	// If newly picked object, update variables
 	if(pickedGameObject != s_LastPickedObject) {

@@ -45,7 +45,7 @@ public:
     void SetColor(float r, float g, float b) { m_Color = XMFLOAT4(r, g, b, 1.0f); }
 
     // rotX, rotY, rotZ is in degrees
-    void SetEulerAngles(float rotX, float rotY, float rotZ);
+    void SetEulerDegreeAngles(float rotX, float rotY, float rotZ);
 
     XMFLOAT4 GetNormDirectionVector() const { return m_NormDirectionVector; }
 
@@ -56,7 +56,7 @@ public:
     float GetShadowBias() const { return m_ShadowBias; }
     void SetShadowBias(float newValue) { m_ShadowBias = newValue; }
 
-    XMFLOAT3 GetEulerAngles() const { return m_EulerAngles; }
+    XMFLOAT3 GetEulerDegreeAngles() const { return m_EulerDegreeAngles; }
 
     XMFLOAT4X4 GetProjMatrix() const { return m_LightProjMat; }
     XMFLOAT4X4 GetViewMatrix() const { return m_LightViewMatrix; }
@@ -80,7 +80,7 @@ private:
     // normalized 3d free vector representing direction of light
     XMFLOAT4 m_NormDirectionVector;
     // Keep euler angle representation for user facing values
-    XMFLOAT3 m_EulerAngles;
+    XMFLOAT3 m_EulerDegreeAngles;
 
     /// For shadow mapping
     float m_LightDistance; // distance of directional light from origin

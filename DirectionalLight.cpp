@@ -33,7 +33,7 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
     m_DirectionalShadowMapRT = std::make_unique<RenderTarget>();
 
     XMStoreFloat4x4(&m_LightProjMat, XMMatrixOrthographicLH(m_ShadowRenderDistance, m_ShadowRenderDistance, m_ShadowNearFarZ.x, m_ShadowNearFarZ.y));
-    SetEulerAngles(params.eulerDegreeDir.x, params.eulerDegreeDir.y, params.eulerDegreeDir.z);
+    SetEulerDegreeAngles(params.eulerDegreeDir.x, params.eulerDegreeDir.y, params.eulerDegreeDir.z);
 
     // Create directional light shadow map
     auto shadowMapDesc = CD3DX12_RESOURCE_DESC::Tex2D(
@@ -63,15 +63,15 @@ DirectionalLight::DirectionalLight(Device& device, DirectionalLightParams params
     EditorGui::Get().RegisterImageSRV(device, shadowMapDepthTexture, &srvDesc, EditorGui::ImGuiDebugSRVIndex::DirectionalShadowMap);
 }
 
-void DirectionalLight::SetEulerAngles(float rotX, float rotY, float rotZ) {
-    m_EulerAngles.x = std::fmod(rotX, 360.0f);
-    m_EulerAngles.y = std::fmod(rotY, 360.0f);
-    m_EulerAngles.z = std::fmod(rotZ, 360.0f);
+void DirectionalLight::SetEulerDegreeAngles(float rotX, float rotY, float rotZ) {
+    m_EulerDegreeAngles.x = std::fmod(rotX, 360.0f);
+    m_EulerDegreeAngles.y = std::fmod(rotY, 360.0f);
+    m_EulerDegreeAngles.z = std::fmod(rotZ, 360.0f);
 
     SetQuaternionAngle(XMQuaternionRotationRollPitchYaw(
-        XMConvertToRadians(m_EulerAngles.x),
-        XMConvertToRadians(m_EulerAngles.y),
-        XMConvertToRadians(m_EulerAngles.z)
+        XMConvertToRadians(m_EulerDegreeAngles.x),
+        XMConvertToRadians(m_EulerDegreeAngles.y),
+        XMConvertToRadians(m_EulerDegreeAngles.z)
     ));
 }
 

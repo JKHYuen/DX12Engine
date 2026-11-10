@@ -100,8 +100,8 @@ private:
     float m_Up {};
     float m_Down {};
 
-    float m_CameraPitch {};
-    float m_CameraYaw {};
+    float m_CurrentCameraPitch {};
+    float m_CurrentCameraYaw {};
 
     // Input state in current frame
     // A better input system would simplify need these variables

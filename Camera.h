@@ -83,7 +83,7 @@ public:
     // Bias is for vertex displacement factor
     bool CheckAABBInFrustum(const DirectX::BoundingBox& aabb, float bias) const;
 
-protected:
+private:
     virtual void UpdateViewMatrix() const;
     virtual void UpdateProjectionMatrix() const;
 

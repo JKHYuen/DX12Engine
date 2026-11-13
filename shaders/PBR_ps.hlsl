@@ -146,14 +146,14 @@ float2 ParallaxMapping(float2 texCoords, float3 viewDir) {
   
     // get initial values
     float2 currentTexCoords = texCoords;
-    float currentDepthMapValue = 1.0 - MaterialTex.Sample(AnisoWrapSampler, currentTexCoords).r;
+    float currentDepthMapValue = 1.0 - MaterialTex.Sample(AnisoWrapSampler, currentTexCoords).a;
 
     [loop]
     for (int i = 0; i < MaxParallaxLayers && currentLayerDepth < currentDepthMapValue; i++) {
         // shift texture coordinates along direction of P
         currentTexCoords -= deltaTexCoords;
         // get depthmap value at current texture coordinates
-        currentDepthMapValue = 1.0 - MaterialTex.Sample(AnisoWrapSampler, currentTexCoords).r;
+        currentDepthMapValue = 1.0 - MaterialTex.Sample(AnisoWrapSampler, currentTexCoords).a;
         // get depth of next layer
         currentLayerDepth += layerDepth;
     }
@@ -163,7 +163,7 @@ float2 ParallaxMapping(float2 texCoords, float3 viewDir) {
 
     // get depth after and before collision for linear interpolation
     float afterDepth = currentDepthMapValue - currentLayerDepth;
-    float beforeDepth = 1.0 - MaterialTex.Sample(AnisoWrapSampler, prevTexCoords).r - currentLayerDepth + layerDepth;
+    float beforeDepth = 1.0 - MaterialTex.Sample(AnisoWrapSampler, prevTexCoords).a - currentLayerDepth + layerDepth;
  
     // interpolation of texture coordinates
     float weight = afterDepth / (afterDepth - beforeDepth);

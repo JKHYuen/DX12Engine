@@ -4,10 +4,13 @@
 It was a challenging and time consuming process, but [this tutorial](https://www.3dgep.com/learning-directx-12-1/) series provided a good start. All source files that started from the tutorial have the orignial copyright notices in the headers. Major changes are documented but it is non-exhaustive, [see here](https://github.com/jpvanoosten/LearningDirectX12) for the original tutorial source.
 
 This is an ongoing project for learning rendering techniques, but I plan to eventually transition to a much more robust abstraction layer like [NVRHI](https://github.com/NVIDIA-RTX/NVRHI) for a more serious project. 
+
+***Windows 64-bit required, only tested on a NVIDIA gpu**
+
+**NOTE: This engine renders in HDR colors with floating point color buffers, however Windows HDR mode is not currently supported. Rendering still works, but tonemapping is not correct (will look dim).**
+
 ![ss1](https://github.com/JKHYuen/DX12Engine/blob/44c76ad8a003da1a300f92dfa999c3e3c889da47/screenshots/main.png)
 ![ss2](https://github.com/JKHYuen/DX12Engine/blob/44c76ad8a003da1a300f92dfa999c3e3c889da47/screenshots/imguiS.png)
-
-***Windows 64-bit required** 
 
 ## Feature Highlights
 - HDR physically based rendering (PBR) with image-based lighting (IBL)

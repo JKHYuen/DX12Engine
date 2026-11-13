@@ -28,7 +28,7 @@ This is an ongoing project for learning rendering techniques, but I plan to even
 		- this method does not use depth information, so it does not provide inner outlines and does not have any of the usual depth artifacts, which are desirable features for a scene editing tool
     - This implementation solves issues with common methods like [inverse hull](https://studio.uclaacm.com/byte-sized-tutorials/unity-urp-outline-shaders), which struggles with sharp edges and certain viewing angles (see images below)
   
- Before (Inverted Hull) / After (My implementation):
+ Before (Inverted Hull) / After (My Implementation):
  
 <img src="https://github.com/JKHYuen/DX12Engine/blob/c9b0f2530ed4b62dd1c865d97e62a1f2f2b02d50/screenshots/oldOutline1.png" width=40% height=40%> <img src="https://github.com/JKHYuen/DX12Engine/blob/aab66448e2da9b6e4181a5c78cb256873b2d230f/screenshots/outline1.png" width=40% height=40%>
 
@@ -55,8 +55,6 @@ Far objects retain an even outline thickness that scales in screen space:
 	- rotations supported, displacement maps not yet supported
 <img src="https://github.com/JKHYuen/DX12Engine/blob/c9b0f2530ed4b62dd1c865d97e62a1f2f2b02d50/screenshots/aabb.png" width=50% height=50%>
 
-- Scene object picking with mouse click
-	- Robust object outlining (geometry agnostic) using post processing
 - MSAA (will be replaced with TAA when switching to deferred rendering)
 	- defaults to x8 or highest hardware supports 
 

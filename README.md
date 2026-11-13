@@ -38,12 +38,12 @@ Far objects retain an even outline thickness that scales in screen space:
 - Parallax occlusion mapping with optional self shadowing
 - Directional light with shadow mapping (other types of lights delayed until switching to deferred rendering)
 	- Simple 3x3 multisample PCF using HLSL compare sampling for efficient soft shadows
-- Point Lights with cubemap shadow mapping (same PCF method as directional light shadows)
+- Point lights with cubemap shadow mapping (same PCF method as directional light shadows)
 <img src="https://github.com/JKHYuen/DX12Engine/blob/c9b0f2530ed4b62dd1c865d97e62a1f2f2b02d50/screenshots/plShadows.png" width=50% height=50%>
 
 - Object frustum culling
     - Use secondary debug camera render to see it work
-- Tessellation with DX hull and domain shaders with two modes:
+- Tessellation with hull and domain shaders with two modes:
 	- Basic uniform tessellation
 	- Distance based edge tessellation
 - UI for real time scene/material editing and debugging
@@ -55,8 +55,10 @@ Far objects retain an even outline thickness that scales in screen space:
 - Scene object picking with mouse click
 	- Robust object outlining (geometry agnostic) using post processing
 - MSAA (will be replaced with TAA when switching to deferred rendering)
+	- defaults to x8 or highest hardware supports 
 
-## Controls
+## Basic Controls
+See in app menu (F1) for full controls.
 - Click and drag to change numeric values, double click to type in values
 - Cursor and movement is disabled when menus are open
 - Hold **RIGHT CLICK** when menus are open to reenable camera look and movement

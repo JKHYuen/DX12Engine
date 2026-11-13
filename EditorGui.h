@@ -80,7 +80,7 @@ public:
 
 	// Different IGame's will need to write different versions of this function.
 	// For game switching support, this function probably has to exist elsewhere.
-	void DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& game);
+	void DrawGameDebugUI(Device& device, Scene& scene, DemoGame& game);
 	void DrawObjectInspector(Device& device, const DemoGame& game);
 
 private:

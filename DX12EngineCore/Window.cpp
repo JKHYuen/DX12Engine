@@ -33,7 +33,7 @@ void Window::Hide() {
     ::ShowWindow(m_hWnd, SW_HIDE);
 }
 
-bool Window::IsFullScreen() const {
+bool Window::GetCurrentFullscreenState() const {
     return m_IsFullscreen;
 }
 
@@ -88,10 +88,6 @@ void Window::SetFullscreen(bool fullscreen) {
             ::ShowWindow(m_hWnd, SW_NORMAL);
         }
     }
-}
-
-void Window::ToggleFullscreen() {
-    SetFullscreen(!m_IsFullscreen);
 }
 
 std::pair<uint32_t, uint32_t> Window::GetCurrentMonitorDimensions() const {

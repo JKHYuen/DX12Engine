@@ -66,9 +66,8 @@ public:
 
     void SetWindowTitle(const std::wstring& windowTitle) const;
 
-    bool IsFullScreen() const;
+    bool GetCurrentFullscreenState() const;
     void SetFullscreen(bool fullscreen);
-    void ToggleFullscreen();
 
     std::pair<uint32_t, uint32_t> GetCurrentMonitorDimensions() const;
 

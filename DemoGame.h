@@ -111,6 +111,10 @@ private:
     bool m_RightClickPressed {};
     bool m_MouseMoved {};
 
+    /// USE THIS VAR TO CONTROL FULLSCREEN STATE DURING RENDERING
+    // If this state does not match m_Window fullscreen state, m_Window->SetFullscreen() will be called at the end of update loop (after swapchain present). This is to ensure swapchain is done with resources before rebuilding the window.
+    bool mb_IsFullscreenNextFrame;
+    ///
     uint32_t m_WindowWidth;
     uint32_t m_WindowHeight;
     bool m_IsVsync;

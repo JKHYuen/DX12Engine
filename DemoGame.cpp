@@ -320,7 +320,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	}
 
 	// Wait for all resizable elements to be created before setting to fullscreen (OnResize will subsuquently be called)
-	if(isFullScreen) m_Window->SetFullscreen(true);
+	mb_IsFullscreenNextFrame = isFullScreen;
 }
 
 uint32_t DemoGame::Run() {
@@ -492,6 +492,10 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 	/// Present
 	directCommandQueue.ExecuteCommandList(directCommandList);
 	m_SwapChain->Present();
+
+	/// Rebuild window if fullscreen state changed
+	/// NOTE: THIS SHOULD BE THE ONLY PLACE WHERE m_Window->SetFullscreen() IS CALLED
+	if(mb_IsFullscreenNextFrame != m_Window->GetCurrentFullscreenState()) m_Window->SetFullscreen(mb_IsFullscreenNextFrame);
 }
 
 void DemoGame::OnMouseMove(const MouseMotionEventArgs& e) {
@@ -594,7 +598,7 @@ void DemoGame::OnKeyPressed(const KeyEventArgs& e) {
 
 		case KeyCode::F11: 
 		case KeyCode::End: // only because I have End key bound to my mouse, can remove if this gets in the way 
-			m_Window->ToggleFullscreen();
+			mb_IsFullscreenNextFrame = !mb_IsFullscreenNextFrame;
 			break;
 		
 		case KeyCode::V:

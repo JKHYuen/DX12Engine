@@ -11,6 +11,7 @@
 #include "DX12EngineCore/Logger.h"
 #include "DX12EngineCore/Resource.h"
 #include "DX12EngineCore/SwapChain.h"
+#include "DX12EngineCore/Window.h"
 
 #include "BloomEffect.h"
 #include "Camera.h"
@@ -415,7 +416,7 @@ void EditorGui::Render(CommandList& directCommandList) {
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), directCommandList.GetD3D12CommandList().Get());
 }
 
-void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& game) {
+void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, DemoGame& game) {
 	struct ScrollingBuffer {
 		int MaxSize;
 		int Offset;
@@ -466,16 +467,35 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, const DemoGame& ga
 			ImGuiStyle& style = ImGui::GetStyle();
 			ImGui::DragFloat("UI Scale", &style.FontScaleDpi, 0.02f, 0.5f, 4.0f, "%.2fx");
 
+			// Fullscreen toggle button
+			{
+				bool sb_EnableFullScreen = game.m_Window->GetCurrentFullscreenState();
+				if(sb_EnableFullScreen) {
+					if(ImGui::Button("Switch to Windowed")) {
+						sb_EnableFullScreen = false;
+						game.mb_IsFullscreenNextFrame = false;
+					}
+				}
+				else {
+					if(ImGui::Button("Switch to Fullscreen")) {
+						sb_EnableFullScreen = true;
+						game.mb_IsFullscreenNextFrame = true;
+					}
+				}
+				ImGuiHelpMarker("[F11] Windowed mode defaults to 1280 x 720, window can be resized by dragging edges (may slow down app).");
+			}
+
 			ImGui::Spacing();
 			if(ImGui::TreeNode("Controls")) {
 				ImGui::Text(
 "\
-- Click and drag to change numeric values, double click to type in values\n\
 - Hover mouse over (?) or (!) icons for additional information\n\
-- Cursor and movement is disabled when menus are open\n\
+- All menus can be repositioned with mouse drag\n\
+- Cursor and camera movement is disabled when menus are open\n\
 - Hold RIGHT CLICK when menus are open to reenable camera look and movement\n\
 - LEFT CLICK objects with menus open to enable object inspector\n\
   Note: click raycasts/AABBs currently do not account for height maps\n\
+- Click and drag to change numeric values, double click to type in values\n\
 - Hold LALT to enable cursor to click on objects without menus\n\n\
    ESC: (First press) Unlock cursor\n\
         (Second press) Quit app\n\
@@ -514,8 +534,8 @@ LSHIFT: Move fast\n\
 					sb_OpenDebugCameraWindow = true;
 				}
 			}
+			ImGuiHelpMarker("Fixed camera with post processing disabled, mainly used to show frustum culling currently.");
 		}
-		ImGuiHelpMarker("Fixed camera with post processing disabled, mainly used to show frustum culling currently.");
 
 		if(ImGui::CollapsingHeader("Performance", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::TextDisabled("Resolution: %d x %d", game.m_WindowWidth, game.m_WindowHeight);

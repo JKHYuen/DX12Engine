@@ -1,9 +1,7 @@
 # C++ DX12 Game Engine
 3D DirectX 12 engine made from scratch in C++. After familiarizing myself with Direct3D and rendering in my [DX11 Project](https://github.com/JKHYuen/DX11Engine), I started over and ported all the features to DX12 to get some experience with a modern rendering API. New features were added and old ones were completely rewritten and generally improved with modern C++. 
 
-It was a challenging and time consuming process, but [this tutorial](https://www.3dgep.com/learning-directx-12-1/) series provided a good start. All source files that started from the tutorial have the orignial copyright notices in the headers. Major changes are documented but it is non-exhaustive, [see here](https://github.com/jpvanoosten/LearningDirectX12) for the original tutorial source.
-
-This is an ongoing project for learning rendering techniques, but I plan to eventually transition to a much more robust abstraction layer like [NVRHI](https://github.com/NVIDIA-RTX/NVRHI) for a more serious project. 
+It was a challenging and time consuming process, but [this tutorial](https://www.3dgep.com/learning-directx-12-1/) series provided a good start. All source files that started from the tutorial have the orignial copyright notices in the headers. Major changes are documented but it is non-exhaustive, [see here](https://github.com/jpvanoosten/LearningDirectX12) for the original tutorial source. This is an ongoing project for learning rendering techniques, but I plan to eventually transition to a more robust abstraction layer like [NVRHI](https://github.com/NVIDIA-RTX/NVRHI) for a more serious project. 
 
 ***Windows 64-bit required, only tested on a NVIDIA gpu**
 
@@ -15,7 +13,7 @@ This is an ongoing project for learning rendering techniques, but I plan to even
 ## Feature Highlights
 - HDR physically based rendering (PBR) with image-based lighting (IBL)
 	- Using Epic Game's version of the Cook-Torrance BRDF developed for Unreal 4 ([link](https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf) p. 1 - 8)
-	- Linear space calculations with gamma correction
+	- HDR linear space color calculations with gamma correction
 	- Reinhard-Jodie tonemapping ([link](https://64.github.io/tonemapping/#reinhard-jodie))
 - IBL environment maps (Irradiance and Pre-Filtered (specular) cubemap) generation from equirectangular .hdr files at runtime
 	- Skybox cubemap generation and rendering
@@ -97,6 +95,9 @@ This was a first attempt at a modern renderer, some important base systems like 
 - https://freepbr.com/
 
 ## Resources Used
+ - https://github.com/ocornut/imgui
+ 	- https://github.com/epezent/implot
+    - https://github.com/CedricGuillemet/ImGuizmo 	 
  - https://www.3dgep.com/learning-directx-12-1/ (Lessons 1 - 4)
  - https://learnopengl.com/PBR/IBL/Diffuse-irradiance
  - https://learnopengl.com/Advanced-Lighting/Parallax-Mapping

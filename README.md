@@ -19,15 +19,18 @@ This is an ongoing project for learning rendering techniques, but I plan to even
 	- Skyboxes/environment maps can be loaded/switched during run time
 - Bloom
 	- Progressive down and up sampling with box sampling
-- A novel outline effect implementation that provides geometry agnostic outlining for clicked objects
-    - Uses a low resolution post-process bloom pass to provide screen space outlining with even thickness
-    - Bloom effect also provides a desired feature where smaller objects relative to the screen will have thicker (more feathered) outlines than bigger objects
-    - This implementation solves issues with common implementations like the inverted hull method, which struggles with sharp edges and certain viewing angles (see images below)
-		- the post process method does not use depth information, so it does not provide inner outlines and does not have any of the usual depth artifacts, which are desirable features for a scene editing tool
+- A novel screen space outline effect implementation that provides geometry agnostic outlining for clicked objects
+    - Low resolution post-process bloom pass provides an outline effect with even thickness in screen space
+    - Bloom effect also provides a useful feature where smaller objects relative to the screen will have thicker (more feathered) outlines than bigger objects
+		- this method does not use depth information, so it does not provide inner outlines and does not have any of the usual depth artifacts, which are desirable features for a scene editing tool
+    - This implementation solves issues with common methods like [inverse hull](https://studio.uclaacm.com/byte-sized-tutorials/unity-urp-outline-shaders), which struggles with sharp edges and certain viewing angles (see images below)
   
- Before (Inverted Hull) / After (My implementation) Comparison:
+ Before (Inverted Hull) / After (My implementation):
  
-<img src="https://github.com/JKHYuen/DX12Engine/blob/c9b0f2530ed4b62dd1c865d97e62a1f2f2b02d50/screenshots/oldOutline1.png" width=40% height=40%> <img src="https://github.com/JKHYuen/DX12Engine/blob/c9b0f2530ed4b62dd1c865d97e62a1f2f2b02d50/screenshots/outline1.png" width=40% height=40%>
+<img src="https://github.com/JKHYuen/DX12Engine/blob/c9b0f2530ed4b62dd1c865d97e62a1f2f2b02d50/screenshots/oldOutline1.png" width=40% height=40%> <img src="https://github.com/JKHYuen/DX12Engine/blob/aab66448e2da9b6e4181a5c78cb256873b2d230f/screenshots/outline1.png" width=40% height=40%>
+
+Far objects retain an even outline thickness that scales in screen space:
+
 <img src="https://github.com/JKHYuen/DX12Engine/blob/c9b0f2530ed4b62dd1c865d97e62a1f2f2b02d50/screenshots/outline3.png" width=40% height=40%>
 
 <img src="https://github.com/JKHYuen/DX12Engine/blob/c9b0f2530ed4b62dd1c865d97e62a1f2f2b02d50/screenshots/oldOutline2.png" width=40% height=40%> <img src="https://github.com/JKHYuen/DX12Engine/blob/c9b0f2530ed4b62dd1c865d97e62a1f2f2b02d50/screenshots/outline2.png" width=40% height=40%>

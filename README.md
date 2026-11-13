@@ -4,8 +4,8 @@
 It was a challenging and time consuming process, but [this tutorial](https://www.3dgep.com/learning-directx-12-1/) series provided a good start. All source files that started from the tutorial have the orignial copyright notices in the headers. Major changes are documented but it is non-exhaustive, [see here](https://github.com/jpvanoosten/LearningDirectX12) for the original tutorial source.
 
 This is an ongoing project for learning rendering techniques, but I plan to eventually transition to a much more robust abstraction layer like [NVRHI](https://github.com/NVIDIA-RTX/NVRHI) for a more serious project. 
-
-![ss1](https://github.com/JKHYuen/DX12Engine/blob/50437a018de690dbdc23c030a222eb3563168c62/screenshots/main.png)
+![ss1](https://github.com/JKHYuen/DX12Engine/blob/44c76ad8a003da1a300f92dfa999c3e3c889da47/screenshots/main.png)
+![ss2](https://github.com/JKHYuen/DX12Engine/blob/44c76ad8a003da1a300f92dfa999c3e3c889da47/screenshots/imguiS.png)
 
 ***Windows 64-bit required** 
 
@@ -19,17 +19,36 @@ This is an ongoing project for learning rendering techniques, but I plan to even
 	- Skyboxes/environment maps can be loaded/switched during run time
 - Bloom
 	- Progressive down and up sampling with box sampling
+- A novel outline effect implementation that provides geometry agnostic outlining for clicked objects
+    - Uses a low resolution post-process bloom pass to provide screen space outlining with even thickness
+    - Bloom effect also provides a desired feature where smaller objects relative to the screen will have thicker (more feathered) outlines than bigger objects
+    - This implementation solves issues with common implementations like the inverted hull method, which struggles with sharp edges and certain viewing angles (see images below)
+		- the post process method does not use depth information, so it does not provide inner outlines and does not have any of the usual depth artifacts, which are desirable features for a scene editing tool
+  
+ Before (Inverted Hull) / After (My implementation) Comparison:
+ 
+<img src="https://github.com/JKHYuen/DX12Engine/blob/c9b0f2530ed4b62dd1c865d97e62a1f2f2b02d50/screenshots/oldOutline1.png" width=40% height=40%> <img src="https://github.com/JKHYuen/DX12Engine/blob/c9b0f2530ed4b62dd1c865d97e62a1f2f2b02d50/screenshots/outline1.png" width=40% height=40%>
+<img src="https://github.com/JKHYuen/DX12Engine/blob/c9b0f2530ed4b62dd1c865d97e62a1f2f2b02d50/screenshots/outline3.png" width=40% height=40%>
+
+<img src="https://github.com/JKHYuen/DX12Engine/blob/c9b0f2530ed4b62dd1c865d97e62a1f2f2b02d50/screenshots/oldOutline2.png" width=40% height=40%> <img src="https://github.com/JKHYuen/DX12Engine/blob/c9b0f2530ed4b62dd1c865d97e62a1f2f2b02d50/screenshots/outline2.png" width=40% height=40%>
+
 - Parallax occlusion mapping with optional self shadowing
 - Directional light with shadow mapping (other types of lights delayed until switching to deferred rendering)
 	- Simple 3x3 multisample PCF using HLSL compare sampling for efficient soft shadows
+- Point Lights with cubemap shadow mapping (same PCF method as directional light shadows)
+<img src="https://github.com/JKHYuen/DX12Engine/blob/c9b0f2530ed4b62dd1c865d97e62a1f2f2b02d50/screenshots/plShadows.png" width=50% height=50%>
+
 - Object frustum culling
+    - Use secondary debug camera render to see it work
 - Tessellation with DX hull and domain shaders with two modes:
 	- Basic uniform tessellation
 	- Distance based edge tessellation
 - UI for real time scene/material editing and debugging
-	- Made with [Dear ImGui](https://github.com/ocornut/imgui)
+	- Made with [Dear ImGui](https://github.com/ocornut/imgui), using a custom made theme
 - AABB generation / visualization
 	- rotations supported, displacement maps not yet supported
+<img src="https://github.com/JKHYuen/DX12Engine/blob/c9b0f2530ed4b62dd1c865d97e62a1f2f2b02d50/screenshots/aabb.png" width=50% height=50%>
+
 - Scene object picking with mouse click
 	- Robust object outlining (geometry agnostic) using post processing
 - MSAA (will be replaced with TAA when switching to deferred rendering)

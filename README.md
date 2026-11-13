@@ -56,7 +56,8 @@ Far objects retain an even outline thickness that scales in screen space:
 <img src="https://github.com/JKHYuen/DX12Engine/blob/c9b0f2530ed4b62dd1c865d97e62a1f2f2b02d50/screenshots/aabb.png" width=50% height=50%>
 
 - MSAA (will be replaced with TAA when switching to deferred rendering)
-	- defaults to x8 or highest hardware supports 
+	- defaults to x8 or highest hardware supports
+    - Note: texture and specular aliasing is still prevalent without a post processing anti-aliasing solution
 
 ## Basic Controls
 See in app menu (F1) for full controls.

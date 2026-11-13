@@ -7,7 +7,7 @@ This is an ongoing project for learning rendering techniques, but I plan to even
 
 ***Windows 64-bit required, only tested on a NVIDIA gpu**
 
-**NOTE: This engine renders in HDR colors with floating point color buffers, however Windows HDR mode is not currently supported. Rendering still works, but tonemapping is not correct (will look dim).**
+**NOTE: This engine renders in HDR colors with floating point color buffers, however Windows HDR mode is not currently supported. Rendering still works, but tonemapping will not be correct (will look dim).**
 
 ![ss1](https://github.com/JKHYuen/DX12Engine/blob/44c76ad8a003da1a300f92dfa999c3e3c889da47/screenshots/main.png)
 ![ss2](https://github.com/JKHYuen/DX12Engine/blob/44c76ad8a003da1a300f92dfa999c3e3c889da47/screenshots/imguiS.png)

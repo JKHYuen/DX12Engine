@@ -5,10 +5,10 @@ It was a challenging and time consuming process, but [this tutorial](https://www
 
 ***Windows 64-bit required, only tested on a NVIDIA gpu**
 
-**NOTE: This engine renders in HDR colors with floating point color buffers, however Windows HDR mode is not currently supported. Rendering still works, but colors will not be properly tonemapped (will look dim).**
+**NOTE: This engine renders in HDR colors with floating point color buffers, however Windows HDR mode is not currently supported. Rendering still works, but colors will not be properly tonemapped (it will look dim).**
 
-![ss1](https://github.com/JKHYuen/DX12Engine/blob/44c76ad8a003da1a300f92dfa999c3e3c889da47/screenshots/main.png)
-![ss2](https://github.com/JKHYuen/DX12Engine/blob/44c76ad8a003da1a300f92dfa999c3e3c889da47/screenshots/imguiS.png)
+![ss1](https://github.com/JKHYuen/DX12Engine/blob/27b916d8c2189ecf1085c38187731ab5e07e364e/screenshots/main.png)
+![ss2](https://github.com/JKHYuen/DX12Engine/blob/27b916d8c2189ecf1085c38187731ab5e07e364e/screenshots/imguiS.png)
 
 ## Feature Highlights
 - HDR physically based rendering (PBR) with image-based lighting (IBL)

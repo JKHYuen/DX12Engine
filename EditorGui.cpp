@@ -515,28 +515,6 @@ LSHIFT: Move fast\n\
 			ImGui::Spacing();
 		}
 
-		// Debug Camera
-		{
-			static bool sb_OpenDebugCameraWindow = false;
-			if(sb_OpenDebugCameraWindow) {
-				if(ImGui::Button("Close Debug Camera")) {
-					sb_OpenDebugCameraWindow = false;
-				}
-
-				ImGui::SetNextWindowPos({ (float)game.m_WindowWidth * 0.99f, (float)game.m_WindowHeight * 0.99f }, ImGuiCond_Once, {1.0f, 1.0f});
-				ImGui::Begin("Debug Camera", &sb_OpenDebugCameraWindow, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_AlwaysAutoResize);
-				static float imageScale = 0.25f;
-				ImageWithSRV("##Debug Camera Texture Scale", ImGuiDebugSRVIndex::DebugCamera, game.m_WindowWidth, game.m_WindowHeight, imageScale);
-				ImGui::End();
-			}
-			else {
-				if(ImGui::Button("Open Debug Camera")) {
-					sb_OpenDebugCameraWindow = true;
-				}
-			}
-			ImGuiHelpMarker("Fixed camera with post processing disabled, mainly used to show frustum culling currently.");
-		}
-
 		if(ImGui::CollapsingHeader("Performance", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::TextDisabled("Resolution: %d x %d", game.m_WindowWidth, game.m_WindowHeight);
 			const DXGI_ADAPTER_DESC3& adapterDesc = device.GetAdapterDesc();
@@ -616,6 +594,34 @@ LSHIFT: Move fast\n\
 		}
 
 		if(ImGui::CollapsingHeader("Display", ImGuiTreeNodeFlags_DefaultOpen)) {
+			// Debug Camera
+			{
+				static bool sb_OpenDebugCameraWindow = false;
+				if(sb_OpenDebugCameraWindow) {
+					if(ImGui::Button("Close Debug Camera")) {
+						sb_OpenDebugCameraWindow = false;
+					}
+
+					ImGui::SetNextWindowPos({ (float)game.m_WindowWidth * 0.99f, (float)game.m_WindowHeight * 0.99f }, ImGuiCond_Once, { 1.0f, 1.0f });
+					ImGui::Begin("Debug Camera", &sb_OpenDebugCameraWindow, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_AlwaysAutoResize);
+					static float imageScale = 0.25f;
+					ImageWithSRV("##Debug Camera Texture Scale", ImGuiDebugSRVIndex::DebugCamera, game.m_WindowWidth, game.m_WindowHeight, imageScale);
+					ImGui::End();
+				}
+				else {
+					if(ImGui::Button("Open Debug Camera")) {
+						sb_OpenDebugCameraWindow = true;
+					}
+				}
+				ImGuiHelpMarker("Fixed camera with post processing disabled, mainly used to show frustum culling currently.");
+			}
+
+			// Get state every frame to sync with value if changed elsewhere (e.g. hotkey)
+			bool b_VSyncCheckBoxState = game.m_SwapChain->GetVSync();
+			if(ImGui::Checkbox("Enable VSync", &b_VSyncCheckBoxState)) {
+				game.m_SwapChain->SetVSync(b_VSyncCheckBoxState);
+			}
+
 			ImGui::Checkbox("Wireframe Render Mode",  &scene.mb_WireframeRender);
 
 			ImGui::AlignTextToFramePadding();

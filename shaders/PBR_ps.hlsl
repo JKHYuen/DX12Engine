@@ -74,11 +74,11 @@ float DistributionGGX(float3 N, float3 H, float roughness) {
     float NdotH = max(dot(N, H), 0.0);
     float NdotH2 = NdotH * NdotH;
 
-    float nom = a2;
+    float num = a2;
     float denom = (NdotH2 * (a2 - 1.0) + 1.0);
     denom = PI * denom * denom;
 
-    return nom / max(denom, 0.0001);
+    return num / max(denom, 0.0001);
 }
 
 float GeometrySchlickGGX(float NdotV, float roughness) {
@@ -98,11 +98,14 @@ float GeometrySmith(float NdotV, float NdotL, float roughness) {
 }
 
 float3 FresnelSchlick(float cosTheta, float3 f0) {
-    return f0 + (1.0 - f0) * pow(saturate(1.0 - cosTheta), 5.0);
+    // Frostbite implementation
+    // https://seblagarde.wordpress.com/wp-content/uploads/2015/07/course_notes_moving_frostbite_to_pbr_v32.pdf - p.78
+    float f90 = saturate(50.0 * dot(f0, 0.33));
+    return f0 + (f90 - f0) * pow(saturate(1.0 - cosTheta), 5.0);
 }
 
 float3 FresnelSchlickRoughness(float cosTheta, float3 f0, float roughness) {
-    return f0 + (max(1.0 - roughness, f0) - f0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+    return f0 + (max(1.0 - roughness, f0) - f0) * pow(saturate(1.0 - cosTheta), 5.0);
 }
 
 float3 CalcReflectanceFromLight(const float3 lightDir, const float3 radiance, const float3 albedo, const float3 metallic, const float3 f0, const float roughness, const float3 normal, const float3 viewDirection, const float NdotV) {
@@ -111,11 +114,11 @@ float3 CalcReflectanceFromLight(const float3 lightDir, const float3 radiance, co
 
     // Cook-Torrance BRDF
     const float NDF = DistributionGGX(normal, H, roughness);
-    const float G = GeometrySmith(NdotV, NdotL, roughness);
-    const float3 F = FresnelSchlick(max(dot(H, viewDirection), 0.0), f0);
+    const float G   = GeometrySmith(NdotV, NdotL, roughness);
+    const float3 F = FresnelSchlick(dot(H, viewDirection), f0);
            
     const float3 numerator = NDF * G * F;
-    const float denominator = 4.0 * NdotV * NdotL + 0.0001;
+    const float denominator = max(4.0 * NdotV * NdotL, 0.0001);
     const float3 specular = numerator / denominator;
     
     // (Bandaid Fix) Prevent artifacts from extremely bright pixels on perfectly smooth materials
@@ -124,8 +127,9 @@ float3 CalcReflectanceFromLight(const float3 lightDir, const float3 radiance, co
     
     // for energy conservation, the diffuse and specular light can't
     // be above 1.0 (unless the surface emits light); to preserve this
-    // relationship the diffuse component (kD) should equal 1.0 - F (specular is Fresnel-Schlick term).
-    const float3 kD = (1.0 - F) * (1.0 - metallic);
+    // relationship the diffuse component (kD) should equal 1.0 - kS (kS is Fresnel-Schlick term).
+    const float3 kS = F;
+    float3 kD = (1.0 - kS) * (1.0 - metallic);
     
     // reflectance equation
     // outgoing radiance Lo
@@ -234,12 +238,12 @@ float4 main(PixelInputType i) : SV_TARGET {
     
     /// TODO: try just trilinear filtering for non albedo channels (suggested by Valve)
     const float3 albedo = AlbedoTex.Sample(AnisoWrapSampler, i.uv).rgb;
-    const float ao = MaterialTex.Sample(AnisoWrapSampler, i.uv).r;
+    const float ao = MaterialTex.Sample(AnisoWrapSampler, i.uv).r;    
     const float metallic = MaterialTex.Sample(AnisoWrapSampler, i.uv).g;
     
     // Perfectly smooth (zero roughness) materials can lose it's specular reflection since it is infinitely small (unsure if this is intended)
     /// TODO: put this in CB
-    float minRoughness = 0.0;
+    float minRoughness = 0.05;
     const float roughness = max(minRoughness, MaterialTex.Sample(AnisoWrapSampler, i.uv).b);
 
     // Normal preprocess

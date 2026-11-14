@@ -117,7 +117,6 @@ private:
     ///
     uint32_t m_WindowWidth;
     uint32_t m_WindowHeight;
-    bool m_IsVsync;
 
     int m_CurrentAvgFPS {};
     static const int sk_frameTimeSampleCount = 128;

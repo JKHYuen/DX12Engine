@@ -82,11 +82,10 @@ namespace {
 	float s_ZFar    = 1000.0f;
 }
 
-DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t windowHeight, bool vSync, bool isFullScreen)
+DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t windowHeight, bool b_VSync, bool isFullScreen)
 	: m_DefaultScissorRect(CD3DX12_RECT(0, 0, LONG_MAX, LONG_MAX))
 	, m_WindowWidth(windowWidth)
 	, m_WindowHeight(windowHeight)
-	, m_IsVsync(vSync)
 {
 	m_Window = Application::Get().CreateRenderWindow(name, windowWidth, windowHeight, *this);
 
@@ -127,7 +126,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 	/// TODO: Tweakable MSAA
 	DXGI_SAMPLE_DESC multiSampleDesc = m_Device->GetMultisampleQualityLevels(sk_HDRFormat);
 
-	m_SwapChain = std::make_shared<SwapChain>(*m_Device, m_Window->GetWindowHandle(), m_IsVsync, sk_HDRFormat);
+	m_SwapChain = std::make_shared<SwapChain>(*m_Device, m_Window->GetWindowHandle(), b_VSync, sk_HDRFormat);
 
 	// Create render target textures
 	{
@@ -307,7 +306,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 			goRenderProps.pbrMatName = L"bog";
 			goRenderProps.uvScale = XMFLOAT2(5.0f, 5.0f);
 			goRenderProps.heightMapMagnitude = 0.0f;
-			goRenderProps.parallaxMagnitude = 0.005f;
+			goRenderProps.parallaxMagnitude = 0.018f;
 			goRenderProps.useParallaxShadow = true;
 			goRenderProps.isShadowCaster = false;
 			m_DemoScene->AddGameObject(std::make_unique<PBRGameObject>(*m_DemoScene, *copyCommandList, goParams, goRenderProps, copyCommandList->GetQuadPrimitive()));

@@ -353,6 +353,8 @@ EditorGui::EditorGui(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWN
 	style.Colors[ImGuiCol_ResizeGripActive]     = accentColor1;
 	//style.Colors[ImGuiCol_TextSelectedBg]       = ImVec4(0.92f, 0.18f, 0.29f, 0.43f);
 	//style.Colors[ImGuiCol_PopupBg]              = ImVec4(0.20f, 0.22f, 0.27f, 0.9f);
+
+	style.IndentSpacing = 20.0f;
 }
 
 EditorGui& EditorGui::Initialize(Device& device, DXGI_FORMAT RTVformat, int bufferCount, HWND hwnd) {
@@ -495,14 +497,14 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, DemoGame& game) {
 - Hold RIGHT CLICK when menus are open to reenable camera look and movement\n\
 - LEFT CLICK objects with menus open to enable object inspector\n\
   Note: click raycasts/AABBs currently do not account for height maps\n\
-- Click and drag to change numeric values, double click to type in values\n\
-- Hold LALT to enable cursor to click on objects without menus\n\n\
+- Click and drag to change numeric values, double click to type in values\n\n\
    ESC: (First press) Unlock cursor\n\
         (Second press) Quit app\n\
     F1: Toggle this menu\n\
     F2: Toggle wireframe render mode\n\
    F11: Toggle fullscreen\n\
-     V: Toggle Vsync\n\
+     V: Toggle Vsync\n\n\
+  LALT: Enable cursor to click on objects without menus\n\
      X: Deselect clicked object\n\
   WASD: Camera movement\n\
     QE: Move camera up/down\n\
@@ -612,7 +614,7 @@ LSHIFT: Move fast\n\
 						game.mb_EnableDebugCameraRender = true;
 					}
 				}
-				ImGuiHelpMarker("Fixed camera with post processing disabled, mainly used to show frustum culling currently.");
+				ImGuiHelpMarker("Warning: Big performance loss when this camera window is opened.\n\nFixed camera with post processing disabled, mainly used to show frustum culling currently.");
 			}
 
 			// Get state every frame to sync with value if changed elsewhere (e.g. hotkey)
@@ -763,6 +765,7 @@ LSHIFT: Move fast\n\
 							sb_EnableDirLightGizmo = true;
 						}
 					}
+					ImGuiHelpMarker("Known Bug: Gizmo axes do not line up with directional light.");
 				}
 
 				if(ImGui::ColorEdit3("Light Color", s_SceneDirLightColor, kHDRColorEditFlags)) {
@@ -771,8 +774,15 @@ LSHIFT: Move fast\n\
 				ImGuiHDRColorEdit3Preview("##LightColor", s_SceneDirLightColor, kHDRColorEditFlags);
 
 				if(ImGui::DragFloat2("Shadow Near/Far Z", s_ShadowNearFarZ, 0.1f, 0.1f, 10000.0f, "%.2f", kSliderFlags)) {
-					sceneLight.SetShadowNearFarZ({ s_ShadowNearFarZ[0], s_ShadowNearFarZ[1] });
+					if(s_ShadowNearFarZ[0] < s_ShadowNearFarZ[1]) {
+						sceneLight.SetShadowNearFarZ({ s_ShadowNearFarZ[0], s_ShadowNearFarZ[1] });
+					}
+					else {
+						s_ShadowNearFarZ[0] = sceneLight.GetShadowNearFarZ().x;
+						s_ShadowNearFarZ[1] = sceneLight.GetShadowNearFarZ().y;
+					}
 				}
+				ImGuiHelpMarker("NearZ must be less than FarZ", true, true);
 
 				if(ImGui::DragFloat("Shadow Render Distance", &s_ShadowRenderDistance, 0.1f, 0.1f, 10000.0f, "%.2f", kSliderFlags)) {
 					sceneLight.SetShadowRenderDistance(s_ShadowRenderDistance);

@@ -41,8 +41,7 @@ public:
     DemoGame(const std::wstring& name, uint32_t width, uint32_t height, bool vSync = false, bool isFullScreen = true);
 
     // Called by main
-    uint32_t Run()       override;
-
+    uint32_t Run()                                            override;
     void OnUpdate(const UpdateEventArgs& e)                   override;
     void OnResize(const ResizeEventArgs& e)                   override;
     void OnKeyPressed(const KeyEventArgs& e)                  override;
@@ -92,7 +91,8 @@ private:
     // Pointer because this can not be initialized on DemoGame construction
     std::unique_ptr<Scene> m_DemoScene;
 
-    // Camera Controller
+    /// TODO: these vars should be in a Input management class
+    // Input Management for Camera movement
     float m_Forward {};
     float m_Backward {};
     float m_Left {};
@@ -110,6 +110,7 @@ private:
     bool m_LeftClickPressed {};
     bool m_RightClickPressed {};
     bool m_MouseMoved {};
+    ///
 
     /// USE THIS VAR TO CONTROL FULLSCREEN STATE DURING RENDERING
     // If this state does not match fullscreen state in m_Window, m_Window->SetFullscreen() will be called at the end of update loop (after swapchain present). This is to ensure swapchain is done with resources before rebuilding the window.

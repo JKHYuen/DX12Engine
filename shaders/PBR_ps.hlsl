@@ -243,7 +243,7 @@ float4 main(PixelInputType i) : SV_TARGET {
     
     // Perfectly smooth (zero roughness) materials can lose it's specular reflection since it is infinitely small (unsure if this is intended)
     /// TODO: put this in CB
-    float minRoughness = 0.05;
+    float minRoughness = 0.02;
     const float roughness = max(minRoughness, MaterialTex.Sample(AnisoWrapSampler, i.uv).b);
 
     // Normal preprocess

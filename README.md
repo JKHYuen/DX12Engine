@@ -98,6 +98,7 @@ This was a first attempt at a modern renderer, some important base systems like 
 ## Asset Sources
 - https://polyhaven.com/hdris
 - https://freepbr.com/
+- https://www.turbosquid.com/3d-models/3d-realistic-viking-sword-2047899
 
 ## Resources Used
  - https://github.com/ocornut/imgui

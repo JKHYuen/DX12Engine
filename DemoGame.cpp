@@ -429,11 +429,13 @@ void DemoGame::OnRender(const UpdateEventArgs& e) {
 	);
 
 	// DEBUG VIEW
-	m_DemoScene->Render(*m_DebugView_MS_RT, *directCommandList, e, *m_DebugCamera, m_WindowWidth, m_WindowHeight);
-	directCommandList->ResolveSubresource(
-		m_DebugViewTexture,
-		m_DebugView_MS_RT->GetTexture(AttachmentPoint::Color0)
-	);
+	if(mb_EnableDebugCameraRender && EditorGui::Get().GetUIVisibilityState()) {
+		m_DemoScene->Render(*m_DebugView_MS_RT, *directCommandList, e, *m_DebugCamera, m_WindowWidth, m_WindowHeight);
+		directCommandList->ResolveSubresource(
+			m_DebugViewTexture,
+			m_DebugView_MS_RT->GetTexture(AttachmentPoint::Color0)
+		);
+	}
 
 	/// Post Processing / UI
 	// Note: 

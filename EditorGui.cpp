@@ -596,21 +596,20 @@ LSHIFT: Move fast\n\
 		if(ImGui::CollapsingHeader("Display", ImGuiTreeNodeFlags_DefaultOpen)) {
 			// Debug Camera
 			{
-				static bool sb_OpenDebugCameraWindow = false;
-				if(sb_OpenDebugCameraWindow) {
+				if(game.mb_EnableDebugCameraRender) {
 					if(ImGui::Button("Close Debug Camera")) {
-						sb_OpenDebugCameraWindow = false;
+						game.mb_EnableDebugCameraRender = false;
 					}
 
 					ImGui::SetNextWindowPos({ (float)game.m_WindowWidth * 0.99f, (float)game.m_WindowHeight * 0.99f }, ImGuiCond_Once, { 1.0f, 1.0f });
-					ImGui::Begin("Debug Camera", &sb_OpenDebugCameraWindow, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_AlwaysAutoResize);
+					ImGui::Begin("Debug Camera", &game.mb_EnableDebugCameraRender, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_AlwaysAutoResize);
 					static float imageScale = 0.25f;
 					ImageWithSRV("##Debug Camera Texture Scale", ImGuiDebugSRVIndex::DebugCamera, game.m_WindowWidth, game.m_WindowHeight, imageScale);
 					ImGui::End();
 				}
 				else {
 					if(ImGui::Button("Open Debug Camera")) {
-						sb_OpenDebugCameraWindow = true;
+						game.mb_EnableDebugCameraRender = true;
 					}
 				}
 				ImGuiHelpMarker("Fixed camera with post processing disabled, mainly used to show frustum culling currently.");

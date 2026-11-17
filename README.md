@@ -85,6 +85,7 @@ This was a first attempt at a modern renderer, some important base systems like 
 	
 ## High Priority TODOs / Research Topics
 - Switch from forward rendering to deferred rendering with forward pass for transparency
+- Bent normals
 - TAA
 - Cascaded shadow mapping
 - Light/reflection probes
@@ -92,6 +93,7 @@ This was a first attempt at a modern renderer, some important base systems like 
 - Occlusion culling (HZB)
 - Procedural sky shading
 - Volumetrics
+- GPU particle system
 
 ## Asset Sources
 - https://polyhaven.com/hdris

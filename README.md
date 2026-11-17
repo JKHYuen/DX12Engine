@@ -18,6 +18,9 @@ It was a challenging and time consuming process, but [this tutorial](https://www
 - IBL environment maps (Irradiance and Pre-Filtered (specular) cubemap) generation from equirectangular .hdr files at runtime
 	- Skybox cubemap generation and rendering
 	- Skyboxes/environment maps can be loaded/switched during run time
+ 
+<img src="https://github.com/JKHYuen/DX12Engine/blob/9774a18205345539eb54ba6071de219ff21411ce/screenshots/IBL1.png" width=40% height=40%> <img src="https://github.com/JKHYuen/DX12Engine/blob/9774a18205345539eb54ba6071de219ff21411ce/screenshots/IBL2.png" width=40% height=40%> <img src="https://github.com/JKHYuen/DX12Engine/blob/9774a18205345539eb54ba6071de219ff21411ce/screenshots/IBL3.png" width=40% height=40%>
+
 - Bloom
 	- Progressive down and up sampling with box sampling
 - A novel screen space outline effect implementation that provides geometry agnostic outlining for clicked objects

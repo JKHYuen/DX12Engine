@@ -18,6 +18,9 @@ It was a challenging and time consuming process, but [this tutorial](https://www
 - IBL environment maps (Irradiance and Pre-Filtered (specular) cubemap) generation from equirectangular .hdr files at runtime
 	- Skybox cubemap generation and rendering
 	- Skyboxes/environment maps can be loaded/switched during run time
+ 
+<img src="https://github.com/JKHYuen/DX12Engine/blob/9774a18205345539eb54ba6071de219ff21411ce/screenshots/IBL1.png" width=40% height=40%> <img src="https://github.com/JKHYuen/DX12Engine/blob/9774a18205345539eb54ba6071de219ff21411ce/screenshots/IBL2.png" width=40% height=40%> <img src="https://github.com/JKHYuen/DX12Engine/blob/9774a18205345539eb54ba6071de219ff21411ce/screenshots/IBL3.png" width=40% height=40%>
+
 - Bloom
 	- Progressive down and up sampling with box sampling
 - A novel screen space outline effect implementation that provides geometry agnostic outlining for clicked objects
@@ -75,13 +78,14 @@ See in app menu (F1) for full controls.
        LCTRL: Move slow
 
 ## Caveats
-This was a first attempt at a modern renderer, some important base systems like resource state tracking/transitioning and memory management are adapted from [the tutorial mentioned](https://www.3dgep.com/learning-directx-12-1/) and are not well tested. There are major features that will not be added until switching to something more robust like NVRHI:
+This was a first attempt at a modern renderer, some important base systems like resource state tracking/transitioning and memory management are adapted from [the tutorial mentioned](https://www.3dgep.com/learning-directx-12-1/) and are not well tested. There are major features that will not be added until switching to something more robust:
 - Render graph system
 - Smarter PSO management/generation
 - Bindless resources 
 	
 ## High Priority TODOs / Research Topics
 - Switch from forward rendering to deferred rendering with forward pass for transparency
+- Bent normals
 - TAA
 - Cascaded shadow mapping
 - Light/reflection probes
@@ -89,10 +93,12 @@ This was a first attempt at a modern renderer, some important base systems like 
 - Occlusion culling (HZB)
 - Procedural sky shading
 - Volumetrics
+- GPU particle system
 
 ## Asset Sources
 - https://polyhaven.com/hdris
 - https://freepbr.com/
+- https://www.turbosquid.com/3d-models/3d-realistic-viking-sword-2047899
 
 ## Resources Used
  - https://github.com/ocornut/imgui

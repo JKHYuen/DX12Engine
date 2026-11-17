@@ -78,7 +78,7 @@ See in app menu (F1) for full controls.
        LCTRL: Move slow
 
 ## Caveats
-This was a first attempt at a modern renderer, some important base systems like resource state tracking/transitioning and memory management are adapted from [the tutorial mentioned](https://www.3dgep.com/learning-directx-12-1/) and are not well tested. There are major features that will not be added until switching to something more robust like NVRHI:
+This was a first attempt at a modern renderer, some important base systems like resource state tracking/transitioning and memory management are adapted from [the tutorial mentioned](https://www.3dgep.com/learning-directx-12-1/) and are not well tested. There are major features that will not be added until switching to something more robust:
 - Render graph system
 - Smarter PSO management/generation
 - Bindless resources 

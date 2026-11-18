@@ -8,7 +8,7 @@ It was a challenging and time consuming process, but [this tutorial](https://www
 **NOTE: This engine renders in HDR colors with floating point color buffers, however Windows HDR mode is not currently supported. Rendering still works, but colors will not be properly tonemapped (it will look dim).**
 
 ![ss1](https://github.com/JKHYuen/DX12Engine/blob/27b916d8c2189ecf1085c38187731ab5e07e364e/screenshots/main.png)
-![ss2](https://github.com/JKHYuen/DX12Engine/blob/27b916d8c2189ecf1085c38187731ab5e07e364e/screenshots/imguiS.png)
+![ss2](https://github.com/JKHYuen/DX12Engine/blob/edee4630c036b416d5b7c8cd29be1d9dfdf68319/screenshots/imguiS.png)
 
 ## Feature Highlights
 - HDR physically based rendering (PBR) with image-based lighting (IBL)
@@ -49,7 +49,10 @@ Far objects retain an even outline thickness that scales in screen space:
     - Use secondary debug camera render to see it work
 - Tessellation with hull and domain shaders with two modes:
 	- Basic uniform tessellation
-	- Distance based edge tessellation
+	- Distance based edge tessellation (see image below, tessellation applied on a 2 triangle quad)
+
+<img src="https://github.com/JKHYuen/DX12Engine/blob/edee4630c036b416d5b7c8cd29be1d9dfdf68319/screenshots/tess.png" width=50% height=50%>
+
 - UI for real time scene/material editing and debugging
 	- Made with [Dear ImGui](https://github.com/ocornut/imgui), using a custom made theme
 - AABB generation / visualization

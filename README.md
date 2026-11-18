@@ -84,6 +84,7 @@ This was a first attempt at a modern renderer, some important base systems like 
 - Bindless resources 
 	
 ## High Priority TODOs / Research Topics
+- GPU instancing
 - Switch from forward rendering to deferred rendering with forward pass for transparency
 - Bent normals
 - TAA

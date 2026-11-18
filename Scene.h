@@ -50,7 +50,7 @@ public:
 	};
 
 	const DirectionalLight* GetDirLight() const { return m_DirectionalLight.get(); }
-	const PointLight* GetPointLight(uint32_t idx) const { 
+	PointLight* GetPointLight(uint32_t idx) const { 
 		assert(idx < RenderGlobals::gk_MaxPointLightCount); 
 		return m_PointLights[idx].get();
 	}

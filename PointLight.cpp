@@ -28,7 +28,7 @@ namespace {
 	constexpr UINT sk_ShadowCubemapResolution = 1024;
 }
 
-PointLight::PointLight(Device& device, const std::string& name, PointLightParams params)
+PointLight::PointLight(Device& device, const std::string& name, PointLightParams params, bool b_Enable)
 	: GameObject(params.translation, 0.3f, params.visualizationMesh, name)
 	, m_Color(params.color)
 	, m_Radius(params.radius)
@@ -37,6 +37,7 @@ PointLight::PointLight(Device& device, const std::string& name, PointLightParams
 	, m_VisualizationMesh(params.visualizationMesh)
 	, m_UnlitPSO(params.unlitPSO)
 	, m_DepthPSO(params.depthPSO)
+	, mb_Enabled(b_Enable)
 {
 	auto shadowCubemapDesc = CD3DX12_RESOURCE_DESC::Tex2D(
 		DXGI_FORMAT_D32_FLOAT, sk_ShadowCubemapResolution, sk_ShadowCubemapResolution,
@@ -80,11 +81,13 @@ PointLight::PointLight(Device& device, const std::string& name, PointLightParams
 
 }
 
-PointLight::PointLight(Device& device, PointLightParams params)
-	: PointLight(device, "Point Light", params)
+PointLight::PointLight(Device& device, PointLightParams params, bool b_Enable)
+	: PointLight(device, "Point Light", params, b_Enable)
 {}
 
 void PointLight::RenderVisualizationMesh(CommandList& directCommandList, const UpdateEventArgs& e, const Camera& viewCamera) {
+	if(!mb_Enabled) return;
+
 	m_UnlitPSO->SetPipelineState(directCommandList, RenderFlags_None);
 
 	PBRVertexProps vertexProps {};
@@ -107,15 +110,20 @@ void PointLight::RenderVisualizationMesh(CommandList& directCommandList, const U
 	m_VisualizationMesh->Draw(directCommandList);
 }
 
-// Could be a static function
-void PointLight::SetShadowDepthPipelineState(CommandList& directCommandList) const {
+void PointLight::SetShadowDepthPipelineStateAndClearRenderTarget(CommandList& directCommandList) const {
+	if(!mb_Enabled) return;
+
 	m_DepthPSO->SetPipelineState(directCommandList, true);
 
 	constexpr D3D12_VIEWPORT sk_Viewport { 0.0f, 0.0f, sk_ShadowCubemapResolution, sk_ShadowCubemapResolution, 1.0f, 0.0f };
 	directCommandList.SetViewport(sk_Viewport);
+
+	directCommandList.ClearDepthStencilTexture(m_ShadowCubemap_RT->GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
 }
 
 void PointLight::RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, PBRVertexProps vertexProps, const PBRTessellationProps& tessProps) const {
+	if(!mb_Enabled) return;
+
 	/// TODO: near, far values probably need to be tweaked
 	static XMMATRIX cubemapProjectionMat = XMMatrixPerspectiveFovLH(XMConvertToRadians(90.0f), 1.0f, 0.01f, m_Radius);
 
@@ -130,7 +138,7 @@ void PointLight::RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh,
 
 	// Using first slot of light props in PBR root sig - hacky solution
 	PBRLightProps lightProps {};
-	lightProps.pointLights[0].worldPosition = XMFLOAT4(m_Translation.x, m_Translation.y, m_Translation.z, 1.0f);
+	lightProps.pointLights[0].worldPositionEnable = XMFLOAT4(m_Translation.x, m_Translation.y, m_Translation.z, 1.0f);
 	lightProps.pointLights[0].colorInvRadius = XMFLOAT4(m_Color.x, m_Color.y, m_Color.z, 1.0f / m_Radius);
 
 	for(int i = 0; i < 6; i++) {
@@ -144,10 +152,6 @@ void PointLight::RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh,
 		directCommandList.SetGraphicsDynamicConstantBuffer(PbrPSO::PBRRootParameters::LightCB, lightProps);
 		mesh.Draw(directCommandList);
 	}
-}
-
-void PointLight::ClearShadowCubemap(CommandList& directCommandList) {
-	directCommandList.ClearDepthStencilTexture(m_ShadowCubemap_RT->GetTexture(AttachmentPoint::DepthStencil), D3D12_CLEAR_FLAG_DEPTH);
 }
 
 std::shared_ptr<Texture> PointLight::GetShadowDepthTexture() const {

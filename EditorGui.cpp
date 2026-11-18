@@ -36,6 +36,8 @@
 #include <vector>
 #include "PointLight.h"
 #include <string>
+#include <cstdio>
+#include "RenderConstants.h"
 
 using namespace DirectX;
 
@@ -797,10 +799,61 @@ LSHIFT: Move fast\n\
 
 				ImGui::TreePop();
 			}
-		}
+
+			ImGui::SetNextItemOpen(true, ImGuiTreeNodeFlags_DefaultOpen);
+			if(ImGui::TreeNode("Point Lights")) {
+				ImGuiHelpMarker("Engine currently only supports up to 3 point lights, omnidirectional shadows are enabled by default and can not be tweaked.", true, true);
+
+				if(ImGui::Button("Enable All##PointLight")) {
+					for(int i = 0; i < RenderGlobals::gk_MaxPointLightCount; i++) { scene.GetPointLight(i)->SetEnabledState(true); }
+				}
+				ImGui::SameLine();
+				if(ImGui::Button("Disable All##PointLight")) {
+					for(int i = 0; i < RenderGlobals::gk_MaxPointLightCount; i++) { scene.GetPointLight(i)->SetEnabledState(false); }
+				}
+
+				for(int i = 0; i < RenderGlobals::gk_MaxPointLightCount; i++) {
+					std::string indexStr = std::to_string(i);
+					ImGui::AlignTextToFramePadding();
+
+					if(scene.GetPointLight(i)->GetEnabledState()) {
+						ImGui::Text(indexStr.c_str());
+						ImGui::SameLine();
+						ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(0.0f, 0.4f, 0.4f));
+						if(ImGui::Button(("Disable##PointLight" + indexStr).c_str())) {
+							scene.GetPointLight(i)->SetEnabledState(false);
+						}
+						ImGui::PopStyleColor();
+					}
+					else {
+						ImGui::TextDisabled(indexStr.c_str());
+						ImGui::SameLine();
+						if(ImGui::Button(("Enable##PointLight" + indexStr).c_str())) {
+							scene.GetPointLight(i)->SetEnabledState(true);
+						}
+					}
+
+					ImGui::SameLine();
+					if(!scene.GetPointLight(i)->GetEnabledState()) 
+						ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(0.0f, 0.0f, 0.1f));
+					if(ImGui::Button(("Select##PointLight" + indexStr).c_str())) {
+						game.m_Picker->m_PickedObject = scene.GetPointLight(i);
+						sb_ObjectInspectorState = true;
+					}
+					if(!scene.GetPointLight(i)->GetEnabledState())
+						ImGui::PopStyleColor();
+
+					XMFLOAT3 colorVec = scene.GetPointLight(i)->GetColor();
+					float col[3] { colorVec.x, colorVec.y, colorVec.z };
+					ImGuiHDRColorEdit3Preview(("##PointLightColor" + indexStr).c_str(), col, kHDRColorEditFlags);
+				}
+
+				ImGui::TreePop();
+			}
+		} // End Scene Header
 
 		// Bloom
-		if(ImGui::CollapsingHeader("Bloom", ImGuiTreeNodeFlags_DefaultOpen)) {
+		if(ImGui::CollapsingHeader("Bloom")) {
 			static BloomEffect* bloomPass = game.m_BloomEffect.get();
 
 			ImGui::DragFloat("Intensity", &bloomPass->m_Intensity, 0.01f, 0.0f, 10.0f, "%.2f", kSliderFlags);
@@ -817,7 +870,7 @@ LSHIFT: Move fast\n\
 			}
 		}
 
-		if(ImGui::CollapsingHeader("Picker Outline ", ImGuiTreeNodeFlags_DefaultOpen)) {
+		if(ImGui::CollapsingHeader("Picker Outline ")) {
 			ImGui::SameLine();
 			ImGuiHelpMarker("Bloom based outline effect for picked (clicked) objects. This post processing method gives geometry independent outlines that are thicker when far away and thinner when closer to the camera, which are desired properties for a scene editor effect.\n\nThis effect does not have the downsides of other common methods like inverted hull; which struggle with sharp angles and back culled quads. \n\nHowever, it does cost an additional screen space texture, one half resolution texture, one quarter resolution texture, and extra draw calls. The quality of the bloom effect can be adjusted to lower the additional cost.");
 
@@ -927,7 +980,7 @@ void EditorGui::DrawObjectInspector(Device& device, const DemoGame& game) {
 	ImGui::SetNextWindowPos({ (float)game.m_WindowWidth * 0.8f, (float)game.m_WindowHeight * 0.05f }, ImGuiCond_Once);
 	ImGui::SetNextWindowSize({450.0f, 0.0f}, ImGuiCond_Once);
 
-	// sb_ObjectInspectorState var is just to make inspector window x button work
+	// sb_ObjectInspectorState var is used to control object inspector state outside of just checking if picked object is a nullptr
 	ImGui::Begin(s_ObjectName.c_str(), &sb_ObjectInspectorState, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
 	if(!sb_ObjectInspectorState) {
 		game.m_Picker->ClearPickedObject();

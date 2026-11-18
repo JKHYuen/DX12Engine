@@ -38,17 +38,19 @@ public:
 		DepthPSO* depthPSO; // for shadow cubemap depth render
 	};
 
-	PointLight(Device& device, const std::string& name, PointLightParams params);
-	PointLight(Device& device, PointLightParams params);
+	PointLight(Device& device, const std::string& name, PointLightParams params, bool b_Enable = true);
+	PointLight(Device& device, PointLightParams params, bool b_Enable = true);
 
 	void RenderVisualizationMesh(CommandList& directCommandList, const UpdateEventArgs& e, const Camera& viewCamera);
 
-	void SetShadowDepthPipelineState(CommandList& directCommandList) const;
+	void SetShadowDepthPipelineStateAndClearRenderTarget(CommandList& directCommandList) const;
 	// pass vertexProps by value to copy and edit MVP to render from light's perspective
 	void RenderObjectToDepth(CommandList& directCommandList, Mesh& mesh, PBRVertexProps vertexProps, const PBRTessellationProps& tessProps) const;
-	void ClearShadowCubemap(CommandList& directCommandList);
 	
 	std::shared_ptr<Texture> GetShadowDepthTexture() const;
+
+	bool GetEnabledState() const { return mb_Enabled; };
+	void SetEnabledState(bool state) { mb_Enabled = state; };
 
 	XMFLOAT3 GetColor() const { return m_Color; };
 	void SetColor(float r, float g, float b) { m_Color = XMFLOAT3(r, g, b); };
@@ -57,6 +59,8 @@ public:
 	void SetRadius(float radius) { m_Radius = radius; };
 
 private:	
+	bool mb_Enabled = true;
+
 	XMFLOAT3 m_Color;
 	float m_Radius;
 

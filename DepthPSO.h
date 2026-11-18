@@ -17,7 +17,7 @@ class DepthPSO {
 public:
 	DepthPSO(Device& device, std::shared_ptr<RootSignature> objectRootSignature);
 
-	void SetPipelineState(CommandList& directCommandList, bool b_ModifiedDepth = false) const;
+	void SetPipelineState(CommandList& directCommandList, bool b_PointLightShadowDepthWrite = false) const;
 
 private:
     std::shared_ptr<RootSignature> m_RootSignature;

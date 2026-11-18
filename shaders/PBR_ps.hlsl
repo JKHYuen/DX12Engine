@@ -13,8 +13,8 @@ cbuffer MaterialCB : register(b0, space1) {
 };
 
 struct PointLight {
-    float4 WorldPosition;
-    float4 ColorInvRadius; // x: r, y: g, z: b, a: inverse light radius (for shader optimization)
+    float4 WorldPositionEnable; // xyz: world position, w: enable flag - skip point light calcs if not 1.0
+    float4 ColorInvRadius;      // x: r, y: g, z: b, a: inverse light radius (for shader optimization)
 };
 
 cbuffer LightCB : register(b1) {
@@ -218,8 +218,8 @@ float CalcParallaxSoftShadowMultiplier(float3 lightDir, float2 initialTexCoords,
         }
         
         // Shadowing factor should be 1 if there were no points under the surface
-        if (numSamplesUnderSurface < 1) {
-            shadowMultiplier = 1;
+        if(numSamplesUnderSurface < 1) {
+            shadowMultiplier = 1.0;
         }
         else {
             shadowMultiplier = 1.0 - shadowMultiplier;
@@ -291,9 +291,12 @@ float4 main(PixelInputType i) : SV_TARGET {
     /// Point Lights
     float3 pointLightLo = 0;
     for (int idx = 0; idx < MAX_POINT_LIGHT_COUNT; idx++) {
+        if(PointLights[idx].WorldPositionEnable.w != 1.0) 
+            continue;
+        
         // Attenuation formula from: https://google.github.io/filament/main/filament.html#attenuation-function
         const float3 radiance = PointLights[idx].ColorInvRadius.xyz;
-        const float3 pointLightDir = PointLights[idx].WorldPosition.xyz - i.worldPosition.xyz;
+        const float3 pointLightDir = PointLights[idx].WorldPositionEnable.xyz - i.worldPosition.xyz;
         const float distanceSquare = dot(pointLightDir, pointLightDir);
         const float factor = distanceSquare * PointLights[idx].ColorInvRadius.a * PointLights[idx].ColorInvRadius.a;
         const float smoothFactor = max(1.0 - factor * factor, 0.0);

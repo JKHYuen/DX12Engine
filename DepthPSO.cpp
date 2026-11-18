@@ -46,8 +46,8 @@ DepthPSO::DepthPSO(Device& device, std::shared_ptr<RootSignature> objectRootSign
     device.CreatePipelineState(depthPipelineStateStream, m_PointLightPSO);
 }
 
-void DepthPSO::SetPipelineState(CommandList& directCommandList, bool b_PointLightShadowDepth) const {
-    directCommandList.SetPipelineState(b_PointLightShadowDepth ? m_PointLightPSO : m_PSO);
+void DepthPSO::SetPipelineState(CommandList& directCommandList, bool b_PointLightShadowDepthWrite) const {
+    directCommandList.SetPipelineState(b_PointLightShadowDepthWrite ? m_PointLightPSO : m_PSO);
     directCommandList.SetGraphicsRootSignature(m_RootSignature);
     directCommandList.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 }

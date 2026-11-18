@@ -13,7 +13,6 @@
 #include "EditorGui.h"
 #include "Events.h"
 #include "GameObject.h"
-#include "ImGui.h"
 #include "KeyCodes.h"
 #include "PBRGameObject.h"
 #include "PointLight.h"
@@ -24,7 +23,6 @@
 
 #include <cstdint>
 #include <DirectXMath.h>
-#include <DirectXMathVector.inl>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -47,7 +45,7 @@ Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeC
 		m_MaterialNames.emplace_back(entry.path().filename().c_str());
 	}
 
-	/// Default test point light properties
+	/// Create default test point lights
 	m_PointLights.reserve(gk_MaxPointLightCount);
 	PointLight::PointLightParams pointLightParams {};
 	pointLightParams.translation        = XMFLOAT3 { 0.0f, 5.0f, 7.0f };
@@ -56,15 +54,15 @@ Scene::Scene(Device& device, CommandList& copyCommandList, CommandList& computeC
 	pointLightParams.visualizationMesh  = copyCommandList.GetSpherePrimitive();
 	pointLightParams.unlitPSO           = unlitPSO;
 	pointLightParams.depthPSO           = dirLightParams.depthPSO;
-	m_PointLights.push_back(std::make_unique<PointLight>(device, "PointLight0", pointLightParams));
+	m_PointLights.push_back(std::make_unique<PointLight>(device, "PointLight0", pointLightParams, false));
 
 	pointLightParams.translation = XMFLOAT3 { 5.0f, 5.0f, -5.0f };
 	pointLightParams.color       = XMFLOAT3 { 0.0f, 100.0f, 0.0f };
-	m_PointLights.push_back(std::make_unique<PointLight>(device, "PointLight1", pointLightParams));
+	m_PointLights.push_back(std::make_unique<PointLight>(device, "PointLight1", pointLightParams, false));
 
 	pointLightParams.translation = XMFLOAT3 { -5.0f, 5.0f, -5.0f };
 	pointLightParams.color       = XMFLOAT3 { 0.0f, 0.0f, 100.0f };
-	m_PointLights.push_back(std::make_unique<PointLight>(device, "PointLight2", pointLightParams));
+	m_PointLights.push_back(std::make_unique<PointLight>(device, "PointLight2", pointLightParams, false));
 	///
 }
 
@@ -88,9 +86,8 @@ void Scene::Render(const RenderTarget& outputRT, CommandList& directCommandList,
 	}
 	
 	// Render depth from each point light (cubemap)
-	m_PointLights[0]->SetShadowDepthPipelineState(directCommandList);
 	for(int i = 0; i < RenderGlobals::gk_MaxPointLightCount; i++) {
-		m_PointLights[i]->ClearShadowCubemap(directCommandList);
+		m_PointLights[i]->SetShadowDepthPipelineStateAndClearRenderTarget(directCommandList);
 		for(auto& o : m_SceneObjects) {
 			if(PBRGameObject* pbrO = dynamic_cast<PBRGameObject*>(o.get())) {
 				pbrO->RenderToPointLightShadowMap(directCommandList, *m_PointLights[i]);

@@ -129,6 +129,7 @@ void PBRGameObject::Render(CommandList& directCommandList, const UpdateEventArgs
 
 	// Light Props
 	{
+		// Directional Light
 		m_PBRLightCB.Time = { (float)e.Time, (float)e.DeltaTime, 0.0f, 0.0f };
 		m_PBRLightCB.dirLight = scene.GetDirLight()->GetNormDirectionVector();
 		m_PBRLightCB.dirLightColor = scene.GetDirLight()->GetColor();
@@ -144,14 +145,16 @@ void PBRGameObject::Render(CommandList& directCommandList, const UpdateEventArgs
 			)
 		);
 
-		PointLightProps pl {};
+		// Point Lights
+		PointLightProps plProps {};
 		for(uint32_t i = 0; i < RenderGlobals::gk_MaxPointLightCount; i++) {
-			XMFLOAT3 plWorldPos = scene.GetPointLight(i)->GetTranslation();
-			XMFLOAT3 plColor = scene.GetPointLight(i)->GetColor();
-			pl.worldPosition = XMFLOAT4(plWorldPos.x, plWorldPos.y, plWorldPos.z, 1.0f);
-			pl.colorInvRadius = XMFLOAT4(plColor.x, plColor.y, plColor.z, 1.0f / scene.GetPointLight(i)->GetRadius());
+			PointLight* pl = scene.GetPointLight(i);
+			XMFLOAT3 worldPos = pl->GetTranslation();
+			XMFLOAT3 color = pl->GetColor();
+			plProps.worldPositionEnable = XMFLOAT4(worldPos.x, worldPos.y, worldPos.z, pl->GetEnabledState() ? 1.0 : 0.0);
+			plProps.colorInvRadius = XMFLOAT4(color.x, color.y, color.z, 1.0f / pl->GetRadius());
 
-			m_PBRLightCB.pointLights[i] = pl;
+			m_PBRLightCB.pointLights[i] = plProps;
 		}
 	}
 

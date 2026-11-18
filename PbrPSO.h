@@ -57,8 +57,8 @@ struct alignas(16) PBRMaterialProps {
 };
 
 struct alignas(16) PointLightProps {
-	XMFLOAT4 worldPosition;
-	XMFLOAT4 colorInvRadius; // x: r, y: g, z: b, a: inverse light radius (for shader optimization)
+	XMFLOAT4 worldPositionEnable; // xyz: world position, w: enable flag - skip point light calcs if not 1.0
+	XMFLOAT4 colorInvRadius;      // x: r, y: g, z: b, a: inverse light radius (for shader optimization)
 };
 
 struct alignas(16) PBRLightProps {

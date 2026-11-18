@@ -49,7 +49,7 @@ Far objects retain an even outline thickness that scales in screen space:
     - Use secondary debug camera render to see it work
 - Tessellation with hull and domain shaders with two modes:
 	- Basic uniform tessellation
-	- Distance based edge tessellation
+	- Distance based edge tessellation (see image below, tessellation applied on a 2 triangle quad)
 
 <img src="https://github.com/JKHYuen/DX12Engine/blob/edee4630c036b416d5b7c8cd29be1d9dfdf68319/screenshots/tess.png" width=50% height=50%>
 

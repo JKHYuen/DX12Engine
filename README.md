@@ -13,7 +13,7 @@ It was a challenging and time consuming process, but [this tutorial](https://www
 ## Feature Highlights
 - HDR physically based rendering (PBR) with image-based lighting (IBL)
 	- Using Epic Game's version of the Cook-Torrance BRDF developed for Unreal 4 ([link](https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf) p. 1 - 8)
-	- HDR linear space color calculations with gamma correction
+	- HDR linear space color calculations
 	- Reinhard-Jodie tonemapping ([link](https://64.github.io/tonemapping/#reinhard-jodie))
 - IBL environment maps (Irradiance and Pre-Filtered (specular) cubemap) generation from equirectangular .hdr files at runtime
 	- Skybox cubemap generation and rendering

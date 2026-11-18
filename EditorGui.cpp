@@ -802,7 +802,7 @@ LSHIFT: Move fast\n\
 
 			ImGui::SetNextItemOpen(true, ImGuiTreeNodeFlags_DefaultOpen);
 			if(ImGui::TreeNode("Point Lights")) {
-				ImGuiHelpMarker("Engine currently only supports up to 3 point lights, omnidirectional shadows are enabled by default and can not be tweaked.\n\nClick on light spheres to move them.", true, true);
+				ImGuiHelpMarker("Engine currently only supports up to 3 point lights, omnidirectional shadows are enabled by default and can not be tweaked.\n\nClick on light spheres when enabled or click the \"Select\" button to edit them.", true, true);
 
 				if(ImGui::Button("Enable All##PointLight")) {
 					for(int i = 0; i < RenderGlobals::gk_MaxPointLightCount; i++) { scene.GetPointLight(i)->SetEnabledState(true); }

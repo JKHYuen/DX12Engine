@@ -1,7 +1,6 @@
 #pragma once
 #include "DirectionalLight.h"
 #include "Events.h"
-#include "GameObject.h"
 #include "PointLight.h"
 #include "RenderConstants.h"
 #include "Skybox.h"

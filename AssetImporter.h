@@ -1,7 +1,5 @@
 #pragma once
 
-// Only needed for CD3DX12_SHADER_BYTECODE return value,
-// unsure how to avoid this while keeping the convenience of the return type
 #include "d3dx12_core.h"
 
 #include <filesystem>

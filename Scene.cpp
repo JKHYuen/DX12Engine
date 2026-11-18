@@ -10,7 +10,6 @@
 #include "Colors.h"
 #include "d3d12.h"
 #include "DirectionalLight.h"
-#include "EditorGui.h"
 #include "Events.h"
 #include "GameObject.h"
 #include "KeyCodes.h"

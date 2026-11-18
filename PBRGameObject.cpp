@@ -21,7 +21,6 @@
 #include <memory>
 #include <string>
 #include <cstdint>
-#include <cassert>
 
 using namespace RenderEnums;
 using namespace DirectX;
@@ -151,7 +150,7 @@ void PBRGameObject::Render(CommandList& directCommandList, const UpdateEventArgs
 			PointLight* pl = scene.GetPointLight(i);
 			XMFLOAT3 worldPos = pl->GetTranslation();
 			XMFLOAT3 color = pl->GetColor();
-			plProps.worldPositionEnable = XMFLOAT4(worldPos.x, worldPos.y, worldPos.z, pl->GetEnabledState() ? 1.0 : 0.0);
+			plProps.worldPositionEnable = XMFLOAT4(worldPos.x, worldPos.y, worldPos.z, pl->GetEnabledState() ? 1.0f : 0.0f);
 			plProps.colorInvRadius = XMFLOAT4(color.x, color.y, color.z, 1.0f / pl->GetRadius());
 
 			m_PBRLightCB.pointLights[i] = plProps;

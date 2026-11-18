@@ -16,6 +16,7 @@
 #include "d3dx12_root_signature.h"
 #include "dxgicommon.h"
 #include "dxgiformat.h"
+
 #include <cassert>
 #include <memory>
 #include <unordered_map>

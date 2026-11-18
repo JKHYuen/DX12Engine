@@ -8,7 +8,6 @@
 #include "DX12EngineCore/RenderTarget.h"
 #include "DX12EngineCore/SwapChain.h"
 #include "DX12EngineCore/Texture.h"
-#include "DX12EngineCore/VertexInput.h"
 #include "DX12EngineCore/Window.h"
 
 #include "AssetImporter.h"

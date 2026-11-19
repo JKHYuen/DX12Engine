@@ -15,10 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
+    <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DemoGame.cpp">
+    <ClCompile Include="src\DemoGame.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="include\HighResolutionClock.cpp">
@@ -27,13 +27,13 @@
     <ClCompile Include="include\DX12LibPCH.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Camera.cpp">
+    <ClCompile Include="src\Camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Skybox.cpp">
+    <ClCompile Include="src\Skybox.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="EditorGui.cpp">
+    <ClCompile Include="src\EditorGui.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="include\imgui\backends\imgui_impl_win32.cpp">
@@ -69,40 +69,40 @@
     <ClCompile Include="include\imgui\implot_items.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DirectionalLight.cpp">
+    <ClCompile Include="src\DirectionalLight.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="GameObject.cpp">
+    <ClCompile Include="src\GameObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Scene.cpp">
+    <ClCompile Include="src\Scene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PbrPSO.cpp">
+    <ClCompile Include="src\PbrPSO.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DX12EngineCore\Logger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Picker.cpp">
+    <ClCompile Include="src\Picker.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UnlitPSO.cpp">
+    <ClCompile Include="src\UnlitPSO.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ImageBasedLightingPSO.cpp">
+    <ClCompile Include="src\ImageBasedLightingPSO.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="BloomEffect.cpp">
+    <ClCompile Include="src\BloomEffect.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="BloomPSO.cpp">
+    <ClCompile Include="src\BloomPSO.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="OutlineEffect.cpp">
+    <ClCompile Include="src\OutlineEffect.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UnlitPrimitivePSO.cpp">
+    <ClCompile Include="src\UnlitPrimitivePSO.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DX12EngineCore\Application.cpp">
@@ -192,25 +192,25 @@
     <ClCompile Include="DX12EngineCore\Window.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="AssetImporter.cpp">
+    <ClCompile Include="src\AssetImporter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="TonemapPSO.cpp">
+    <ClCompile Include="src\TonemapPSO.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="RenderTargetPair.cpp">
+    <ClCompile Include="src\RenderTargetPair.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PointLight.cpp">
+    <ClCompile Include="src\PointLight.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="include\imgui\ImGuizmo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PBRGameObject.cpp">
+    <ClCompile Include="src\PBRGameObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DepthPSO.cpp">
+    <ClCompile Include="src\DepthPSO.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -227,22 +227,22 @@
     <ClInclude Include="include\KeyCodes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DemoGame.h">
+    <ClInclude Include="src\DemoGame.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\HighResolutionClock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Camera.h">
+    <ClInclude Include="src\Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DX12EngineCore\IGame.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Skybox.h">
+    <ClInclude Include="src\Skybox.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="EditorGui.h">
+    <ClInclude Include="src\EditorGui.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\imgui\backends\imgui_impl_dx12.h">
@@ -278,52 +278,52 @@
     <ClInclude Include="include\imgui\implot_internal.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DirectionalLight.h">
+    <ClInclude Include="src\DirectionalLight.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="GameObject.h">
+    <ClInclude Include="src\GameObject.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Scene.h">
+    <ClInclude Include="src\Scene.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PbrPSO.h">
+    <ClInclude Include="src\PbrPSO.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DX12EngineCore\Logger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DataArray.h">
+    <ClInclude Include="src\DataArray.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Picker.h">
+    <ClInclude Include="src\Picker.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UnlitPSO.h">
+    <ClInclude Include="src\UnlitPSO.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="StringHelpers.h">
+    <ClInclude Include="src\StringHelpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="AssetImporter.h">
+    <ClInclude Include="src\AssetImporter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ImageBasedLightingPSO.h">
+    <ClInclude Include="src\ImageBasedLightingPSO.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="BloomEffect.h">
+    <ClInclude Include="src\BloomEffect.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="BloomPSO.h">
+    <ClInclude Include="src\BloomPSO.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Colors.h">
+    <ClInclude Include="src\Colors.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="OutlineEffect.h">
+    <ClInclude Include="src\OutlineEffect.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="UnlitPrimitivePSO.h">
+    <ClInclude Include="src\UnlitPrimitivePSO.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DX12EngineCore\Application.h">
@@ -422,25 +422,25 @@
     <ClInclude Include="include\DirectXTex.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TonemapPSO.h">
+    <ClInclude Include="src\TonemapPSO.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="RenderTargetPair.h">
+    <ClInclude Include="src\RenderTargetPair.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PointLight.h">
+    <ClInclude Include="src\PointLight.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="RenderConstants.h">
+    <ClInclude Include="src\RenderConstants.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\imgui\ImGuizmo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PBRGameObject.h">
+    <ClInclude Include="src\PBRGameObject.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DepthPSO.h">
+    <ClInclude Include="src\DepthPSO.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="shaders\Common.hlsli" />

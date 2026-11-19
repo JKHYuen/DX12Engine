@@ -51,6 +51,7 @@
     <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
     <IntDir>$(ShortProjectName).dir\$(Configuration)\</IntDir>
     <RunCodeAnalysis>true</RunCodeAnalysis>
+    <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -58,7 +59,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir);include\imgui;include\imgui\backends;include;include\directx;include\assimp;$(OutDir)compiled_shaders/;shaders</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);include\imgui;include\imgui\backends;include;include\directx;include\assimp;$(OutDir)compiled_shaders/;shaders;src</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>DX12LibPCH.h</PrecompiledHeaderFile>
@@ -87,7 +88,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir);include\imgui;include\imgui\backends;include;include\directx;include\assimp;$(OutDir)compiled_shaders/;shaders</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);include\imgui;include\imgui\backends;include;include\directx;include\assimp;$(OutDir)compiled_shaders/;shaders;src</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>DX12LibPCH.h</PrecompiledHeaderFile>
@@ -109,13 +110,13 @@
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="AssetImporter.cpp" />
-    <ClCompile Include="BloomEffect.cpp" />
-    <ClCompile Include="BloomPSO.cpp" />
-    <ClCompile Include="Camera.cpp" />
-    <ClCompile Include="DemoGame.cpp" />
-    <ClCompile Include="DepthPSO.cpp" />
-    <ClCompile Include="DirectionalLight.cpp" />
+    <ClCompile Include="src\AssetImporter.cpp" />
+    <ClCompile Include="src\BloomEffect.cpp" />
+    <ClCompile Include="src\BloomPSO.cpp" />
+    <ClCompile Include="src\Camera.cpp" />
+    <ClCompile Include="src\DemoGame.cpp" />
+    <ClCompile Include="src\DepthPSO.cpp" />
+    <ClCompile Include="src\DirectionalLight.cpp" />
     <ClCompile Include="DX12EngineCore\Application.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
@@ -229,13 +230,13 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="GameObject.cpp" />
-    <ClCompile Include="EditorGui.cpp">
+    <ClCompile Include="src\GameObject.cpp" />
+    <ClCompile Include="src\EditorGui.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="PBRGameObject.cpp" />
-    <ClCompile Include="ImageBasedLightingPSO.cpp" />
+    <ClCompile Include="src\PBRGameObject.cpp" />
+    <ClCompile Include="src\ImageBasedLightingPSO.cpp" />
     <ClCompile Include="include\DX12LibPCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
@@ -257,27 +258,27 @@
     <ClCompile Include="include\imgui\implot_demo.cpp" />
     <ClCompile Include="include\imgui\implot_items.cpp" />
     <ClCompile Include="DX12EngineCore\Logger.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="OutlineEffect.cpp" />
-    <ClCompile Include="PointLight.cpp" />
-    <ClCompile Include="RenderTargetPair.cpp" />
-    <ClCompile Include="TonemapPSO.cpp" />
-    <ClCompile Include="UnlitPrimitivePSO.cpp" />
-    <ClCompile Include="UnlitPSO.cpp" />
-    <ClCompile Include="PbrPSO.cpp" />
-    <ClCompile Include="Picker.cpp" />
-    <ClCompile Include="Scene.cpp" />
-    <ClCompile Include="Skybox.cpp" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\OutlineEffect.cpp" />
+    <ClCompile Include="src\PointLight.cpp" />
+    <ClCompile Include="src\RenderTargetPair.cpp" />
+    <ClCompile Include="src\TonemapPSO.cpp" />
+    <ClCompile Include="src\UnlitPrimitivePSO.cpp" />
+    <ClCompile Include="src\UnlitPSO.cpp" />
+    <ClCompile Include="src\PbrPSO.cpp" />
+    <ClCompile Include="src\Picker.cpp" />
+    <ClCompile Include="src\Scene.cpp" />
+    <ClCompile Include="src\Skybox.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AssetImporter.h" />
-    <ClInclude Include="BloomEffect.h" />
-    <ClInclude Include="BloomPSO.h" />
-    <ClInclude Include="Camera.h" />
-    <ClInclude Include="Colors.h" />
-    <ClInclude Include="DemoGame.h" />
-    <ClInclude Include="DepthPSO.h" />
-    <ClInclude Include="DirectionalLight.h" />
+    <ClInclude Include="src\AssetImporter.h" />
+    <ClInclude Include="src\BloomEffect.h" />
+    <ClInclude Include="src\BloomPSO.h" />
+    <ClInclude Include="src\Camera.h" />
+    <ClInclude Include="src\Colors.h" />
+    <ClInclude Include="src\DemoGame.h" />
+    <ClInclude Include="src\DepthPSO.h" />
+    <ClInclude Include="src\DirectionalLight.h" />
     <ClInclude Include="DX12EngineCore\Application.h" />
     <ClInclude Include="DX12EngineCore\Buffer.h" />
     <ClInclude Include="DX12EngineCore\ByteAddressBuffer.h" />
@@ -309,12 +310,12 @@
     <ClInclude Include="DX12EngineCore\VertexBuffer.h" />
     <ClInclude Include="DX12EngineCore\VertexInput.h" />
     <ClInclude Include="DX12EngineCore\Window.h" />
-    <ClInclude Include="GameObject.h" />
-    <ClInclude Include="DataArray.h" />
+    <ClInclude Include="src\GameObject.h" />
+    <ClInclude Include="src\DataArray.h" />
     <ClInclude Include="DX12EngineCore\IGame.h" />
-    <ClInclude Include="EditorGui.h" />
-    <ClInclude Include="PBRGameObject.h" />
-    <ClInclude Include="ImageBasedLightingPSO.h" />
+    <ClInclude Include="src\EditorGui.h" />
+    <ClInclude Include="src\PBRGameObject.h" />
+    <ClInclude Include="src\ImageBasedLightingPSO.h" />
     <ClInclude Include="include\DirectXTex.h" />
     <ClInclude Include="include\HighResolutionClock.h" />
     <ClInclude Include="include\DX12LibPCH.h" />
@@ -334,18 +335,18 @@
     <ClInclude Include="include\imgui\imstb_truetype.h" />
     <ClInclude Include="include\KeyCodes.h" />
     <ClInclude Include="DX12EngineCore\Logger.h" />
-    <ClInclude Include="OutlineEffect.h" />
-    <ClInclude Include="PointLight.h" />
-    <ClInclude Include="RenderConstants.h" />
-    <ClInclude Include="RenderTargetPair.h" />
-    <ClInclude Include="TonemapPSO.h" />
-    <ClInclude Include="UnlitPrimitivePSO.h" />
-    <ClInclude Include="UnlitPSO.h" />
-    <ClInclude Include="PbrPSO.h" />
-    <ClInclude Include="Picker.h" />
-    <ClInclude Include="Scene.h" />
-    <ClInclude Include="Skybox.h" />
-    <ClInclude Include="StringHelpers.h" />
+    <ClInclude Include="src\OutlineEffect.h" />
+    <ClInclude Include="src\PointLight.h" />
+    <ClInclude Include="src\RenderConstants.h" />
+    <ClInclude Include="src\RenderTargetPair.h" />
+    <ClInclude Include="src\TonemapPSO.h" />
+    <ClInclude Include="src\UnlitPrimitivePSO.h" />
+    <ClInclude Include="src\UnlitPSO.h" />
+    <ClInclude Include="src\PbrPSO.h" />
+    <ClInclude Include="src\Picker.h" />
+    <ClInclude Include="src\Scene.h" />
+    <ClInclude Include="src\Skybox.h" />
+    <ClInclude Include="src\StringHelpers.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="shaders\Common.hlsli">

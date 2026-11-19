@@ -105,9 +105,12 @@ This was a first attempt at a modern renderer, some important base systems like 
 - https://www.turbosquid.com/3d-models/3d-realistic-viking-sword-2047899
 
 ## Resources Used
+ - https://github.com/microsoft/DirectX-Headers 
+ - https://github.com/microsoft/DirectXTex
  - https://github.com/ocornut/imgui
  	- https://github.com/epezent/implot
-    - https://github.com/CedricGuillemet/ImGuizmo 	 
+    - https://github.com/CedricGuillemet/ImGuizmo
+ - https://github.com/assimp/assimp
  - https://www.3dgep.com/learning-directx-12-1/ (Lessons 1 - 4)
  - https://learnopengl.com/PBR/IBL/Diffuse-irradiance
  - https://learnopengl.com/Advanced-Lighting/Parallax-Mapping

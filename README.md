@@ -5,7 +5,7 @@ It was a challenging and time consuming process, but [this tutorial](https://www
 
 ***Windows 64-bit required, only tested on a NVIDIA gpu**
 
-Demo builds: https://github.com/JKHYuen/DX12Engine/releases
+[Download Demo Builds Here](https://github.com/JKHYuen/DX12Engine/releases)
 
 **NOTE: This engine renders in HDR colors with floating point color buffers, however Windows HDR mode is not currently supported. Rendering still works, but colors will not be properly tonemapped (it will look dim).**
 

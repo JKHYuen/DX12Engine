@@ -1,5 +1,3 @@
-// EditorGui is currently only hardcoded to work with the "DemoGame" class
-
 #include "EditorGui.h"
 
 #include <DX12LibPCH.h>
@@ -43,6 +41,8 @@ using namespace DirectX;
 
 namespace {
 	EditorGui* sp_Singleton = nullptr;
+
+	constexpr float sk_UIBorder = 15.0f;
 
 	constexpr ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
 	// HDR color picker is WIP in ImGui, color picker disabled since it doesn't support HDR. 
@@ -450,7 +450,7 @@ void EditorGui::DrawGameDebugUI(Device& device, Scene& scene, DemoGame& game) {
 	};
 
 	if(sb_ShowDebugWindow) {
-		ImGui::SetNextWindowPos({ (float)game.m_WindowWidth * 0.01f, (float)game.m_WindowHeight * 0.01f }, ImGuiCond_Once);
+		ImGui::SetNextWindowPos({ sk_UIBorder, sk_UIBorder }, ImGuiCond_Once);
 
 		// b_CurrentDebugWindowState added only for x button to work
 		bool b_CurrentDebugWindowState = sb_ShowDebugWindow;
@@ -605,7 +605,7 @@ LSHIFT: Move fast\n\
 						game.mb_EnableDebugCameraRender = false;
 					}
 
-					ImGui::SetNextWindowPos({ (float)game.m_WindowWidth * 0.99f, (float)game.m_WindowHeight * 0.99f }, ImGuiCond_Once, { 1.0f, 1.0f });
+					ImGui::SetNextWindowPos({ (float)game.m_WindowWidth - sk_UIBorder, (float)game.m_WindowHeight - sk_UIBorder }, ImGuiCond_Once, { 1.0f, 1.0f });
 					ImGui::Begin("Debug Camera", &game.mb_EnableDebugCameraRender, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_AlwaysAutoResize);
 					static float imageScale = 0.25f;
 					ImageWithSRV("##Debug Camera Texture Scale", ImGuiDebugSRVIndex::DebugCamera, game.m_WindowWidth, game.m_WindowHeight, imageScale);
@@ -899,6 +899,7 @@ LSHIFT: Move fast\n\
 	}
 }
 
+/// TODO: Known bug - objects with the same name will have the same window property entry in ImGui file
 void EditorGui::DrawObjectInspector(Device& device, const DemoGame& game) {
 	if(!sb_ObjectInspectorState) return;
 
@@ -977,8 +978,8 @@ void EditorGui::DrawObjectInspector(Device& device, const DemoGame& game) {
 	s_LastPickedObject = pickedGameObject;
 
 	// Default object inspector location
-	ImGui::SetNextWindowPos({ (float)game.m_WindowWidth * 0.8f, (float)game.m_WindowHeight * 0.05f }, ImGuiCond_Once);
-	ImGui::SetNextWindowSize({450.0f, 0.0f}, ImGuiCond_Once);
+	ImGui::SetNextWindowPos({ (float)game.m_WindowWidth - sk_UIBorder, sk_UIBorder }, ImGuiCond_Once, { 1.0f, 0.0f });
+	ImGui::SetNextWindowSize({550.0f, 0.0f}, ImGuiCond_Once);
 
 	// sb_ObjectInspectorState var is used to control object inspector state outside of just checking if picked object is a nullptr
 	ImGui::Begin(s_ObjectName.c_str(), &sb_ObjectInspectorState, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);

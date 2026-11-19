@@ -1,9 +1,11 @@
 # C++ DX12 Game Engine
 3D DirectX 12 engine made from scratch in C++. After familiarizing myself with Direct3D and rendering in my [DX11 Project](https://github.com/JKHYuen/DX11Engine), I started over and ported all the features to DX12 to get some experience with a modern rendering API. New features were added and old ones were completely rewritten and generally improved with modern C++. 
 
-It was a challenging and time consuming process, but [this tutorial](https://www.3dgep.com/learning-directx-12-1/) series provided a good start. All source files that started from the tutorial have the orignial copyright notices in the headers. Major changes are documented but it is non-exhaustive, [see here](https://github.com/jpvanoosten/LearningDirectX12) for the original tutorial source. This is an ongoing project for learning rendering techniques, but I plan to eventually transition to a more robust abstraction layer like [NVRHI](https://github.com/NVIDIA-RTX/NVRHI) for a more serious project. 
+It was a challenging and time consuming process, but [this tutorial](https://www.3dgep.com/learning-directx-12-1/) series provided a good start. All source files that started from the tutorial have the original copyright notices in the headers. Major changes are documented but it is non-exhaustive, [see here](https://github.com/jpvanoosten/LearningDirectX12) for the original tutorial source. This is an ongoing project for learning rendering techniques, but I plan to eventually transition to a more robust abstraction layer like [NVRHI](https://github.com/NVIDIA-RTX/NVRHI) for a more serious project. 
 
 ***Windows 64-bit required, only tested on a NVIDIA gpu**
+
+Demo builds: https://github.com/JKHYuen/DX12Engine/releases
 
 **NOTE: This engine renders in HDR colors with floating point color buffers, however Windows HDR mode is not currently supported. Rendering still works, but colors will not be properly tonemapped (it will look dim).**
 

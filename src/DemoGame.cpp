@@ -64,7 +64,7 @@ namespace {
 	const std::wstring s_defaultSkyboxName = L"industrial_sunset_puresky_4k.hdr";
 
 	constexpr XMFLOAT3 s_StartingDirLightColor = XMFLOAT3(9.0f, 8.0f, 7.0f);
-	constexpr XMFLOAT3 s_StartingDirLightDegreeAngle = XMFLOAT3(140.0f, 230.0f, 0.0f);
+	constexpr XMFLOAT3 s_StartingDirLightDegreeAngle = XMFLOAT3(140.0f, 220.0f, 0.0f);
 	
 	// Default Directional Light Shadow params
 	constexpr int   s_StartingShadowMapResolution = 4096;
@@ -305,7 +305,7 @@ DemoGame::DemoGame(const std::wstring& name, uint32_t windowWidth, uint32_t wind
 			goRenderProps.pbrMatName = L"bog";
 			goRenderProps.uvScale = XMFLOAT2(5.0f, 5.0f);
 			goRenderProps.heightMapMagnitude = 0.0f;
-			goRenderProps.parallaxMagnitude = 0.018f;
+			goRenderProps.parallaxMagnitude = 0.025f;
 			goRenderProps.useParallaxShadow = true;
 			goRenderProps.isShadowCaster = false;
 			m_DemoScene->AddGameObject(std::make_unique<PBRGameObject>(*m_DemoScene, *copyCommandList, goParams, goRenderProps, copyCommandList->GetQuadPrimitive()));

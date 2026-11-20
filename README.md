@@ -25,7 +25,7 @@ It was a challenging and time consuming process, but [this tutorial](https://www
 
 - Bloom
 	- Progressive down and up sampling with box sampling
-- A novel screen space outline effect implementation that provides geometry agnostic outlining for clicked objects
+- A novel screen space outline effect implementation that provides geometry-agnostic outlining for clicked objects
     - Low resolution post-process bloom pass provides an outline effect with even thickness in screen space
     - Bloom effect also provides a useful feature where smaller objects relative to the screen will have thicker (more feathered) outlines than bigger objects
 		- this method does not use depth information, so it does not provide inner outlines and does not have any of the usual depth artifacts, which are desirable features for a scene editing tool
